@@ -1,0 +1,49 @@
+# Root-level project metadata and shared tool configuration.
+#
+# The actual backend application lives at `backend/` and will declare its own
+# dependencies in `backend/pyproject.toml` when issue #2 (backend skeleton)
+# lands. This file is the workspace root: it declares shared tool configs
+# (ruff, mypy, pytest) so contributors get consistent behavior whether they
+# invoke tools from the repo root or from a subdirectory.
+
+[project]
+name = "voxel-ledger"
+version = "0.0.0"
+description = "Print Sales v2 — full-stack 3D-print business platform (rewrite)."
+requires-python = ">=3.12"
+readme = "README.md"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["print-sales-v2", "frontend", "ops", "docs"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/**" = ["B011"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+exclude = ["print-sales-v2", "frontend", "ops", "docs"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"

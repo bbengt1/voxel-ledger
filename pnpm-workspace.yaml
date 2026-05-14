@@ -1,0 +1,12 @@
+# pnpm workspace configuration.
+#
+# We chose pnpm over npm/yarn for two reasons:
+#   1. Strict module resolution (no phantom dependencies) — Vite + React 19
+#      have shown odd hoisting issues with npm; pnpm's symlinked node_modules
+#      avoids them entirely.
+#   2. Faster installs and a content-addressable store, which keeps CI cache
+#      footprint small.
+#
+# The `frontend/` package will be added in issue #4 (frontend skeleton).
+packages:
+  - "frontend"
