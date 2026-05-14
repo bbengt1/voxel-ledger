@@ -166,7 +166,7 @@ export function MaterialsListPage() {
                 <td className="py-2 pr-2">{m.material_type}</td>
                 <td className="py-2 pr-2">{m.color ?? "—"}</td>
                 <td className="py-2 pr-2">{m.current_cost_per_gram}</td>
-                <td className="py-2 pr-2">{m.on_hand_grams}</td>
+                <td className="py-2 pr-2">{m.total_on_hand}</td>
                 <td className="py-2 pr-2">
                   {m.is_archived ? "Archived" : "Active"}
                 </td>

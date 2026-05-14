@@ -15,7 +15,9 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.form_templates import router as form_templates_router
+from app.api.v1.inventory_alerts import router as inventory_alerts_router
 from app.api.v1.inventory_locations import router as inventory_locations_router
+from app.api.v1.inventory_on_hand import router as inventory_on_hand_router
 from app.api.v1.inventory_transactions import router as inventory_transactions_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
@@ -33,7 +35,9 @@ api_router.include_router(settings_router)
 api_router.include_router(users_router)
 api_router.include_router(custom_fields_router)
 api_router.include_router(form_templates_router)
+api_router.include_router(inventory_alerts_router)
 api_router.include_router(inventory_locations_router)
+api_router.include_router(inventory_on_hand_router)
 api_router.include_router(inventory_transactions_router)
 api_router.include_router(materials_router)
 api_router.include_router(notes_router)

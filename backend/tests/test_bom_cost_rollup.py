@@ -53,7 +53,6 @@ async def test_multi_level_cost_rollup(engine) -> None:
             unit="ea",
             unit_cost=Decimal("5"),
             vendor=None,
-            on_hand=Decimal("0"),
             actor_user_id=None,
         )
         p1 = await products_service.create(

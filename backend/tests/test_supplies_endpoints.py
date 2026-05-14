@@ -91,7 +91,7 @@ async def test_create_get_patch_archive_unarchive_happy_path(
             "unit": "m",
             "unit_cost": "0.25",
             "vendor": "ULINE",
-            "on_hand": "100",
+            "low_stock_threshold": "50",
         },
     )
     assert create.status_code == 201, create.text
@@ -100,7 +100,11 @@ async def test_create_get_patch_archive_unarchive_happy_path(
     from decimal import Decimal as _D
 
     assert _D(body["unit_cost"]) == _D("0.25")
-    assert _D(body["on_hand"]) == _D("100")
+    # Phase 3.3: no on_hand on create — balances are seeded via the
+    # inventory-transactions endpoint as adjustments.
+    assert _D(body["total_on_hand"]) == _D("0")
+    assert body["per_location_on_hand"] == {}
+    assert _D(body["low_stock_threshold"]) == _D("50")
 
     got = await client.get(f"/api/v1/supplies/{sid}", headers=_h(owner))
     assert got.status_code == 200

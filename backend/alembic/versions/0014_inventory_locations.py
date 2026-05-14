@@ -81,9 +81,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ux_inventory_location_code_active", table_name="inventory_location"
-    )
+    op.drop_index("ux_inventory_location_code_active", table_name="inventory_location")
     op.drop_table("inventory_location")
 
     bind = op.get_bind()

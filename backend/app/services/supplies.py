@@ -6,9 +6,11 @@ transaction as the row write so the wildcard audit-log projection
 picks it up.
 
 Unlike materials, supplies don't have a receipts sub-resource —
-``unit_cost`` is set directly on create/update. ``on_hand`` is a
-read-side cache; only the initial balance is set here. Future Phase 3
-inventory transactions will own subsequent updates.
+``unit_cost`` is set directly on create/update. Phase 3.3 (#52): the
+``on_hand`` column has been removed; on-hand balances now live in
+``inventory_on_hand`` and are owned by the corresponding projection.
+Callers seed starting balances via the inventory-transactions
+endpoint (kind=``adjustment``), not through supply create.
 """
 
 from __future__ import annotations
@@ -127,8 +129,8 @@ async def create(
     unit: str,
     unit_cost: Decimal,
     vendor: str | None,
-    on_hand: Decimal,
     actor_user_id: uuid.UUID | None,
+    low_stock_threshold: Decimal | None = None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Supply:
     name = name.strip()
@@ -148,7 +150,7 @@ async def create(
         unit=unit,
         unit_cost=unit_cost,
         vendor=vendor_norm,
-        on_hand=on_hand,
+        low_stock_threshold=low_stock_threshold,
         is_archived=False,
         custom_fields=normalized_cf,
     )
@@ -179,7 +181,7 @@ async def get(session: AsyncSession, supply_id: uuid.UUID) -> Supply:
     return row
 
 
-_EDITABLE_FIELDS = ("name", "unit", "unit_cost", "vendor")
+_EDITABLE_FIELDS = ("name", "unit", "unit_cost", "vendor", "low_stock_threshold")
 
 
 async def update(

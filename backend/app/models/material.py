@@ -1,11 +1,17 @@
-"""ORM model for the ``material`` catalog table (Phase 2.1).
+"""ORM model for the ``material`` catalog table (Phase 2.1, 3.3).
 
 A material is one physical filament/resin SKU. ``current_cost_per_gram``
-and ``on_hand_grams`` are read-side caches maintained by the
-``material_cost`` projection from the ``inventory.MaterialReceived``
-event stream — never mutated directly by service code. The unique
-constraint on ``(name, brand, color) where is_archived = false`` keeps
-the active catalog free of dupes while allowing archived rows to
+is a read-side cache maintained by the ``material_cost`` projection from
+the ``inventory.MaterialReceived`` event stream — never mutated directly
+by service code.
+
+Phase 3.3 (#52) refactor: ``on_hand_grams`` is GONE. On-hand quantities
+now live in ``inventory_on_hand``, summed per ``(entity_kind, entity_id,
+location_id)`` triple. ``low_stock_threshold_grams`` is a new editable
+column; NULL means no alert is configured.
+
+The unique constraint on ``(name, brand, color) where is_archived = false``
+keeps the active catalog free of dupes while allowing archived rows to
 coexist with a fresh entry of the same name.
 
 ``custom_fields`` is intentionally out of scope here (lands in #2.5).
@@ -50,12 +56,9 @@ class Material(Base):
         default=Decimal("0"),
         server_default="0",
     )
-    on_hand_grams: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6),
-        nullable=False,
-        default=Decimal("0"),
-        server_default="0",
-    )
+
+    # Phase 3.3: low-stock alert threshold. NULL = no alert configured.
+    low_stock_threshold_grams: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="0"

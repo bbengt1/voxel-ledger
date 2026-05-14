@@ -8,6 +8,7 @@ role.
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -24,6 +25,7 @@ from app.schemas.products import (
     ProductUpdateRequest,
 )
 from app.services import custom_fields as cf_service
+from app.services import inventory_alerts as alerts_service
 from app.services import products as products_service
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -36,7 +38,11 @@ async def _refresh_for_response(session: AsyncSession, product: Product) -> None
     )
 
 
-def _to_response(product: Product) -> ProductResponse:
+async def _to_response(session: AsyncSession, product: Product) -> ProductResponse:
+    per_location = await alerts_service.on_hand_for_entity(
+        session=session, entity_kind="product", entity_id=product.id
+    )
+    total = sum(per_location.values(), start=Decimal("0"))
     return ProductResponse(
         id=product.id,
         sku=product.sku,
@@ -47,6 +53,9 @@ def _to_response(product: Product) -> ProductResponse:
         unit_cost_cached=product.unit_cost_cached,
         weight_grams=product.weight_grams,
         category=product.category,
+        total_on_hand=total,
+        per_location_on_hand=per_location,
+        low_stock_threshold=product.low_stock_threshold,
         is_archived=product.is_archived,
         custom_fields=dict(product.custom_fields or {}),
         created_at=product.created_at,
@@ -70,6 +79,7 @@ async def create_product(
             upc=payload.upc,
             weight_grams=payload.weight_grams,
             category=payload.category,
+            low_stock_threshold=payload.low_stock_threshold,
             actor_user_id=actor.id,
             custom_fields=payload.custom_fields,
         )
@@ -84,7 +94,7 @@ async def create_product(
         ) from None
     await _refresh_for_response(session, product)
     await session.commit()
-    return _to_response(product)
+    return await _to_response(session, product)
 
 
 @router.get("", response_model=ProductListResponse)
@@ -109,7 +119,7 @@ async def list_products(
     except products_service.ProductsServiceError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     return ProductListResponse(
-        items=[_to_response(p) for p in page.items],
+        items=[await _to_response(session, p) for p in page.items],
         next_cursor=page.next_cursor,
     )
 
@@ -126,7 +136,7 @@ async def lookup_product(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="product not found"
         ) from None
-    return _to_response(product)
+    return await _to_response(session, product)
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -141,7 +151,7 @@ async def get_product(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="product not found"
         ) from None
-    return _to_response(product)
+    return await _to_response(session, product)
 
 
 @router.patch("/{product_id}", response_model=ProductResponse)
@@ -177,7 +187,7 @@ async def update_product(
         ) from None
     await _refresh_for_response(session, product)
     await session.commit()
-    return _to_response(product)
+    return await _to_response(session, product)
 
 
 @router.post("/{product_id}/archive", response_model=ProductResponse)
@@ -197,7 +207,7 @@ async def archive_product(
         ) from None
     await _refresh_for_response(session, product)
     await session.commit()
-    return _to_response(product)
+    return await _to_response(session, product)
 
 
 @router.post("/{product_id}/unarchive", response_model=ProductResponse)
@@ -217,4 +227,4 @@ async def unarchive_product(
         ) from None
     await _refresh_for_response(session, product)
     await session.commit()
-    return _to_response(product)
+    return await _to_response(session, product)

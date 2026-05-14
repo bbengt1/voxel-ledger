@@ -105,7 +105,8 @@ async def test_create_get_patch_archive_unarchive_happy_path(
     assert create.status_code == 201, create.text
     mid = create.json()["id"]
     assert create.json()["current_cost_per_gram"] == "0.000000"
-    assert create.json()["on_hand_grams"] == "0.000000"
+    assert create.json()["total_on_hand"] == "0"
+    assert create.json()["per_location_on_hand"] == {}
 
     # GET
     got = await client.get(f"/api/v1/materials/{mid}", headers=_h(owner))
@@ -213,7 +214,7 @@ async def test_record_receipt_updates_cost_in_response(
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["current_cost_per_gram"] == "20.000000"
-    assert body["on_hand_grams"] == "1000.000000"
+    assert body["total_on_hand"] == "1000.000000"
 
 
 @pytest.mark.asyncio

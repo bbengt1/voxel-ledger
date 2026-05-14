@@ -1,4 +1,4 @@
-"""Pydantic schemas for the materials API surface (Phase 2.1)."""
+"""Pydantic schemas for the materials API surface (Phase 2.1, 3.3)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,11 @@ class MaterialResponse(BaseModel):
     color: str | None = None
     density_g_per_cm3: Decimal | None = None
     current_cost_per_gram: Decimal
-    on_hand_grams: Decimal
+    # Phase 3.3 (#52): on-hand grams now live in ``inventory_on_hand``;
+    # the API exposes the cross-location total plus a per-location map.
+    total_on_hand: Decimal = Field(default=Decimal("0"))
+    per_location_on_hand: dict[uuid.UUID, Decimal] = Field(default_factory=dict)
+    low_stock_threshold_grams: Decimal | None = None
     is_archived: bool
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
@@ -53,6 +57,7 @@ class MaterialCreateRequest(BaseModel):
     material_type: str = Field(min_length=1, max_length=64)
     color: str | None = Field(default=None, max_length=64)
     density_g_per_cm3: Decimal | None = Field(default=None, ge=0)
+    low_stock_threshold_grams: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 
@@ -64,6 +69,7 @@ class MaterialUpdateRequest(BaseModel):
     material_type: str | None = Field(default=None, min_length=1, max_length=64)
     color: str | None = Field(default=None, max_length=64)
     density_g_per_cm3: Decimal | None = Field(default=None, ge=0)
+    low_stock_threshold_grams: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 

@@ -4,10 +4,11 @@ Every mutation appends a typed ``catalog.*`` event via
 ``EventStore.append`` inside the same transaction as the row write, so
 the wildcard audit-log projection picks it up automatically.
 
-Read-side caches (``current_cost_per_gram``, ``on_hand_grams``) are
-NEVER set by service code — they live behind the
-``inventory.MaterialReceived`` event and the ``material_cost``
-projection. This module deliberately ignores those columns on
+Read-side caches (``current_cost_per_gram``) are NEVER set by service
+code — they live behind the ``inventory.MaterialReceived`` event and
+the ``material_cost`` projection. On-hand quantities (Phase 3.3) live
+in ``inventory_on_hand``, populated by the ``inventory_on_hand``
+projection. This module deliberately ignores both caches on
 create/update.
 """
 
@@ -132,6 +133,7 @@ async def create(
     color: str | None,
     density_g_per_cm3: Decimal | None,
     actor_user_id: uuid.UUID | None,
+    low_stock_threshold_grams: Decimal | None = None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Material:
     name = name.strip()
@@ -153,7 +155,7 @@ async def create(
         color=color_norm,
         density_g_per_cm3=density_g_per_cm3,
         current_cost_per_gram=Decimal("0"),
-        on_hand_grams=Decimal("0"),
+        low_stock_threshold_grams=low_stock_threshold_grams,
         is_archived=False,
         custom_fields=normalized_cf,
     )
@@ -202,6 +204,7 @@ _EDITABLE_FIELDS = (
     "material_type",
     "color",
     "density_g_per_cm3",
+    "low_stock_threshold_grams",
 )
 
 

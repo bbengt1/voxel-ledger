@@ -389,6 +389,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/alerts/low-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Low Stock Alerts
+         * @description Return entities whose ``total_on_hand < low_stock_threshold``.
+         *
+         *     Entities with no configured threshold never appear. Sorted by
+         *     deficit descending. All authenticated roles can read this — the
+         *     alert surface needs broad visibility.
+         */
+        get: operations["list_low_stock_alerts_api_v1_inventory_alerts_low_stock_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory/locations": {
         parameters: {
             query?: never;
@@ -453,6 +477,30 @@ export interface paths {
         put?: never;
         /** Unarchive Location */
         post: operations["unarchive_location_api_v1_inventory_locations__location_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/on-hand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List On Hand
+         * @description Return ``inventory_on_hand`` rows, optionally filtered.
+         *
+         *     Default shape: a list of per-(entity, location) rows AND a list of
+         *     per-entity summaries (total + per-location map). The caller can use
+         *     either depending on whether they need the breakdown or the rollup.
+         */
+        get: operations["list_on_hand_api_v1_inventory_on_hand_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1797,6 +1845,32 @@ export interface components {
             /** Refresh Token */
             refresh_token: string;
         };
+        /** LowStockAlertListResponse */
+        LowStockAlertListResponse: {
+            /** Items */
+            items?: components["schemas"]["LowStockAlertResponse"][];
+        };
+        /** LowStockAlertResponse */
+        LowStockAlertResponse: {
+            /** Deficit */
+            deficit: string;
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /** Entity Name */
+            entity_name: string;
+            /** Threshold */
+            threshold: string;
+            /** Total On Hand */
+            total_on_hand: string;
+        };
         /** MaterialCreateRequest */
         MaterialCreateRequest: {
             /** Brand */
@@ -1809,6 +1883,8 @@ export interface components {
             } | null;
             /** Density G Per Cm3 */
             density_g_per_cm3?: number | string | null;
+            /** Low Stock Threshold Grams */
+            low_stock_threshold_grams?: number | string | null;
             /** Material Type */
             material_type: string;
             /** Name */
@@ -1843,14 +1919,23 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Low Stock Threshold Grams */
+            low_stock_threshold_grams?: string | null;
             /** Material Type */
             material_type: string;
             /** Name */
             name: string;
-            /** On Hand Grams */
-            on_hand_grams: string;
+            /** Per Location On Hand */
+            per_location_on_hand?: {
+                [key: string]: string;
+            };
             /** Recent Receipts */
             recent_receipts?: components["schemas"]["MaterialReceiptResponse"][];
+            /**
+             * Total On Hand
+             * @default 0
+             */
+            total_on_hand: string;
             /**
              * Updated At
              * Format: date-time
@@ -1940,12 +2025,21 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Low Stock Threshold Grams */
+            low_stock_threshold_grams?: string | null;
             /** Material Type */
             material_type: string;
             /** Name */
             name: string;
-            /** On Hand Grams */
-            on_hand_grams: string;
+            /** Per Location On Hand */
+            per_location_on_hand?: {
+                [key: string]: string;
+            };
+            /**
+             * Total On Hand
+             * @default 0
+             */
+            total_on_hand: string;
             /**
              * Updated At
              * Format: date-time
@@ -1967,6 +2061,8 @@ export interface components {
             } | null;
             /** Density G Per Cm3 */
             density_g_per_cm3?: number | string | null;
+            /** Low Stock Threshold Grams */
+            low_stock_threshold_grams?: number | string | null;
             /** Material Type */
             material_type?: string | null;
             /** Name */
@@ -2045,6 +2141,55 @@ export interface components {
             /** Body */
             body: string;
         };
+        /** OnHandListResponse */
+        OnHandListResponse: {
+            /** Rows */
+            rows?: components["schemas"]["OnHandRowResponse"][];
+            /** Summaries */
+            summaries?: components["schemas"]["OnHandSummaryResponse"][];
+        };
+        /** OnHandRowResponse */
+        OnHandRowResponse: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /**
+             * Location Id
+             * Format: uuid
+             */
+            location_id: string;
+            /** On Hand */
+            on_hand: string;
+        };
+        /**
+         * OnHandSummaryResponse
+         * @description Aggregated across locations for a single entity.
+         */
+        OnHandSummaryResponse: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /** Per Location */
+            per_location?: {
+                [key: string]: string;
+            };
+            /** Total On Hand */
+            total_on_hand: string;
+        };
         /** PasswordResetResponse */
         PasswordResetResponse: {
             /** Generated Password */
@@ -2065,6 +2210,8 @@ export interface components {
             } | null;
             /** Description */
             description?: string | null;
+            /** Low Stock Threshold */
+            low_stock_threshold?: number | string | null;
             /** Name */
             name: string;
             /** Sku */
@@ -2105,10 +2252,21 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Low Stock Threshold */
+            low_stock_threshold?: string | null;
             /** Name */
             name: string;
+            /** Per Location On Hand */
+            per_location_on_hand?: {
+                [key: string]: string;
+            };
             /** Sku */
             sku: string;
+            /**
+             * Total On Hand
+             * @default 0
+             */
+            total_on_hand: string;
             /** Unit Cost Cached */
             unit_cost_cached?: string | null;
             /** Unit Price */
@@ -2136,6 +2294,8 @@ export interface components {
             } | null;
             /** Description */
             description?: string | null;
+            /** Low Stock Threshold */
+            low_stock_threshold?: number | string | null;
             /** Name */
             name?: string | null;
             /** Sku */
@@ -2295,13 +2455,10 @@ export interface components {
             custom_fields?: {
                 [key: string]: unknown;
             } | null;
+            /** Low Stock Threshold */
+            low_stock_threshold?: number | string | null;
             /** Name */
             name: string;
-            /**
-             * On Hand
-             * @default 0
-             */
-            on_hand: number | string;
             /** Unit */
             unit: string;
             /** Unit Cost */
@@ -2334,10 +2491,19 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Low Stock Threshold */
+            low_stock_threshold?: string | null;
             /** Name */
             name: string;
-            /** On Hand */
-            on_hand: string;
+            /** Per Location On Hand */
+            per_location_on_hand?: {
+                [key: string]: string;
+            };
+            /**
+             * Total On Hand
+             * @default 0
+             */
+            total_on_hand: string;
             /** Unit */
             unit: string;
             /** Unit Cost */
@@ -2359,6 +2525,8 @@ export interface components {
             custom_fields?: {
                 [key: string]: unknown;
             } | null;
+            /** Low Stock Threshold */
+            low_stock_threshold?: number | string | null;
             /** Name */
             name?: string | null;
             /** Unit */
@@ -3327,6 +3495,38 @@ export interface operations {
             };
         };
     };
+    list_low_stock_alerts_api_v1_inventory_alerts_low_stock_get: {
+        parameters: {
+            query?: {
+                entity_kind?: ("material" | "supply" | "product") | null;
+                location_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LowStockAlertListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_locations_api_v1_inventory_locations_get: {
         parameters: {
             query?: {
@@ -3510,6 +3710,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryLocationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_on_hand_api_v1_inventory_on_hand_get: {
+        parameters: {
+            query?: {
+                entity_kind?: ("material" | "supply" | "product") | null;
+                entity_id?: string | null;
+                location_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnHandListResponse"];
                 };
             };
             /** @description Validation Error */

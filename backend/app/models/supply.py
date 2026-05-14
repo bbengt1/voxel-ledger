@@ -51,14 +51,8 @@ class Supply(Base):
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     vendor: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    # Read-side cache. Phase 3 inventory transactions will own this;
-    # service code only writes the starting balance on create.
-    on_hand: Mapped[Decimal] = mapped_column(
-        Numeric(18, 6),
-        nullable=False,
-        default=Decimal("0"),
-        server_default="0",
-    )
+    # Phase 3.3: low-stock alert threshold. NULL = no alert configured.
+    low_stock_threshold: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="0"

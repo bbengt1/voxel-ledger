@@ -14,7 +14,7 @@ export function SupplyCreatePage() {
   const [unit, setUnit] = useState("each");
   const [unitCost, setUnitCost] = useState("");
   const [vendor, setVendor] = useState("");
-  const [onHand, setOnHand] = useState("0");
+  const [lowStockThreshold, setLowStockThreshold] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,10 @@ export function SupplyCreatePage() {
         name,
         unit,
         unit_cost: unitCost,
-        on_hand: onHand || "0",
       };
       if (vendor.trim()) body["vendor"] = vendor.trim();
+      if (lowStockThreshold.trim())
+        body["low_stock_threshold"] = lowStockThreshold.trim();
       const res = await apiClient.post<SupplyResponse>(
         "/api/v1/supplies",
         body,
@@ -87,12 +88,12 @@ export function SupplyCreatePage() {
           />
         </label>
         <label className="block text-sm">
-          Starting on-hand
+          Low-stock threshold (optional)
           <Input
             className="mt-1"
             inputMode="decimal"
-            value={onHand}
-            onChange={(e) => setOnHand(e.target.value)}
+            value={lowStockThreshold}
+            onChange={(e) => setLowStockThreshold(e.target.value)}
           />
         </label>
 

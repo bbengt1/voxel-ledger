@@ -1,4 +1,4 @@
-"""Pydantic schemas for the supplies API surface (Phase 2.2)."""
+"""Pydantic schemas for the supplies API surface (Phase 2.2, 3.3)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,11 @@ class SupplyResponse(BaseModel):
     unit: str
     unit_cost: Decimal
     vendor: str | None = None
-    on_hand: Decimal
+    # Phase 3.3: on-hand is sourced from ``inventory_on_hand``; the API
+    # exposes the cross-location total plus a per-location breakdown.
+    total_on_hand: Decimal = Field(default=Decimal("0"))
+    per_location_on_hand: dict[uuid.UUID, Decimal] = Field(default_factory=dict)
+    low_stock_threshold: Decimal | None = None
     is_archived: bool
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
@@ -30,7 +34,7 @@ class SupplyCreateRequest(BaseModel):
     unit: str = Field(min_length=1, max_length=32)
     unit_cost: Decimal = Field(ge=0)
     vendor: str | None = Field(default=None, max_length=255)
-    on_hand: Decimal = Field(default=Decimal("0"), ge=0)
+    low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 
@@ -41,6 +45,7 @@ class SupplyUpdateRequest(BaseModel):
     unit: str | None = Field(default=None, min_length=1, max_length=32)
     unit_cost: Decimal | None = Field(default=None, ge=0)
     vendor: str | None = Field(default=None, max_length=255)
+    low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 

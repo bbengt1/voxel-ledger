@@ -62,7 +62,6 @@ async def _seed(client: AsyncClient, app_session: AsyncSession):
         unit="ea",
         unit_cost=Decimal("0.50"),
         vendor=None,
-        on_hand=Decimal("0"),
         actor_user_id=None,
     )
     await app_session.commit()
