@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Dark variant: triggered by `data-theme="dark"` on <html> (set by
+ * ThemeProvider). Tailwind v4's `dark:` variant defaults to a media query
+ * — we override it here so the user's explicit choice wins over the OS.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   --color-background: oklch(0.99 0 0);
   --color-foreground: oklch(0.18 0.02 260);
@@ -31,6 +38,40 @@
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
+}
+
+/*
+ * Dark-theme tokens. Contrast ratios target WCAG 2.1 AA on body text:
+ *   foreground (oklch 0.97) on background (oklch 0.16) ≈ 13:1
+ *   muted-foreground (oklch 0.72) on background ≈ 7:1
+ *   primary-foreground on primary ≈ 7:1
+ */
+[data-theme="dark"] {
+  --color-background: oklch(0.16 0.02 260);
+  --color-foreground: oklch(0.97 0 0);
+
+  --color-muted: oklch(0.22 0.02 260);
+  --color-muted-foreground: oklch(0.72 0.02 260);
+
+  --color-border: oklch(0.3 0.02 260);
+  --color-input: oklch(0.3 0.02 260);
+  --color-ring: oklch(0.7 0.18 260);
+
+  --color-primary: oklch(0.7 0.18 260);
+  --color-primary-foreground: oklch(0.15 0.02 260);
+
+  --color-secondary: oklch(0.25 0.02 260);
+  --color-secondary-foreground: oklch(0.97 0 0);
+
+  --color-destructive: oklch(0.65 0.22 25);
+  --color-destructive-foreground: oklch(0.15 0.02 260);
+
+  --color-accent: oklch(0.28 0.02 260);
+  --color-accent-foreground: oklch(0.97 0 0);
+}
+
+[data-theme="dark"] body {
+  color-scheme: dark;
 }
 
 @layer base {
