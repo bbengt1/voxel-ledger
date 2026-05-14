@@ -31,32 +31,17 @@ BOM_COMPONENT_KIND_VALUES = ("material", "supply", "product")
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    # On PG, create the enum explicitly so we control its lifecycle; on
-    # SQLite the ``sa.Enum`` rendering becomes a VARCHAR with a CHECK
-    # constraint automatically.
-    if bind.dialect.name == "postgresql":
-        sa.Enum(*BOM_COMPONENT_KIND_VALUES, name="bom_component_kind").create(bind, checkfirst=True)
-        component_kind_col = sa.Column(
-            "component_kind",
-            sa.Enum(
-                *BOM_COMPONENT_KIND_VALUES,
-                name="bom_component_kind",
-                create_type=False,
-            ),
-            nullable=False,
-        )
-    else:
-        # SQLite branch: plain VARCHAR plus an explicit CHECK constraint.
-        component_kind_col = sa.Column(
-            "component_kind",
-            sa.String(length=16),
-            sa.CheckConstraint(
-                "component_kind IN ('material','supply','product')",
-                name="ck_product_bom_item_component_kind",
-            ),
-            nullable=False,
-        )
+    # Let SQLAlchemy auto-create the `bom_component_kind` enum via
+    # op.create_table. Don't pre-create with checkfirst=True — the dialect
+    # hook on op.create_table fires unconditionally (`create_type=False`
+    # is not honored) and the second create raises DuplicateObjectError.
+    # Same bug pattern that bit 0002_auth and was fixed there too.
+    # On SQLite, sa.Enum renders as VARCHAR + CHECK automatically.
+    component_kind_col = sa.Column(
+        "component_kind",
+        sa.Enum(*BOM_COMPONENT_KIND_VALUES, name="bom_component_kind"),
+        nullable=False,
+    )
 
     op.create_table(
         "product_bom_item",
