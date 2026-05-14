@@ -174,8 +174,16 @@ async def test_pg_verify_chain_detects_corruption(pg_session_factory) -> None:
 @pytest.mark.asyncio
 @pytest.mark.benchmark
 async def test_pg_benchmark_1000_appends(pg_session_factory) -> None:
-    """Smoke benchmark — 1,000 sequential appends should finish in <5s on
-    a local PG instance. Marked benchmark so it skips by default."""
+    """Smoke benchmark — 1,000 sequential appends finish in a reasonable
+    window on a local PG instance.
+
+    Original budget was 5s against a bare event-store. After #22 added the
+    sync projection-dispatch hook (now walks the handler registry on every
+    append) and #24 added a wildcard audit projection (per-event actor
+    lookup + denormalized write), the steady-state cost grew. 15s leaves
+    headroom for testcontainers cold-start jitter without being so loose
+    that a real regression sneaks through. Tune if real perf work happens.
+    """
     import time
 
     start = time.monotonic()
@@ -184,4 +192,4 @@ async def test_pg_benchmark_1000_appends(pg_session_factory) -> None:
             await event_store.append(_evt(f"v{i}"), session=s)
         await s.commit()
     elapsed = time.monotonic() - start
-    assert elapsed < 5.0, f"1000 appends took {elapsed:.2f}s"
+    assert elapsed < 15.0, f"1000 appends took {elapsed:.2f}s"

@@ -151,6 +151,36 @@
         "title": "AuditLogRow",
         "type": "object"
       },
+      "BulkSettingUpdateRequest": {
+        "description": "POST body for a batch update.\n\nThe request is all-or-nothing: if any value fails validation, no\nwrites happen.",
+        "properties": {
+          "updates": {
+            "additionalProperties": true,
+            "title": "Updates",
+            "type": "object"
+          }
+        },
+        "required": [
+          "updates"
+        ],
+        "title": "BulkSettingUpdateRequest",
+        "type": "object"
+      },
+      "BulkSettingUpdateResponse": {
+        "description": "Response for a successful batch update.\n\n``updated`` mirrors the request keys with their validated (typed)\nvalues as returned by the service.",
+        "properties": {
+          "updated": {
+            "additionalProperties": true,
+            "title": "Updated",
+            "type": "object"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "title": "BulkSettingUpdateResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -277,6 +307,73 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "SettingResponse": {
+        "description": "One setting, merged with its schema default and provenance.",
+        "properties": {
+          "default": {
+            "title": "Default"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "schema_type": {
+            "description": "Friendly Python type name for the value (e.g. 'Decimal', 'str', 'dict'). Used by the frontend to pick an editor.",
+            "title": "Schema Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the row was last written. None if no row exists yet.",
+            "title": "Updated At"
+          },
+          "updated_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User who last wrote the row. None if from default.",
+            "title": "Updated By User Id"
+          },
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "default",
+          "schema_type"
+        ],
+        "title": "SettingResponse",
+        "type": "object"
+      },
+      "SettingUpdateRequest": {
+        "description": "PUT body for a single setting.",
+        "properties": {
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "SettingUpdateRequest",
+        "type": "object"
       },
       "TokenPair": {
         "properties": {
@@ -948,6 +1045,188 @@
         "summary": "Refresh",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "description": "Return every registered setting, merged with schema defaults.",
+        "operationId": "list_settings_api_v1_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SettingResponse"
+                  },
+                  "title": "Response List Settings Api V1 Settings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/{key}": {
+      "get": {
+        "description": "Return a single setting by key. 400 on unknown key.",
+        "operationId": "get_setting_api_v1_settings__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Setting",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "description": "Validate and persist a single setting. Emits SettingChanged.",
+        "operationId": "put_setting_api_v1_settings__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Setting",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings:bulk": {
+      "post": {
+        "description": "Atomic batch update. One invalid value rolls back everything.",
+        "operationId": "bulk_update_settings_api_v1_settings_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkSettingUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkSettingUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bulk Update Settings",
+        "tags": [
+          "settings"
         ]
       }
     },
