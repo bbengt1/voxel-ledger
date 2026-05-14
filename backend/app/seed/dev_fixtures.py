@@ -33,8 +33,6 @@ async def seed_dev_fixtures(session: AsyncSession) -> None:
     add `_seed_materials(session)`, `_seed_products(session)`, etc. here.
     """
 
-    user_count = (
-        await session.execute(select(func.count()).select_from(User))
-    ).scalar_one()
+    user_count = (await session.execute(select(func.count()).select_from(User))).scalar_one()
     print(f"dev_fixtures: existing users={user_count}")
     print("dev_fixtures: no fixture-eligible tables yet (Phase 0); nothing to insert.")
