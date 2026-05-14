@@ -321,6 +321,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/{product_id}/bom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Bom */
+        get: operations["list_bom_api_v1_products__product_id__bom_get"];
+        put?: never;
+        /** Create Bom Item */
+        post: operations["create_bom_item_api_v1_products__product_id__bom_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{product_id}/bom/{bom_item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Bom Item */
+        delete: operations["delete_bom_item_api_v1_products__product_id__bom__bom_item_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Bom Item Quantity */
+        patch: operations["update_bom_item_quantity_api_v1_products__product_id__bom__bom_item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/products/{product_id}/cost-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cost Breakdown */
+        get: operations["get_cost_breakdown_api_v1_products__product_id__cost_breakdown_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/{product_id}/unarchive": {
         parameters: {
             query?: never;
@@ -725,6 +778,68 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** BomItemCreate */
+        BomItemCreate: {
+            /**
+             * Component Id
+             * Format: uuid
+             */
+            component_id: string;
+            /**
+             * Component Kind
+             * @enum {string}
+             */
+            component_kind: "material" | "supply" | "product";
+            /** Notes */
+            notes?: string | null;
+            /** Quantity */
+            quantity: number | string;
+        };
+        /** BomItemResponse */
+        BomItemResponse: {
+            /**
+             * Component Id
+             * Format: uuid
+             */
+            component_id: string;
+            /**
+             * Component Kind
+             * @enum {string}
+             */
+            component_kind: "material" | "supply" | "product";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Cost */
+            line_cost?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Parent Product Id
+             * Format: uuid
+             */
+            parent_product_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Resolved Name */
+            resolved_name: string;
+            /** Resolved Unit Cost */
+            resolved_unit_cost?: string | null;
+        };
+        /** BomItemUpdate */
+        BomItemUpdate: {
+            /** Quantity */
+            quantity: number | string;
+        };
+        /** BomListResponse */
+        BomListResponse: {
+            /** Items */
+            items: components["schemas"]["BomItemResponse"][];
+            /** Total Cost */
+            total_cost?: string | null;
+        };
         /**
          * BulkSettingUpdateRequest
          * @description POST body for a batch update.
@@ -750,6 +865,52 @@ export interface components {
             updated: {
                 [key: string]: unknown;
             };
+        };
+        /** CostBreakdownComponent */
+        CostBreakdownComponent: {
+            /**
+             * Bom Item Id
+             * Format: uuid
+             */
+            bom_item_id: string;
+            /**
+             * Component Id
+             * Format: uuid
+             */
+            component_id: string;
+            /**
+             * Component Kind
+             * @enum {string}
+             */
+            component_kind: "material" | "supply" | "product";
+            /** Line Cost */
+            line_cost?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Resolved Name */
+            resolved_name: string;
+            sub_tree?: components["schemas"]["CostBreakdownResponse"] | null;
+            /** Unit Cost */
+            unit_cost?: string | null;
+        };
+        /** CostBreakdownResponse */
+        CostBreakdownResponse: {
+            /** Components */
+            components?: components["schemas"]["CostBreakdownComponent"][];
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Resolved Name */
+            resolved_name: string;
+            /** Total Cost */
+            total_cost?: string | null;
+            /**
+             * Truncated At Depth
+             * @default false
+             */
+            truncated_at_depth: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2054,6 +2215,169 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bom_api_v1_products__product_id__bom_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_bom_item_api_v1_products__product_id__bom_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BomItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_bom_item_api_v1_products__product_id__bom__bom_item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                bom_item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_bom_item_quantity_api_v1_products__product_id__bom__bom_item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+                bom_item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BomItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BomItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cost_breakdown_api_v1_products__product_id__cost_breakdown_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostBreakdownResponse"];
                 };
             };
             /** @description Validation Error */

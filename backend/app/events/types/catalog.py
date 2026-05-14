@@ -199,3 +199,52 @@ register_event(TYPE_PRODUCT_UPDATED, ProductUpdatedPayload)
 register_event(TYPE_PRODUCT_PRICE_CHANGED, ProductPriceChangedPayload)
 register_event(TYPE_PRODUCT_ARCHIVED, ProductArchivedPayload)
 register_event(TYPE_PRODUCT_UNARCHIVED, ProductUnarchivedPayload)
+
+
+# --- BOM (Phase 2.4) ---
+#
+# BOM events live in the catalog domain because a BOM is metadata about
+# a product. ``ProductCostChanged`` is emitted by the
+# ``product_cost`` projection (not by service code) when
+# ``unit_cost_cached`` changes; the projection subscribes to its own
+# event to propagate cost up to ancestor products.
+
+
+class BomComponentAddedPayload(_ProductPayloadBase):
+    bom_item_id: uuid.UUID
+    parent_product_id: uuid.UUID
+    component_kind: str
+    component_id: uuid.UUID
+    quantity: str  # canonical Decimal string
+
+
+class BomComponentRemovedPayload(_ProductPayloadBase):
+    bom_item_id: uuid.UUID
+    parent_product_id: uuid.UUID
+    component_kind: str
+    component_id: uuid.UUID
+
+
+class BomComponentQuantityChangedPayload(_ProductPayloadBase):
+    bom_item_id: uuid.UUID
+    parent_product_id: uuid.UUID
+    old_quantity: str
+    new_quantity: str
+
+
+class ProductCostChangedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    old_cost: str | None = None
+    new_cost: str | None = None
+
+
+TYPE_BOM_COMPONENT_ADDED = "catalog.BomComponentAdded"
+TYPE_BOM_COMPONENT_REMOVED = "catalog.BomComponentRemoved"
+TYPE_BOM_COMPONENT_QUANTITY_CHANGED = "catalog.BomComponentQuantityChanged"
+TYPE_PRODUCT_COST_CHANGED = "catalog.ProductCostChanged"
+
+
+register_event(TYPE_BOM_COMPONENT_ADDED, BomComponentAddedPayload)
+register_event(TYPE_BOM_COMPONENT_REMOVED, BomComponentRemovedPayload)
+register_event(TYPE_BOM_COMPONENT_QUANTITY_CHANGED, BomComponentQuantityChangedPayload)
+register_event(TYPE_PRODUCT_COST_CHANGED, ProductCostChangedPayload)
