@@ -6,10 +6,15 @@ secrets are missing or contain obvious placeholder values.
 
 from __future__ import annotations
 
-from typing import Literal
+import json
+from typing import Annotated, Literal
 
 from pydantic import Field, ValidationInfo, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+# CORS origin parsing: accept either a JSON list or a comma-separated string
+# from the environment. Comma-separated wins on operator ergonomics; the
+# validator below normalizes both shapes into a list[str].
 
 # Exact-match sentinels: reject the value outright when it equals any of these
 # (case-insensitive, stripped).
@@ -88,12 +93,37 @@ class Settings(BaseSettings):
     bcrypt_rounds: int = 12
     login_rate_limit_per_minute: int = 10
 
+    # CORS — allow-list of browser origins permitted to call the API.
+    # Empty list disables the CORS middleware entirely (server-to-server only).
+    # NoDecode disables pydantic-settings' default JSON parser so the validator
+    # below can accept both JSON (`["a","b"]`) and comma-separated (`a,b`)
+    # forms from env.
+    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
     # Seed owner (only consumed by scripts/seed_owner.py). Optional so the
     # app can boot without seed creds set; the seed script will raise if
     # they're missing at run time. When provided, placeholder values are
     # still rejected.
     owner_email: str | None = None
     owner_password: str | None = None
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value: object) -> object:
+        """Accept comma-separated strings from env, JSON lists, or actual lists."""
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return []
+            # JSON list form: ["http://a", "http://b"]. We parse here because
+            # NoDecode on the field disables the default JSON decoding.
+            if stripped.startswith("["):
+                return json.loads(stripped)
+            # Comma-separated form: "http://a,http://b"
+            return [item.strip() for item in stripped.split(",") if item.strip()]
+        return value
 
     @field_validator(
         "database_url",
