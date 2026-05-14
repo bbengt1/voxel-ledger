@@ -177,6 +177,47 @@ register_summary(catalog_events.TYPE_MATERIAL_ARCHIVED, _material_archived)
 register_summary(catalog_events.TYPE_MATERIAL_UNARCHIVED, _material_unarchived)
 
 
+# --- Products (Phase 2.3) -------------------------------------------------
+
+
+def _product_created(payload: dict[str, Any], actor: str) -> str:
+    sku = payload.get("sku", "?")
+    name = payload.get("name", "?")
+    category = payload.get("category")
+    suffix = f" [{category}]" if category else ""
+    return f"{actor} created product {sku} ({name}){suffix}"
+
+
+def _product_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated product {payload.get('product_id', '?')}: {changes}"
+
+
+def _product_price_changed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} changed product {payload.get('product_id', '?')} price "
+        f"{payload.get('old_price', '?')} -> {payload.get('new_price', '?')}"
+    )
+
+
+def _product_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived product {payload.get('product_id', '?')}"
+
+
+def _product_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived product {payload.get('product_id', '?')}"
+
+
+register_summary(catalog_events.TYPE_PRODUCT_CREATED, _product_created)
+register_summary(catalog_events.TYPE_PRODUCT_UPDATED, _product_updated)
+register_summary(catalog_events.TYPE_PRODUCT_PRICE_CHANGED, _product_price_changed)
+register_summary(catalog_events.TYPE_PRODUCT_ARCHIVED, _product_archived)
+register_summary(catalog_events.TYPE_PRODUCT_UNARCHIVED, _product_unarchived)
+
+
 # ---------------------------------------------------------------------------
 # Inventory event summaries (Phase 2.1)
 # ---------------------------------------------------------------------------

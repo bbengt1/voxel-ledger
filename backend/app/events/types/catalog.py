@@ -1,11 +1,12 @@
-"""Catalog-bounded-context event types (Phase 2.1).
+"""Catalog-bounded-context event types.
 
-The catalog domain owns materials (this issue), products, and option
-schemas in later phases. Each material mutation is a domain event:
-creation, profile update (with diff), archive, unarchive.
+The catalog domain owns materials (Phase 2.1), products (Phase 2.3), and
+option schemas in later phases. Each catalog mutation is a domain event:
+creation, profile update (with diff), archive, unarchive, etc.
 
-Aggregate type is ``material``; aggregate_id is the material row id.
-``actor_user_id`` on the event row is the admin / production user
+For materials the aggregate type is ``material`` and aggregate_id is the
+material row id. For products it's ``product`` / product row id. The
+``actor_user_id`` on the event row is the admin / production / sales user
 performing the action.
 """
 
@@ -18,7 +19,9 @@ from pydantic import BaseModel, ConfigDict
 
 from app.events.registry import register_event
 
+# Materials aggregate type. Products use PRODUCT_AGGREGATE_TYPE below.
 AGGREGATE_TYPE: str = "material"
+PRODUCT_AGGREGATE_TYPE: str = "product"
 
 
 class _MaterialPayloadBase(BaseModel):
@@ -59,3 +62,55 @@ register_event(TYPE_MATERIAL_CREATED, MaterialCreatedPayload)
 register_event(TYPE_MATERIAL_UPDATED, MaterialUpdatedPayload)
 register_event(TYPE_MATERIAL_ARCHIVED, MaterialArchivedPayload)
 register_event(TYPE_MATERIAL_UNARCHIVED, MaterialUnarchivedPayload)
+
+
+# --- Products (Phase 2.3) -------------------------------------------------
+#
+# Product aggregate. Prices and Decimals serialize as canonical strings on
+# the wire — see the materials-side helper for the same pattern.
+
+
+class _ProductPayloadBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ProductCreatedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    sku: str
+    name: str
+    unit_price: str
+    category: str | None = None
+
+
+class ProductUpdatedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class ProductPriceChangedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    old_price: str
+    new_price: str
+
+
+class ProductArchivedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+
+
+class ProductUnarchivedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+
+
+TYPE_PRODUCT_CREATED = "catalog.ProductCreated"
+TYPE_PRODUCT_UPDATED = "catalog.ProductUpdated"
+TYPE_PRODUCT_PRICE_CHANGED = "catalog.ProductPriceChanged"
+TYPE_PRODUCT_ARCHIVED = "catalog.ProductArchived"
+TYPE_PRODUCT_UNARCHIVED = "catalog.ProductUnarchived"
+
+
+register_event(TYPE_PRODUCT_CREATED, ProductCreatedPayload)
+register_event(TYPE_PRODUCT_UPDATED, ProductUpdatedPayload)
+register_event(TYPE_PRODUCT_PRICE_CHANGED, ProductPriceChangedPayload)
+register_event(TYPE_PRODUCT_ARCHIVED, ProductArchivedPayload)
+register_event(TYPE_PRODUCT_UNARCHIVED, ProductUnarchivedPayload)
