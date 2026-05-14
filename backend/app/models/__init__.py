@@ -4,12 +4,14 @@ from app.core.db import Base
 from app.models.auth import RefreshToken, Role, User
 from app.models.event import Event
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
+from app.models.reference_sequence import ReferenceSequence
 
 __all__ = [
     "Base",
     "Event",
     "ProjectionCursor",
     "ProjectionTestEvent",
+    "ReferenceSequence",
     "RefreshToken",
     "Role",
     "User",

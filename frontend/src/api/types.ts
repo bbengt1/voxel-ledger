@@ -34,6 +34,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reference-sequences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reference Sequences
+         * @description Return every ``(prefix, year, last_value)`` row, sorted by
+         *     ``(prefix, year)``.
+         */
+        get: operations["list_reference_sequences_api_v1_admin_reference_sequences_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -161,6 +182,18 @@ export interface components {
             is_active: boolean;
             role: components["schemas"]["Role"];
         };
+        /**
+         * ReferenceSequenceRow
+         * @description A single ``reference_sequence`` row, surfaced via the admin API.
+         */
+        ReferenceSequenceRow: {
+            /** Last Value */
+            last_value: number;
+            /** Prefix */
+            prefix: string;
+            /** Year */
+            year: number;
+        };
         /** RefreshRequest */
         RefreshRequest: {
             /** Refresh Token */
@@ -265,6 +298,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reference_sequences_api_v1_admin_reference_sequences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceSequenceRow"][];
                 };
             };
         };
