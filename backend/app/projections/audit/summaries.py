@@ -18,6 +18,7 @@ from typing import Any
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import inventory as inventory_events
+from app.events.types import notes_attachments as notes_events
 from app.events.types import users as users_events
 
 Formatter = Callable[[dict[str, Any], str], str]
@@ -355,3 +356,56 @@ register_summary(catalog_events.TYPE_RATE_UPDATED, _rate_updated)
 register_summary(catalog_events.TYPE_RATE_DEFAULTED, _rate_defaulted)
 register_summary(catalog_events.TYPE_RATE_ARCHIVED, _rate_archived)
 register_summary(catalog_events.TYPE_RATE_UNARCHIVED, _rate_unarchived)
+
+
+# --- Notes & attachments (Phase 2.6) ---
+
+
+def _note_created(payload: dict[str, Any], actor: str) -> str:
+    preview = payload.get("body_preview", "")
+    return (
+        f"{actor} added note on {payload.get('entity_kind', '?')}:"
+        f"{payload.get('entity_id', '?')}: {preview!r}"
+    )
+
+
+def _note_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("body_preview_before", "")
+    after = payload.get("body_preview_after", "")
+    return f"{actor} updated note {payload.get('note_id', '?')}: " f"{before!r} -> {after!r}"
+
+
+def _note_deleted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} deleted note {payload.get('note_id', '?')} from "
+        f"{payload.get('entity_kind', '?')}:{payload.get('entity_id', '?')}"
+    )
+
+
+def _note_pinned(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} pinned note {payload.get('note_id', '?')}"
+
+
+def _note_unpinned(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unpinned note {payload.get('note_id', '?')}"
+
+
+def _attachment_uploaded(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} uploaded {payload.get('filename', '?')} "
+        f"({payload.get('mime_type', '?')}, {payload.get('byte_size', '?')} bytes) "
+        f"to {payload.get('entity_kind', '?')}:{payload.get('entity_id', '?')}"
+    )
+
+
+def _attachment_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived attachment {payload.get('attachment_id', '?')}"
+
+
+register_summary(notes_events.TYPE_NOTE_CREATED, _note_created)
+register_summary(notes_events.TYPE_NOTE_UPDATED, _note_updated)
+register_summary(notes_events.TYPE_NOTE_DELETED, _note_deleted)
+register_summary(notes_events.TYPE_NOTE_PINNED, _note_pinned)
+register_summary(notes_events.TYPE_NOTE_UNPINNED, _note_unpinned)
+register_summary(notes_events.TYPE_ATTACHMENT_UPLOADED, _attachment_uploaded)
+register_summary(notes_events.TYPE_ATTACHMENT_ARCHIVED, _attachment_archived)

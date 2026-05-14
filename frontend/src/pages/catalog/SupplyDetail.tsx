@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
+import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -218,6 +220,14 @@ export function SupplyDetailPage() {
             )}
           </div>
         </section>
+      ) : null}
+
+      {/* Phase 2.6: notes + attachments */}
+      {id ? (
+        <>
+          <NotesSection entityKind="supply" entityId={id} />
+          <AttachmentsSection entityKind="supply" entityId={id} />
+        </>
       ) : null}
     </section>
   );
