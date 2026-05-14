@@ -190,3 +190,85 @@ def _material_received(payload: dict[str, Any], actor: str) -> str:
 
 
 register_summary(inventory_events.TYPE_MATERIAL_RECEIVED, _material_received)
+
+
+# ---------------------------------------------------------------------------
+# Catalog: Supplies (Phase 2.2)
+# ---------------------------------------------------------------------------
+
+
+def _supply_created(payload: dict[str, Any], actor: str) -> str:
+    bits = [payload.get("name", "?")]
+    vendor = payload.get("vendor")
+    if vendor:
+        bits.append(f"({vendor})")
+    unit = payload.get("unit")
+    cost = payload.get("unit_cost")
+    if unit and cost is not None:
+        bits.append(f"@ {cost}/{unit}")
+    return f"{actor} created supply {' '.join(bits)}"
+
+
+def _supply_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated supply {payload.get('supply_id', '?')}: {changes}"
+
+
+def _supply_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived supply {payload.get('supply_id', '?')}"
+
+
+def _supply_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived supply {payload.get('supply_id', '?')}"
+
+
+register_summary(catalog_events.TYPE_SUPPLY_CREATED, _supply_created)
+register_summary(catalog_events.TYPE_SUPPLY_UPDATED, _supply_updated)
+register_summary(catalog_events.TYPE_SUPPLY_ARCHIVED, _supply_archived)
+register_summary(catalog_events.TYPE_SUPPLY_UNARCHIVED, _supply_unarchived)
+
+
+# ---------------------------------------------------------------------------
+# Catalog: Rates (Phase 2.2)
+# ---------------------------------------------------------------------------
+
+
+def _rate_created(payload: dict[str, Any], actor: str) -> str:
+    kind = payload.get("kind", "?")
+    name = payload.get("name", "?")
+    value = payload.get("value", "?")
+    default = " (default)" if payload.get("is_default_for_kind") else ""
+    return f"{actor} created {kind} rate {name} = {value}{default}"
+
+
+def _rate_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated rate {payload.get('rate_id', '?')}: {changes}"
+
+
+def _rate_defaulted(payload: dict[str, Any], actor: str) -> str:
+    prev = payload.get("previous_default_rate_id")
+    kind = payload.get("kind", "?")
+    suffix = f" (previously {prev})" if prev else ""
+    return f"{actor} set rate {payload.get('rate_id', '?')} as default for {kind}{suffix}"
+
+
+def _rate_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived rate {payload.get('rate_id', '?')}"
+
+
+def _rate_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived rate {payload.get('rate_id', '?')}"
+
+
+register_summary(catalog_events.TYPE_RATE_CREATED, _rate_created)
+register_summary(catalog_events.TYPE_RATE_UPDATED, _rate_updated)
+register_summary(catalog_events.TYPE_RATE_DEFAULTED, _rate_defaulted)
+register_summary(catalog_events.TYPE_RATE_ARCHIVED, _rate_archived)
+register_summary(catalog_events.TYPE_RATE_UNARCHIVED, _rate_unarchived)
