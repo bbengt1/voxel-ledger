@@ -36,7 +36,7 @@ env-dev: ## Generate .env.dev with random local secrets (if missing)
 .PHONY: install
 install: ## Install backend (editable) and frontend (pnpm) deps
 	@echo "make install: backend (editable)"
-	@pip install -e "backend/[dev]"
+	@python3 -m pip install -e "backend/[dev]"
 	@echo "make install: frontend (pnpm)"
 	@pnpm install
 
@@ -71,13 +71,13 @@ migrate: ## Run alembic upgrade head inside the backend container
 seed: ## (Re-)run owner seed (idempotent)
 	@set -a; . ./$(ENV_FILE); set +a; \
 	    DATABASE_URL="$$(echo "$$DATABASE_URL" | sed 's|@db:|@localhost:|')" \
-	    python -m scripts.seed_owner
+	    python3 -m scripts.seed_owner
 
 .PHONY: seed-fixtures
 seed-fixtures: ## Run opt-in dev fixtures (idempotent)
 	@set -a; . ./$(ENV_FILE); set +a; \
 	    DATABASE_URL="$$(echo "$$DATABASE_URL" | sed 's|@db:|@localhost:|')" \
-	    python -m scripts.seed_dev
+	    python3 -m scripts.seed_dev
 
 .PHONY: summary
 summary: ## Print URLs and login info after bootstrap

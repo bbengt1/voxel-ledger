@@ -15,8 +15,5 @@
     "codegen": "pnpm --filter @voxel-ledger/frontend codegen",
     "codegen:export": "pnpm --filter @voxel-ledger/frontend codegen:export",
     "codegen:check": "pnpm --filter @voxel-ledger/frontend codegen:check"
-  },
-  "workspaces": [
-    "frontend"
-  ]
+  }
 }
