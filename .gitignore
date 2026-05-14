@@ -54,6 +54,10 @@ frontend/dist/
 frontend/.vite/
 frontend/coverage/
 
+# TypeScript build info
+frontend/*.tsbuildinfo
+frontend/**/*.tsbuildinfo
+
 # Vitest / Playwright
 playwright-report/
 test-results/
