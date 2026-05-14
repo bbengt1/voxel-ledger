@@ -42,6 +42,7 @@ from decimal import Decimal
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 revision: str = "0016_inventory_on_hand_alerts"
 down_revision: str | None = "0015_inventory_transactions"
@@ -99,19 +100,34 @@ def _resolve_default_location_id(bind) -> uuid.UUID | None:
 
 def upgrade() -> None:
     bind = op.get_bind()
+    is_pg = bind.dialect.name == "postgresql"
 
     # --- 1. Create inventory_on_hand table ---
     # The ``inventory_entity_kind`` PG enum was created by 0015 alongside
-    # ``inventory_transaction``. We reuse it here with create_type=False
-    # so PG doesn't try to recreate it. On SQLite this renders as a CHECK
-    # constraint either way.
-    entity_kind_col = sa.Column(
-        "entity_kind",
-        sa.Enum(
+    # ``inventory_transaction``. We need to reference it on a column WITHOUT
+    # triggering op.create_table's auto-create hook, which fires regardless
+    # of ``create_type=False`` on a generic ``sa.Enum`` (see #49 / #55).
+    #
+    # On PG: use the dialect-specific ``postgresql.ENUM`` with
+    # ``create_type=False``. The dialect class honors the flag in its
+    # ``create()`` short-circuit, so the hook still fires but no-ops.
+    # On SQLite: a plain ``sa.Enum`` renders as VARCHAR + CHECK and there
+    # is no "already exists" problem to worry about.
+    if is_pg:
+        entity_kind_col_type = postgresql.ENUM(
             *INVENTORY_ENTITY_KIND_VALUES,
             name="inventory_entity_kind",
             create_type=False,
-        ),
+        )
+    else:
+        entity_kind_col_type = sa.Enum(
+            *INVENTORY_ENTITY_KIND_VALUES,
+            name="inventory_entity_kind",
+        )
+
+    entity_kind_col = sa.Column(
+        "entity_kind",
+        entity_kind_col_type,
         nullable=False,
     )
     op.create_table(
