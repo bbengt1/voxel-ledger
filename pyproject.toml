@@ -49,4 +49,5 @@ testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 markers = [
     "integration: tests requiring an ephemeral Postgres (testcontainers/Docker)",
+    "benchmark: performance smoke checks; skipped unless selected with -m benchmark",
 ]

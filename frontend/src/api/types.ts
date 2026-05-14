@@ -10,6 +10,30 @@
  */
 
 export interface paths {
+    "/api/v1/admin/events/verify-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Chain
+         * @description Walk the event log in ``position`` order and recompute every hash.
+         *
+         *     Window-bounded: ``to_position - from_position`` may not exceed 1M.
+         *     Returns ``ok=true`` for a clean chain, otherwise ``ok=false`` with
+         *     the position where the chain first breaks.
+         */
+        get: operations["verify_chain_api_v1_admin_events_verify_chain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -176,6 +200,34 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * VerifyChainResponse
+         * @description Result of ``GET /admin/events/verify-chain``.
+         *
+         *     ``ok=True`` means every event's recomputed hash matches what we stored
+         *     and every ``prev_event_hash`` matches the previous row's
+         *     ``event_hash``. ``broken_at_position`` is the first position where
+         *     the chain fails.
+         */
+        VerifyChainResponse: {
+            /**
+             * Broken At Position
+             * @description First position where verification failed (None if ok=True).
+             */
+            broken_at_position?: number | null;
+            /**
+             * Events Checked
+             * @default 0
+             */
+            events_checked: number;
+            /**
+             * Last Position
+             * @description Last position the verifier successfully validated.
+             */
+            last_position?: number | null;
+            /** Ok */
+            ok: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -185,6 +237,38 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    verify_chain_api_v1_admin_events_verify_chain_get: {
+        parameters: {
+            query?: {
+                from_position?: number;
+                to_position?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyChainResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;

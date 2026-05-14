@@ -171,6 +171,49 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VerifyChainResponse": {
+        "description": "Result of ``GET /admin/events/verify-chain``.\n\n``ok=True`` means every event's recomputed hash matches what we stored\nand every ``prev_event_hash`` matches the previous row's\n``event_hash``. ``broken_at_position`` is the first position where\nthe chain fails.",
+        "properties": {
+          "broken_at_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First position where verification failed (None if ok=True).",
+            "title": "Broken At Position"
+          },
+          "events_checked": {
+            "default": 0,
+            "title": "Events Checked",
+            "type": "integer"
+          },
+          "last_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last position the verifier successfully validated.",
+            "title": "Last Position"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "title": "VerifyChainResponse",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -186,6 +229,74 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/events/verify-chain": {
+      "get": {
+        "description": "Walk the event log in ``position`` order and recompute every hash.\n\nWindow-bounded: ``to_position - from_position`` may not exceed 1M.\nReturns ``ok=true`` for a clean chain, otherwise ``ok=false`` with\nthe position where the chain first breaks.",
+        "operationId": "verify_chain_api_v1_admin_events_verify_chain_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from_position",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "From Position",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_position",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To Position"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyChainResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify Chain",
+        "tags": [
+          "admin",
+          "admin-events"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login_api_v1_auth_login_post",
