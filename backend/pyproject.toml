@@ -36,3 +36,17 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
+
+# Pytest configuration is duplicated from the repo-root pyproject.toml so
+# that running `pytest` from inside the backend container (which only sees
+# /app, not the repo root) gets the same asyncio mode + marker registry as
+# running it from the host venv. Keep both copies in sync.
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: requires a real Postgres (testcontainers or a running compose stack)",
+    "benchmark: smoke-level perf check; informational only",
+]
