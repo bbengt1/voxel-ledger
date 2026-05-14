@@ -13,6 +13,12 @@ import { MaterialsListPage } from "@/pages/catalog/MaterialsList";
 import { ProductCreatePage } from "@/pages/catalog/ProductCreate";
 import { ProductDetailPage } from "@/pages/catalog/ProductDetail";
 import { ProductsListPage } from "@/pages/catalog/ProductsList";
+import { RateCreatePage } from "@/pages/catalog/RateCreate";
+import { RateDetailPage } from "@/pages/catalog/RateDetail";
+import { RatesListPage } from "@/pages/catalog/RatesList";
+import { SuppliesListPage } from "@/pages/catalog/SuppliesList";
+import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
+import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
 
 export function App() {
   return (
@@ -114,6 +120,66 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <ProductDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/supplies"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SuppliesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/supplies/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SupplyCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/supplies/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SupplyDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/rates"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RatesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/rates/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RateCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/rates/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RateDetailPage />
             </AppShell>
           </RequireAuth>
         }

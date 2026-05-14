@@ -8,8 +8,10 @@ from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.product import Product
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
+from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
 from app.models.setting import Setting
+from app.models.supply import Supply
 
 __all__ = [
     "AuditLog",
@@ -20,9 +22,12 @@ __all__ = [
     "Product",
     "ProjectionCursor",
     "ProjectionTestEvent",
+    "Rate",
+    "RateKind",
     "ReferenceSequence",
     "RefreshToken",
     "Role",
     "Setting",
+    "Supply",
     "User",
 ]

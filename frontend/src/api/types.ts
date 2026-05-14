@@ -251,60 +251,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/products": {
+    "/api/v1/rates": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Products */
-        get: operations["list_products_api_v1_products_get"];
+        /** List Rates */
+        get: operations["list_rates_api_v1_rates_get"];
         put?: never;
-        /** Create Product */
-        post: operations["create_product_api_v1_products_post"];
+        /** Create Rate */
+        post: operations["create_rate_api_v1_rates_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/products/lookup": {
+    "/api/v1/rates/{rate_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lookup Product */
-        get: operations["lookup_product_api_v1_products_lookup_get"];
+        /** Get Rate */
+        get: operations["get_rate_api_v1_rates__rate_id__get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Rate */
+        patch: operations["update_rate_api_v1_rates__rate_id__patch"];
         trace?: never;
     };
-    "/api/v1/products/{product_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Product */
-        get: operations["get_product_api_v1_products__product_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Product */
-        patch: operations["update_product_api_v1_products__product_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/products/{product_id}/archive": {
+    "/api/v1/rates/{rate_id}/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -313,15 +296,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Archive Product */
-        post: operations["archive_product_api_v1_products__product_id__archive_post"];
+        /** Archive Rate */
+        post: operations["archive_rate_api_v1_rates__rate_id__archive_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/products/{product_id}/unarchive": {
+    "/api/v1/rates/{rate_id}/set-default": {
         parameters: {
             query?: never;
             header?: never;
@@ -330,8 +313,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Unarchive Product */
-        post: operations["unarchive_product_api_v1_products__product_id__unarchive_post"];
+        /** Set Default Rate */
+        post: operations["set_default_rate_api_v1_rates__rate_id__set_default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rates/{rate_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Rate */
+        post: operations["unarchive_rate_api_v1_rates__rate_id__unarchive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -396,6 +396,76 @@ export interface paths {
          * @description Atomic batch update. One invalid value rolls back everything.
          */
         post: operations["bulk_update_settings_api_v1_settings_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Supplies */
+        get: operations["list_supplies_api_v1_supplies_get"];
+        put?: never;
+        /** Create Supply */
+        post: operations["create_supply_api_v1_supplies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplies/{supply_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Supply */
+        get: operations["get_supply_api_v1_supplies__supply_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Supply */
+        patch: operations["update_supply_api_v1_supplies__supply_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/supplies/{supply_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Supply */
+        post: operations["archive_supply_api_v1_supplies__supply_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/supplies/{supply_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Supply */
+        post: operations["unarchive_supply_api_v1_supplies__supply_id__unarchive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -798,41 +868,42 @@ export interface components {
              */
             user_id: string;
         };
-        /** ProductCreateRequest */
-        ProductCreateRequest: {
-            /** Category */
-            category?: string | null;
-            /** Description */
-            description?: string | null;
+        /** RateCreateRequest */
+        RateCreateRequest: {
+            /** Applies To Printer Id */
+            applies_to_printer_id?: string | null;
+            /**
+             * Is Default For Kind
+             * @default false
+             */
+            is_default_for_kind: boolean;
+            kind: components["schemas"]["RateKind"];
             /** Name */
             name: string;
-            /** Sku */
-            sku?: string | null;
-            /** Unit Price */
-            unit_price: number | string;
-            /** Upc */
-            upc?: string | null;
-            /** Weight Grams */
-            weight_grams?: number | string | null;
+            /** Value */
+            value: number | string;
         };
-        /** ProductListResponse */
-        ProductListResponse: {
+        /**
+         * RateKind
+         * @enum {string}
+         */
+        RateKind: "labor" | "machine" | "overhead";
+        /** RateListResponse */
+        RateListResponse: {
             /** Items */
-            items: components["schemas"]["ProductResponse"][];
+            items: components["schemas"]["RateResponse"][];
             /** Next Cursor */
             next_cursor?: string | null;
         };
-        /** ProductResponse */
-        ProductResponse: {
-            /** Category */
-            category?: string | null;
+        /** RateResponse */
+        RateResponse: {
+            /** Applies To Printer Id */
+            applies_to_printer_id?: string | null;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Description */
-            description?: string | null;
             /**
              * Id
              * Format: uuid
@@ -840,43 +911,33 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Is Default For Kind */
+            is_default_for_kind: boolean;
+            kind: components["schemas"]["RateKind"];
             /** Name */
             name: string;
-            /** Sku */
-            sku: string;
-            /** Unit Cost Cached */
-            unit_cost_cached?: string | null;
-            /** Unit Price */
-            unit_price: string;
-            /** Upc */
-            upc?: string | null;
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
-            /** Weight Grams */
-            weight_grams?: string | null;
+            /** Value */
+            value: string;
         };
         /**
-         * ProductUpdateRequest
-         * @description PATCH-style: only fields the caller wants to change.
+         * RateUpdateRequest
+         * @description PATCH-style — only fields the user wants to change.
+         *
+         *     ``is_default_for_kind`` is intentionally not editable here; use the
+         *     dedicated ``set-default`` endpoint to flip it atomically.
          */
-        ProductUpdateRequest: {
-            /** Category */
-            category?: string | null;
-            /** Description */
-            description?: string | null;
+        RateUpdateRequest: {
+            /** Applies To Printer Id */
+            applies_to_printer_id?: string | null;
             /** Name */
             name?: string | null;
-            /** Sku */
-            sku?: string | null;
-            /** Unit Price */
-            unit_price?: number | string | null;
-            /** Upc */
-            upc?: string | null;
-            /** Weight Grams */
-            weight_grams?: number | string | null;
+            /** Value */
+            value?: number | string | null;
         };
         /**
          * ReferenceSequenceRow
@@ -936,6 +997,73 @@ export interface components {
         SettingUpdateRequest: {
             /** Value */
             value: unknown;
+        };
+        /** SupplyCreateRequest */
+        SupplyCreateRequest: {
+            /** Name */
+            name: string;
+            /**
+             * On Hand
+             * @default 0
+             */
+            on_hand: number | string;
+            /** Unit */
+            unit: string;
+            /** Unit Cost */
+            unit_cost: number | string;
+            /** Vendor */
+            vendor?: string | null;
+        };
+        /** SupplyListResponse */
+        SupplyListResponse: {
+            /** Items */
+            items: components["schemas"]["SupplyResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** SupplyResponse */
+        SupplyResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Archived */
+            is_archived: boolean;
+            /** Name */
+            name: string;
+            /** On Hand */
+            on_hand: string;
+            /** Unit */
+            unit: string;
+            /** Unit Cost */
+            unit_cost: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Vendor */
+            vendor?: string | null;
+        };
+        /**
+         * SupplyUpdateRequest
+         * @description PATCH-style — only fields the user wants to change.
+         */
+        SupplyUpdateRequest: {
+            /** Name */
+            name?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Unit Cost */
+            unit_cost?: number | string | null;
+            /** Vendor */
+            vendor?: string | null;
         };
         /** TokenPair */
         TokenPair: {
@@ -1576,11 +1704,10 @@ export interface operations {
             };
         };
     };
-    list_products_api_v1_products_get: {
+    list_rates_api_v1_rates_get: {
         parameters: {
             query?: {
-                search?: string | null;
-                category?: string | null;
+                kind?: components["schemas"]["RateKind"] | null;
                 is_archived?: boolean | null;
                 cursor?: string | null;
                 limit?: number;
@@ -1597,7 +1724,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductListResponse"];
+                    "application/json": components["schemas"]["RateListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1611,7 +1738,7 @@ export interface operations {
             };
         };
     };
-    create_product_api_v1_products_post: {
+    create_rate_api_v1_rates_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1620,7 +1747,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProductCreateRequest"];
+                "application/json": components["schemas"]["RateCreateRequest"];
             };
         };
         responses: {
@@ -1630,7 +1757,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["RateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1644,43 +1771,12 @@ export interface operations {
             };
         };
     };
-    lookup_product_api_v1_products_lookup_get: {
-        parameters: {
-            query: {
-                code: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_product_api_v1_products__product_id__get: {
+    get_rate_api_v1_rates__rate_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                product_id: string;
+                rate_id: string;
             };
             cookie?: never;
         };
@@ -1692,7 +1788,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["RateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1706,18 +1802,18 @@ export interface operations {
             };
         };
     };
-    update_product_api_v1_products__product_id__patch: {
+    update_rate_api_v1_rates__rate_id__patch: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                product_id: string;
+                rate_id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ProductUpdateRequest"];
+                "application/json": components["schemas"]["RateUpdateRequest"];
             };
         };
         responses: {
@@ -1727,7 +1823,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["RateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1741,12 +1837,12 @@ export interface operations {
             };
         };
     };
-    archive_product_api_v1_products__product_id__archive_post: {
+    archive_rate_api_v1_rates__rate_id__archive_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                product_id: string;
+                rate_id: string;
             };
             cookie?: never;
         };
@@ -1758,7 +1854,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["RateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1772,12 +1868,12 @@ export interface operations {
             };
         };
     };
-    unarchive_product_api_v1_products__product_id__unarchive_post: {
+    set_default_rate_api_v1_rates__rate_id__set_default_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                product_id: string;
+                rate_id: string;
             };
             cookie?: never;
         };
@@ -1789,7 +1885,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductResponse"];
+                    "application/json": components["schemas"]["RateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_rate_api_v1_rates__rate_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1909,6 +2036,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkSettingUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_supplies_api_v1_supplies_get: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                is_archived?: boolean | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_supply_api_v1_supplies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_supply_api_v1_supplies__supply_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_supply_api_v1_supplies__supply_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_supply_api_v1_supplies__supply_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_supply_api_v1_supplies__supply_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplyResponse"];
                 };
             };
             /** @description Validation Error */
