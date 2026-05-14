@@ -105,3 +105,6 @@ pnpm-debug.log*
 .cache/
 tmp/
 *.bak
+
+# Claude Code agent worktrees + transient state — never commit these.
+.claude/
