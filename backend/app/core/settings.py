@@ -1,0 +1,112 @@
+"""Application settings.
+
+Loaded from environment via pydantic-settings. Refuses to start when required
+secrets are missing or contain obvious placeholder values.
+"""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import Field, ValidationInfo, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Exact-match sentinels: reject the value outright when it equals any of these
+# (case-insensitive, stripped).
+PLACEHOLDER_EXACT = frozenset(
+    {
+        "",
+        "change-me",
+        "changeme",
+        "change_me",
+        "replace-me",
+        "replaceme",
+        "replace_me",
+        "your-secret-here",
+        "your_secret_here",
+        "secret",
+        "password",
+        "todo",
+        "tbd",
+        "xxx",
+    }
+)
+
+# Substring sentinels: reject if they appear *anywhere* in the value. Kept
+# narrow so we don't false-positive on real high-entropy secrets that happen
+# to contain "xxx" or "secret" as random characters.
+PLACEHOLDER_SUBSTRINGS = frozenset(
+    {
+        "change-me",
+        "changeme",
+        "change_me",
+        "replace-me",
+        "replace_me",
+        "your-secret-here",
+        "your_secret_here",
+    }
+)
+
+SECRET_FIELDS = frozenset({"jwt_secret_key", "database_url"})
+
+
+class Settings(BaseSettings):
+    """Backend configuration.
+
+    Each secret-bearing field is validated against a placeholder denylist so
+    a forgotten `.env.example` value cannot bring the service up by accident.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # App metadata
+    app_name: str = "voxel-ledger-backend"
+    app_version: str = "0.1.0"
+    environment: Literal["dev", "test", "prod"] = "dev"
+    testing: bool = False
+    log_level: str = "INFO"
+
+    # Database
+    database_url: str = Field(
+        ...,
+        description="SQLAlchemy async URL, e.g. postgresql+asyncpg://user:pw@host/db",
+    )
+    db_pool_size: int = 10
+    db_max_overflow: int = 5
+    db_echo: bool = False
+
+    # Security
+    jwt_secret_key: str = Field(..., min_length=16)
+
+    @field_validator("database_url", "jwt_secret_key")
+    @classmethod
+    def _reject_placeholders(cls, value: str, info: ValidationInfo) -> str:
+        if info.field_name not in SECRET_FIELDS:
+            return value
+        token = value.strip().lower()
+        if token in PLACEHOLDER_EXACT:
+            raise ValueError(
+                f"{info.field_name} contains a placeholder value "
+                f"({value!r}); set a real value in the environment."
+            )
+        for sentinel in PLACEHOLDER_SUBSTRINGS:
+            if sentinel in token:
+                raise ValueError(
+                    f"{info.field_name} appears to embed placeholder text "
+                    f"({sentinel!r}); replace it before starting the app."
+                )
+        return value
+
+
+def load_settings() -> Settings:
+    """Construct Settings.
+
+    Wrapped in a function so tests can monkeypatch env and re-load without
+    fighting module-level caching.
+    """
+    return Settings()  # type: ignore[call-arg]

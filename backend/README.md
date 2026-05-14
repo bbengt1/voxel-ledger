@@ -15,7 +15,32 @@ FastAPI application (Python 3.12+) for the Voxel Ledger / Print Sales v2 rewrite
 
 ## Quick start
 
-The skeleton lands in [#2](https://github.com/bbengt1/voxel-ledger/issues/2). Until then, this directory is intentionally empty.
+```bash
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Configure environment. The Settings validator refuses to start the app
+# while any value matches a placeholder sentinel (`change-me`, empty, etc.),
+# so edit .env after copying.
+cp .env.example .env
+$EDITOR .env
+
+# Apply migrations against your local Postgres (or any SQLAlchemy URL).
+alembic upgrade head
+
+# Run the API.
+uvicorn app.main:app --reload
+curl http://127.0.0.1:8000/health
+```
+
+## Testing
+
+```bash
+pytest -q                              # unit tests, SQLite-backed
+pytest -q -m integration               # Postgres via testcontainers (skips without Docker)
+ruff check .                           # from repo root
+```
 
 ## Conventions
 
