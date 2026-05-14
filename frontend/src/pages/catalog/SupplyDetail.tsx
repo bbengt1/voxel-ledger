@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { OnHandSection } from "@/components/inventory/OnHandSection";
 import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
@@ -138,24 +139,28 @@ export function SupplyDetailPage() {
         <h1 className="text-xl font-semibold">{supply.name}</h1>
         <p className="text-sm text-muted-foreground">
           {supply.is_archived ? "Archived" : "Active"} ·{" "}
-          <span data-testid="unit-cost">{supply.unit_cost}/{supply.unit}</span>{" "}
-          ·{" "}
-          <span data-testid="on-hand">
-            {supply.total_on_hand} {supply.unit} on hand
+          <span data-testid="unit-cost">
+            {supply.unit_cost}/{supply.unit}
           </span>
         </p>
-        {supply.per_location_on_hand &&
-        Object.keys(supply.per_location_on_hand).length > 0 ? (
-          <p
-            className="mt-1 text-xs text-muted-foreground"
-            data-testid="per-location-on-hand"
-          >
-            {Object.entries(supply.per_location_on_hand)
-              .map(([loc, qty]) => `${loc.slice(0, 8)}…: ${qty}${supply.unit}`)
-              .join(" · ")}
-          </p>
-        ) : null}
       </header>
+
+      <OnHandSection
+        entityKind="supply"
+        entityId={supply.id}
+        entityName={supply.name}
+        totalOnHand={supply.total_on_hand}
+        perLocationOnHand={supply.per_location_on_hand ?? null}
+        unit={supply.unit}
+        lowStockThreshold={supply.low_stock_threshold ?? null}
+        onChanged={() => {
+          if (!id) return;
+          apiClient
+            .get<SupplyResponse>(`/api/v1/supplies/${id}`)
+            .then((res) => setSupply(res.data))
+            .catch(() => {});
+        }}
+      />
 
       {canWrite ? (
         <fieldset className="space-y-3" data-testid="edit-form">

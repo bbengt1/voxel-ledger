@@ -59,6 +59,10 @@ describe("<ProductDetailPage />", () => {
     useAuthStore.getState().clearSession();
     localStorage.clear();
     mock = new MockAdapter(apiClient);
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [],
+      next_cursor: null,
+    });
   });
 
   afterEach(() => {
@@ -108,5 +112,41 @@ describe("<ProductDetailPage />", () => {
     });
     expect(sentBody?.["unit_price"]).toBe("15.00");
     expect(screen.getByTestId("unit-price").textContent).toContain("15.00");
+  });
+
+  it("renders the OnHand section with per-location breakdown", async () => {
+    setOwner();
+    mock.reset();
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [
+        {
+          id: "loc-1",
+          name: "Finished goods",
+          code: "FG",
+          kind: "finished_goods",
+          description: null,
+          is_archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      next_cursor: null,
+    });
+    mock.onGet(`/api/v1/products/${PID}`).reply(200, {
+      ...aProduct({
+        total_on_hand: "7",
+        per_location_on_hand: { "loc-1": "7" },
+      }),
+    });
+    mock
+      .onGet(`/api/v1/products/${PID}/bom`)
+      .reply(200, { items: [], total_cost: null });
+    renderPage();
+    expect(await screen.findByTestId("on-hand-total")).toHaveTextContent("7");
+    await waitFor(() => {
+      expect(screen.getByTestId("onhand-per-location")).toHaveTextContent(
+        "Finished goods",
+      );
+    });
   });
 });

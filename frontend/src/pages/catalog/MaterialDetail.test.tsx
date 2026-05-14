@@ -67,6 +67,12 @@ describe("<MaterialDetailPage />", () => {
     localStorage.clear();
     setOwner();
     mock = new MockAdapter(apiClient);
+    // OnHandSection fetches locations for the per-location table label
+    // lookup; stub it so tests don't see unrelated 404s.
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [],
+      next_cursor: null,
+    });
   });
 
   afterEach(() => {
@@ -124,8 +130,48 @@ describe("<MaterialDetailPage />", () => {
       expect(screen.getByTestId("cost-per-gram")).toHaveTextContent(
         "20.000000",
       );
-      expect(screen.getByTestId("on-hand")).toHaveTextContent(
+      expect(screen.getByTestId("on-hand-total")).toHaveTextContent(
         "1000.000000",
+      );
+    });
+  });
+
+  it("renders the OnHand section with per-location breakdown", async () => {
+    mock.reset();
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [
+        {
+          id: "loc-1",
+          name: "Workshop",
+          code: "WSB",
+          kind: "workshop",
+          description: null,
+          is_archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      next_cursor: null,
+    });
+    mock.onGet(`/api/v1/materials/${MID}`).reply(
+      200,
+      aMaterial({
+        total_on_hand: "500.000000",
+      }),
+    );
+    // axios-mock-adapter doesn't preserve the second override above for
+    // nested objects, so re-assert per_location explicitly:
+    mock.onGet(`/api/v1/materials/${MID}`).reply(200, {
+      ...aMaterial({ total_on_hand: "500.000000" }),
+      per_location_on_hand: { "loc-1": "500.000000" },
+    });
+
+    renderPage();
+    const total = await screen.findByTestId("on-hand-total");
+    expect(total).toHaveTextContent("500.000000");
+    await waitFor(() => {
+      expect(screen.getByTestId("onhand-per-location")).toHaveTextContent(
+        "Workshop",
       );
     });
   });
