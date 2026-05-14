@@ -1,0 +1,5 @@
+# Mark codegen output as generated so GitHub collapses diffs and excludes
+# these files from "linguist" language stats and blame defaults. The contract
+# is enforced by `pnpm run codegen:check` — see docs/openapi-codegen.md.
+frontend/src/api/openapi.json linguist-generated=true
+frontend/src/api/types.ts linguist-generated=true
