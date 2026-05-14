@@ -12,6 +12,7 @@ export interface AuthUser {
   id: string;
   email: string;
   role: Role;
+  full_name?: string;
 }
 
 export interface AuthSession {

@@ -3,6 +3,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { type ReactNode, useState } from "react";
 
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -19,7 +21,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+      </ThemeProvider>
       {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
     </QueryClientProvider>
   );

@@ -1,6 +1,7 @@
 import axios, {
   type AxiosError,
   type AxiosInstance,
+  type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from "axios";
 
@@ -32,6 +33,21 @@ function isAuthEndpoint(url: string | undefined): boolean {
   return AUTH_BYPASS_PATHS.some((path) => url.includes(path));
 }
 
+/**
+ * Shape of a successful `/auth/refresh` response. Mirrors `TokenPair` in the
+ * generated types but kept local to avoid a circular import via `typed.ts`.
+ */
+interface TokenPairResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+interface RetryableConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 export function createApiClient(
   baseURL: string = import.meta.env["VITE_API_BASE_URL"] ?? "/api/v1",
 ): AxiosInstance {
@@ -39,6 +55,32 @@ export function createApiClient(
     baseURL,
     headers: { "Content-Type": "application/json" },
   });
+
+  // Single in-flight refresh promise. A burst of concurrent 401s should
+  // produce exactly one /auth/refresh request; everyone else awaits it.
+  let pendingRefresh: Promise<string | null> | null = null;
+
+  async function refreshAccessToken(): Promise<string | null> {
+    const refreshToken = useAuthStore.getState().refreshToken;
+    if (!refreshToken) return null;
+    try {
+      const response = await client.post<TokenPairResponse>(
+        "/auth/refresh",
+        { refresh_token: refreshToken },
+      );
+      const data = response.data;
+      const user = useAuthStore.getState().user;
+      if (!user) return null;
+      useAuthStore.getState().setSession({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        user,
+      });
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  }
 
   client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = useAuthStore.getState().accessToken;
@@ -50,14 +92,44 @@ export function createApiClient(
 
   client.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
+    async (error: AxiosError) => {
       const status = error.response?.status;
-      const url = error.config?.url;
-      if (status === 401 && !isAuthEndpoint(url)) {
+      const original = error.config as RetryableConfig | undefined;
+      const url = original?.url;
+
+      if (status !== 401 || isAuthEndpoint(url) || !original) {
+        return Promise.reject(error);
+      }
+
+      if (original._retry) {
+        // Already retried once — give up.
         useAuthStore.getState().clearSession();
         unauthorizedHandler();
+        return Promise.reject(error);
       }
-      return Promise.reject(error);
+
+      // Reuse the in-flight refresh if one is already running.
+      if (!pendingRefresh) {
+        pendingRefresh = refreshAccessToken().finally(() => {
+          pendingRefresh = null;
+        });
+      }
+      const newToken = await pendingRefresh;
+
+      if (!newToken) {
+        useAuthStore.getState().clearSession();
+        unauthorizedHandler();
+        return Promise.reject(error);
+      }
+
+      original._retry = true;
+      const retryConfig: AxiosRequestConfig = { ...original };
+      // Ensure the retry uses the freshly minted access token.
+      retryConfig.headers = {
+        ...(retryConfig.headers as Record<string, string>),
+        Authorization: `Bearer ${newToken}`,
+      };
+      return client.request(retryConfig);
     },
   );
 
