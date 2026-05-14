@@ -20,6 +20,7 @@ from app.models.projection import ProjectionCursor
 from app.projections import registry as projection_registry
 from app.projections.material_cost import HANDLER_NAME
 from app.projections.replay import replay_handler
+from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from sqlalchemy import delete, select, update
@@ -36,6 +37,10 @@ async def test_material_cost_replay_parity(engine) -> None:
     # Seed two materials and a varied receipt pattern.
     material_ids = []
     async with factory() as s:
+        # Phase 3.2: receipts need a fallback receiving location.
+        await locations_service.create(
+            s, name="Receiving", code="RX", kind="workshop", actor_user_id=None
+        )
         for name in ("PLA-A", "PETG-B"):
             m = await materials_service.create(
                 s,

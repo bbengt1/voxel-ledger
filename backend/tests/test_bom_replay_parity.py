@@ -36,6 +36,7 @@ from app.models import Base
 from app.models.product import Product
 from app.models.product_bom_item import COMPONENT_KIND_PRODUCT, ProductBomItem
 from app.services import bom as bom_service
+from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from app.services import products as products_service
@@ -51,6 +52,10 @@ async def test_bom_replay_parity(engine) -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     async with factory() as s:
+        # Phase 3.2: receipts need a fallback receiving location.
+        await locations_service.create(
+            s, name="Receiving", code="RX", kind="workshop", actor_user_id=None
+        )
         m = await materials_service.create(
             s,
             name="M",

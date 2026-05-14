@@ -83,6 +83,12 @@ async def test_material_received_excerpt_omits_notes(
     token = login.json()["access_token"]
     h = {"Authorization": f"Bearer {token}"}
 
+    # Phase 3.2: receipts need a fallback receiving location.
+    await client.post(
+        "/api/v1/inventory/locations",
+        headers=h,
+        json={"name": "Receiving", "code": "RX", "kind": "workshop"},
+    )
     create = await client.post(
         "/api/v1/materials",
         headers=h,

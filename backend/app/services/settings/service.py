@@ -91,12 +91,18 @@ def _serialize_for_storage(value: Any) -> Any:
     """Convert a validated value to its JSON-storable form.
 
     - Decimals → canonical string (so SQLite's JSON codec doesn't float them).
+    - UUIDs → canonical string (added Phase 3.2 for the
+      ``inventory.default_receiving_location_id`` setting). Pydantic
+      coerces the string back to ``UUID`` on read via the schema's
+      annotation.
     - dicts / lists → recursed.
     - Everything else → passed through (Pydantic already enforced the type).
     """
     if isinstance(value, Decimal):
         # ``str(Decimal)`` keeps trailing zeros and precision, which is
         # what we want for monetary canonicalization.
+        return str(value)
+    if isinstance(value, uuid.UUID):
         return str(value)
     if isinstance(value, dict):
         return {k: _serialize_for_storage(v) for k, v in value.items()}

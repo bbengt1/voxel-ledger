@@ -309,6 +309,21 @@ register_summary(inventory_events.TYPE_LOCATION_ARCHIVED, _location_archived)
 register_summary(inventory_events.TYPE_LOCATION_UNARCHIVED, _location_unarchived)
 
 
+# --- Inventory transactions (Phase 3.2) ---
+
+
+def _transaction_recorded(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recorded {payload.get('kind', '?')} "
+        f"{payload.get('signed_quantity', '?')} of "
+        f"{payload.get('entity_kind', '?')}:{payload.get('entity_id', '?')} "
+        f"@ location {payload.get('location_id', '?')}"
+    )
+
+
+register_summary(inventory_events.TYPE_TRANSACTION_RECORDED, _transaction_recorded)
+
+
 # ---------------------------------------------------------------------------
 # Catalog: Supplies (Phase 2.2)
 # ---------------------------------------------------------------------------

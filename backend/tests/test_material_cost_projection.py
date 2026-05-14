@@ -12,15 +12,28 @@ from decimal import Decimal
 
 import pytest
 from app.models import Base
+from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def _seed_receiving_location(session) -> None:
+    """Phase 3.2: receipts need a fallback workshop location."""
+    await locations_service.create(
+        session,
+        name="Receiving",
+        code="RX",
+        kind="workshop",
+        actor_user_id=None,
+    )
 
 
 @pytest.mark.asyncio
 async def test_weighted_average_three_receipts(session: AsyncSession, engine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _seed_receiving_location(session)
 
     m = await materials_service.create(
         session,
@@ -78,6 +91,7 @@ async def test_first_receipt_seeds_cost(session: AsyncSession, engine) -> None:
     """Edge case: old_on_hand == 0 -> new_cost = receipt_unit_cost."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _seed_receiving_location(session)
 
     m = await materials_service.create(
         session,

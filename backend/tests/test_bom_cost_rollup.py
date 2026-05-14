@@ -10,6 +10,7 @@ from app.models import Base
 from app.models.event import Event
 from app.models.product import Product
 from app.services import bom as bom_service
+from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from app.services import products as products_service
@@ -26,6 +27,10 @@ async def test_multi_level_cost_rollup(engine) -> None:
 
     # Seed: material M @ $20/g, supply S @ $5/ea.
     async with factory() as s:
+        # Phase 3.2: receipts need a fallback receiving location.
+        await locations_service.create(
+            s, name="Receiving", code="RX", kind="workshop", actor_user_id=None
+        )
         m = await materials_service.create(
             s,
             name="M",

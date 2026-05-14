@@ -31,6 +31,15 @@ def _h(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def _seed_receiving_location(client: AsyncClient, owner_token: str) -> None:
+    """Phase 3.2: receipts need a default receiving location to land in."""
+    await client.post(
+        "/api/v1/inventory/locations",
+        headers=_h(owner_token),
+        json={"name": "Receiving", "code": "RX", "kind": "workshop"},
+    )
+
+
 @pytest.mark.asyncio
 async def test_unauthenticated_get_list_401(client: AsyncClient) -> None:
     r = await client.get("/api/v1/materials")
@@ -168,6 +177,7 @@ async def test_record_receipt_role_matrix(
     client: AsyncClient, app_session: AsyncSession, role: Role, expected: int
 ) -> None:
     owner = await _token_for(Role.OWNER, client, app_session)
+    await _seed_receiving_location(client, owner)
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
@@ -188,6 +198,7 @@ async def test_record_receipt_updates_cost_in_response(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await _token_for(Role.OWNER, client, app_session)
+    await _seed_receiving_location(client, owner)
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
@@ -235,6 +246,7 @@ async def test_record_receipt_validation_400(
 @pytest.mark.asyncio
 async def test_list_receipts_pagination(client: AsyncClient, app_session: AsyncSession) -> None:
     owner = await _token_for(Role.OWNER, client, app_session)
+    await _seed_receiving_location(client, owner)
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),

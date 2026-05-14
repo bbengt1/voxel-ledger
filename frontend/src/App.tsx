@@ -23,6 +23,7 @@ import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { LocationsListPage } from "@/pages/inventory/LocationsList";
+import { TransactionsStubPage } from "@/pages/inventory/TransactionsStub";
 
 export function App() {
   return (
@@ -194,6 +195,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <LocationDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/transactions"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TransactionsStubPage />
             </AppShell>
           </RequireAuth>
         }

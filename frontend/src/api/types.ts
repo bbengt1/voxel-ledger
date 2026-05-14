@@ -459,6 +459,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transactions */
+        get: operations["list_transactions_api_v1_inventory_transactions_get"];
+        put?: never;
+        /** Create Transaction */
+        post: operations["create_transaction_api_v1_inventory_transactions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/transactions/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Transfer */
+        post: operations["create_transfer_api_v1_inventory_transactions_transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inventory/transactions/{transaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Transaction */
+        get: operations["get_transaction_api_v1_inventory_transactions__transaction_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/materials": {
         parameters: {
             query?: never;
@@ -1582,6 +1634,153 @@ export interface components {
             kind?: ("workshop" | "finished_goods" | "staging" | "customer_pickup" | "consignment" | "virtual") | null;
             /** Name */
             name?: string | null;
+        };
+        /**
+         * InventoryTransactionCreate
+         * @description Body for ``POST /api/v1/inventory/transactions``.
+         *
+         *     ``quantity`` is the positive magnitude for every kind except
+         *     ``adjustment``, where the caller supplies a signed delta.
+         */
+        InventoryTransactionCreate: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out";
+            /** Linked Job Id */
+            linked_job_id?: string | null;
+            /** Linked Sale Id */
+            linked_sale_id?: string | null;
+            /**
+             * Location Id
+             * Format: uuid
+             */
+            location_id: string;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Quantity */
+            quantity: number | string;
+            /** Reason */
+            reason?: string | null;
+            /** Unit Cost */
+            unit_cost?: number | string | null;
+        };
+        /** InventoryTransactionListResponse */
+        InventoryTransactionListResponse: {
+            /** Items */
+            items: components["schemas"]["InventoryTransactionResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** InventoryTransactionResponse */
+        InventoryTransactionResponse: {
+            /** Actor User Id */
+            actor_user_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out";
+            /** Linked Job Id */
+            linked_job_id?: string | null;
+            /** Linked Sale Id */
+            linked_sale_id?: string | null;
+            /**
+             * Location Id
+             * Format: uuid
+             */
+            location_id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Quantity */
+            quantity: string;
+            /** Reason */
+            reason?: string | null;
+            /** Total Cost At Transaction */
+            total_cost_at_transaction?: string | null;
+            /** Transfer Pair Id */
+            transfer_pair_id?: string | null;
+            /** Unit Cost At Transaction */
+            unit_cost_at_transaction?: string | null;
+        };
+        /**
+         * InventoryTransferCreate
+         * @description Body for ``POST /api/v1/inventory/transactions/transfer``.
+         */
+        InventoryTransferCreate: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /**
+             * Entity Kind
+             * @enum {string}
+             */
+            entity_kind: "material" | "supply" | "product";
+            /**
+             * From Location Id
+             * Format: uuid
+             */
+            from_location_id: string;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Quantity */
+            quantity: number | string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * To Location Id
+             * Format: uuid
+             */
+            to_location_id: string;
+        };
+        /**
+         * InventoryTransferResponse
+         * @description Response from the transfer endpoint — returns both halves.
+         */
+        InventoryTransferResponse: {
+            in_transaction: components["schemas"]["InventoryTransactionResponse"];
+            out_transaction: components["schemas"]["InventoryTransactionResponse"];
+            /**
+             * Transfer Pair Id
+             * Format: uuid
+             */
+            transfer_pair_id: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -3311,6 +3510,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryLocationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_v1_inventory_transactions_get: {
+        parameters: {
+            query?: {
+                entity_kind?: ("material" | "supply" | "product") | null;
+                entity_id?: string | null;
+                location_id?: string | null;
+                kind?: ("production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out") | null;
+                from_at?: string | null;
+                to_at?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryTransactionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_transaction_api_v1_inventory_transactions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryTransactionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryTransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_transfer_api_v1_inventory_transactions_transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryTransferCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryTransferResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transaction_api_v1_inventory_transactions__transaction_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transaction_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryTransactionResponse"];
                 };
             };
             /** @description Validation Error */
