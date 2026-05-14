@@ -11,5 +11,6 @@ Importing the package side-effects each handler module into the registry
 
 from app.projections import (
     audit,  # noqa: F401
+    settings_cache,  # noqa: F401
     test_event_projection,  # noqa: F401
 )

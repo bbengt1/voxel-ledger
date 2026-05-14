@@ -4,4 +4,5 @@ each type into the registry."""
 from app.events.types import (
     _test_event,  # noqa: F401
     auth,  # noqa: F401
+    settings,  # noqa: F401
 )
