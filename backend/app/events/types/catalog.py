@@ -1,12 +1,12 @@
 """Catalog-bounded-context event types.
 
-The catalog domain owns materials (Phase 2.1), supplies + rates (Phase
-2.2), products + options (Phase 2.3/2.4). Each mutation in any of those
-sub-domains is a domain event with its own typed payload.
+The catalog domain owns materials (Phase 2.1), supplies + rates (Phase 2.2),
+and products (Phase 2.3). Each mutation in any of those sub-domains is a
+domain event with its own typed payload.
 
-Aggregate type varies by sub-domain (``material``, ``supply``,
-``rate``, ...). Service code passes the correct one when emitting.
-``actor_user_id`` on the event row is the admin / production user
+Aggregate type varies by sub-domain (``material``, ``supply``, ``rate``,
+``product``). Service code passes the correct one when emitting.
+``actor_user_id`` on the event row is the admin / production / sales user
 performing the action.
 """
 
@@ -19,11 +19,12 @@ from pydantic import BaseModel, ConfigDict
 
 from app.events.registry import register_event
 
-# Default aggregate type for the materials sub-domain. Kept as the
-# module-level constant for backwards compatibility with #37 callsites.
+# Aggregate type constants. Default name kept for materials backwards-compat
+# with #37 call sites; the other sub-domains get their own constants.
 AGGREGATE_TYPE: str = "material"
 AGGREGATE_TYPE_SUPPLY: str = "supply"
 AGGREGATE_TYPE_RATE: str = "rate"
+PRODUCT_AGGREGATE_TYPE: str = "product"
 
 
 class _CatalogPayloadBase(BaseModel):
@@ -149,3 +150,52 @@ register_event(TYPE_RATE_UPDATED, RateUpdatedPayload)
 register_event(TYPE_RATE_DEFAULTED, RateDefaultedPayload)
 register_event(TYPE_RATE_ARCHIVED, RateArchivedPayload)
 register_event(TYPE_RATE_UNARCHIVED, RateUnarchivedPayload)
+
+
+# --- Products (Phase 2.3) ---
+
+
+class _ProductPayloadBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ProductCreatedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    sku: str
+    name: str
+    unit_price: str
+    category: str | None = None
+
+
+class ProductUpdatedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class ProductPriceChangedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+    old_price: str
+    new_price: str
+
+
+class ProductArchivedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+
+
+class ProductUnarchivedPayload(_ProductPayloadBase):
+    product_id: uuid.UUID
+
+
+TYPE_PRODUCT_CREATED = "catalog.ProductCreated"
+TYPE_PRODUCT_UPDATED = "catalog.ProductUpdated"
+TYPE_PRODUCT_PRICE_CHANGED = "catalog.ProductPriceChanged"
+TYPE_PRODUCT_ARCHIVED = "catalog.ProductArchived"
+TYPE_PRODUCT_UNARCHIVED = "catalog.ProductUnarchived"
+
+
+register_event(TYPE_PRODUCT_CREATED, ProductCreatedPayload)
+register_event(TYPE_PRODUCT_UPDATED, ProductUpdatedPayload)
+register_event(TYPE_PRODUCT_PRICE_CHANGED, ProductPriceChangedPayload)
+register_event(TYPE_PRODUCT_ARCHIVED, ProductArchivedPayload)
+register_event(TYPE_PRODUCT_UNARCHIVED, ProductUnarchivedPayload)

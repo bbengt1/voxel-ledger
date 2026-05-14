@@ -10,6 +10,9 @@ import { UsersListPage } from "@/pages/admin/UsersList";
 import { MaterialCreatePage } from "@/pages/catalog/MaterialCreate";
 import { MaterialDetailPage } from "@/pages/catalog/MaterialDetail";
 import { MaterialsListPage } from "@/pages/catalog/MaterialsList";
+import { ProductCreatePage } from "@/pages/catalog/ProductCreate";
+import { ProductDetailPage } from "@/pages/catalog/ProductDetail";
+import { ProductsListPage } from "@/pages/catalog/ProductsList";
 import { RateCreatePage } from "@/pages/catalog/RateCreate";
 import { RateDetailPage } from "@/pages/catalog/RateDetail";
 import { RatesListPage } from "@/pages/catalog/RatesList";
@@ -87,6 +90,36 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <MaterialDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/products"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ProductsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/products/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ProductCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/products/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ProductDetailPage />
             </AppShell>
           </RequireAuth>
         }

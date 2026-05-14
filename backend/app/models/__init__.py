@@ -6,6 +6,7 @@ from app.models.auth import RefreshToken, Role, User
 from app.models.event import Event
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
+from app.models.product import Product
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
@@ -18,6 +19,7 @@ __all__ = [
     "Event",
     "Material",
     "MaterialReceipt",
+    "Product",
     "ProjectionCursor",
     "ProjectionTestEvent",
     "Rate",

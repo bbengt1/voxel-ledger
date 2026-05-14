@@ -122,6 +122,29 @@ register_excerpt_fields(
 # Archive/unarchive carry only the material_id — no excerpt is useful.
 
 
+# --- Products (Phase 2.3) -------------------------------------------------
+# Whitelist sku/name/category. ``description`` is intentionally NOT
+# whitelisted — free-form text that's better kept out of the audit log.
+# ``old_price`` / ``new_price`` are explicitly whitelisted for the
+# dedicated ProductPriceChanged event so downstream history readers can
+# render the change without rejoining the full event payload.
+
+register_excerpt_fields(
+    catalog_events.TYPE_PRODUCT_CREATED,
+    ("sku", "name", "category"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_PRODUCT_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_PRODUCT_PRICE_CHANGED,
+    ("old_price", "new_price"),
+)
+# ProductArchived / ProductUnarchived carry only the product_id — no
+# excerpt is useful.
+
+
 # ---------------------------------------------------------------------------
 # Inventory event whitelists (Phase 2.1).
 # ---------------------------------------------------------------------------

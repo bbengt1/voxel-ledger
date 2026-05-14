@@ -12,6 +12,7 @@ from fastapi import APIRouter
 from app.api.v1.admin import admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.materials import router as materials_router
+from app.api.v1.products import router as products_router
 from app.api.v1.rates import router as rates_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.supplies import router as supplies_router
@@ -23,5 +24,6 @@ api_router.include_router(admin_router)
 api_router.include_router(settings_router)
 api_router.include_router(users_router)
 api_router.include_router(materials_router)
+api_router.include_router(products_router)
 api_router.include_router(rates_router)
 api_router.include_router(supplies_router)
