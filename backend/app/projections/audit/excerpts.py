@@ -178,6 +178,20 @@ register_excerpt_fields(
 )
 
 
+# --- Inventory locations (Phase 3.1) ---
+
+register_excerpt_fields(
+    inventory_events.TYPE_LOCATION_CREATED,
+    ("name", "code", "kind"),
+)
+register_excerpt_fields(
+    inventory_events.TYPE_LOCATION_UPDATED,
+    ("before", "after"),
+)
+# LocationArchived / LocationUnarchived carry only the location_id — no
+# excerpt is useful.
+
+
 # ---------------------------------------------------------------------------
 # Catalog: Supplies (Phase 2.2)
 # ---------------------------------------------------------------------------

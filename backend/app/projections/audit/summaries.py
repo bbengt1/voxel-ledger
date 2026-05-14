@@ -277,6 +277,38 @@ def _material_received(payload: dict[str, Any], actor: str) -> str:
 register_summary(inventory_events.TYPE_MATERIAL_RECEIVED, _material_received)
 
 
+# --- Inventory locations (Phase 3.1) ---
+
+
+def _location_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created inventory location {payload.get('code', '?')} "
+        f"({payload.get('name', '?')}) [{payload.get('kind', '?')}]"
+    )
+
+
+def _location_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated inventory location {payload.get('location_id', '?')}: {changes}"
+
+
+def _location_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived inventory location {payload.get('location_id', '?')}"
+
+
+def _location_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived inventory location {payload.get('location_id', '?')}"
+
+
+register_summary(inventory_events.TYPE_LOCATION_CREATED, _location_created)
+register_summary(inventory_events.TYPE_LOCATION_UPDATED, _location_updated)
+register_summary(inventory_events.TYPE_LOCATION_ARCHIVED, _location_archived)
+register_summary(inventory_events.TYPE_LOCATION_UNARCHIVED, _location_unarchived)
+
+
 # ---------------------------------------------------------------------------
 # Catalog: Supplies (Phase 2.2)
 # ---------------------------------------------------------------------------
