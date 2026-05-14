@@ -61,8 +61,13 @@ describe("<TransferStockModal />", () => {
 
   it("blocks submit when from == to", async () => {
     renderModal();
+    // Wait for the locations fetch to resolve — the `select` elements exist
+    // immediately but their options only appear after the GET
+    // /inventory/locations promise resolves. Both selects need to be ready,
+    // not just one; checking option count on `transfer-from` is enough since
+    // both render from the same data source.
     await waitFor(() =>
-      expect(screen.getByTestId("transfer-from")).toBeInTheDocument(),
+      expect(screen.getByTestId("transfer-from").children.length).toBeGreaterThan(1),
     );
     const user = userEvent.setup();
     await user.selectOptions(screen.getByTestId("transfer-from"), "loc-a");
@@ -85,8 +90,13 @@ describe("<TransferStockModal />", () => {
       ];
     });
     const { onTransferred } = renderModal();
+    // Wait for the locations fetch to resolve — the `select` elements exist
+    // immediately but their options only appear after the GET
+    // /inventory/locations promise resolves. Both selects need to be ready,
+    // not just one; checking option count on `transfer-from` is enough since
+    // both render from the same data source.
     await waitFor(() =>
-      expect(screen.getByTestId("transfer-from")).toBeInTheDocument(),
+      expect(screen.getByTestId("transfer-from").children.length).toBeGreaterThan(1),
     );
     const user = userEvent.setup();
     await user.selectOptions(screen.getByTestId("transfer-from"), "loc-a");
@@ -108,8 +118,13 @@ describe("<TransferStockModal />", () => {
       .onPost("/api/v1/inventory/transactions/transfer")
       .reply(400, { detail: "insufficient stock at source" });
     renderModal();
+    // Wait for the locations fetch to resolve — the `select` elements exist
+    // immediately but their options only appear after the GET
+    // /inventory/locations promise resolves. Both selects need to be ready,
+    // not just one; checking option count on `transfer-from` is enough since
+    // both render from the same data source.
     await waitFor(() =>
-      expect(screen.getByTestId("transfer-from")).toBeInTheDocument(),
+      expect(screen.getByTestId("transfer-from").children.length).toBeGreaterThan(1),
     );
     const user = userEvent.setup();
     await user.selectOptions(screen.getByTestId("transfer-from"), "loc-a");
