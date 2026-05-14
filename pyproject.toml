@@ -47,3 +47,6 @@ minversion = "8.0"
 addopts = "-ra -q"
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
+markers = [
+    "integration: tests requiring an ephemeral Postgres (testcontainers/Docker)",
+]
