@@ -16,6 +16,8 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import auth as auth_events
+from app.events.types import catalog as catalog_events
+from app.events.types import inventory as inventory_events
 from app.events.types import users as users_events
 
 Formatter = Callable[[dict[str, Any], str], str]
@@ -135,3 +137,56 @@ register_summary(users_events.TYPE_USER_UPDATED, _user_updated)
 register_summary(users_events.TYPE_USER_DEACTIVATED, _user_deactivated)
 register_summary(users_events.TYPE_USER_REACTIVATED, _user_reactivated)
 register_summary(users_events.TYPE_PASSWORD_RESET_BY_ADMIN, _password_reset_by_admin)
+
+
+# ---------------------------------------------------------------------------
+# Catalog event summaries (Phase 2.1)
+# ---------------------------------------------------------------------------
+
+
+def _material_created(payload: dict[str, Any], actor: str) -> str:
+    bits = [payload.get("name", "?")]
+    brand = payload.get("brand")
+    if brand:
+        bits.append(f"({brand})")
+    mt = payload.get("material_type")
+    if mt:
+        bits.append(f"[{mt}]")
+    return f"{actor} created material {' '.join(bits)}"
+
+
+def _material_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated material {payload.get('material_id', '?')}: {changes}"
+
+
+def _material_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived material {payload.get('material_id', '?')}"
+
+
+def _material_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived material {payload.get('material_id', '?')}"
+
+
+register_summary(catalog_events.TYPE_MATERIAL_CREATED, _material_created)
+register_summary(catalog_events.TYPE_MATERIAL_UPDATED, _material_updated)
+register_summary(catalog_events.TYPE_MATERIAL_ARCHIVED, _material_archived)
+register_summary(catalog_events.TYPE_MATERIAL_UNARCHIVED, _material_unarchived)
+
+
+# ---------------------------------------------------------------------------
+# Inventory event summaries (Phase 2.1)
+# ---------------------------------------------------------------------------
+
+
+def _material_received(payload: dict[str, Any], actor: str) -> str:
+    grams = payload.get("grams", "?")
+    total = payload.get("total_cost", "?")
+    mid = payload.get("material_id", "?")
+    return f"{actor} received {grams}g for material {mid} (total {total})"
+
+
+register_summary(inventory_events.TYPE_MATERIAL_RECEIVED, _material_received)

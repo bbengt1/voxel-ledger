@@ -18,6 +18,8 @@ from __future__ import annotations
 from typing import Any
 
 from app.events.types import auth as auth_events
+from app.events.types import catalog as catalog_events
+from app.events.types import inventory as inventory_events
 from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
@@ -102,3 +104,31 @@ register_excerpt_fields(users_events.TYPE_USER_CREATED, ("email", "full_name", "
 register_excerpt_fields(users_events.TYPE_USER_UPDATED, ("before", "after"))
 register_excerpt_fields(users_events.TYPE_USER_DEACTIVATED, ("reason",))
 # Reactivated + password-reset-by-admin carry only ids — no excerpt is useful.
+
+
+# ---------------------------------------------------------------------------
+# Catalog event whitelists (Phase 2.1).
+# ---------------------------------------------------------------------------
+# Materials carry identifying metadata only — no sensitive content.
+
+register_excerpt_fields(
+    catalog_events.TYPE_MATERIAL_CREATED,
+    ("name", "brand", "material_type", "color"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_MATERIAL_UPDATED,
+    ("before", "after"),
+)
+# Archive/unarchive carry only the material_id — no excerpt is useful.
+
+
+# ---------------------------------------------------------------------------
+# Inventory event whitelists (Phase 2.1).
+# ---------------------------------------------------------------------------
+# ``notes`` is intentionally NOT whitelisted: it's free-text and might
+# contain vendor account numbers or other sensitive payment data.
+
+register_excerpt_fields(
+    inventory_events.TYPE_MATERIAL_RECEIVED,
+    ("material_id", "grams", "total_cost"),
+)
