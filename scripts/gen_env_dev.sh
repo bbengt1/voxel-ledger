@@ -29,7 +29,11 @@ command -v openssl >/dev/null 2>&1 || {
 jwt_secret="$(openssl rand -hex 32)"
 db_password="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"
 owner_password="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"
-owner_email="owner@voxel-ledger.local"
+# .local is a reserved special-use TLD (RFC 6761, mDNS) and the
+# email-validator library backing pydantic's EmailStr rejects it. Using
+# example.com — an IANA-reserved documentation domain that the validator
+# explicitly allows — keeps logins working without hitting a real domain.
+owner_email="owner@example.com"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT

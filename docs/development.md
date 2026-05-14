@@ -42,7 +42,7 @@ pipeline (`make help` lists each step as its own target) does:
 2. **`env-dev`** — if `.env.dev` is missing, copies `.env.dev.example` and
    substitutes locally-safe random values for `JWT_SECRET_KEY`, the Postgres
    password, and an `OWNER_PASSWORD`. The owner email defaults to
-   `owner@voxel-ledger.local`. The file is tagged `# LOCAL DEV ONLY` and
+   `owner@example.com`. The file is tagged `# LOCAL DEV ONLY` and
    gitignored.
 3. **`venv` + `install`** — creates a repo-local `.venv/` if missing,
    then installs the backend editable (`.venv/bin/pip install -e backend/[dev]`)
