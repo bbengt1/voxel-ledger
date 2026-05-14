@@ -40,9 +40,7 @@ ROLE_ENUM = SAEnum(
 class User(Base):
     __tablename__ = "user"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
@@ -76,18 +74,12 @@ class RefreshToken(Base):
     parent_token_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("refresh_token.id", ondelete="SET NULL"), nullable=True
     )
-    token_hash: Mapped[str] = mapped_column(
-        String(64), unique=True, nullable=False, index=True
-    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    revoked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revocation_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")

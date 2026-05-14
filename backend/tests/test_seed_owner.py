@@ -97,9 +97,7 @@ async def test_seed_is_noop_on_populated_table(
     factory = db_module.make_session_factory(engine)
     try:
         async with factory() as s:
-            count = (
-                await s.execute(select(func.count()).select_from(User))
-            ).scalar_one()
+            count = (await s.execute(select(func.count()).select_from(User))).scalar_one()
             assert count == 1
     finally:
         await engine.dispose()

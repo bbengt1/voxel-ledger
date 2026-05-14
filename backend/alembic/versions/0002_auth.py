@@ -9,6 +9,7 @@ Revises: 0001_baseline
 Create Date: 2026-05-13 00:00:01.000000
 
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -36,17 +37,13 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("email", sa.String(length=255), nullable=False, unique=True),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
-        sa.Column(
-            "full_name", sa.String(length=255), nullable=False, server_default=""
-        ),
+        sa.Column("full_name", sa.String(length=255), nullable=False, server_default=""),
         sa.Column("role", role_enum, nullable=False),
         sa.Column(
             "is_active",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("true")
-            if bind.dialect.name == "postgresql"
-            else sa.text("1"),
+            server_default=sa.text("true") if bind.dialect.name == "postgresql" else sa.text("1"),
         ),
         sa.Column(
             "created_at",
@@ -78,9 +75,7 @@ def upgrade() -> None:
             sa.ForeignKey("refresh_token.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column(
-            "token_hash", sa.String(length=64), nullable=False, unique=True
-        ),
+        sa.Column("token_hash", sa.String(length=64), nullable=False, unique=True),
         sa.Column(
             "issued_at",
             sa.DateTime(timezone=True),
@@ -91,12 +86,8 @@ def upgrade() -> None:
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("revocation_reason", sa.String(length=64), nullable=True),
     )
-    op.create_index(
-        "ix_refresh_token_user_id", "refresh_token", ["user_id"]
-    )
-    op.create_index(
-        "ix_refresh_token_family_id", "refresh_token", ["family_id"]
-    )
+    op.create_index("ix_refresh_token_user_id", "refresh_token", ["user_id"])
+    op.create_index("ix_refresh_token_family_id", "refresh_token", ["family_id"])
     op.create_index(
         "ix_refresh_token_token_hash",
         "refresh_token",

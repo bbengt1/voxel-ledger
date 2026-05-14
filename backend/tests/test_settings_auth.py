@@ -25,9 +25,7 @@ def test_owner_email_rejects_placeholder(placeholder: str) -> None:
         Settings(**_ok(owner_email=placeholder))  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize(
-    "placeholder", ["change-me", "changeme", "replace-me", ""]
-)
+@pytest.mark.parametrize("placeholder", ["change-me", "changeme", "replace-me", ""])
 def test_owner_password_rejects_placeholder(placeholder: str) -> None:
     with pytest.raises(ValidationError):
         Settings(**_ok(owner_password=placeholder))  # type: ignore[arg-type]

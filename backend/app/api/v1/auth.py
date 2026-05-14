@@ -36,14 +36,9 @@ _login_limiter_capacity: int | None = None
 
 def _get_login_limiter(settings: Settings) -> InMemoryRateLimiter:
     global _login_limiter, _login_limiter_capacity
-    if (
-        _login_limiter is None
-        or _login_limiter_capacity != settings.login_rate_limit_per_minute
-    ):
+    if _login_limiter is None or _login_limiter_capacity != settings.login_rate_limit_per_minute:
         capacity = settings.login_rate_limit_per_minute
-        _login_limiter = InMemoryRateLimiter(
-            capacity=capacity, rate_per_sec=capacity / 60.0
-        )
+        _login_limiter = InMemoryRateLimiter(capacity=capacity, rate_per_sec=capacity / 60.0)
         _login_limiter_capacity = capacity
     return _login_limiter
 
@@ -84,9 +79,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials"
         ) from None
     except auth_service.InactiveUserError:
-        log_auth_event(
-            "auth.login.inactive", ip=ip, extra={"email": payload.email}
-        )
+        log_auth_event("auth.login.inactive", ip=ip, extra={"email": payload.email})
         # Same response shape as bad creds — don't leak account state.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials"
@@ -143,9 +136,7 @@ async def logout(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> None:
     ip = client_ip(request)
-    user_id = await auth_service.logout(
-        session, presented_token=payload.refresh_token
-    )
+    user_id = await auth_service.logout(session, presented_token=payload.refresh_token)
     await session.commit()
     log_auth_event("auth.logout", user_id=user_id, ip=ip)
 

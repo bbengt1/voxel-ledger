@@ -39,9 +39,7 @@ async def test_login_success(client: AsyncClient, app_session: AsyncSession) -> 
 
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_login_wrong_password(client: AsyncClient, app_session: AsyncSession) -> None:
     await _seed(app_session)
     resp = await client.post(
         "/api/v1/auth/login",
@@ -78,9 +76,7 @@ async def test_login_inactive_user_same_error(
 
 
 @pytest.mark.asyncio
-async def test_login_rate_limited(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_login_rate_limited(client: AsyncClient, app_session: AsyncSession) -> None:
     await _seed(app_session)
     # default limit is 10/min/IP; punch through it.
     for _ in range(10):

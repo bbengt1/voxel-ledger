@@ -35,9 +35,7 @@ def get_settings(request: Request) -> Settings:
 
 async def get_current_user(
     request: Request,
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     session: Annotated[AsyncSession, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
@@ -64,9 +62,7 @@ async def get_current_user(
 
     sub = payload.get("sub")
     if not sub:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
     try:
         user_id = uuid.UUID(sub)
     except (TypeError, ValueError) as exc:
@@ -76,9 +72,7 @@ async def get_current_user(
 
     user = await auth_service.get_user_by_id(session, user_id)
     if user is None or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="inactive user"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="inactive user")
     return user
 
 
@@ -88,9 +82,7 @@ def require_role(*roles: Role | str):
     Accepts either Role enum members or their string values for
     ergonomics: `Depends(require_role("owner", Role.BOOKKEEPER))`.
     """
-    allowed: frozenset[Role] = frozenset(
-        r if isinstance(r, Role) else Role(r) for r in roles
-    )
+    allowed: frozenset[Role] = frozenset(r if isinstance(r, Role) else Role(r) for r in roles)
 
     async def _dep(
         user: Annotated[User, Depends(get_current_user)],
