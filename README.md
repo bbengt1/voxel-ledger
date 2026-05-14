@@ -39,6 +39,24 @@ These are baked into the rewrite and require an explicit decision-record update 
 
 See [`print-sales-v2/12_glossary_assumptions_decisions.md`](print-sales-v2/12_glossary_assumptions_decisions.md) for the full decision record.
 
+## Quick start
+
+```bash
+git clone git@github.com:bbengt1/voxel-ledger.git
+cd voxel-ledger
+make bootstrap
+```
+
+`make bootstrap` checks your toolchain, generates a local `.env.dev` with
+random secrets, installs dependencies, brings up the Docker Compose stack
+(Postgres + FastAPI with hot reload + Vite with HMR), runs migrations, and
+seeds an owner user. It is idempotent — re-running on a working tree is a
+fast no-op. Owner credentials are written to `.env.dev`.
+
+For the full dev loop (codegen after backend schema changes, common failure
+modes, clean reset, etc.) see [`docs/development.md`](docs/development.md).
+For CI / pre-commit / PR conventions, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Development
 
 Tooling stack:
@@ -46,9 +64,7 @@ Tooling stack:
 - **Python 3.12+**, managed via virtualenv or `uv`.
 - **Node 20.11+**, **pnpm 9** as the workspace manager (chosen over npm/yarn for strict module resolution — see [`pnpm-workspace.yaml`](pnpm-workspace.yaml)).
 - **PostgreSQL 16** for development and production.
-- **Docker Compose** for local dev (lands in [#3](https://github.com/bbengt1/voxel-ledger/issues/3)).
-
-Concrete setup instructions arrive with the backend skeleton ([#2](https://github.com/bbengt1/voxel-ledger/issues/2)) and frontend skeleton ([#4](https://github.com/bbengt1/voxel-ledger/issues/4)).
+- **Docker Compose** for local dev.
 
 ## Working style
 
