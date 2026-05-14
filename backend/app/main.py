@@ -47,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
     )
+    app.state.settings = settings
     app.add_middleware(RequestIdMiddleware)
 
     # /health is intentionally unversioned — it's an infra contract, not a
