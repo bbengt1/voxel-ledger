@@ -27,10 +27,14 @@ ROLE_VALUES = ("owner", "bookkeeper", "production", "sales", "viewer")
 
 
 def upgrade() -> None:
-    role_enum = sa.Enum(*ROLE_VALUES, name="role", create_type=False)
+    # Let SQLAlchemy auto-create the `role` enum type via op.create_table.
+    # We deliberately do NOT pre-create it: when the migration crashed mid-way
+    # in an earlier shape, the explicit `.create(checkfirst=True)` raced with
+    # op.create_table's own (checkfirst=False) auto-create on PG, producing
+    # `DuplicateObjectError: type "role" already exists`. create_type=False
+    # on the column type was not honored by the dialect-level hook.
     bind = op.get_bind()
-    if bind.dialect.name == "postgresql":
-        sa.Enum(*ROLE_VALUES, name="role").create(bind, checkfirst=True)
+    role_enum = sa.Enum(*ROLE_VALUES, name="role")
 
     op.create_table(
         "user",
@@ -103,6 +107,11 @@ def downgrade() -> None:
     op.drop_table("refresh_token")
     op.drop_table("user")
 
+    # On PG the user table teardown should auto-drop the `role` enum,
+    # but we drop it explicitly with checkfirst to be idempotent if the
+    # auto-drop ever stops firing the way auto-create did in upgrade.
+    # On SQLite (tests) the enum is a CHECK constraint and vanishes with
+    # the table — the dialect guard keeps the drop PG-only.
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         sa.Enum(*ROLE_VALUES, name="role").drop(bind, checkfirst=True)

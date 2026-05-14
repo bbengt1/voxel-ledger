@@ -17,7 +17,7 @@ minimums):
 
 | Tool             | Minimum  | Notes                                              |
 |------------------|----------|----------------------------------------------------|
-| Python           | 3.12     | A venv is recommended but not required by `make`.  |
+| Python           | 3.12     | `make` manages a repo-local `.venv` automatically. |
 | Node             | 20.11    | Same major as CI.                                  |
 | pnpm             | 9        | `corepack enable` will pin the exact version.      |
 | Docker           | recent   | Daemon must be running.                            |
@@ -42,14 +42,17 @@ pipeline (`make help` lists each step as its own target) does:
 2. **`env-dev`** — if `.env.dev` is missing, copies `.env.dev.example` and
    substitutes locally-safe random values for `JWT_SECRET_KEY`, the Postgres
    password, and an `OWNER_PASSWORD`. The owner email defaults to
-   `owner@voxel-ledger.local`. The file is tagged `# LOCAL DEV ONLY` and
+   `owner@example.com`. The file is tagged `# LOCAL DEV ONLY` and
    gitignored.
-3. **`install`** — `pip install -e backend/[dev]` and `pnpm install`.
+3. **`venv` + `install`** — creates a repo-local `.venv/` if missing,
+   then installs the backend editable (`.venv/bin/pip install -e backend/[dev]`)
+   and runs `pnpm install`. Host-side Python is kept in the venv because
+   modern macOS/Linux Python installs are PEP 668 externally-managed.
 4. **`up`** — `scripts/compose.sh up -d --build` brings the dev stack up
    (Postgres, FastAPI backend with hot reload, Vite frontend with HMR).
 5. **`wait-healthy`** — polls until db and backend healthchecks pass.
 6. **`migrate`** — `alembic upgrade head` inside the backend container.
-7. **`seed`** — `python -m scripts.seed_owner` creates the owner user from
+7. **`seed`** — `.venv/bin/python -m scripts.seed_owner` creates the owner user from
    `OWNER_EMAIL` / `OWNER_PASSWORD`. Idempotent — exits clean if the user
    table is non-empty.
 8. **`summary`** — prints URLs, the owner password lives in `.env.dev`, and
@@ -64,6 +67,7 @@ Voxel Ledger dev stack is up.
   Postgres:  localhost:5432
 
 Owner credentials are in .env.dev (OWNER_EMAIL / OWNER_PASSWORD).
+Activate the host venv for direct backend work: source .venv/bin/activate
 Useful: make logs | make down | make nuke | make test
 ```
 

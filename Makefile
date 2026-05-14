@@ -12,6 +12,14 @@ ENV_FILE      := .env.dev
 BACKEND_SVC   := backend
 DB_SVC        := db
 
+# Host-side Python lives in a repo-local venv. Modern macOS/Linux Python
+# installs (Homebrew, distro-packaged) are PEP 668 externally-managed, so
+# we cannot pip-install into the system interpreter. The venv keeps the
+# editable backend install + dev deps isolated and reproducible.
+VENV          := .venv
+VENV_PY       := $(VENV)/bin/python
+VENV_PIP      := $(VENV)/bin/pip
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -23,7 +31,7 @@ help: ## Show this catalogue
 # ---------------------------------------------------------------------------
 
 .PHONY: bootstrap
-bootstrap: check-tools env-dev install up wait-healthy migrate seed summary ## One-command local bootstrap (idempotent)
+bootstrap: check-tools env-dev venv install up wait-healthy migrate seed summary ## One-command local bootstrap (idempotent)
 
 .PHONY: check-tools
 check-tools: ## Verify Python/Node/pnpm/Docker versions
@@ -33,10 +41,20 @@ check-tools: ## Verify Python/Node/pnpm/Docker versions
 env-dev: ## Generate .env.dev with random local secrets (if missing)
 	@scripts/gen_env_dev.sh
 
+# Idempotent venv create. Uses `python3` to bootstrap; everything else
+# downstream uses $(VENV_PY) so we never touch the system interpreter.
+$(VENV_PY):
+	@echo "venv: creating $(VENV)"
+	@python3 -m venv $(VENV)
+	@$(VENV_PIP) install --quiet --upgrade pip
+
+.PHONY: venv
+venv: $(VENV_PY) ## Create repo-local .venv (idempotent)
+
 .PHONY: install
-install: ## Install backend (editable) and frontend (pnpm) deps
-	@echo "make install: backend (editable)"
-	@pip install -e "backend/[dev]"
+install: venv ## Install backend (editable, into .venv) and frontend (pnpm) deps
+	@echo "make install: backend (editable into $(VENV))"
+	@$(VENV_PIP) install -e "backend/[dev]"
 	@echo "make install: frontend (pnpm)"
 	@pnpm install
 
@@ -63,21 +81,22 @@ wait-healthy: ## Wait until db + backend healthchecks pass
 migrate: ## Run alembic upgrade head inside the backend container
 	@$(COMPOSE) exec -T $(BACKEND_SVC) alembic upgrade head
 
-# Seeds run on the host (with the editable backend install on $PATH) rather
-# than inside the container — the container source mount is `./backend:/app`,
-# which doesn't include `scripts/`. We export the env vars from .env.dev and
-# rewrite the DATABASE_URL host so localhost works from the host process.
+# Seeds run on the host (against the venv's editable backend install)
+# rather than inside the container — the container source mount is
+# `./backend:/app`, which doesn't include `scripts/`. We export the env
+# vars from .env.dev and rewrite the DATABASE_URL host so localhost
+# works from the host process.
 .PHONY: seed
-seed: ## (Re-)run owner seed (idempotent)
+seed: venv ## (Re-)run owner seed (idempotent)
 	@set -a; . ./$(ENV_FILE); set +a; \
 	    DATABASE_URL="$$(echo "$$DATABASE_URL" | sed 's|@db:|@localhost:|')" \
-	    python -m scripts.seed_owner
+	    $(VENV_PY) -m scripts.seed_owner
 
 .PHONY: seed-fixtures
-seed-fixtures: ## Run opt-in dev fixtures (idempotent)
+seed-fixtures: venv ## Run opt-in dev fixtures (idempotent)
 	@set -a; . ./$(ENV_FILE); set +a; \
 	    DATABASE_URL="$$(echo "$$DATABASE_URL" | sed 's|@db:|@localhost:|')" \
-	    python -m scripts.seed_dev
+	    $(VENV_PY) -m scripts.seed_dev
 
 .PHONY: summary
 summary: ## Print URLs and login info after bootstrap
@@ -89,6 +108,7 @@ summary: ## Print URLs and login info after bootstrap
 	    echo "  Postgres:  localhost:$${POSTGRES_HOST_PORT:-5432}"
 	@echo ""
 	@echo "Owner credentials are in $(ENV_FILE) (OWNER_EMAIL / OWNER_PASSWORD)."
+	@echo "Activate the host venv for direct backend work: source $(VENV)/bin/activate"
 	@echo "Useful: make logs | make down | make nuke | make test"
 
 # ---------------------------------------------------------------------------

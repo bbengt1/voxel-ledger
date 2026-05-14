@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api.v1.health import router as health_router
@@ -55,6 +56,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.add_middleware(RequestIdMiddleware)
+
+    # CORS is opt-in via settings.cors_origins. Empty list = no middleware =
+    # browser cross-origin calls are blocked (server-to-server only). Local
+    # dev env files seed http://localhost:5173 so the Vite frontend works.
+    if settings.cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     # /health is intentionally unversioned — it's an infra contract, not a
     # business API. Everything else hangs off /api/v1.
