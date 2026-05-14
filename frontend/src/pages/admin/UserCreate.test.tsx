@@ -52,7 +52,7 @@ describe("<UserCreatePage />", () => {
   });
 
   it("submits the form and shows the generated password modal", async () => {
-    mock.onPost("/users").reply(201, {
+    mock.onPost("/api/v1/users").reply(201, {
       user: {
         id: "33333333-3333-3333-3333-333333333333",
         email: "fresh@example.com",
@@ -79,7 +79,7 @@ describe("<UserCreatePage />", () => {
   });
 
   it("shows 'Copied' after clicking copy-to-clipboard", async () => {
-    mock.onPost("/users").reply(201, {
+    mock.onPost("/api/v1/users").reply(201, {
       user: {
         id: "x",
         email: "x@example.com",
@@ -118,7 +118,7 @@ describe("<UserCreatePage />", () => {
   });
 
   it("warns if the user tries to close without acknowledging", async () => {
-    mock.onPost("/users").reply(201, {
+    mock.onPost("/api/v1/users").reply(201, {
       user: {
         id: "y",
         email: "y@example.com",
@@ -151,7 +151,7 @@ describe("<UserCreatePage />", () => {
   });
 
   it("shows server error detail on 400", async () => {
-    mock.onPost("/users").reply(400, { detail: "email already exists" });
+    mock.onPost("/api/v1/users").reply(400, { detail: "email already exists" });
     renderPage();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/email/i), "dup@example.com");

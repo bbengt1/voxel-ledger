@@ -24,7 +24,7 @@ describe("apiClient refresh interceptor", () => {
 
   it("refreshes on 401, retries the original request, returns the response", async () => {
     seedSession();
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
 
     let protectedCalls = 0;
@@ -38,7 +38,7 @@ describe("apiClient refresh interceptor", () => {
       return [200, { ok: true }];
     });
 
-    mock.onPost("/auth/refresh").reply(200, {
+    mock.onPost("/api/v1/auth/refresh").reply(200, {
       access_token: "new-at",
       refresh_token: "new-rt",
       expires_in: 900,
@@ -56,7 +56,7 @@ describe("apiClient refresh interceptor", () => {
 
   it("only fires one refresh request under a burst of concurrent 401s", async () => {
     seedSession();
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
 
     const seen: Record<string, number> = {};
@@ -79,7 +79,7 @@ describe("apiClient refresh interceptor", () => {
     });
 
     let refreshCalls = 0;
-    mock.onPost("/auth/refresh").reply(() => {
+    mock.onPost("/api/v1/auth/refresh").reply(() => {
       refreshCalls += 1;
       return [
         200,
@@ -106,11 +106,11 @@ describe("apiClient refresh interceptor", () => {
 
   it("redirects to /login and clears the session when refresh fails", async () => {
     seedSession();
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
 
     mock.onGet("/protected").reply(401);
-    mock.onPost("/auth/refresh").reply(401);
+    mock.onPost("/api/v1/auth/refresh").reply(401);
 
     const handler = vi.fn();
     const restore = setUnauthorizedHandler(handler);
@@ -124,12 +124,12 @@ describe("apiClient refresh interceptor", () => {
 
   it("does not attempt refresh when there is no refresh token", async () => {
     // Empty store: no refresh token, no user.
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
 
     mock.onGet("/protected").reply(401);
     const refreshSpy = vi.fn(() => [401, {}] as [number, object]);
-    mock.onPost("/auth/refresh").reply(refreshSpy);
+    mock.onPost("/api/v1/auth/refresh").reply(refreshSpy);
 
     const handler = vi.fn();
     const restore = setUnauthorizedHandler(handler);

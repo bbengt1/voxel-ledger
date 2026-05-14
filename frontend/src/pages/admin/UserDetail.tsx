@@ -45,7 +45,7 @@ export function UserDetailPage() {
     // hit the raw axios client. The response shape is still validated by
     // the generated `UserResponse` type at call sites.
     apiClient
-      .get<UserResponse>(`/users/${id}`)
+      .get<UserResponse>(`/api/v1/users/${id}`)
       .then((res) => {
         if (cancelled) return;
         setUser(res.data);
@@ -72,7 +72,7 @@ export function UserDetailPage() {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const res = await apiClient.patch<UserResponse>(`/users/${id}`, {
+      const res = await apiClient.patch<UserResponse>(`/api/v1/users/${id}`, {
         full_name: fullName,
         role,
       });
@@ -91,7 +91,7 @@ export function UserDetailPage() {
   async function doDeactivate() {
     if (!id) return;
     try {
-      const res = await apiClient.post<UserResponse>(`/users/${id}/deactivate`);
+      const res = await apiClient.post<UserResponse>(`/api/v1/users/${id}/deactivate`);
       setUser(res.data);
     } catch (err: unknown) {
       const detail =
@@ -106,7 +106,7 @@ export function UserDetailPage() {
   async function doReactivate() {
     if (!id) return;
     try {
-      const res = await apiClient.post<UserResponse>(`/users/${id}/reactivate`);
+      const res = await apiClient.post<UserResponse>(`/api/v1/users/${id}/reactivate`);
       setUser(res.data);
     } catch (err: unknown) {
       const detail =
@@ -120,7 +120,7 @@ export function UserDetailPage() {
     if (!id) return;
     try {
       const res = await apiClient.post<{ generated_password: string }>(
-        `/users/${id}/reset-password`,
+        `/api/v1/users/${id}/reset-password`,
       );
       setNewPassword(res.data.generated_password);
     } catch (err: unknown) {

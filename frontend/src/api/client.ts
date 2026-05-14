@@ -7,7 +7,7 @@ import axios, {
 
 import { useAuthStore } from "@/store/useAuthStore";
 
-const AUTH_BYPASS_PATHS = ["/auth/login", "/auth/refresh"];
+const AUTH_BYPASS_PATHS = ["/api/v1/auth/login", "/api/v1/auth/refresh"];
 
 /**
  * Default redirect-on-401 handler. Captures the current URL and sends the
@@ -49,7 +49,12 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 }
 
 export function createApiClient(
-  baseURL: string = import.meta.env["VITE_API_BASE_URL"] ?? "/api/v1",
+  // baseURL is the *origin* only — every call site provides the full path
+  // starting with `/api/v1/...`, matching the generated OpenAPI types in
+  // `types.ts`. Mixing a versioned baseURL with versioned spec paths produced
+  // doubled-up URLs (`/api/v1/api/v1/users`) and was the source of a real
+  // production-shaped 404 on the admin pages.
+  baseURL: string = import.meta.env["VITE_API_BASE_URL"] ?? "",
 ): AxiosInstance {
   const client = axios.create({
     baseURL,
@@ -65,7 +70,7 @@ export function createApiClient(
     if (!refreshToken) return null;
     try {
       const response = await client.post<TokenPairResponse>(
-        "/auth/refresh",
+        "/api/v1/auth/refresh",
         { refresh_token: refreshToken },
       );
       const data = response.data;

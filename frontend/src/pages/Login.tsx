@@ -66,7 +66,7 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       const loginRes = await apiClient.post<TokenPair>(
-        "/auth/login",
+        "/api/v1/auth/login",
         values,
       );
       const tokens = loginRes.data;
@@ -75,7 +75,7 @@ export function LoginPage() {
       // interceptor once we set the session — so set it first, then call /me.
       // We pass the token through `Authorization` directly here to avoid a
       // race with persist middleware writes.
-      const meRes = await apiClient.get<MeResponse>("/auth/me", {
+      const meRes = await apiClient.get<MeResponse>("/api/v1/auth/me", {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
       const me = meRes.data;
