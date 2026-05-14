@@ -50,6 +50,10 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://voxel:voxel@db:5432/voxel_ledger}
     volumes:
       - ./backend:/app
+      # scripts/ lives at the repo root and is imported by some backend
+      # tests (replay, rebuild, seed). Mount it read-only at /app/scripts so
+      # `import scripts.X` resolves the same way it does from the host venv.
+      - ./scripts:/app/scripts:ro
     ports:
       - "${BACKEND_HOST_PORT:-8000}:8000"
     depends_on:

@@ -39,7 +39,11 @@ def test_cors_origins_parses_json_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.cors_origins == ["http://localhost:5173"]
 
 
-def test_cors_origins_empty_by_default() -> None:
+def test_cors_origins_empty_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Strip CORS_ORIGINS from the process env so the in-container test run
+    # (where docker-compose injects it from .env.dev) sees the same empty
+    # default as a fresh venv.
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
     s = Settings(**_ok_kwargs())  # type: ignore[arg-type]
     assert s.cors_origins == []
 
@@ -52,7 +56,8 @@ def test_cors_middleware_emits_allow_origin_header() -> None:
         assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
 
 
-def test_cors_middleware_disabled_when_origins_empty() -> None:
+def test_cors_middleware_disabled_when_origins_empty(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
     s = Settings(**_ok_kwargs())  # type: ignore[arg-type]
     app = create_app(s)
     with TestClient(app) as client:

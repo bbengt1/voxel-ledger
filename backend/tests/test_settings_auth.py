@@ -36,7 +36,12 @@ def test_owner_email_with_embedded_sentinel_rejected() -> None:
         Settings(**_ok(owner_email="real-change-me@example.com"))  # type: ignore[arg-type]
 
 
-def test_owner_fields_optional_when_unset() -> None:
+def test_owner_fields_optional_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Strip the seed-owner env so the in-container test run (where
+    # docker-compose injects OWNER_EMAIL / OWNER_PASSWORD from .env.dev)
+    # sees the same unset default as a fresh venv.
+    monkeypatch.delenv("OWNER_EMAIL", raising=False)
+    monkeypatch.delenv("OWNER_PASSWORD", raising=False)
     s = Settings(**_ok())  # type: ignore[arg-type]
     assert s.owner_email is None
     assert s.owner_password is None
