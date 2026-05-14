@@ -8,13 +8,12 @@ reference_sequence.last_value + 1 RETURNING last_value`` — one atomic
 round-trip, row-locked, with no read-modify-write window.
 
 Revision ID: 0005_reference_sequence
-Revises: 0003_event_log
+Revises: 0004_projection_cursor
 Create Date: 2026-05-14 00:00:00.000000
 
-Note: revision 0004 is reserved for the projection_cursor table being
-landed in parallel by issue #22. Whichever PR merges second will rebase
-its ``down_revision`` to chain after the other; alembic supports either
-order as long as the resulting graph is linear.
+Note: revision 0004 (projection_cursor) was landed in parallel by issue
+#22 and merged first; this migration was rebased onto 0004 at merge time
+to keep the alembic graph linear.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0005_reference_sequence"
-down_revision: str | None = "0003_event_log"
+down_revision: str | None = "0004_projection_cursor"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
