@@ -1,0 +1,90 @@
+"""Per-event-type whitelist of payload fields safe to denormalize.
+
+The ``audit_log.payload_excerpt`` column carries a tiny subset of each
+event's payload so the audit query API can show "what happened" without
+joining back to the event log on every read.
+
+The whitelist is a hard contract: **no excerpt unless explicitly opted in**.
+Sensitive fields (password, password_hash, token, token_hash, refresh_token,
+session_id) MUST NEVER appear in an excerpt, regardless of event type.
+
+The auth-event whitelist only allows ``email``. Tokens and hashes never
+appear in auth payloads at all (see ``app/events/types/auth.py``), but the
+deny-list below is a belt-and-suspenders check.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from app.events.types import auth as auth_events
+
+# Event type → tuple of allowed payload field names. Empty/absent = no
+# excerpt at all.
+_WHITELIST: dict[str, tuple[str, ...]] = {}
+
+# Field names that MUST NEVER appear in an excerpt, regardless of whether
+# they were whitelisted. Belt-and-suspenders defense against a typo in the
+# whitelist letting a secret through.
+_FORBIDDEN_FIELDS: frozenset[str] = frozenset(
+    {
+        "password",
+        "password_hash",
+        "passwordhash",
+        "token",
+        "token_hash",
+        "tokenhash",
+        "refresh_token",
+        "access_token",
+        "session_id",
+        "secret",
+    }
+)
+
+
+def register_excerpt_fields(event_type: str, fields: tuple[str, ...]) -> None:
+    """Declare which payload fields are safe to denormalize for ``event_type``.
+
+    A field listed in the global forbidden set is rejected loudly at
+    registration so this can't be ignored at runtime.
+    """
+    for field in fields:
+        if field.lower() in _FORBIDDEN_FIELDS:
+            raise ValueError(
+                f"refusing to whitelist forbidden field {field!r} for event type {event_type!r}"
+            )
+    _WHITELIST[event_type] = tuple(fields)
+
+
+def compute_excerpt(event_type: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the excerpt dict for ``event_type``, or ``None`` if no
+    whitelist is registered (deny by default).
+
+    Forbidden fields are filtered defensively even if (somehow) they
+    appeared in a whitelisted set — that path is unreachable today
+    because ``register_excerpt_fields`` blocks the registration, but the
+    second check guarantees the invariant at the read-model boundary.
+    """
+    fields = _WHITELIST.get(event_type)
+    if not fields:
+        return None
+    excerpt: dict[str, Any] = {}
+    for field in fields:
+        if field.lower() in _FORBIDDEN_FIELDS:
+            continue
+        if field in payload:
+            excerpt[field] = payload[field]
+    return excerpt or None
+
+
+# ---------------------------------------------------------------------------
+# Auth-event whitelists (Phase 1.4).
+# ---------------------------------------------------------------------------
+# Only ``email`` is denormalized. Never password/token/hash.
+
+_EMAIL_ONLY: tuple[str, ...] = ("email",)
+
+register_excerpt_fields(auth_events.TYPE_LOGIN_SUCCEEDED, _EMAIL_ONLY)
+register_excerpt_fields(auth_events.TYPE_LOGIN_FAILED, _EMAIL_ONLY)
+register_excerpt_fields(auth_events.TYPE_LOGIN_INACTIVE, _EMAIL_ONLY)
+# Refresh / logout / family-revoked / rate-limited carry no email — no excerpt.

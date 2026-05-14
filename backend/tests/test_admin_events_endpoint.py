@@ -76,6 +76,8 @@ async def test_verify_chain_ok_response_shape(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     token = await _token_for(Role.OWNER, client, app_session)
+    # _token_for() logs in, which now emits one auth.LoginSucceeded event
+    # (Phase 1.4). Account for it in the expected counts.
     for _ in range(3):
         await event_store.append(_evt(), session=app_session)
     await app_session.commit()
@@ -86,9 +88,9 @@ async def test_verify_chain_ok_response_shape(
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["ok"] is True
-    assert body["last_position"] == 3
+    assert body["last_position"] == 4
     assert body["broken_at_position"] is None
-    assert body["events_checked"] == 3
+    assert body["events_checked"] == 4
 
 
 @pytest.mark.asyncio

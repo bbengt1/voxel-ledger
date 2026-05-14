@@ -1,7 +1,9 @@
 """Auth endpoints: login, refresh, logout, me.
 
-Thin layer over `app.services.auth`. Rate limit + audit hooks live here
-because they're crosscut concerns, not domain logic.
+Thin layer over `app.services.auth`. Rate limit + audit emission live
+here because they're crosscut concerns, not domain logic. Audit emission
+appends a real domain event via ``app.services.audit`` (Phase 1.4); the
+wildcard audit-log projection materializes it into ``audit_log``.
 """
 
 from __future__ import annotations
@@ -23,8 +25,8 @@ from app.schemas.auth import (
     RefreshRequest,
     TokenPair,
 )
+from app.services import audit as audit_service
 from app.services import auth as auth_service
-from app.services.audit import log_auth_event
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -60,7 +62,8 @@ async def login(
     ip = client_ip(request)
     limiter = _get_login_limiter(settings)
     if not limiter.allow(ip):
-        log_auth_event("auth.login.rate_limited", ip=ip)
+        await audit_service.emit_rate_limited(session, endpoint="login", ip=ip)
+        await session.commit()
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="too many login attempts",
@@ -74,19 +77,31 @@ async def login(
             settings=settings,
         )
     except auth_service.InvalidCredentialsError:
-        log_auth_event("auth.login.failed", ip=ip, extra={"email": payload.email})
+        # Rolling back the failed-credential bookkeeping (refresh-token
+        # row was never inserted because authenticate() raised before
+        # issue_tokens_for_user(); but a stray flush could still leave
+        # state). The event we append is its own commit-worthy fact.
+        await session.rollback()
+        await audit_service.emit_login_failed(
+            session, email=payload.email, reason="bad_password", ip=ip
+        )
+        await session.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials"
         ) from None
     except auth_service.InactiveUserError:
-        log_auth_event("auth.login.inactive", ip=ip, extra={"email": payload.email})
+        await session.rollback()
+        await audit_service.emit_login_inactive(session, email=payload.email, ip=ip)
+        await session.commit()
         # Same response shape as bad creds — don't leak account state.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials"
         ) from None
 
+    await audit_service.emit_login_succeeded(
+        session, user_id=tokens.user.id, email=tokens.user.email, ip=ip
+    )
     await session.commit()
-    log_auth_event("auth.login.success", user_id=tokens.user.id, ip=ip)
     return TokenPair(
         access_token=tokens.access_token,
         refresh_token=tokens.refresh_token,
@@ -109,19 +124,27 @@ async def refresh(
             settings=settings,
         )
     except auth_service.ReuseDetectedError:
-        await session.commit()  # persist the family revocation
-        log_auth_event("auth.refresh.reuse_detected", ip=ip)
+        # Family was revoked in-session; we want the revocation persisted
+        # alongside the audit event.
+        await audit_service.emit_family_revoked(
+            session, user_id=None, reason="reuse_detected", ip=ip
+        )
+        await session.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token reused"
         ) from None
     except auth_service.InvalidRefreshTokenError:
-        log_auth_event("auth.refresh.invalid", ip=ip)
+        await session.rollback()
+        await audit_service.emit_family_revoked(
+            session, user_id=None, reason="invalid_refresh", ip=ip
+        )
+        await session.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid refresh token"
         ) from None
 
+    await audit_service.emit_refresh_rotated(session, user_id=tokens.user.id, ip=ip)
     await session.commit()
-    log_auth_event("auth.refresh.success", user_id=tokens.user.id, ip=ip)
     return TokenPair(
         access_token=tokens.access_token,
         refresh_token=tokens.refresh_token,
@@ -137,8 +160,8 @@ async def logout(
 ) -> None:
     ip = client_ip(request)
     user_id = await auth_service.logout(session, presented_token=payload.refresh_token)
+    await audit_service.emit_logged_out(session, user_id=user_id, ip=ip)
     await session.commit()
-    log_auth_event("auth.logout", user_id=user_id, ip=ip)
 
 
 @router.get("/me", response_model=MeResponse)
