@@ -54,7 +54,8 @@ def main() -> int:
     os.environ.setdefault("OWNER_EMAIL", "codegen@example.invalid")
     os.environ.setdefault("OWNER_PASSWORD", "codegen-export-placeholder-pw-1234567890")
 
-    from app.main import app  # noqa: E402  (import after sys.path mutation)
+    # Import after sys.path + env setup above.
+    from app.main import app
 
     spec = app.openapi()
 

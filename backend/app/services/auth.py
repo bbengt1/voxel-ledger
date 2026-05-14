@@ -148,9 +148,7 @@ async def issue_tokens_for_user(
         ttl_seconds=settings.refresh_token_ttl_seconds,
         now=now,
     )
-    access = create_access_token(
-        settings=settings, user_id=user.id, role=user.role.value, now=now
-    )
+    access = create_access_token(settings=settings, user_id=user.id, role=user.role.value, now=now)
     return IssuedTokens(
         access_token=access,
         refresh_token=raw,
@@ -213,9 +211,7 @@ async def rotate_refresh_token(
 
     if row.revoked_at is not None:
         # Reuse — burn the whole family.
-        await _revoke_family(
-            session, family_id=row.family_id, reason="reuse_detected", now=now
-        )
+        await _revoke_family(session, family_id=row.family_id, reason="reuse_detected", now=now)
         await session.flush()
         raise ReuseDetectedError("refresh token reuse detected")
 
@@ -254,8 +250,6 @@ async def logout(
     if row is None:
         return None
     now = datetime.now(UTC)
-    await _revoke_family(
-        session, family_id=row.family_id, reason="logout", now=now
-    )
+    await _revoke_family(session, family_id=row.family_id, reason="logout", now=now)
     await session.flush()
     return row.user_id

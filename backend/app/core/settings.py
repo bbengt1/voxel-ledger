@@ -47,9 +47,7 @@ PLACEHOLDER_SUBSTRINGS = frozenset(
     }
 )
 
-SECRET_FIELDS = frozenset(
-    {"jwt_secret_key", "database_url", "owner_email", "owner_password"}
-)
+SECRET_FIELDS = frozenset({"jwt_secret_key", "database_url", "owner_email", "owner_password"})
 
 
 class Settings(BaseSettings):

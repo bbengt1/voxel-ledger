@@ -21,9 +21,7 @@ async def test_me_no_token_401(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_me_fresh_token_200(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_me_fresh_token_200(client: AsyncClient, app_session: AsyncSession) -> None:
     await create_user(
         app_session,
         email="owner@example.com",
@@ -38,9 +36,7 @@ async def test_me_fresh_token_200(
         json={"email": "owner@example.com", "password": "pw-correct"},
     )
     access = login.json()["access_token"]
-    r = await client.get(
-        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"}
-    )
+    r = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {access}"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["email"] == "owner@example.com"
@@ -85,16 +81,12 @@ async def test_me_expired_token_401(
         role=user.role.value,
         now=datetime.now(UTC) - timedelta(hours=2),
     )
-    r = await client.get(
-        "/api/v1/auth/me", headers={"Authorization": f"Bearer {expired}"}
-    )
+    r = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {expired}"})
     assert r.status_code == 401
     assert r.json()["detail"] == "token expired"
 
 
 @pytest.mark.asyncio
 async def test_me_bad_token_401(client: AsyncClient) -> None:
-    r = await client.get(
-        "/api/v1/auth/me", headers={"Authorization": "Bearer not-a-jwt"}
-    )
+    r = await client.get("/api/v1/auth/me", headers={"Authorization": "Bearer not-a-jwt"})
     assert r.status_code == 401

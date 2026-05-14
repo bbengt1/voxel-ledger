@@ -36,9 +36,7 @@ class InMemoryRateLimiter:
                 self._buckets[key] = bucket
                 return True
             elapsed = max(0.0, ts - bucket.last_refill)
-            bucket.tokens = min(
-                self.capacity, bucket.tokens + elapsed * self.rate_per_sec
-            )
+            bucket.tokens = min(self.capacity, bucket.tokens + elapsed * self.rate_per_sec)
             bucket.last_refill = ts
             if bucket.tokens >= 1:
                 bucket.tokens -= 1

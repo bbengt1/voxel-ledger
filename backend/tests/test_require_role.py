@@ -77,9 +77,7 @@ async def _token_for(role: Role, client: AsyncClient, session) -> str:
         bcrypt_rounds=4,
     )
     await session.commit()
-    login = await client.post(
-        "/api/v1/auth/login", json={"email": email, "password": "pw-correct"}
-    )
+    login = await client.post("/api/v1/auth/login", json={"email": email, "password": "pw-correct"})
     return login.json()["access_token"]
 
 
@@ -102,9 +100,7 @@ async def test_role_matrix(
 
 
 @pytest.mark.asyncio
-async def test_multi_role_gate(
-    gated_client: AsyncClient, gated_session
-) -> None:
+async def test_multi_role_gate(gated_client: AsyncClient, gated_session) -> None:
     """A gate accepting multiple roles admits any of them."""
     for role, expected in [
         (Role.OWNER, 200),
@@ -114,7 +110,5 @@ async def test_multi_role_gate(
         (Role.VIEWER, 403),
     ]:
         token = await _token_for(role, gated_client, gated_session)
-        r = await gated_client.get(
-            "/test-gate/multi", headers={"Authorization": f"Bearer {token}"}
-        )
+        r = await gated_client.get("/test-gate/multi", headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == expected, (role, r.text)
