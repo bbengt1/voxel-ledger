@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.pool import StaticPool
 
 from app.core.settings import Settings
 
@@ -26,7 +27,13 @@ def make_engine(settings: Settings) -> AsyncEngine:
     """
     url = settings.database_url
     if url.startswith("sqlite"):
-        return create_async_engine(url, echo=settings.db_echo, future=True)
+        # In-memory SQLite needs StaticPool so every session shares the same
+        # underlying connection; otherwise each session gets its own empty DB.
+        kwargs: dict[str, object] = {"echo": settings.db_echo, "future": True}
+        if ":memory:" in url:
+            kwargs["poolclass"] = StaticPool
+            kwargs["connect_args"] = {"check_same_thread": False}
+        return create_async_engine(url, **kwargs)
     return create_async_engine(
         url,
         echo=settings.db_echo,

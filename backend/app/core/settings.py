@@ -47,7 +47,9 @@ PLACEHOLDER_SUBSTRINGS = frozenset(
     }
 )
 
-SECRET_FIELDS = frozenset({"jwt_secret_key", "database_url"})
+SECRET_FIELDS = frozenset(
+    {"jwt_secret_key", "database_url", "owner_email", "owner_password"}
+)
 
 
 class Settings(BaseSettings):
@@ -80,13 +82,32 @@ class Settings(BaseSettings):
     db_max_overflow: int = 5
     db_echo: bool = False
 
-    # Security
+    # Security / Auth
     jwt_secret_key: str = Field(..., min_length=16)
+    jwt_algorithm: str = "HS256"
+    access_token_ttl_seconds: int = 900  # 15 minutes
+    refresh_token_ttl_seconds: int = 2_592_000  # 30 days
+    bcrypt_rounds: int = 12
+    login_rate_limit_per_minute: int = 10
 
-    @field_validator("database_url", "jwt_secret_key")
+    # Seed owner (only consumed by scripts/seed_owner.py). Optional so the
+    # app can boot without seed creds set; the seed script will raise if
+    # they're missing at run time. When provided, placeholder values are
+    # still rejected.
+    owner_email: str | None = None
+    owner_password: str | None = None
+
+    @field_validator(
+        "database_url",
+        "jwt_secret_key",
+        "owner_email",
+        "owner_password",
+    )
     @classmethod
-    def _reject_placeholders(cls, value: str, info: ValidationInfo) -> str:
+    def _reject_placeholders(cls, value: str | None, info: ValidationInfo) -> str | None:
         if info.field_name not in SECRET_FIELDS:
+            return value
+        if value is None:
             return value
         token = value.strip().lower()
         if token in PLACEHOLDER_EXACT:
