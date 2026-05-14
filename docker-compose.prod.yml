@@ -1,0 +1,98 @@
+# Voxel Ledger — production stack.
+#
+# Targets the `web01` host. Expected layout on the host:
+#
+#   /srv/3d-print-sales/
+#     repo/                 # this git checkout (cwd for compose)
+#     env/web01.env         # secrets, referenced below via env_file
+#     data/pg/              # postgres data volume bind-mounted into db
+#     data/attachments/     # bind-mounted into backend (Phase 2+)
+#
+# Bring up with:
+#   scripts/compose.sh --prod up -d --build
+#
+# The backend entrypoint runs `alembic upgrade head` before exec'ing uvicorn.
+# Set SKIP_MIGRATIONS=1 in the env file only for code-only emergency redeploys.
+
+name: voxel-ledger
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: 3d-print-sales-db
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-/srv/3d-print-sales/env/web01.env}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set in the env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in the env file}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set in the env file}
+    volumes:
+      - ${PG_DATA_DIR:-/srv/3d-print-sales/data/pg}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    image: voxel-ledger-backend:prod
+    container_name: 3d-print-sales-backend
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-/srv/3d-print-sales/env/web01.env}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: voxel-ledger-frontend:prod
+    container_name: 3d-print-sales-frontend
+    restart: unless-stopped
+    # The frontend image bundles a fallback nginx config and serves the SPA
+    # on :80. The reverse-proxy `nginx` service below sits in front of it.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: 3d-print-sales-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      # - "${NGINX_HTTPS_PORT:-443}:443"   # enable when TLS certs are mounted
+    volumes:
+      - ./ops/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Mount certs from the host once they exist. Stub path until Phase 12:
+      # - /srv/3d-print-sales/env/certs:/etc/nginx/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+# No named volumes for db in prod — we bind-mount /srv/3d-print-sales/data/pg
+# so backups + restore work against a known host path.
