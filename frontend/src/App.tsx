@@ -7,6 +7,9 @@ import { LoginPage } from "@/pages/Login";
 import { UserCreatePage } from "@/pages/admin/UserCreate";
 import { UserDetailPage } from "@/pages/admin/UserDetail";
 import { UsersListPage } from "@/pages/admin/UsersList";
+import { MaterialCreatePage } from "@/pages/catalog/MaterialCreate";
+import { MaterialDetailPage } from "@/pages/catalog/MaterialDetail";
+import { MaterialsListPage } from "@/pages/catalog/MaterialsList";
 
 export function App() {
   return (
@@ -48,6 +51,36 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <UserDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/materials"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MaterialsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/materials/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MaterialCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/materials/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MaterialDetailPage />
             </AppShell>
           </RequireAuth>
         }
