@@ -172,9 +172,20 @@ export function MaterialDetailPage() {
           </span>{" "}
           ·{" "}
           <span data-testid="on-hand">
-            {material.on_hand_grams} g on hand
+            {material.total_on_hand} g on hand
           </span>
         </p>
+        {material.per_location_on_hand &&
+        Object.keys(material.per_location_on_hand).length > 0 ? (
+          <p
+            className="mt-1 text-xs text-muted-foreground"
+            data-testid="per-location-on-hand"
+          >
+            {Object.entries(material.per_location_on_hand)
+              .map(([loc, qty]) => `${loc.slice(0, 8)}…: ${qty}g`)
+              .join(" · ")}
+          </p>
+        ) : null}
       </header>
 
       {canWrite ? (

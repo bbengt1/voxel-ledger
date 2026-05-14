@@ -41,7 +41,6 @@ async def test_null_propagates_and_restores(engine) -> None:
             unit="ea",
             unit_cost=Decimal("3"),
             vendor=None,
-            on_hand=Decimal("0"),
             actor_user_id=None,
         )
         await s.commit()

@@ -1,4 +1,4 @@
-"""Pydantic schemas for the products API surface (Phase 2.3)."""
+"""Pydantic schemas for the products API surface (Phase 2.3, 3.3)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,10 @@ class ProductResponse(BaseModel):
     unit_cost_cached: Decimal | None = None
     weight_grams: Decimal | None = None
     category: str | None = None
+    # Phase 3.3: on-hand from ``inventory_on_hand``.
+    total_on_hand: Decimal = Field(default=Decimal("0"))
+    per_location_on_hand: dict[uuid.UUID, Decimal] = Field(default_factory=dict)
+    low_stock_threshold: Decimal | None = None
     is_archived: bool
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
@@ -39,6 +43,7 @@ class ProductCreateRequest(BaseModel):
     unit_price: Decimal = Field(ge=0)
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
+    low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 
@@ -52,6 +57,7 @@ class ProductUpdateRequest(BaseModel):
     unit_price: Decimal | None = Field(default=None, ge=0)
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
+    low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
 

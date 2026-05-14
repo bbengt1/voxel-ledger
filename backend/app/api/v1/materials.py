@@ -8,6 +8,7 @@ maps service-layer errors to HTTP, and gates each route on role.
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,6 +30,7 @@ from app.schemas.materials import (
     MaterialUpdateRequest,
 )
 from app.services import custom_fields as cf_service
+from app.services import inventory_alerts as alerts_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 
@@ -40,11 +42,15 @@ async def _refresh_for_response(session: AsyncSession, material: Material) -> No
     way the users router does."""
     await session.refresh(
         material,
-        ["created_at", "updated_at", "current_cost_per_gram", "on_hand_grams"],
+        ["created_at", "updated_at", "current_cost_per_gram"],
     )
 
 
-def _to_material_response(material: Material) -> MaterialResponse:
+async def _build_material_response(session: AsyncSession, material: Material) -> MaterialResponse:
+    per_location = await alerts_service.on_hand_for_entity(
+        session=session, entity_kind="material", entity_id=material.id
+    )
+    total = sum(per_location.values(), start=Decimal("0"))
     return MaterialResponse(
         id=material.id,
         name=material.name,
@@ -53,7 +59,9 @@ def _to_material_response(material: Material) -> MaterialResponse:
         color=material.color,
         density_g_per_cm3=material.density_g_per_cm3,
         current_cost_per_gram=material.current_cost_per_gram,
-        on_hand_grams=material.on_hand_grams,
+        total_on_hand=total,
+        per_location_on_hand=per_location,
+        low_stock_threshold_grams=material.low_stock_threshold_grams,
         is_archived=material.is_archived,
         custom_fields=dict(material.custom_fields or {}),
         created_at=material.created_at,
@@ -93,6 +101,7 @@ async def create_material(
             material_type=payload.material_type,
             color=payload.color,
             density_g_per_cm3=payload.density_g_per_cm3,
+            low_stock_threshold_grams=payload.low_stock_threshold_grams,
             actor_user_id=actor.id,
             custom_fields=payload.custom_fields,
         )
@@ -107,7 +116,7 @@ async def create_material(
         ) from None
     await _refresh_for_response(session, material)
     await session.commit()
-    return _to_material_response(material)
+    return await _build_material_response(session, material)
 
 
 @router.get("", response_model=MaterialListResponse)
@@ -130,7 +139,7 @@ async def list_materials(
     except materials_service.MaterialsServiceError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     return MaterialListResponse(
-        items=[_to_material_response(m) for m in page.items],
+        items=[await _build_material_response(session, m) for m in page.items],
         next_cursor=page.next_cursor,
     )
 
@@ -148,7 +157,7 @@ async def get_material(
             status_code=status.HTTP_404_NOT_FOUND, detail="material not found"
         ) from None
     receipts = await materials_service.get_recent_receipts(session, material_id, limit=10)
-    base = _to_material_response(material)
+    base = await _build_material_response(session, material)
     return MaterialDetailResponse(
         **base.model_dump(),
         recent_receipts=[_to_receipt_response(r) for r in receipts],
@@ -189,7 +198,7 @@ async def update_material(
         ) from None
     await _refresh_for_response(session, material)
     await session.commit()
-    return _to_material_response(material)
+    return await _build_material_response(session, material)
 
 
 @router.post("/{material_id}/archive", response_model=MaterialResponse)
@@ -209,7 +218,7 @@ async def archive_material(
         ) from None
     await _refresh_for_response(session, material)
     await session.commit()
-    return _to_material_response(material)
+    return await _build_material_response(session, material)
 
 
 @router.post("/{material_id}/unarchive", response_model=MaterialResponse)
@@ -232,7 +241,7 @@ async def unarchive_material(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     await _refresh_for_response(session, material)
     await session.commit()
-    return _to_material_response(material)
+    return await _build_material_response(session, material)
 
 
 @router.post(
@@ -273,7 +282,7 @@ async def record_receipt(
     material = await materials_service.get(session, material_id)
     await _refresh_for_response(session, material)
     await session.commit()
-    return _to_material_response(material)
+    return await _build_material_response(session, material)
 
 
 @router.get("/{material_id}/receipts", response_model=MaterialReceiptListResponse)

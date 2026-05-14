@@ -180,6 +180,27 @@ async def record(
     session.add(receipt)
     await session.flush()
 
+    # Phase 3.3: emit the inventory_transaction (and its
+    # TransactionRecorded event) FIRST so the on-hand projection has
+    # already updated ``inventory_on_hand`` by the time the
+    # ``inventory.MaterialReceived`` event below fires. The
+    # ``material_cost`` projection reads the on-hand total to derive
+    # ``old_on_hand`` (subtracting this receipt's grams), so this order
+    # matters for live append; replay walks the events in the same
+    # order, preserving parity.
+    location_id = await _resolve_receiving_location_id(session)
+    await transactions_service.record(
+        session,
+        kind="receipt",
+        entity_kind="material",
+        entity_id=material_id,
+        location_id=location_id,
+        quantity=grams,
+        actor_user_id=actor_user_id,
+        unit_cost=unit_cost,
+        reason=reference,
+    )
+
     payload: dict[str, Any] = {
         "material_id": str(material_id),
         "grams": str(grams),
@@ -202,23 +223,6 @@ async def record(
         session=session,
     )
 
-    # Phase 3.2: also record the receipt on the inventory-transaction
-    # ledger. Same transaction, so a rollback discards both rows + both
-    # events atomically. The cost projection from #37 still consumes
-    # ``inventory.MaterialReceived`` above; this second emission is for
-    # the generic ledger subscribers landing in later phases.
-    location_id = await _resolve_receiving_location_id(session)
-    await transactions_service.record(
-        session,
-        kind="receipt",
-        entity_kind="material",
-        entity_id=material_id,
-        location_id=location_id,
-        quantity=grams,
-        actor_user_id=actor_user_id,
-        unit_cost=unit_cost,
-        reason=reference,
-    )
     return receipt
 
 

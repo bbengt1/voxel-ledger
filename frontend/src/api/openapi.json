@@ -1708,6 +1708,66 @@
         "title": "LogoutRequest",
         "type": "object"
       },
+      "LowStockAlertListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LowStockAlertResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "LowStockAlertListResponse",
+        "type": "object"
+      },
+      "LowStockAlertResponse": {
+        "properties": {
+          "deficit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Deficit",
+            "type": "string"
+          },
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_kind": {
+            "enum": [
+              "material",
+              "supply",
+              "product"
+            ],
+            "title": "Entity Kind",
+            "type": "string"
+          },
+          "entity_name": {
+            "title": "Entity Name",
+            "type": "string"
+          },
+          "threshold": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Threshold",
+            "type": "string"
+          },
+          "total_on_hand": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total On Hand",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_kind",
+          "entity_id",
+          "entity_name",
+          "threshold",
+          "total_on_hand",
+          "deficit"
+        ],
+        "title": "LowStockAlertResponse",
+        "type": "object"
+      },
       "MaterialCreateRequest": {
         "properties": {
           "brand": {
@@ -1761,6 +1821,22 @@
               }
             ],
             "title": "Density G Per Cm3"
+          },
+          "low_stock_threshold_grams": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold Grams"
           },
           "material_type": {
             "maxLength": 64,
@@ -1843,6 +1919,18 @@
             "title": "Is Archived",
             "type": "boolean"
           },
+          "low_stock_threshold_grams": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold Grams"
+          },
           "material_type": {
             "title": "Material Type",
             "type": "string"
@@ -1851,10 +1939,16 @@
             "title": "Name",
             "type": "string"
           },
-          "on_hand_grams": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "On Hand Grams",
-            "type": "string"
+          "per_location_on_hand": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Per Location On Hand",
+            "type": "object"
           },
           "recent_receipts": {
             "items": {
@@ -1862,6 +1956,12 @@
             },
             "title": "Recent Receipts",
             "type": "array"
+          },
+          "total_on_hand": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total On Hand",
+            "type": "string"
           },
           "updated_at": {
             "format": "date-time",
@@ -1874,7 +1974,6 @@
           "name",
           "material_type",
           "current_cost_per_gram",
-          "on_hand_grams",
           "is_archived",
           "created_at",
           "updated_at"
@@ -2144,6 +2243,18 @@
             "title": "Is Archived",
             "type": "boolean"
           },
+          "low_stock_threshold_grams": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold Grams"
+          },
           "material_type": {
             "title": "Material Type",
             "type": "string"
@@ -2152,9 +2263,21 @@
             "title": "Name",
             "type": "string"
           },
-          "on_hand_grams": {
+          "per_location_on_hand": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Per Location On Hand",
+            "type": "object"
+          },
+          "total_on_hand": {
+            "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "On Hand Grams",
+            "title": "Total On Hand",
             "type": "string"
           },
           "updated_at": {
@@ -2168,7 +2291,6 @@
           "name",
           "material_type",
           "current_cost_per_gram",
-          "on_hand_grams",
           "is_archived",
           "created_at",
           "updated_at"
@@ -2230,6 +2352,22 @@
               }
             ],
             "title": "Density G Per Cm3"
+          },
+          "low_stock_threshold_grams": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold Grams"
           },
           "material_type": {
             "anyOf": [
@@ -2417,6 +2555,104 @@
         "title": "NoteUpdateRequest",
         "type": "object"
       },
+      "OnHandListResponse": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/OnHandRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/OnHandSummaryResponse"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "title": "OnHandListResponse",
+        "type": "object"
+      },
+      "OnHandRowResponse": {
+        "properties": {
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_kind": {
+            "enum": [
+              "material",
+              "supply",
+              "product"
+            ],
+            "title": "Entity Kind",
+            "type": "string"
+          },
+          "location_id": {
+            "format": "uuid",
+            "title": "Location Id",
+            "type": "string"
+          },
+          "on_hand": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "On Hand",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_kind",
+          "entity_id",
+          "location_id",
+          "on_hand"
+        ],
+        "title": "OnHandRowResponse",
+        "type": "object"
+      },
+      "OnHandSummaryResponse": {
+        "description": "Aggregated across locations for a single entity.",
+        "properties": {
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_kind": {
+            "enum": [
+              "material",
+              "supply",
+              "product"
+            ],
+            "title": "Entity Kind",
+            "type": "string"
+          },
+          "per_location": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Per Location",
+            "type": "object"
+          },
+          "total_on_hand": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total On Hand",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_kind",
+          "entity_id",
+          "total_on_hand"
+        ],
+        "title": "OnHandSummaryResponse",
+        "type": "object"
+      },
       "PasswordResetResponse": {
         "properties": {
           "generated_password": {
@@ -2472,6 +2708,22 @@
               }
             ],
             "title": "Description"
+          },
+          "low_stock_threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold"
           },
           "name": {
             "maxLength": 255,
@@ -2612,12 +2864,41 @@
             "title": "Is Archived",
             "type": "boolean"
           },
+          "low_stock_threshold": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold"
+          },
           "name": {
             "title": "Name",
             "type": "string"
           },
+          "per_location_on_hand": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Per Location On Hand",
+            "type": "object"
+          },
           "sku": {
             "title": "Sku",
+            "type": "string"
+          },
+          "total_on_hand": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total On Hand",
             "type": "string"
           },
           "unit_cost_cached": {
@@ -2715,6 +2996,22 @@
               }
             ],
             "title": "Description"
+          },
+          "low_stock_threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold"
           },
           "name": {
             "anyOf": [
@@ -3146,13 +3443,7 @@
             ],
             "title": "Custom Fields"
           },
-          "name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "on_hand": {
+          "low_stock_threshold": {
             "anyOf": [
               {
                 "minimum": 0.0,
@@ -3161,10 +3452,18 @@
               {
                 "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
+              },
+              {
+                "type": "null"
               }
             ],
-            "default": "0",
-            "title": "On Hand"
+            "title": "Low Stock Threshold"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
           },
           "unit": {
             "maxLength": 32,
@@ -3254,13 +3553,37 @@
             "title": "Is Archived",
             "type": "boolean"
           },
+          "low_stock_threshold": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold"
+          },
           "name": {
             "title": "Name",
             "type": "string"
           },
-          "on_hand": {
+          "per_location_on_hand": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Per Location On Hand",
+            "type": "object"
+          },
+          "total_on_hand": {
+            "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "On Hand",
+            "title": "Total On Hand",
             "type": "string"
           },
           "unit": {
@@ -3294,7 +3617,6 @@
           "name",
           "unit",
           "unit_cost",
-          "on_hand",
           "is_archived",
           "created_at",
           "updated_at"
@@ -3316,6 +3638,22 @@
               }
             ],
             "title": "Custom Fields"
+          },
+          "low_stock_threshold": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low Stock Threshold"
           },
           "name": {
             "anyOf": [
@@ -5184,6 +5522,83 @@
         ]
       }
     },
+    "/api/v1/inventory/alerts/low-stock": {
+      "get": {
+        "description": "Return entities whose ``total_on_hand < low_stock_threshold``.\n\nEntities with no configured threshold never appear. Sorted by\ndeficit descending. All authenticated roles can read this — the\nalert surface needs broad visibility.",
+        "operationId": "list_low_stock_alerts_api_v1_inventory_alerts_low_stock_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity_kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "material",
+                    "supply",
+                    "product"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Location Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LowStockAlertListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Low Stock Alerts",
+        "tags": [
+          "inventory-alerts"
+        ]
+      }
+    },
     "/api/v1/inventory/locations": {
       "get": {
         "operationId": "list_locations_api_v1_inventory_locations_get",
@@ -5547,6 +5962,100 @@
         "summary": "Unarchive Location",
         "tags": [
           "inventory-locations"
+        ]
+      }
+    },
+    "/api/v1/inventory/on-hand": {
+      "get": {
+        "description": "Return ``inventory_on_hand`` rows, optionally filtered.\n\nDefault shape: a list of per-(entity, location) rows AND a list of\nper-entity summaries (total + per-location map). The caller can use\neither depending on whether they need the breakdown or the rollup.",
+        "operationId": "list_on_hand_api_v1_inventory_on_hand_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity_kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "material",
+                    "supply",
+                    "product"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entity_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Location Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnHandListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List On Hand",
+        "tags": [
+          "inventory-on-hand"
         ]
       }
     },

@@ -36,7 +36,8 @@ async def test_create_material_happy_path(session: AsyncSession, engine) -> None
     assert m.color == "black"
     assert m.density_g_per_cm3 == Decimal("1.24")
     assert m.current_cost_per_gram == Decimal("0")
-    assert m.on_hand_grams == Decimal("0")
+    # Phase 3.3: on_hand_grams column removed; balance lives in inventory_on_hand.
+    assert m.low_stock_threshold_grams is None
     assert m.is_archived is False
 
     # MaterialCreated event was emitted.

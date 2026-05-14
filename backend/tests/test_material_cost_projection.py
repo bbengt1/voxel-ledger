@@ -1,6 +1,10 @@
 """Material-cost projection: weighted-average cost-per-gram correctness.
 
-The headline test specified in #37:
+The headline test specified in #37 (now updated for Phase 3.3 #52):
+on-hand grams have moved to ``inventory_on_hand`` and are summed across
+locations, but the cost math still tracks the same running weighted
+average.
+
   Receipt 1: 1000g @ $20/g  -> cost = $20.000000/g, on_hand = 1000g
   Receipt 2:  500g @ $10/g  -> cost = $16.666667/g, on_hand = 1500g
   Receipt 3:  200g @ $25/g  -> cost = $17.647059/g, on_hand = 1700g
@@ -12,6 +16,7 @@ from decimal import Decimal
 
 import pytest
 from app.models import Base
+from app.services import inventory_alerts as alerts_service
 from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
@@ -26,6 +31,12 @@ async def _seed_receiving_location(session) -> None:
         code="RX",
         kind="workshop",
         actor_user_id=None,
+    )
+
+
+async def _total_on_hand(session, material_id) -> Decimal:
+    return await alerts_service.total_on_hand_for_entity(
+        session=session, entity_kind="material", entity_id=material_id
     )
 
 
@@ -54,7 +65,7 @@ async def test_weighted_average_three_receipts(session: AsyncSession, engine) ->
         actor_user_id=None,
     )
     fresh = await materials_service.get(session, m.id)
-    assert fresh.on_hand_grams == Decimal("1000.000000")
+    assert await _total_on_hand(session, m.id) == Decimal("1000.000000")
     assert fresh.current_cost_per_gram == Decimal("20.000000")
 
     # Receipt 2 — weighted average: (1000*20 + 500*10) / 1500 = 16.666667
@@ -66,7 +77,7 @@ async def test_weighted_average_three_receipts(session: AsyncSession, engine) ->
         actor_user_id=None,
     )
     fresh = await materials_service.get(session, m.id)
-    assert fresh.on_hand_grams == Decimal("1500.000000")
+    assert await _total_on_hand(session, m.id) == Decimal("1500.000000")
     assert fresh.current_cost_per_gram == Decimal("16.666667")
 
     # Receipt 3 — weighted average over the running average (lossy, as
@@ -79,10 +90,7 @@ async def test_weighted_average_three_receipts(session: AsyncSession, engine) ->
         actor_user_id=None,
     )
     fresh = await materials_service.get(session, m.id)
-    assert fresh.on_hand_grams == Decimal("1700.000000")
-    # Match within the 6-place quantization. The exact value depends on
-    # the rounding of the *prior* running average, which is the
-    # documented behavior of a running weighted-average.
+    assert await _total_on_hand(session, m.id) == Decimal("1700.000000")
     assert fresh.current_cost_per_gram == Decimal("17.647059")
 
 
@@ -112,4 +120,4 @@ async def test_first_receipt_seeds_cost(session: AsyncSession, engine) -> None:
     fresh = await materials_service.get(session, m.id)
     # 100 / 123.456 = 0.810005...
     assert fresh.current_cost_per_gram == Decimal("0.810005")
-    assert fresh.on_hand_grams == Decimal("123.456000")
+    assert await _total_on_hand(session, m.id) == Decimal("123.456000")

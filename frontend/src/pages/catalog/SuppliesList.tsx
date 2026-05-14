@@ -163,7 +163,7 @@ export function SuppliesListPage() {
                 <td className="py-2 pr-2">{s.unit}</td>
                 <td className="py-2 pr-2">{s.unit_cost}</td>
                 <td className="py-2 pr-2">{s.vendor ?? "—"}</td>
-                <td className="py-2 pr-2">{s.on_hand}</td>
+                <td className="py-2 pr-2">{s.total_on_hand}</td>
                 <td className="py-2 pr-2">
                   {s.is_archived ? "Archived" : "Active"}
                 </td>

@@ -13,6 +13,7 @@ from app.models.custom_field import (
 )
 from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
+from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
@@ -37,6 +38,7 @@ __all__ = [
     "FormTemplateField",
     "InventoryLocation",
     "InventoryLocationKind",
+    "InventoryOnHand",
     "InventoryTransaction",
     "Material",
     "MaterialReceipt",

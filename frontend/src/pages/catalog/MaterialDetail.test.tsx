@@ -22,7 +22,7 @@ function setOwner() {
 function aMaterial(
   overrides: Partial<{
     current_cost_per_gram: string;
-    on_hand_grams: string;
+    total_on_hand: string;
   }> = {},
 ) {
   return {
@@ -33,7 +33,9 @@ function aMaterial(
     color: "red",
     density_g_per_cm3: "1.24",
     current_cost_per_gram: "0.000000",
-    on_hand_grams: "0.000000",
+    total_on_hand: "0.000000",
+    per_location_on_hand: {},
+    low_stock_threshold_grams: null,
     is_archived: false,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
@@ -99,14 +101,14 @@ describe("<MaterialDetailPage />", () => {
       .reply(201, {
         ...aMaterial({
           current_cost_per_gram: "20.000000",
-          on_hand_grams: "1000.000000",
+          total_on_hand: "1000.000000",
         }),
       })
       .onGet(`/api/v1/materials/${MID}`)
       .reply(200, {
         ...aMaterial({
           current_cost_per_gram: "20.000000",
-          on_hand_grams: "1000.000000",
+          total_on_hand: "1000.000000",
         }),
       });
 

@@ -141,9 +141,20 @@ export function SupplyDetailPage() {
           <span data-testid="unit-cost">{supply.unit_cost}/{supply.unit}</span>{" "}
           ·{" "}
           <span data-testid="on-hand">
-            {supply.on_hand} {supply.unit} on hand
+            {supply.total_on_hand} {supply.unit} on hand
           </span>
         </p>
+        {supply.per_location_on_hand &&
+        Object.keys(supply.per_location_on_hand).length > 0 ? (
+          <p
+            className="mt-1 text-xs text-muted-foreground"
+            data-testid="per-location-on-hand"
+          >
+            {Object.entries(supply.per_location_on_hand)
+              .map(([loc, qty]) => `${loc.slice(0, 8)}…: ${qty}${supply.unit}`)
+              .join(" · ")}
+          </p>
+        ) : null}
       </header>
 
       {canWrite ? (

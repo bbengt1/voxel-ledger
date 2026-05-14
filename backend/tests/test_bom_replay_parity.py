@@ -78,7 +78,6 @@ async def test_bom_replay_parity(engine) -> None:
             unit="ea",
             unit_cost=Decimal("0.25"),
             vendor=None,
-            on_hand=Decimal("0"),
             actor_user_id=None,
         )
         p_leaf = await products_service.create(

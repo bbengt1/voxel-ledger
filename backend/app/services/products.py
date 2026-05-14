@@ -134,6 +134,7 @@ async def create(
     upc: str | None = None,
     weight_grams: Decimal | None = None,
     category: str | None = None,
+    low_stock_threshold: Decimal | None = None,
     actor_user_id: uuid.UUID | None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Product:
@@ -169,6 +170,7 @@ async def create(
         unit_cost_cached=None,
         weight_grams=weight_grams,
         category=category_norm,
+        low_stock_threshold=low_stock_threshold,
         is_archived=False,
         custom_fields=normalized_cf,
     )
@@ -221,6 +223,7 @@ _EDITABLE_FIELDS = (
     "unit_price",
     "weight_grams",
     "category",
+    "low_stock_threshold",
 )
 
 

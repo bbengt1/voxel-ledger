@@ -8,6 +8,7 @@ role.
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -24,23 +25,30 @@ from app.schemas.supplies import (
     SupplyUpdateRequest,
 )
 from app.services import custom_fields as cf_service
+from app.services import inventory_alerts as alerts_service
 from app.services import supplies as supplies_service
 
 router = APIRouter(prefix="/supplies", tags=["supplies"])
 
 
 async def _refresh_for_response(session: AsyncSession, supply: Supply) -> None:
-    await session.refresh(supply, ["created_at", "updated_at", "on_hand"])
+    await session.refresh(supply, ["created_at", "updated_at"])
 
 
-def _to_response(supply: Supply) -> SupplyResponse:
+async def _to_response(session: AsyncSession, supply: Supply) -> SupplyResponse:
+    per_location = await alerts_service.on_hand_for_entity(
+        session=session, entity_kind="supply", entity_id=supply.id
+    )
+    total = sum(per_location.values(), start=Decimal("0"))
     return SupplyResponse(
         id=supply.id,
         name=supply.name,
         unit=supply.unit,
         unit_cost=supply.unit_cost,
         vendor=supply.vendor,
-        on_hand=supply.on_hand,
+        total_on_hand=total,
+        per_location_on_hand=per_location,
+        low_stock_threshold=supply.low_stock_threshold,
         is_archived=supply.is_archived,
         custom_fields=dict(supply.custom_fields or {}),
         created_at=supply.created_at,
@@ -65,7 +73,7 @@ async def create_supply(
             unit=payload.unit,
             unit_cost=payload.unit_cost,
             vendor=payload.vendor,
-            on_hand=payload.on_hand,
+            low_stock_threshold=payload.low_stock_threshold,
             actor_user_id=actor.id,
             custom_fields=payload.custom_fields,
         )
@@ -80,7 +88,7 @@ async def create_supply(
         ) from None
     await _refresh_for_response(session, supply)
     await session.commit()
-    return _to_response(supply)
+    return await _to_response(session, supply)
 
 
 @router.get("", response_model=SupplyListResponse)
@@ -103,7 +111,7 @@ async def list_supplies(
     except supplies_service.SuppliesServiceError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     return SupplyListResponse(
-        items=[_to_response(s) for s in page.items],
+        items=[await _to_response(session, s) for s in page.items],
         next_cursor=page.next_cursor,
     )
 
@@ -120,7 +128,7 @@ async def get_supply(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="supply not found"
         ) from None
-    return _to_response(supply)
+    return await _to_response(session, supply)
 
 
 @router.patch("/{supply_id}", response_model=SupplyResponse)
@@ -156,7 +164,7 @@ async def update_supply(
         ) from None
     await _refresh_for_response(session, supply)
     await session.commit()
-    return _to_response(supply)
+    return await _to_response(session, supply)
 
 
 @router.post("/{supply_id}/archive", response_model=SupplyResponse)
@@ -176,7 +184,7 @@ async def archive_supply(
         ) from None
     await _refresh_for_response(session, supply)
     await session.commit()
-    return _to_response(supply)
+    return await _to_response(session, supply)
 
 
 @router.post("/{supply_id}/unarchive", response_model=SupplyResponse)
@@ -199,4 +207,4 @@ async def unarchive_supply(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     await _refresh_for_response(session, supply)
     await session.commit()
-    return _to_response(supply)
+    return await _to_response(session, supply)
