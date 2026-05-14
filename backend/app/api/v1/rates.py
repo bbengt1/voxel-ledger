@@ -26,6 +26,7 @@ from app.schemas.rates import (
     RateResponse,
     RateUpdateRequest,
 )
+from app.services import custom_fields as cf_service
 from app.services import rates as rates_service
 
 router = APIRouter(prefix="/rates", tags=["rates"])
@@ -44,6 +45,7 @@ def _to_response(rate: Rate) -> RateResponse:
         applies_to_printer_id=rate.applies_to_printer_id,
         is_default_for_kind=rate.is_default_for_kind,
         is_archived=rate.is_archived,
+        custom_fields=dict(rate.custom_fields or {}),
         created_at=rate.created_at,
         updated_at=rate.updated_at,
     )
@@ -68,7 +70,14 @@ async def create_rate(
             applies_to_printer_id=payload.applies_to_printer_id,
             is_default_for_kind=payload.is_default_for_kind,
             actor_user_id=actor.id,
+            custom_fields=payload.custom_fields,
         )
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     except rates_service.RatesServiceError as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
@@ -125,17 +134,25 @@ async def update_rate(
     actor: Annotated[User, Depends(require_role("owner"))],
 ) -> RateResponse:
     patch = payload.model_dump(exclude_unset=True)
+    custom_fields = patch.pop("custom_fields", None)
     try:
         rate = await rates_service.update(
             session,
             rate_id=rate_id,
             patch=patch,
             actor_user_id=actor.id,
+            custom_fields=custom_fields,
         )
     except rates_service.RateNotFoundError:
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="rate not found"
+        ) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
         ) from None
     await _refresh_for_response(session, rate)
     await session.commit()

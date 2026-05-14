@@ -18,6 +18,7 @@ interface NavSection {
 }
 
 const ADMIN_ROLES: readonly Role[] = ["owner", "bookkeeper"];
+const OWNER_ONLY: readonly Role[] = ["owner"];
 
 // Placeholder hrefs — real routes land in their respective phases. Using
 // hash anchors keeps router happy without claiming a top-level path yet.
@@ -61,6 +62,11 @@ const SECTIONS: NavSection[] = [
     visibleTo: ADMIN_ROLES,
     items: [
       { label: "Users", href: "/admin/users", visibleTo: ADMIN_ROLES },
+      {
+        label: "Custom fields",
+        href: "/admin/custom-fields",
+        visibleTo: OWNER_ONLY,
+      },
       { label: "Settings", href: "#admin/settings", visibleTo: ADMIN_ROLES },
     ],
   },

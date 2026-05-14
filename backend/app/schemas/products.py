@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,6 +24,7 @@ class ProductResponse(BaseModel):
     weight_grams: Decimal | None = None
     category: str | None = None
     is_archived: bool
+    custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
@@ -37,6 +39,7 @@ class ProductCreateRequest(BaseModel):
     unit_price: Decimal = Field(ge=0)
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
+    custom_fields: dict[str, Any] | None = None
 
 
 class ProductUpdateRequest(BaseModel):
@@ -49,6 +52,7 @@ class ProductUpdateRequest(BaseModel):
     unit_price: Decimal | None = Field(default=None, ge=0)
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
+    custom_fields: dict[str, Any] | None = None
 
 
 class ProductListResponse(BaseModel):

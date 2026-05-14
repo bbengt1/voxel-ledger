@@ -28,6 +28,7 @@ from app.schemas.materials import (
     MaterialResponse,
     MaterialUpdateRequest,
 )
+from app.services import custom_fields as cf_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 
@@ -54,6 +55,7 @@ def _to_material_response(material: Material) -> MaterialResponse:
         current_cost_per_gram=material.current_cost_per_gram,
         on_hand_grams=material.on_hand_grams,
         is_archived=material.is_archived,
+        custom_fields=dict(material.custom_fields or {}),
         created_at=material.created_at,
         updated_at=material.updated_at,
     )
@@ -92,10 +94,17 @@ async def create_material(
             color=payload.color,
             density_g_per_cm3=payload.density_g_per_cm3,
             actor_user_id=actor.id,
+            custom_fields=payload.custom_fields,
         )
     except materials_service.DuplicateMaterialError as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, material)
     await session.commit()
     return _to_material_response(material)
@@ -155,12 +164,14 @@ async def update_material(
 ) -> MaterialResponse:
     # Pydantic exposes only set fields via ``model_dump(exclude_unset=True)``.
     patch = payload.model_dump(exclude_unset=True)
+    custom_fields = patch.pop("custom_fields", None)
     try:
         material = await materials_service.update(
             session,
             material_id=material_id,
             patch=patch,
             actor_user_id=actor.id,
+            custom_fields=custom_fields,
         )
     except materials_service.MaterialNotFoundError:
         await session.rollback()
@@ -170,6 +181,12 @@ async def update_material(
     except materials_service.DuplicateMaterialError as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, material)
     await session.commit()
     return _to_material_response(material)

@@ -18,12 +18,17 @@ import enum
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Index, Numeric, String, func, text
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import JSON
 
 from app.core.db import Base
+
+_CUSTOM_FIELDS_TYPE = JSON().with_variant(JSONB(), "postgresql")
 
 
 class RateKind(enum.StrEnum):
@@ -74,6 +79,14 @@ class Rate(Base):
     )
     is_archived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="0"
+    )
+
+    # Schema-on-read custom-field payload (Phase 2.5).
+    custom_fields: Mapped[dict[str, Any]] = mapped_column(
+        _CUSTOM_FIELDS_TYPE,
+        nullable=False,
+        default=dict,
+        server_default=text("'{}'"),
     )
 
     created_at: Mapped[datetime] = mapped_column(
