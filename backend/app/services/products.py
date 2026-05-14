@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.events.types import catalog as catalog_events
 from app.models.product import Product
 from app.schemas.events import EventCreate
+from app.services import custom_fields as cf_service
 from app.services import event_store
 from app.services.reference_number import ReferenceNumberService
 
@@ -134,6 +135,7 @@ async def create(
     weight_grams: Decimal | None = None,
     category: str | None = None,
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Product:
     name = name.strip()
     description_norm = description.strip() if description else None
@@ -156,6 +158,8 @@ async def create(
     if upc_norm is not None and await _upc_exists(session, upc_norm):
         raise DuplicateUpcError(f"upc {upc_norm!r} already exists")
 
+    normalized_cf = await cf_service.validate_payload("product", custom_fields, session=session)
+
     product = Product(
         sku=allocated_sku,
         upc=upc_norm,
@@ -166,6 +170,7 @@ async def create(
         weight_grams=weight_grams,
         category=category_norm,
         is_archived=False,
+        custom_fields=normalized_cf,
     )
     session.add(product)
     await session.flush()
@@ -228,8 +233,14 @@ async def update(
     product_id: uuid.UUID,
     patch: dict[str, Any],
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Product:
     target = await get(session, product_id)
+
+    if custom_fields is not None:
+        target.custom_fields = await cf_service.validate_payload(
+            "product", custom_fields, session=session
+        )
 
     before: dict[str, Any] = {}
     after: dict[str, Any] = {}

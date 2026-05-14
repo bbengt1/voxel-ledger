@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,6 +22,7 @@ class RateResponse(BaseModel):
     applies_to_printer_id: uuid.UUID | None = None
     is_default_for_kind: bool
     is_archived: bool
+    custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
@@ -31,6 +33,7 @@ class RateCreateRequest(BaseModel):
     value: Decimal = Field(ge=0)
     applies_to_printer_id: uuid.UUID | None = None
     is_default_for_kind: bool = False
+    custom_fields: dict[str, Any] | None = None
 
 
 class RateUpdateRequest(BaseModel):
@@ -43,6 +46,7 @@ class RateUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     value: Decimal | None = Field(default=None, ge=0)
     applies_to_printer_id: uuid.UUID | None = None
+    custom_fields: dict[str, Any] | None = None
 
 
 class RateListResponse(BaseModel):

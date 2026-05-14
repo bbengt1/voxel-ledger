@@ -23,6 +23,7 @@ from app.schemas.products import (
     ProductResponse,
     ProductUpdateRequest,
 )
+from app.services import custom_fields as cf_service
 from app.services import products as products_service
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -47,6 +48,7 @@ def _to_response(product: Product) -> ProductResponse:
         weight_grams=product.weight_grams,
         category=product.category,
         is_archived=product.is_archived,
+        custom_fields=dict(product.custom_fields or {}),
         created_at=product.created_at,
         updated_at=product.updated_at,
     )
@@ -69,10 +71,17 @@ async def create_product(
             weight_grams=payload.weight_grams,
             category=payload.category,
             actor_user_id=actor.id,
+            custom_fields=payload.custom_fields,
         )
     except (products_service.DuplicateSkuError, products_service.DuplicateUpcError) as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, product)
     await session.commit()
     return _to_response(product)
@@ -143,12 +152,14 @@ async def update_product(
     actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
 ) -> ProductResponse:
     patch = payload.model_dump(exclude_unset=True)
+    custom_fields = patch.pop("custom_fields", None)
     try:
         product = await products_service.update(
             session,
             product_id=product_id,
             patch=patch,
             actor_user_id=actor.id,
+            custom_fields=custom_fields,
         )
     except products_service.ProductNotFoundError:
         await session.rollback()
@@ -158,6 +169,12 @@ async def update_product(
     except (products_service.DuplicateSkuError, products_service.DuplicateUpcError) as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, product)
     await session.commit()
     return _to_response(product)

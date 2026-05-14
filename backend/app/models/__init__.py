@@ -3,6 +3,13 @@
 from app.core.db import Base
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
+from app.models.custom_field import (
+    CUSTOM_FIELD_ENTITY_TYPES,
+    CustomField,
+    CustomFieldType,
+    FormTemplate,
+    FormTemplateField,
+)
 from app.models.event import Event
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
@@ -17,7 +24,12 @@ from app.models.supply import Supply
 __all__ = [
     "AuditLog",
     "Base",
+    "CUSTOM_FIELD_ENTITY_TYPES",
+    "CustomField",
+    "CustomFieldType",
     "Event",
+    "FormTemplate",
+    "FormTemplateField",
     "Material",
     "MaterialReceipt",
     "Product",
