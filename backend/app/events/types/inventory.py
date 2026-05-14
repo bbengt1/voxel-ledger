@@ -89,3 +89,38 @@ register_event(TYPE_LOCATION_CREATED, LocationCreatedPayload)
 register_event(TYPE_LOCATION_UPDATED, LocationUpdatedPayload)
 register_event(TYPE_LOCATION_ARCHIVED, LocationArchivedPayload)
 register_event(TYPE_LOCATION_UNARCHIVED, LocationUnarchivedPayload)
+
+
+# --- Inventory transactions (Phase 3.2) ---
+
+# Aggregate for inventory-transaction events. Each transaction is its
+# own aggregate (one event per row); the row id is the aggregate_id.
+AGGREGATE_TYPE_INVENTORY_TRANSACTION: str = "inventory_transaction"
+
+
+class TransactionRecordedPayload(_InventoryPayloadBase):
+    """One inventory-transaction row, captured at write time.
+
+    Decimals are serialized to canonical strings; UUIDs to strings via
+    Pydantic's ``mode='json'`` dump used by the event registry.
+    """
+
+    transaction_id: uuid.UUID
+    kind: str
+    entity_kind: str
+    entity_id: uuid.UUID
+    location_id: uuid.UUID
+    # Signed magnitude — the service has already applied the sign.
+    signed_quantity: Decimal
+    unit_cost: Decimal | None = None
+    total_cost: Decimal | None = None
+    transfer_pair_id: uuid.UUID | None = None
+    linked_job_id: uuid.UUID | None = None
+    linked_sale_id: uuid.UUID | None = None
+    reason: str | None = None
+
+
+TYPE_TRANSACTION_RECORDED = "inventory.TransactionRecorded"
+
+
+register_event(TYPE_TRANSACTION_RECORDED, TransactionRecordedPayload)

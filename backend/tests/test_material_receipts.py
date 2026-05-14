@@ -8,6 +8,7 @@ import pytest
 from app.models import Base
 from app.models.event import Event
 from app.models.material_receipt import MaterialReceipt
+from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from sqlalchemy import select
@@ -15,6 +16,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _seed_material(session):
+    # Phase 3.2: receipts now also stamp inventory_transaction rows that
+    # need a receiving location. Seed a workshop so the fallback resolves.
+    await locations_service.create(
+        session,
+        name="Receiving",
+        code="RX",
+        kind="workshop",
+        actor_user_id=None,
+    )
     m = await materials_service.create(
         session,
         name="PLA",

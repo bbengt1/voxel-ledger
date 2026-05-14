@@ -25,11 +25,14 @@ from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import inventory as inventory_events
+from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.schemas.events import EventCreate
 from app.services import event_store
+from app.services import inventory_transactions as transactions_service
 from app.services.materials import MaterialNotFoundError
+from app.services.settings.service import SettingsService
 
 # Quantize unit_cost_at_receipt at storage time. The projection quantizes
 # again for the running weighted average; both use 6 places, matching the
@@ -51,6 +54,57 @@ class InvalidTotalCostError(MaterialReceiptsServiceError):
 
 class InvalidCursorError(MaterialReceiptsServiceError):
     pass
+
+
+class InventoryConfigError(MaterialReceiptsServiceError):
+    """Receiving is enabled but no default location is configured.
+
+    Surfaced when the ``inventory.default_receiving_location_id`` setting
+    is unset AND no active ``workshop`` location exists to fall back to.
+    Router maps to HTTP 400.
+    """
+
+
+async def _resolve_receiving_location_id(session: AsyncSession) -> uuid.UUID:
+    """Pick a default location for a material receipt to land in.
+
+    Resolution chain (Phase 3.2):
+
+    1. ``inventory.default_receiving_location_id`` setting, if set.
+    2. Otherwise, the lowest-code active ``workshop`` location (sorted
+       alphanumerically by ``code``).
+    3. Otherwise, raise :class:`InventoryConfigError`.
+
+    The fallback exists so a fresh install with one workshop location
+    "just works" without an explicit settings write.
+    """
+    configured: uuid.UUID | None = await SettingsService.get(
+        "inventory.default_receiving_location_id", session=session
+    )
+    if configured is not None:
+        # Validate the configured ID still resolves to an active location.
+        stmt = select(InventoryLocation).where(InventoryLocation.id == configured)
+        loc = (await session.execute(stmt)).scalar_one_or_none()
+        if loc is not None and not loc.is_archived:
+            return loc.id
+        # Fall through to discovery — a stale setting shouldn't brick the receive flow.
+
+    from sqlalchemy import asc
+
+    stmt = (
+        select(InventoryLocation)
+        .where(InventoryLocation.kind == InventoryLocationKind.WORKSHOP)
+        .where(InventoryLocation.is_archived.is_(False))
+        .order_by(asc(InventoryLocation.code))
+        .limit(1)
+    )
+    fallback = (await session.execute(stmt)).scalar_one_or_none()
+    if fallback is None:
+        raise InventoryConfigError(
+            "no default receiving location: configure "
+            "inventory.default_receiving_location_id or create a workshop location"
+        )
+    return fallback.id
 
 
 def _encode_cursor(received_at: datetime, receipt_id: uuid.UUID) -> str:
@@ -79,6 +133,14 @@ async def record(
     actor_user_id: uuid.UUID | None,
 ) -> MaterialReceipt:
     """Insert one receipt and emit ``inventory.MaterialReceived``.
+
+    Also (Phase 3.2) records a parallel ``inventory_transaction`` row
+    with ``kind='receipt'`` so the generic inventory stream sees the
+    arrival, and emits a matching ``inventory.TransactionRecorded``
+    event in the same transaction. The transaction lands at the
+    configured ``inventory.default_receiving_location_id`` setting; if
+    unset, falls back to the lowest-code active workshop location; if
+    none exists, raises :class:`InventoryConfigError`.
 
     Validates grams > 0 and total_cost >= 0 at the service boundary in
     addition to the DB CHECK constraints. Computes
@@ -138,6 +200,24 @@ async def record(
             actor_user_id=actor_user_id,
         ),
         session=session,
+    )
+
+    # Phase 3.2: also record the receipt on the inventory-transaction
+    # ledger. Same transaction, so a rollback discards both rows + both
+    # events atomically. The cost projection from #37 still consumes
+    # ``inventory.MaterialReceived`` above; this second emission is for
+    # the generic ledger subscribers landing in later phases.
+    location_id = await _resolve_receiving_location_id(session)
+    await transactions_service.record(
+        session,
+        kind="receipt",
+        entity_kind="material",
+        entity_id=material_id,
+        location_id=location_id,
+        quantity=grams,
+        actor_user_id=actor_user_id,
+        unit_cost=unit_cost,
+        reason=reference,
     )
     return receipt
 

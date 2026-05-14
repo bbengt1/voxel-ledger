@@ -34,7 +34,10 @@ const SECTIONS: NavSection[] = [
   },
   {
     label: "Inventory",
-    items: [{ label: "Locations", href: "/inventory/locations" }],
+    items: [
+      { label: "Locations", href: "/inventory/locations" },
+      { label: "Transactions", href: "/inventory/transactions" },
+    ],
   },
   {
     label: "Production",

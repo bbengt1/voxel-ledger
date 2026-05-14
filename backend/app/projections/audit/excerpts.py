@@ -192,6 +192,17 @@ register_excerpt_fields(
 # excerpt is useful.
 
 
+# --- Inventory transactions (Phase 3.2) ---
+# ``unit_cost`` / ``total_cost`` are intentionally NOT whitelisted — the
+# spec keeps cost out of the audit denormalization (the cost columns
+# live on the inventory_transaction row itself if a reader needs them).
+
+register_excerpt_fields(
+    inventory_events.TYPE_TRANSACTION_RECORDED,
+    ("kind", "entity_kind", "entity_id", "location_id", "signed_quantity", "reason"),
+)
+
+
 # ---------------------------------------------------------------------------
 # Catalog: Supplies (Phase 2.2)
 # ---------------------------------------------------------------------------

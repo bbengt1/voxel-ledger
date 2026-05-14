@@ -20,6 +20,7 @@ coercion during validation.
 
 from __future__ import annotations
 
+import uuid
 from decimal import Decimal
 from typing import Any, ClassVar
 
@@ -198,3 +199,29 @@ class ReferencePaddingWidth(SettingSchema):
     key: ClassVar[str] = "reference.padding_width"
     default: ClassVar[dict[str, int]] = {"S": 4, "INV": 4, "Q": 4, "BILL": 4}
     value: dict[str, int]
+
+
+@register
+class DefaultReceivingLocationId(SettingSchema):
+    """Default ``inventory_location`` ID that material receipts land into.
+
+    Phase 3.2 (#51). When a material receipt is recorded the receipt flow
+    needs to know where the grams are physically arriving so it can stamp
+    the matching ``inventory_transaction`` row. Set this to the workshop
+    or staging location that wraps your receiving dock. If left ``None``,
+    the receipt service falls back to "lowest-code active workshop
+    location", and finally raises ``InventoryConfigError`` if none exists.
+
+    The value type is ``uuid.UUID | None``. Pydantic validates that
+    strings are well-formed UUIDs on write; the settings service
+    (de)serializes through the schema so the round-trip through JSON
+    yields a real ``UUID`` instance on read.
+    """
+
+    key: ClassVar[str] = "inventory.default_receiving_location_id"
+    default: ClassVar[uuid.UUID | None] = None
+    # Stored as a string in the JSON column. Pydantic coerces "<uuid>"
+    # back to ``UUID`` on read because the field annotation is
+    # ``uuid.UUID``. The settings service's ``_serialize_for_storage``
+    # casts our UUID to str via the dict-recursion path below.
+    value: uuid.UUID | None = None
