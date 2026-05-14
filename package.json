@@ -1,0 +1,19 @@
+{
+  "name": "voxel-ledger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Print Sales v2 — full-stack 3D-print business platform (rewrite).",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "frontend:dev": "pnpm --filter @voxel-ledger/frontend dev",
+    "frontend:build": "pnpm --filter @voxel-ledger/frontend build",
+    "frontend:test": "pnpm --filter @voxel-ledger/frontend test",
+    "frontend:lint": "pnpm --filter @voxel-ledger/frontend lint"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}
