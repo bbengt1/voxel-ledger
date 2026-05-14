@@ -18,7 +18,7 @@ from decimal import Decimal
 from sqlalchemy import func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory_on_hand import InventoryOnHand
+from app.models.inventory_on_hand import INVENTORY_ENTITY_KIND_ENUM, InventoryOnHand
 from app.models.material import Material
 from app.models.product import Product
 from app.models.supply import Supply
@@ -37,10 +37,15 @@ class LowStockAlertRow:
 def _alias_query(entity_kind: str, model, name_col, threshold_col):
     """Build a sub-select: (entity_kind literal, id, name, threshold)
     for one of the catalog models, filtered to non-archived rows with a
-    configured threshold."""
+    configured threshold.
+
+    ``entity_kind`` is typed as the ``inventory_entity_kind`` enum so the
+    subsequent join against ``inventory_on_hand.entity_kind`` succeeds on
+    Postgres without an implicit varchar→enum cast (which PG refuses).
+    """
     return (
         select(
-            literal(entity_kind).label("entity_kind"),
+            literal(entity_kind, type_=INVENTORY_ENTITY_KIND_ENUM).label("entity_kind"),
             model.id.label("entity_id"),
             name_col.label("entity_name"),
             threshold_col.label("threshold"),
