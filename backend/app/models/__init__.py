@@ -5,6 +5,7 @@ from app.models.auth import RefreshToken, Role, User
 from app.models.event import Event
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.reference_sequence import ReferenceSequence
+from app.models.setting import Setting
 
 __all__ = [
     "Base",
@@ -14,5 +15,6 @@ __all__ = [
     "ReferenceSequence",
     "RefreshToken",
     "Role",
+    "Setting",
     "User",
 ]
