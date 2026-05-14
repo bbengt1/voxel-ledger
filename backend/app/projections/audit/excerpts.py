@@ -141,6 +141,25 @@ register_excerpt_fields(
     catalog_events.TYPE_PRODUCT_PRICE_CHANGED,
     ("old_price", "new_price"),
 )
+
+# --- BOM (Phase 2.4) ----------------------------------------------------
+
+register_excerpt_fields(
+    catalog_events.TYPE_BOM_COMPONENT_ADDED,
+    ("parent_product_id", "component_kind", "component_id", "quantity"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_BOM_COMPONENT_REMOVED,
+    ("parent_product_id", "component_kind", "component_id"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_BOM_COMPONENT_QUANTITY_CHANGED,
+    ("parent_product_id", "old_quantity", "new_quantity"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_PRODUCT_COST_CHANGED,
+    ("product_id", "old_cost", "new_cost"),
+)
 # ProductArchived / ProductUnarchived carry only the product_id — no
 # excerpt is useful.
 

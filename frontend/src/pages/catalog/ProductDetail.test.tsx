@@ -68,14 +68,20 @@ describe("<ProductDetailPage />", () => {
   it("renders product and shows the cost placeholder for null unit_cost_cached", async () => {
     setOwner();
     mock.onGet(`/api/v1/products/${PID}`).reply(200, aProduct());
+    mock
+      .onGet(`/api/v1/products/${PID}/bom`)
+      .reply(200, { items: [], total_cost: null });
     renderPage();
     expect(await screen.findByText("Widget")).toBeInTheDocument();
-    expect(screen.getByTestId("unit-cost").textContent).toMatch(/coming in 2\.4/i);
+    expect(screen.getByTestId("unit-cost").textContent).toMatch(/no BOM cost data/i);
   });
 
   it("saves edits and reflects the price-change response", async () => {
     setOwner();
     mock.onGet(`/api/v1/products/${PID}`).reply(200, aProduct());
+    mock
+      .onGet(`/api/v1/products/${PID}/bom`)
+      .reply(200, { items: [], total_cost: null });
     let sentBody: Record<string, unknown> | undefined;
     mock.onPatch(`/api/v1/products/${PID}`).reply((config) => {
       sentBody = JSON.parse(config.data as string);

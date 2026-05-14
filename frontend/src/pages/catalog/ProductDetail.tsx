@@ -5,6 +5,7 @@ import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { BomTab } from "@/pages/catalog/BomTab";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type ProductResponse = components["schemas"]["ProductResponse"];
@@ -148,7 +149,7 @@ export function ProductDetailPage() {
           <span data-testid="unit-cost">
             Cost{" "}
             {product.unit_cost_cached ??
-              "— (calculated from BOM, coming in 2.4)"}
+              "— (no BOM cost data)"}
           </span>
         </p>
       </header>
@@ -225,6 +226,13 @@ export function ProductDetailPage() {
           ) : null}
         </fieldset>
       ) : null}
+
+      <section
+        className="space-y-2 border-t border-border pt-4"
+        data-testid="bom-section"
+      >
+        <BomTab productId={product.id} />
+      </section>
 
       {isOwner ? (
         <section className="space-y-2 border-t border-border pt-4">

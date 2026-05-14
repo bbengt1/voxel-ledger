@@ -218,6 +218,48 @@ register_summary(catalog_events.TYPE_PRODUCT_ARCHIVED, _product_archived)
 register_summary(catalog_events.TYPE_PRODUCT_UNARCHIVED, _product_unarchived)
 
 
+# --- BOM (Phase 2.4) ----------------------------------------------------
+
+
+def _bom_component_added(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added {payload.get('component_kind', '?')}:"
+        f"{payload.get('component_id', '?')} x{payload.get('quantity', '?')} "
+        f"to product {payload.get('parent_product_id', '?')}"
+    )
+
+
+def _bom_component_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed {payload.get('component_kind', '?')}:"
+        f"{payload.get('component_id', '?')} from product "
+        f"{payload.get('parent_product_id', '?')}"
+    )
+
+
+def _bom_component_quantity_changed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} changed BOM item {payload.get('bom_item_id', '?')} qty "
+        f"{payload.get('old_quantity', '?')} -> {payload.get('new_quantity', '?')}"
+    )
+
+
+def _product_cost_changed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} rolled product {payload.get('product_id', '?')} cost "
+        f"{payload.get('old_cost', '?')} -> {payload.get('new_cost', '?')}"
+    )
+
+
+register_summary(catalog_events.TYPE_BOM_COMPONENT_ADDED, _bom_component_added)
+register_summary(catalog_events.TYPE_BOM_COMPONENT_REMOVED, _bom_component_removed)
+register_summary(
+    catalog_events.TYPE_BOM_COMPONENT_QUANTITY_CHANGED,
+    _bom_component_quantity_changed,
+)
+register_summary(catalog_events.TYPE_PRODUCT_COST_CHANGED, _product_cost_changed)
+
+
 # ---------------------------------------------------------------------------
 # Inventory event summaries (Phase 2.1)
 # ---------------------------------------------------------------------------

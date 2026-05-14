@@ -7,6 +7,7 @@ from app.models.event import Event
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.product import Product
+from app.models.product_bom_item import ProductBomItem
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
@@ -20,6 +21,7 @@ __all__ = [
     "Material",
     "MaterialReceipt",
     "Product",
+    "ProductBomItem",
     "ProjectionCursor",
     "ProjectionTestEvent",
     "Rate",
