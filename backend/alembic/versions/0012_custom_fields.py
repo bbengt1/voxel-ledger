@@ -40,29 +40,16 @@ def upgrade() -> None:
     bind = op.get_bind()
     is_pg = bind.dialect.name == "postgresql"
 
-    # Create the field-type enum first so it can be referenced by name on
-    # PG; on SQLite, sa.Enum renders as VARCHAR with CHECK.
-    if is_pg:
-        sa.Enum(*CUSTOM_FIELD_TYPE_VALUES, name="custom_field_type").create(bind, checkfirst=True)
-        field_type_col = sa.Column(
-            "field_type",
-            sa.Enum(
-                *CUSTOM_FIELD_TYPE_VALUES,
-                name="custom_field_type",
-                create_type=False,
-            ),
-            nullable=False,
-        )
-    else:
-        field_type_col = sa.Column(
-            "field_type",
-            sa.String(length=16),
-            sa.CheckConstraint(
-                "field_type IN ('string','number','boolean','date','select')",
-                name="ck_custom_field_field_type",
-            ),
-            nullable=False,
-        )
+    # Let SQLAlchemy auto-create the `custom_field_type` enum via
+    # op.create_table. Pre-creating with checkfirst=True races with the
+    # dialect hook on op.create_table (which doesn't honor create_type=False)
+    # and the second create raises DuplicateObjectError. Same bug pattern
+    # already fixed in 0002_auth.
+    field_type_col = sa.Column(
+        "field_type",
+        sa.Enum(*CUSTOM_FIELD_TYPE_VALUES, name="custom_field_type"),
+        nullable=False,
+    )
 
     json_type = _jsonb_or_json(is_pg)
 
