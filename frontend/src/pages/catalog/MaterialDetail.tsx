@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { ReceiptModal } from "@/components/catalog/ReceiptModal";
+import { OnHandSection } from "@/components/inventory/OnHandSection";
 import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
@@ -169,24 +170,26 @@ export function MaterialDetailPage() {
           {material.is_archived ? "Archived" : "Active"} ·{" "}
           <span data-testid="cost-per-gram">
             Cost {material.current_cost_per_gram}/g
-          </span>{" "}
-          ·{" "}
-          <span data-testid="on-hand">
-            {material.total_on_hand} g on hand
           </span>
         </p>
-        {material.per_location_on_hand &&
-        Object.keys(material.per_location_on_hand).length > 0 ? (
-          <p
-            className="mt-1 text-xs text-muted-foreground"
-            data-testid="per-location-on-hand"
-          >
-            {Object.entries(material.per_location_on_hand)
-              .map(([loc, qty]) => `${loc.slice(0, 8)}…: ${qty}g`)
-              .join(" · ")}
-          </p>
-        ) : null}
       </header>
+
+      <OnHandSection
+        entityKind="material"
+        entityId={material.id}
+        entityName={material.name}
+        totalOnHand={material.total_on_hand}
+        perLocationOnHand={material.per_location_on_hand ?? null}
+        unit="g"
+        lowStockThreshold={material.low_stock_threshold_grams ?? null}
+        onChanged={() => {
+          if (!id) return;
+          apiClient
+            .get<MaterialDetailResponse>(`/api/v1/materials/${id}`)
+            .then((res) => setMaterial(res.data))
+            .catch(() => {});
+        }}
+      />
 
       {canWrite ? (
         <fieldset className="space-y-3" data-testid="edit-form">

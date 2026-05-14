@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { OnHandSection } from "@/components/inventory/OnHandSection";
 import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
@@ -155,6 +156,23 @@ export function ProductDetailPage() {
           </span>
         </p>
       </header>
+
+      <OnHandSection
+        entityKind="product"
+        entityId={product.id}
+        entityName={product.name}
+        totalOnHand={product.total_on_hand}
+        perLocationOnHand={product.per_location_on_hand ?? null}
+        unit="ea"
+        lowStockThreshold={product.low_stock_threshold ?? null}
+        onChanged={() => {
+          if (!id) return;
+          apiClient
+            .get<ProductResponse>(`/api/v1/products/${id}`)
+            .then((res) => setProduct(res.data))
+            .catch(() => {});
+        }}
+      />
 
       {canWrite ? (
         <fieldset className="space-y-3" data-testid="edit-form">

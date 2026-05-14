@@ -53,6 +53,10 @@ describe("<SupplyDetailPage />", () => {
     useAuthStore.getState().clearSession();
     localStorage.clear();
     mock = new MockAdapter(apiClient);
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [],
+      next_cursor: null,
+    });
   });
 
   afterEach(() => {
@@ -74,5 +78,37 @@ describe("<SupplyDetailPage />", () => {
     mock.onGet(`/api/v1/supplies/${SID}`).reply(200, aSupply());
     renderPage();
     expect(await screen.findByTestId("archive-btn")).toBeInTheDocument();
+  });
+
+  it("renders the OnHand section with per-location breakdown", async () => {
+    setOwner();
+    mock.reset();
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [
+        {
+          id: "loc-1",
+          name: "Storage",
+          code: "STG",
+          kind: "workshop",
+          description: null,
+          is_archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      next_cursor: null,
+    });
+    mock.onGet(`/api/v1/supplies/${SID}`).reply(200, {
+      ...aSupply(),
+      total_on_hand: "12",
+      per_location_on_hand: { "loc-1": "12" },
+    });
+    renderPage();
+    expect(await screen.findByTestId("on-hand-total")).toHaveTextContent("12");
+    await waitFor(() => {
+      expect(screen.getByTestId("onhand-per-location")).toHaveTextContent(
+        "Storage",
+      );
+    });
   });
 });

@@ -22,8 +22,10 @@ import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
 import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
+import { AlertsListPage } from "@/pages/inventory/AlertsList";
 import { LocationsListPage } from "@/pages/inventory/LocationsList";
-import { TransactionsStubPage } from "@/pages/inventory/TransactionsStub";
+import { StartingBalancesPage } from "@/pages/inventory/StartingBalances";
+import { TransactionsListPage } from "@/pages/inventory/TransactionsList";
 
 export function App() {
   return (
@@ -204,7 +206,27 @@ export function App() {
         element={
           <RequireAuth>
             <AppShell>
-              <TransactionsStubPage />
+              <TransactionsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/alerts"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AlertsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/starting-balances"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <StartingBalancesPage />
             </AppShell>
           </RequireAuth>
         }
