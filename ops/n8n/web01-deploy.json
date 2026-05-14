@@ -1,0 +1,213 @@
+{
+  "name": "web01-deploy",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000001",
+      "name": "Deploy web01 (manual trigger)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "command": "cd /srv/3d-print-sales/repo && git fetch origin && git checkout main && git pull --ff-only origin main && git rev-parse --short HEAD"
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000002",
+      "name": "1. Pull latest main",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [480, 320],
+      "credentials": {
+        "sshPassword": {
+          "id": "REPLACE_WITH_SSH_CREDENTIAL_ID",
+          "name": "web01 ssh (root)"
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "command": "cd /srv/3d-print-sales/repo && scripts/web01-compose.sh run --rm backend alembic upgrade head"
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000003",
+      "name": "2. Run migrations (alembic upgrade head)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [720, 320],
+      "credentials": {
+        "sshPassword": {
+          "id": "REPLACE_WITH_SSH_CREDENTIAL_ID",
+          "name": "web01 ssh (root)"
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "command": "cd /srv/3d-print-sales/repo && scripts/web01-compose.sh up -d --build && scripts/web01-compose.sh ps"
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000004",
+      "name": "3. Rebuild + rotate containers",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [960, 320],
+      "credentials": {
+        "sshPassword": {
+          "id": "REPLACE_WITH_SSH_CREDENTIAL_ID",
+          "name": "web01 ssh (root)"
+        }
+      },
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "url": "http://web01.bengtson.local/health",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000005",
+      "name": "4. Verify /health (expect 200)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 320],
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "method": "HEAD",
+        "url": "http://web01.bengtson.local/",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000006",
+      "name": "5. Verify / (frontend served)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 320],
+      "continueOnFail": false
+    },
+    {
+      "parameters": {
+        "channel": "#deploys",
+        "text": "=web01 deploy succeeded — see workflow run for per-step output."
+      },
+      "id": "5b2d0b7c-1a2c-4f1d-9b2e-000000000007",
+      "name": "6. Notify (Slack — placeholder credential)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1680, 320],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "deploys-bot"
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Deploy web01 (manual trigger)": {
+      "main": [
+        [
+          {
+            "node": "1. Pull latest main",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Pull latest main": {
+      "main": [
+        [
+          {
+            "node": "2. Run migrations (alembic upgrade head)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Run migrations (alembic upgrade head)": {
+      "main": [
+        [
+          {
+            "node": "3. Rebuild + rotate containers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Rebuild + rotate containers": {
+      "main": [
+        [
+          {
+            "node": "4. Verify /health (expect 200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Verify /health (expect 200)": {
+      "main": [
+        [
+          {
+            "node": "5. Verify / (frontend served)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Verify / (frontend served)": {
+      "main": [
+        [
+          {
+            "node": "6. Notify (Slack — placeholder credential)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "tags": [
+    {
+      "name": "deploy"
+    },
+    {
+      "name": "web01"
+    }
+  ],
+  "meta": {
+    "description": "Canonical web01 deploy workflow. Pull -> migrate -> rebuild -> verify. Each step is a separate node so n8n's per-node logs make failures obvious. SSH and Slack credentials must be filled in on import (the IDs in this export are placeholders)."
+  }
+}
