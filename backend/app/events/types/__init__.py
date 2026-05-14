@@ -7,6 +7,7 @@ from app.events.types import (
     catalog,  # noqa: F401
     custom_fields,  # noqa: F401
     inventory,  # noqa: F401
+    notes_attachments,  # noqa: F401
     settings,  # noqa: F401
     users,  # noqa: F401
 )

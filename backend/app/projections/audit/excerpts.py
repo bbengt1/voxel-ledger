@@ -21,6 +21,7 @@ from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
+from app.events.types import notes_attachments as notes_events
 from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
@@ -245,3 +246,37 @@ register_excerpt_fields(
     cf_events.TYPE_FORM_TEMPLATE_FIELD_REMOVED,
     ("custom_field_id",),
 )
+
+
+# ---------------------------------------------------------------------------
+# Notes & attachments (Phase 2.6).
+# ---------------------------------------------------------------------------
+# Per-event excerpt strategy:
+# * Note bodies are NEVER whitelisted in full. We whitelist the
+#   ``body_preview`` field (max 100 chars, sliced by the service before
+#   emitting the event) and the polymorphic ref. The full body lives only
+#   on the ``note`` row + as the inputs to the body_preview function — it
+#   is not in the event payload at all.
+# * Attachments whitelist identity metadata only. We NEVER whitelist
+#   ``storage_path`` — it is a private internal detail of the attachments
+#   service and could leak filesystem layout to viewers.
+
+register_excerpt_fields(
+    notes_events.TYPE_NOTE_CREATED,
+    ("entity_kind", "entity_id", "author_user_id", "body_preview"),
+)
+register_excerpt_fields(
+    notes_events.TYPE_NOTE_UPDATED,
+    ("body_preview_before", "body_preview_after"),
+)
+register_excerpt_fields(
+    notes_events.TYPE_NOTE_DELETED,
+    ("entity_kind", "entity_id"),
+)
+# Pin / unpin carry only the note_id — no excerpt is useful.
+
+register_excerpt_fields(
+    notes_events.TYPE_ATTACHMENT_UPLOADED,
+    ("entity_kind", "entity_id", "filename", "mime_type", "byte_size"),
+)
+# AttachmentArchived carries only the attachment_id.

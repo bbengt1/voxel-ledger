@@ -4,6 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { ReceiptModal } from "@/components/catalog/ReceiptModal";
+import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
+import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -309,6 +311,14 @@ export function MaterialDetailPage() {
         onClose={() => setReceiptOpen(false)}
         onRecorded={onReceiptRecorded}
       />
+
+      {/* Phase 2.6: notes + attachments */}
+      {id ? (
+        <>
+          <NotesSection entityKind="material" entityId={id} />
+          <AttachmentsSection entityKind="material" entityId={id} />
+        </>
+      ) : null}
     </section>
   );
 }

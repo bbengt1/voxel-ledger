@@ -172,6 +172,21 @@ class BarcodeScanPadding(SettingSchema):
 
 
 @register
+class AttachmentsStorageRoot(SettingSchema):
+    """Filesystem root for uploaded attachments (Phase 2.6).
+
+    Stored as a string so contributors can override in local dev to a
+    path like ``./data/attachments`` (which should be gitignored). In
+    prod we deploy with ``/srv/3d-print-sales/data/attachments``. The
+    attachments service joins ``{YYYY}/{MM}/{uuid}-{slug}`` underneath.
+    """
+
+    key: ClassVar[str] = "attachments.storage_root"
+    default: ClassVar[str] = "/srv/3d-print-sales/data/attachments"
+    value: str = Field(min_length=1)
+
+
+@register
 class ReferencePaddingWidth(SettingSchema):
     """Per-prefix padding width for the reference-number allocator.
 
