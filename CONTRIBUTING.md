@@ -16,35 +16,25 @@ roadmap, see `print-sales-v2/IMPLEMENTATION_PLAN.md`.
 
 ## First-time setup
 
+The one-command bootstrap brings up the full stack (Postgres, backend with
+hot reload, frontend with HMR), runs migrations, and seeds the owner user:
+
 ```bash
-# Clone
 git clone git@github.com:bbengt1/voxel-ledger.git
 cd voxel-ledger
-
-# Backend (use a venv; the editable install needs pip)
-python -m venv backend/.venv
-source backend/.venv/bin/activate
-pip install -e "backend/[dev]"
-
-# Frontend
-pnpm install
-
-# Hooks (mirrors CI)
-pre-commit install
+make bootstrap
+pre-commit install   # mirrors CI hooks
 ```
+
+See [`docs/development.md`](docs/development.md) for what `make bootstrap`
+does, the dev loop (hot reload, HMR, codegen after schema changes), common
+failure modes, and clean reset.
 
 ## Dev loop
 
-```bash
-# Backend (in one terminal, with backend venv active)
-uvicorn app.main:app --reload --app-dir backend
-
-# Frontend (in another terminal)
-pnpm frontend:dev
-
-# Or the whole stack via Docker Compose
-./scripts/compose.sh up
-```
+The short version: `make dev` brings the stack up and tails logs;
+`make down` stops it; `make nuke` wipes containers and volumes (prompts).
+The long version is in [`docs/development.md`](docs/development.md).
 
 ## Tests
 
