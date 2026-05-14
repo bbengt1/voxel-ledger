@@ -11,7 +11,10 @@
     "frontend:dev": "pnpm --filter @voxel-ledger/frontend dev",
     "frontend:build": "pnpm --filter @voxel-ledger/frontend build",
     "frontend:test": "pnpm --filter @voxel-ledger/frontend test",
-    "frontend:lint": "pnpm --filter @voxel-ledger/frontend lint"
+    "frontend:lint": "pnpm --filter @voxel-ledger/frontend lint",
+    "codegen": "pnpm --filter @voxel-ledger/frontend codegen",
+    "codegen:export": "pnpm --filter @voxel-ledger/frontend codegen:export",
+    "codegen:check": "pnpm --filter @voxel-ledger/frontend codegen:check"
   },
   "workspaces": [
     "frontend"

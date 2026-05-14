@@ -46,6 +46,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=settings.app_name,
         version=__version__,
         lifespan=lifespan,
+        # Serve the OpenAPI spec (and Swagger/Redoc docs) under the same
+        # /api/v1 prefix as every business endpoint so the frontend codegen
+        # has a single, symmetric URL to fetch. See docs/openapi-codegen.md.
+        openapi_url="/api/v1/openapi.json",
+        docs_url="/api/v1/docs",
+        redoc_url="/api/v1/redoc",
     )
     app.state.settings = settings
     app.add_middleware(RequestIdMiddleware)
