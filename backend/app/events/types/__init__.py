@@ -5,6 +5,7 @@ from app.events.types import (
     _test_event,  # noqa: F401
     auth,  # noqa: F401
     catalog,  # noqa: F401
+    custom_fields,  # noqa: F401
     inventory,  # noqa: F401
     notes_attachments,  # noqa: F401
     settings,  # noqa: F401

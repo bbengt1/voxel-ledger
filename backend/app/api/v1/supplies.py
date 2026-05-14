@@ -23,6 +23,7 @@ from app.schemas.supplies import (
     SupplyResponse,
     SupplyUpdateRequest,
 )
+from app.services import custom_fields as cf_service
 from app.services import supplies as supplies_service
 
 router = APIRouter(prefix="/supplies", tags=["supplies"])
@@ -41,6 +42,7 @@ def _to_response(supply: Supply) -> SupplyResponse:
         vendor=supply.vendor,
         on_hand=supply.on_hand,
         is_archived=supply.is_archived,
+        custom_fields=dict(supply.custom_fields or {}),
         created_at=supply.created_at,
         updated_at=supply.updated_at,
     )
@@ -65,10 +67,17 @@ async def create_supply(
             vendor=payload.vendor,
             on_hand=payload.on_hand,
             actor_user_id=actor.id,
+            custom_fields=payload.custom_fields,
         )
     except supplies_service.DuplicateSupplyError as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, supply)
     await session.commit()
     return _to_response(supply)
@@ -122,12 +131,14 @@ async def update_supply(
     actor: Annotated[User, Depends(require_role("owner", "production"))],
 ) -> SupplyResponse:
     patch = payload.model_dump(exclude_unset=True)
+    custom_fields = patch.pop("custom_fields", None)
     try:
         supply = await supplies_service.update(
             session,
             supply_id=supply_id,
             patch=patch,
             actor_user_id=actor.id,
+            custom_fields=custom_fields,
         )
     except supplies_service.SupplyNotFoundError:
         await session.rollback()
@@ -137,6 +148,12 @@ async def update_supply(
     except supplies_service.DuplicateSupplyError as exc:
         await session.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    except cf_service.CustomFieldValidationError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"message": "custom_fields validation failed", "errors": exc.errors},
+        ) from None
     await _refresh_for_response(session, supply)
     await session.commit()
     return _to_response(supply)

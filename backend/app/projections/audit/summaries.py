@@ -17,6 +17,7 @@ from typing import Any
 
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
+from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
 from app.events.types import users as users_events
@@ -356,6 +357,85 @@ register_summary(catalog_events.TYPE_RATE_UPDATED, _rate_updated)
 register_summary(catalog_events.TYPE_RATE_DEFAULTED, _rate_defaulted)
 register_summary(catalog_events.TYPE_RATE_ARCHIVED, _rate_archived)
 register_summary(catalog_events.TYPE_RATE_UNARCHIVED, _rate_unarchived)
+
+
+# --- Custom fields / form templates (Phase 2.5) ---
+
+
+def _cf_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added {payload.get('field_type', '?')} custom field "
+        f"{payload.get('key', '?')} on {payload.get('entity_type', '?')}"
+    )
+
+
+def _cf_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated custom field {payload.get('custom_field_id', '?')}: {changes}"
+
+
+def _cf_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived custom field {payload.get('custom_field_id', '?')}"
+
+
+def _cf_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived custom field {payload.get('custom_field_id', '?')}"
+
+
+def _ft_created(payload: dict[str, Any], actor: str) -> str:
+    suffix = " (default)" if payload.get("is_default_for_entity_type") else ""
+    return (
+        f"{actor} created form template {payload.get('name', '?')!r} "
+        f"for {payload.get('entity_type', '?')}{suffix}"
+    )
+
+
+def _ft_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated form template {payload.get('template_id', '?')}: {changes}"
+
+
+def _ft_defaulted(payload: dict[str, Any], actor: str) -> str:
+    prev = payload.get("previous_default_template_id")
+    et = payload.get("entity_type", "?")
+    suffix = f" (previously {prev})" if prev else ""
+    return f"{actor} set template {payload.get('template_id', '?')} as default for {et}{suffix}"
+
+
+def _ft_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived form template {payload.get('template_id', '?')}"
+
+
+def _ft_field_added(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added field {payload.get('custom_field_id', '?')} to "
+        f"template {payload.get('template_id', '?')}"
+    )
+
+
+def _ft_field_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed field {payload.get('custom_field_id', '?')} from "
+        f"template {payload.get('template_id', '?')}"
+    )
+
+
+register_summary(cf_events.TYPE_CUSTOM_FIELD_CREATED, _cf_created)
+register_summary(cf_events.TYPE_CUSTOM_FIELD_UPDATED, _cf_updated)
+register_summary(cf_events.TYPE_CUSTOM_FIELD_ARCHIVED, _cf_archived)
+register_summary(cf_events.TYPE_CUSTOM_FIELD_UNARCHIVED, _cf_unarchived)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_CREATED, _ft_created)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_UPDATED, _ft_updated)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_DEFAULTED, _ft_defaulted)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_ARCHIVED, _ft_archived)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_FIELD_ADDED, _ft_field_added)
+register_summary(cf_events.TYPE_FORM_TEMPLATE_FIELD_REMOVED, _ft_field_removed)
 
 
 # --- Notes & attachments (Phase 2.6) ---

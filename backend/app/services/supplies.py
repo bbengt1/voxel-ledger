@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.events.types import catalog as catalog_events
 from app.models.supply import Supply
 from app.schemas.events import EventCreate
+from app.services import custom_fields as cf_service
 from app.services import event_store
 
 
@@ -128,6 +129,7 @@ async def create(
     vendor: str | None,
     on_hand: Decimal,
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Supply:
     name = name.strip()
     unit = unit.strip()
@@ -139,6 +141,8 @@ async def create(
             f"active supply with same name/vendor already exists ({existing})"
         )
 
+    normalized_cf = await cf_service.validate_payload("supply", custom_fields, session=session)
+
     supply = Supply(
         name=name,
         unit=unit,
@@ -146,6 +150,7 @@ async def create(
         vendor=vendor_norm,
         on_hand=on_hand,
         is_archived=False,
+        custom_fields=normalized_cf,
     )
     session.add(supply)
     await session.flush()
@@ -183,8 +188,14 @@ async def update(
     supply_id: uuid.UUID,
     patch: dict[str, Any],
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Supply:
     target = await get(session, supply_id)
+
+    if custom_fields is not None:
+        target.custom_fields = await cf_service.validate_payload(
+            "supply", custom_fields, session=session
+        )
 
     before: dict[str, Any] = {}
     after: dict[str, Any] = {}

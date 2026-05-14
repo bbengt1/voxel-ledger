@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -21,6 +22,7 @@ class MaterialResponse(BaseModel):
     current_cost_per_gram: Decimal
     on_hand_grams: Decimal
     is_archived: bool
+    custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 
@@ -51,6 +53,7 @@ class MaterialCreateRequest(BaseModel):
     material_type: str = Field(min_length=1, max_length=64)
     color: str | None = Field(default=None, max_length=64)
     density_g_per_cm3: Decimal | None = Field(default=None, ge=0)
+    custom_fields: dict[str, Any] | None = None
 
 
 class MaterialUpdateRequest(BaseModel):
@@ -61,6 +64,7 @@ class MaterialUpdateRequest(BaseModel):
     material_type: str | None = Field(default=None, min_length=1, max_length=64)
     color: str | None = Field(default=None, max_length=64)
     density_g_per_cm3: Decimal | None = Field(default=None, ge=0)
+    custom_fields: dict[str, Any] | None = None
 
 
 class MaterialListResponse(BaseModel):

@@ -19,6 +19,7 @@ from typing import Any
 
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
+from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
 from app.events.types import users as users_events
@@ -211,6 +212,40 @@ register_excerpt_fields(
     ("kind", "previous_default_rate_id"),
 )
 # Archive/unarchive carry only the rate_id — no excerpt is useful.
+
+
+# --- Custom fields / form templates (Phase 2.5) ---
+
+register_excerpt_fields(
+    cf_events.TYPE_CUSTOM_FIELD_CREATED,
+    ("entity_type", "key", "label", "field_type", "required"),
+)
+register_excerpt_fields(
+    cf_events.TYPE_CUSTOM_FIELD_UPDATED,
+    ("before", "after"),
+)
+# Archive / unarchive carry only the custom_field_id — no excerpt useful.
+
+register_excerpt_fields(
+    cf_events.TYPE_FORM_TEMPLATE_CREATED,
+    ("entity_type", "name"),
+)
+register_excerpt_fields(
+    cf_events.TYPE_FORM_TEMPLATE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    cf_events.TYPE_FORM_TEMPLATE_DEFAULTED,
+    ("entity_type", "previous_default_template_id"),
+)
+register_excerpt_fields(
+    cf_events.TYPE_FORM_TEMPLATE_FIELD_ADDED,
+    ("custom_field_id", "display_order"),
+)
+register_excerpt_fields(
+    cf_events.TYPE_FORM_TEMPLATE_FIELD_REMOVED,
+    ("custom_field_id",),
+)
 
 
 # ---------------------------------------------------------------------------

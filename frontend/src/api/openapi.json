@@ -595,6 +595,472 @@
         "title": "CostBreakdownResponse",
         "type": "object"
       },
+      "CustomFieldCreateRequest": {
+        "properties": {
+          "default_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value"
+          },
+          "display_order": {
+            "default": 0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "entity_type": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "field_type": {
+            "$ref": "#/components/schemas/CustomFieldType"
+          },
+          "key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CustomFieldOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "entity_type",
+          "key",
+          "label",
+          "field_type"
+        ],
+        "title": "CustomFieldCreateRequest",
+        "type": "object"
+      },
+      "CustomFieldListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CustomFieldResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "CustomFieldListResponse",
+        "type": "object"
+      },
+      "CustomFieldOption": {
+        "properties": {
+          "label": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "CustomFieldOption",
+        "type": "object"
+      },
+      "CustomFieldResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "default_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value"
+          },
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "field_type": {
+            "$ref": "#/components/schemas/CustomFieldType"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_archived": {
+            "title": "Is Archived",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CustomFieldOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity_type",
+          "key",
+          "label",
+          "field_type",
+          "required",
+          "display_order",
+          "is_archived",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CustomFieldResponse",
+        "type": "object"
+      },
+      "CustomFieldType": {
+        "enum": [
+          "string",
+          "number",
+          "boolean",
+          "date",
+          "select"
+        ],
+        "title": "CustomFieldType",
+        "type": "string"
+      },
+      "CustomFieldUpdateRequest": {
+        "description": "PATCH — fields the user wants to change.\n\n``entity_type``, ``key``, and ``field_type`` are intentionally\nimmutable: changing them would break stored data on existing rows.",
+        "properties": {
+          "default_value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Value"
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CustomFieldOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required"
+          }
+        },
+        "title": "CustomFieldUpdateRequest",
+        "type": "object"
+      },
+      "FormTemplateCreateRequest": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "default": 0,
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "entity_type": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "is_default_for_entity_type": {
+            "default": false,
+            "title": "Is Default For Entity Type",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_type",
+          "name"
+        ],
+        "title": "FormTemplateCreateRequest",
+        "type": "object"
+      },
+      "FormTemplateFieldAddRequest": {
+        "properties": {
+          "custom_field_id": {
+            "format": "uuid",
+            "title": "Custom Field Id",
+            "type": "string"
+          },
+          "display_order": {
+            "default": 0,
+            "title": "Display Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "custom_field_id"
+        ],
+        "title": "FormTemplateFieldAddRequest",
+        "type": "object"
+      },
+      "FormTemplateListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FormTemplateResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "FormTemplateListResponse",
+        "type": "object"
+      },
+      "FormTemplateResolvedResponse": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/CustomFieldResponse"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "template": {
+            "$ref": "#/components/schemas/FormTemplateResponse"
+          }
+        },
+        "required": [
+          "template",
+          "fields"
+        ],
+        "title": "FormTemplateResolvedResponse",
+        "type": "object"
+      },
+      "FormTemplateResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "title": "Display Order",
+            "type": "integer"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_archived": {
+            "title": "Is Archived",
+            "type": "boolean"
+          },
+          "is_default_for_entity_type": {
+            "title": "Is Default For Entity Type",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity_type",
+          "name",
+          "is_default_for_entity_type",
+          "is_archived",
+          "display_order",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FormTemplateResponse",
+        "type": "object"
+      },
+      "FormTemplateUpdateRequest": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Order"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "FormTemplateUpdateRequest",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -666,6 +1132,18 @@
             ],
             "title": "Color"
           },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "density_g_per_cm3": {
             "anyOf": [
               {
@@ -736,6 +1214,11 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Current Cost Per Gram",
             "type": "string"
+          },
+          "custom_fields": {
+            "additionalProperties": true,
+            "title": "Custom Fields",
+            "type": "object"
           },
           "density_g_per_cm3": {
             "anyOf": [
@@ -1033,6 +1516,11 @@
             "title": "Current Cost Per Gram",
             "type": "string"
           },
+          "custom_fields": {
+            "additionalProperties": true,
+            "title": "Custom Fields",
+            "type": "object"
+          },
           "density_g_per_cm3": {
             "anyOf": [
               {
@@ -1112,6 +1600,18 @@
               }
             ],
             "title": "Color"
+          },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
           },
           "density_g_per_cm3": {
             "anyOf": [
@@ -1348,6 +1848,18 @@
             ],
             "title": "Category"
           },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "description": {
             "anyOf": [
               {
@@ -1473,6 +1985,11 @@
             "title": "Created At",
             "type": "string"
           },
+          "custom_fields": {
+            "additionalProperties": true,
+            "title": "Custom Fields",
+            "type": "object"
+          },
           "description": {
             "anyOf": [
               {
@@ -1574,6 +2091,18 @@
             ],
             "title": "Category"
           },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "description": {
             "anyOf": [
               {
@@ -1673,6 +2202,18 @@
             ],
             "title": "Applies To Printer Id"
           },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "is_default_for_kind": {
             "default": false,
             "title": "Is Default For Kind",
@@ -1764,6 +2305,11 @@
             "title": "Created At",
             "type": "string"
           },
+          "custom_fields": {
+            "additionalProperties": true,
+            "title": "Custom Fields",
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1822,6 +2368,18 @@
               }
             ],
             "title": "Applies To Printer Id"
+          },
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
           },
           "name": {
             "anyOf": [
@@ -1974,6 +2532,18 @@
       },
       "SupplyCreateRequest": {
         "properties": {
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "name": {
             "maxLength": 255,
             "minLength": 1,
@@ -2068,6 +2638,11 @@
             "title": "Created At",
             "type": "string"
           },
+          "custom_fields": {
+            "additionalProperties": true,
+            "title": "Custom Fields",
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2128,6 +2703,18 @@
       "SupplyUpdateRequest": {
         "description": "PATCH-style — only fields the user wants to change.",
         "properties": {
+          "custom_fields": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Fields"
+          },
           "name": {
             "anyOf": [
               {
@@ -3257,6 +3844,741 @@
         "summary": "Refresh",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/custom-fields": {
+      "get": {
+        "operationId": "list_custom_fields_api_v1_custom_fields_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": true,
+            "schema": {
+              "title": "Entity Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Custom Fields",
+        "tags": [
+          "custom-fields"
+        ]
+      },
+      "post": {
+        "operationId": "create_custom_field_api_v1_custom_fields_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomFieldCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Custom Field",
+        "tags": [
+          "custom-fields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/{custom_field_id}": {
+      "get": {
+        "operationId": "get_custom_field_api_v1_custom_fields__custom_field_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "custom_field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Custom Field Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Custom Field",
+        "tags": [
+          "custom-fields"
+        ]
+      },
+      "patch": {
+        "operationId": "update_custom_field_api_v1_custom_fields__custom_field_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "custom_field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Custom Field Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomFieldUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Custom Field",
+        "tags": [
+          "custom-fields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/{custom_field_id}/archive": {
+      "post": {
+        "operationId": "archive_custom_field_api_v1_custom_fields__custom_field_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "custom_field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Custom Field Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Custom Field",
+        "tags": [
+          "custom-fields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/{custom_field_id}/unarchive": {
+      "post": {
+        "operationId": "unarchive_custom_field_api_v1_custom_fields__custom_field_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "custom_field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Custom Field Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomFieldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unarchive Custom Field",
+        "tags": [
+          "custom-fields"
+        ]
+      }
+    },
+    "/api/v1/form-templates": {
+      "get": {
+        "operationId": "list_form_templates_api_v1_form_templates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entity Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "default_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Default Only",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Form Templates",
+        "tags": [
+          "form-templates"
+        ]
+      },
+      "post": {
+        "operationId": "create_form_template_api_v1_form_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormTemplateCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Form Template",
+        "tags": [
+          "form-templates"
+        ]
+      }
+    },
+    "/api/v1/form-templates/{template_id}": {
+      "get": {
+        "operationId": "get_form_template_api_v1_form_templates__template_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResolvedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Form Template",
+        "tags": [
+          "form-templates"
+        ]
+      },
+      "patch": {
+        "operationId": "update_form_template_api_v1_form_templates__template_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormTemplateUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Form Template",
+        "tags": [
+          "form-templates"
+        ]
+      }
+    },
+    "/api/v1/form-templates/{template_id}/archive": {
+      "post": {
+        "operationId": "archive_template_api_v1_form_templates__template_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Template",
+        "tags": [
+          "form-templates"
+        ]
+      }
+    },
+    "/api/v1/form-templates/{template_id}/fields": {
+      "post": {
+        "operationId": "add_template_field_api_v1_form_templates__template_id__fields_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormTemplateFieldAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResolvedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Template Field",
+        "tags": [
+          "form-templates"
+        ]
+      }
+    },
+    "/api/v1/form-templates/{template_id}/fields/{custom_field_id}": {
+      "delete": {
+        "operationId": "remove_template_field_api_v1_form_templates__template_id__fields__custom_field_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "custom_field_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Custom Field Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResolvedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Template Field",
+        "tags": [
+          "form-templates"
+        ]
+      }
+    },
+    "/api/v1/form-templates/{template_id}/set-default": {
+      "post": {
+        "operationId": "set_default_template_api_v1_form_templates__template_id__set_default_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Default Template",
+        "tags": [
+          "form-templates"
         ]
       }
     },

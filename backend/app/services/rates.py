@@ -34,6 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.events.types import catalog as catalog_events
 from app.models.rate import Rate, RateKind
 from app.schemas.events import EventCreate
+from app.services import custom_fields as cf_service
 from app.services import event_store
 
 
@@ -117,8 +118,10 @@ async def create(
     applies_to_printer_id: uuid.UUID | None,
     is_default_for_kind: bool,
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Rate:
     name = name.strip()
+    normalized_cf = await cf_service.validate_payload("rate", custom_fields, session=session)
 
     # If the caller asked us to default this new row, atomically unflag
     # any prior default for the same kind first so the partial unique
@@ -137,6 +140,7 @@ async def create(
         applies_to_printer_id=applies_to_printer_id,
         is_default_for_kind=is_default_for_kind,
         is_archived=False,
+        custom_fields=normalized_cf,
     )
     session.add(rate)
     await session.flush()
@@ -190,8 +194,14 @@ async def update(
     rate_id: uuid.UUID,
     patch: dict[str, Any],
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Rate:
     target = await get(session, rate_id)
+
+    if custom_fields is not None:
+        target.custom_fields = await cf_service.validate_payload(
+            "rate", custom_fields, session=session
+        )
 
     before: dict[str, Any] = {}
     after: dict[str, Any] = {}

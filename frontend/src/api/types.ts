@@ -215,6 +215,180 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/custom-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Custom Fields */
+        get: operations["list_custom_fields_api_v1_custom_fields_get"];
+        put?: never;
+        /** Create Custom Field */
+        post: operations["create_custom_field_api_v1_custom_fields_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/custom-fields/{custom_field_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Custom Field */
+        get: operations["get_custom_field_api_v1_custom_fields__custom_field_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Custom Field */
+        patch: operations["update_custom_field_api_v1_custom_fields__custom_field_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/custom-fields/{custom_field_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Custom Field */
+        post: operations["archive_custom_field_api_v1_custom_fields__custom_field_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/custom-fields/{custom_field_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Custom Field */
+        post: operations["unarchive_custom_field_api_v1_custom_fields__custom_field_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Form Templates */
+        get: operations["list_form_templates_api_v1_form_templates_get"];
+        put?: never;
+        /** Create Form Template */
+        post: operations["create_form_template_api_v1_form_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Form Template */
+        get: operations["get_form_template_api_v1_form_templates__template_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Form Template */
+        patch: operations["update_form_template_api_v1_form_templates__template_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/form-templates/{template_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Template */
+        post: operations["archive_template_api_v1_form_templates__template_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-templates/{template_id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Template Field */
+        post: operations["add_template_field_api_v1_form_templates__template_id__fields_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-templates/{template_id}/fields/{custom_field_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Template Field */
+        delete: operations["remove_template_field_api_v1_form_templates__template_id__fields__custom_field_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/form-templates/{template_id}/set-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Default Template */
+        post: operations["set_default_template_api_v1_form_templates__template_id__set_default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/materials": {
         parameters: {
             query?: never;
@@ -1091,6 +1265,183 @@ export interface components {
              */
             truncated_at_depth: boolean;
         };
+        /** CustomFieldCreateRequest */
+        CustomFieldCreateRequest: {
+            /** Default Value */
+            default_value?: unknown | null;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+            /** Entity Type */
+            entity_type: string;
+            field_type: components["schemas"]["CustomFieldType"];
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Options */
+            options?: components["schemas"]["CustomFieldOption"][] | null;
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+        };
+        /** CustomFieldListResponse */
+        CustomFieldListResponse: {
+            /** Items */
+            items: components["schemas"]["CustomFieldResponse"][];
+        };
+        /** CustomFieldOption */
+        CustomFieldOption: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** CustomFieldResponse */
+        CustomFieldResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Default Value */
+            default_value?: unknown | null;
+            /** Display Order */
+            display_order: number;
+            /** Entity Type */
+            entity_type: string;
+            field_type: components["schemas"]["CustomFieldType"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Archived */
+            is_archived: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Options */
+            options?: components["schemas"]["CustomFieldOption"][] | null;
+            /** Required */
+            required: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * CustomFieldType
+         * @enum {string}
+         */
+        CustomFieldType: "string" | "number" | "boolean" | "date" | "select";
+        /**
+         * CustomFieldUpdateRequest
+         * @description PATCH — fields the user wants to change.
+         *
+         *     ``entity_type``, ``key``, and ``field_type`` are intentionally
+         *     immutable: changing them would break stored data on existing rows.
+         */
+        CustomFieldUpdateRequest: {
+            /** Default Value */
+            default_value?: unknown | null;
+            /** Display Order */
+            display_order?: number | null;
+            /** Label */
+            label?: string | null;
+            /** Options */
+            options?: components["schemas"]["CustomFieldOption"][] | null;
+            /** Required */
+            required?: boolean | null;
+        };
+        /** FormTemplateCreateRequest */
+        FormTemplateCreateRequest: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Is Default For Entity Type
+             * @default false
+             */
+            is_default_for_entity_type: boolean;
+            /** Name */
+            name: string;
+        };
+        /** FormTemplateFieldAddRequest */
+        FormTemplateFieldAddRequest: {
+            /**
+             * Custom Field Id
+             * Format: uuid
+             */
+            custom_field_id: string;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+        };
+        /** FormTemplateListResponse */
+        FormTemplateListResponse: {
+            /** Items */
+            items: components["schemas"]["FormTemplateResponse"][];
+        };
+        /** FormTemplateResolvedResponse */
+        FormTemplateResolvedResponse: {
+            /** Fields */
+            fields: components["schemas"]["CustomFieldResponse"][];
+            template: components["schemas"]["FormTemplateResponse"];
+        };
+        /** FormTemplateResponse */
+        FormTemplateResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description?: string | null;
+            /** Display Order */
+            display_order: number;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Archived */
+            is_archived: boolean;
+            /** Is Default For Entity Type */
+            is_default_for_entity_type: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** FormTemplateUpdateRequest */
+        FormTemplateUpdateRequest: {
+            /** Description */
+            description?: string | null;
+            /** Display Order */
+            display_order?: number | null;
+            /** Name */
+            name?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1117,6 +1468,10 @@ export interface components {
             brand?: string | null;
             /** Color */
             color?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Density G Per Cm3 */
             density_g_per_cm3?: number | string | null;
             /** Material Type */
@@ -1140,6 +1495,10 @@ export interface components {
             created_at: string;
             /** Current Cost Per Gram */
             current_cost_per_gram: string;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            };
             /** Density G Per Cm3 */
             density_g_per_cm3?: string | null;
             /**
@@ -1233,6 +1592,10 @@ export interface components {
             created_at: string;
             /** Current Cost Per Gram */
             current_cost_per_gram: string;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            };
             /** Density G Per Cm3 */
             density_g_per_cm3?: string | null;
             /**
@@ -1263,6 +1626,10 @@ export interface components {
             brand?: string | null;
             /** Color */
             color?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Density G Per Cm3 */
             density_g_per_cm3?: number | string | null;
             /** Material Type */
@@ -1357,6 +1724,10 @@ export interface components {
         ProductCreateRequest: {
             /** Category */
             category?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Description */
             description?: string | null;
             /** Name */
@@ -1386,6 +1757,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            };
             /** Description */
             description?: string | null;
             /**
@@ -1420,6 +1795,10 @@ export interface components {
         ProductUpdateRequest: {
             /** Category */
             category?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Description */
             description?: string | null;
             /** Name */
@@ -1437,6 +1816,10 @@ export interface components {
         RateCreateRequest: {
             /** Applies To Printer Id */
             applies_to_printer_id?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Is Default For Kind
              * @default false
@@ -1469,6 +1852,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            };
             /**
              * Id
              * Format: uuid
@@ -1499,6 +1886,10 @@ export interface components {
         RateUpdateRequest: {
             /** Applies To Printer Id */
             applies_to_printer_id?: string | null;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name?: string | null;
             /** Value */
@@ -1565,6 +1956,10 @@ export interface components {
         };
         /** SupplyCreateRequest */
         SupplyCreateRequest: {
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name: string;
             /**
@@ -1593,6 +1988,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            };
             /**
              * Id
              * Format: uuid
@@ -1621,6 +2020,10 @@ export interface components {
          * @description PATCH-style — only fields the user wants to change.
          */
         SupplyUpdateRequest: {
+            /** Custom Fields */
+            custom_fields?: {
+                [key: string]: unknown;
+            } | null;
             /** Name */
             name?: string | null;
             /** Unit */
@@ -2122,6 +2525,460 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_custom_fields_api_v1_custom_fields_get: {
+        parameters: {
+            query: {
+                entity_type: string;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_custom_field_api_v1_custom_fields_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFieldCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_custom_field_api_v1_custom_fields__custom_field_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_custom_field_api_v1_custom_fields__custom_field_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomFieldUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_custom_field_api_v1_custom_fields__custom_field_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_custom_field_api_v1_custom_fields__custom_field_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                custom_field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFieldResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_form_templates_api_v1_form_templates_get: {
+        parameters: {
+            query?: {
+                entity_type?: string | null;
+                default_only?: boolean;
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_form_template_api_v1_form_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormTemplateCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_form_template_api_v1_form_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResolvedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_form_template_api_v1_form_templates__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormTemplateUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_template_api_v1_form_templates__template_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_template_field_api_v1_form_templates__template_id__fields_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormTemplateFieldAddRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResolvedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_template_field_api_v1_form_templates__template_id__fields__custom_field_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+                custom_field_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResolvedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_template_api_v1_form_templates__template_id__set_default_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplateResponse"];
                 };
             };
             /** @description Validation Error */

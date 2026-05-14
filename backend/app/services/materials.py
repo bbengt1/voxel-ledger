@@ -28,6 +28,7 @@ from app.events.types import catalog as catalog_events
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.schemas.events import EventCreate
+from app.services import custom_fields as cf_service
 from app.services import event_store
 
 
@@ -131,6 +132,7 @@ async def create(
     color: str | None,
     density_g_per_cm3: Decimal | None,
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Material:
     name = name.strip()
     brand_norm = brand.strip() if brand else None
@@ -142,6 +144,8 @@ async def create(
             f"active material with same name/brand/color already exists ({existing})"
         )
 
+    normalized_cf = await cf_service.validate_payload("material", custom_fields, session=session)
+
     material = Material(
         name=name,
         brand=brand_norm,
@@ -151,6 +155,7 @@ async def create(
         current_cost_per_gram=Decimal("0"),
         on_hand_grams=Decimal("0"),
         is_archived=False,
+        custom_fields=normalized_cf,
     )
     session.add(material)
     await session.flush()
@@ -206,8 +211,18 @@ async def update(
     material_id: uuid.UUID,
     patch: dict[str, Any],
     actor_user_id: uuid.UUID | None,
+    custom_fields: dict[str, Any] | None = None,
 ) -> Material:
     target = await get(session, material_id)
+
+    if custom_fields is not None:
+        normalized_cf = await cf_service.validate_payload(
+            "material", custom_fields, session=session
+        )
+        target.custom_fields = normalized_cf
+        # Note: custom_fields change isn't included in the before/after
+        # diff today — it's a separate platform aggregate event when the
+        # definitions change. The row-level write is captured here.
 
     before: dict[str, Any] = {}
     after: dict[str, Any] = {}
