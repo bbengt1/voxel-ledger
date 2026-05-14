@@ -37,8 +37,13 @@ from typing import Any
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Eager-import projection modules so the @projection decorators run at
+# startup. Without this, an event could be appended before any handler is
+# registered. Side-effect import; the F401 is intentional.
+import app.projections  # noqa: F401
 from app.events import registry as event_registry
 from app.models.event import Event
+from app.projections import registry as projection_registry
 from app.schemas.events import EventCreate
 
 # Arbitrary but stable 64-bit key for the single-writer advisory lock.
@@ -228,6 +233,22 @@ async def append(event_data: EventCreate, *, session: AsyncSession) -> Event:
 
     session.add(event)
     await session.flush()
+
+    # 6. Synchronous projection dispatch.
+    #
+    # Every handler subscribed to this event type (plus wildcard handlers)
+    # runs inside this same session/transaction. If any handler raises, we
+    # re-raise without swallowing: the caller's transaction will roll back,
+    # and the event row is never persisted from the caller's perspective.
+    # This is the contract that keeps the event log and the read models in
+    # strict consistency. See ``app/projections/registry.py``.
+    #
+    # The cursor table is NOT touched here — live appends own their cursor
+    # implicitly (last_position == max(event.position)). The cursor is only
+    # advanced during replay.
+    for handler in projection_registry.handlers_for(event.type):
+        await handler.fn(event, session)
+
     return event
 
 
