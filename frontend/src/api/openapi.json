@@ -79,6 +79,30 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "ReferenceSequenceRow": {
+        "description": "A single ``reference_sequence`` row, surfaced via the admin API.",
+        "properties": {
+          "last_value": {
+            "title": "Last Value",
+            "type": "integer"
+          },
+          "prefix": {
+            "title": "Prefix",
+            "type": "string"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prefix",
+          "year",
+          "last_value"
+        ],
+        "title": "ReferenceSequenceRow",
+        "type": "object"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -294,6 +318,38 @@
         "tags": [
           "admin",
           "admin-events"
+        ]
+      }
+    },
+    "/api/v1/admin/reference-sequences": {
+      "get": {
+        "description": "Return every ``(prefix, year, last_value)`` row, sorted by\n``(prefix, year)``.",
+        "operationId": "list_reference_sequences_api_v1_admin_reference_sequences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReferenceSequenceRow"
+                  },
+                  "title": "Response List Reference Sequences Api V1 Admin Reference Sequences Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Reference Sequences",
+        "tags": [
+          "admin",
+          "admin-reference-sequences"
         ]
       }
     },
