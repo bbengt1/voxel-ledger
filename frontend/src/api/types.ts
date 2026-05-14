@@ -10,6 +10,46 @@
  */
 
 export interface paths {
+    "/api/v1/admin/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query Audit Log
+         * @description Cursor-paginated audit-log query, descending by ``event_position``.
+         */
+        get: operations["query_audit_log_api_v1_admin_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit-log/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Audit Log Csv
+         * @description Stream the audit log as CSV. Same filters as the JSON endpoint.
+         */
+        get: operations["export_audit_log_csv_api_v1_admin_audit_log_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/events/verify-chain": {
         parameters: {
             query?: never;
@@ -147,6 +187,61 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AuditLogResponse
+         * @description Paginated list response. ``next_cursor`` is an opaque base64 token
+         *     that, when passed back, resumes pagination just past the last returned
+         *     row. ``null`` when the list is exhausted.
+         */
+        AuditLogResponse: {
+            /** Items */
+            items: components["schemas"]["AuditLogRow"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * AuditLogRow
+         * @description One row in the audit_log read model, as returned by the query API.
+         */
+        AuditLogRow: {
+            /** Actor Email */
+            actor_email: string | null;
+            /** Actor Role */
+            actor_role: string | null;
+            /** Actor User Id */
+            actor_user_id: string | null;
+            /**
+             * Aggregate Id
+             * Format: uuid
+             */
+            aggregate_id: string;
+            /** Aggregate Type */
+            aggregate_type: string;
+            /** Event Id */
+            event_id: string | null;
+            /** Event Position */
+            event_position: number;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip Address */
+            ip_address: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Payload Excerpt */
+            payload_excerpt: {
+                [key: string]: unknown;
+            } | null;
+            /** Summary */
+            summary: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -270,6 +365,80 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    query_audit_log_api_v1_admin_audit_log_get: {
+        parameters: {
+            query?: {
+                actor_user_id?: string | null;
+                event_type?: string | null;
+                aggregate_type?: string | null;
+                aggregate_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_audit_log_csv_api_v1_admin_audit_log_export_csv_get: {
+        parameters: {
+            query?: {
+                actor_user_id?: string | null;
+                event_type?: string | null;
+                aggregate_type?: string | null;
+                aggregate_id?: string | null;
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     verify_chain_api_v1_admin_events_verify_chain_get: {
         parameters: {
             query?: {
