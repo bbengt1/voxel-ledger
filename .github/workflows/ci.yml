@@ -1,0 +1,166 @@
+name: CI
+
+# Run on every PR and on pushes to main. Concurrency group cancels older
+# runs on the same ref so a fast-follow-up commit doesn't wait behind a
+# superseded run.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint, type-check, test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Ephemeral Postgres for integration tests that opt in via the
+    # `integration` pytest marker. Unit tests use in-memory SQLite by
+    # default — see backend/tests/conftest.py.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: voxel
+          POSTGRES_PASSWORD: voxel
+          POSTGRES_DB: voxel_ledger_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U voxel -d voxel_ledger_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # Unit-test default; pytest fixtures override per-test as needed.
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      # Connection string for any test that opts into Postgres.
+      POSTGRES_TEST_URL: "postgresql+asyncpg://voxel:voxel@localhost:5432/voxel_ledger_test"
+      JWT_SECRET_KEY: "ci-secret-key-not-a-real-secret-xxxxxxxxxxxx"
+      ENVIRONMENT: "test"
+      TESTING: "true"
+      BCRYPT_ROUNDS: "4"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            pyproject.toml
+
+      - name: Install backend (with dev extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend/[dev]"
+          # Tooling needed for lint/format checks lives in the workspace
+          # root config; install pinned-enough versions explicitly.
+          pip install ruff==0.7.4
+
+      - name: ruff check
+        run: ruff check .
+
+      - name: ruff format --check
+        run: ruff format --check .
+
+      - name: pytest
+        run: pytest backend/tests -q
+
+  frontend:
+    name: Frontend (lint, type-check, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4.0.0
+        with:
+          version: 9.12.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: "20.11"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm --filter @voxel-ledger/frontend lint
+
+      - name: Typecheck (tsc --noEmit)
+        run: pnpm --filter @voxel-ledger/frontend exec tsc --noEmit
+
+      - name: Vitest
+        run: pnpm --filter @voxel-ledger/frontend test
+
+      - name: Build
+        run: pnpm --filter @voxel-ledger/frontend build
+
+  codegen-drift:
+    name: Codegen drift (openapi.json + types.ts)
+    runs-on: ubuntu-latest
+    needs: backend
+    timeout-minutes: 10
+
+    # The backend export script reads these for settings validation.
+    env:
+      ENVIRONMENT: "test"
+      TESTING: "true"
+      JWT_SECRET_KEY: "ci-secret-key-not-a-real-secret-xxxxxxxxxxxx"
+      DATABASE_URL: "postgresql+asyncpg://u:p@localhost:5432/voxel_ledger_codegen"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            pyproject.toml
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4.0.0
+        with:
+          version: 9.12.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: "20.11"
+          cache: pnpm
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e backend/
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Codegen drift check
+        # codegen:check re-exports the OpenAPI spec, regenerates types.ts,
+        # and runs `git diff --exit-code` on both. Non-zero exit means a
+        # contributor changed the backend without re-running codegen.
+        run: pnpm run codegen:check

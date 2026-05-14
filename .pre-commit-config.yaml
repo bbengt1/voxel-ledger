@@ -1,0 +1,60 @@
+# Pre-commit hooks. Mirror CI so failures happen locally first.
+#
+# Install once with:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run against everything (matches CI):
+#   pre-commit run --all-files
+#
+# Notes:
+#   - Ruff owns Python lint + format.
+#   - Prettier formats JSON/YAML/Markdown/CSS only. TypeScript is owned
+#     by ESLint (see frontend/eslint.config.*) — running prettier on TS
+#     would duplicate work and risk conflicting opinions.
+#   - The eslint hook is a `language: system` hook so it uses the same
+#     pnpm-managed binary the repo otherwise uses; it avoids the venv-y
+#     gotchas of pre-commit's npm support.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        # Markdown/JSON/YAML/CSS only — TypeScript belongs to eslint.
+        files: \.(json|ya?ml|md|css)$
+        # Generated files; do not rewrite.
+        exclude: |
+          (?x)^(
+            pnpm-lock\.yaml|
+            frontend/src/api/openapi\.json|
+            frontend/src/api/types\.ts
+          )$
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (frontend)
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        # Lint the whole frontend workspace — eslint is fast enough and
+        # this matches what CI runs.
+        pass_filenames: false
+        entry: pnpm --filter @voxel-ledger/frontend lint
