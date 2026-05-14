@@ -24,7 +24,7 @@ export function TopBar() {
     // Best-effort server-side revoke; do not block on its outcome.
     if (refreshToken) {
       apiClient
-        .post("/auth/logout", { refresh_token: refreshToken })
+        .post("/api/v1/auth/logout", { refresh_token: refreshToken })
         .catch(() => {
           // Swallow — local sign-out happens regardless.
         });

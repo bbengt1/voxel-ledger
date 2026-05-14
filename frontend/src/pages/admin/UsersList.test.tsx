@@ -52,7 +52,7 @@ describe("<UsersListPage />", () => {
 
   it("renders rows from the API", async () => {
     setOwnerSession();
-    mock.onGet("/users").reply(200, {
+    mock.onGet("/api/v1/users").reply(200, {
       items: [
         {
           id: "11111111-1111-1111-1111-111111111111",
@@ -74,7 +74,7 @@ describe("<UsersListPage />", () => {
 
   it("debounces search input and re-queries with search param", async () => {
     setOwnerSession();
-    mock.onGet("/users").reply((config) => {
+    mock.onGet("/api/v1/users").reply((config) => {
       const params = config.params as Record<string, string> | undefined;
       if (params?.["search"] === "bob") {
         return [
@@ -113,7 +113,7 @@ describe("<UsersListPage />", () => {
   it("applies role filter as a query param", async () => {
     setOwnerSession();
     let observedRole: string | undefined;
-    mock.onGet("/users").reply((config) => {
+    mock.onGet("/api/v1/users").reply((config) => {
       const params = config.params as Record<string, string> | undefined;
       observedRole = params?.["role"];
       return [200, { items: [], next_cursor: null }];
@@ -130,7 +130,7 @@ describe("<UsersListPage />", () => {
     setOwnerSession();
     let requestCount = 0;
     let observedCursor: string | undefined;
-    mock.onGet("/users").reply((config) => {
+    mock.onGet("/api/v1/users").reply((config) => {
       requestCount += 1;
       const params = config.params as Record<string, string> | undefined;
       observedCursor = params?.["cursor"];
@@ -168,7 +168,7 @@ describe("<UsersListPage />", () => {
 
   it("hides the New user button for bookkeepers", async () => {
     setBookkeeperSession();
-    mock.onGet("/users").reply(200, { items: [], next_cursor: null });
+    mock.onGet("/api/v1/users").reply(200, { items: [], next_cursor: null });
     renderPage();
     await waitFor(() => {
       expect(

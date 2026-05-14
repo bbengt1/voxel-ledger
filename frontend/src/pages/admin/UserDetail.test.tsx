@@ -59,9 +59,9 @@ describe("<UserDetailPage />", () => {
   });
 
   it("loads, edits, and saves", async () => {
-    mock.onGet(`/users/${USER_ID}`).reply(200, activeUser());
+    mock.onGet(`/api/v1/users/${USER_ID}`).reply(200, activeUser());
     let observedBody: Record<string, unknown> | undefined;
-    mock.onPatch(`/users/${USER_ID}`).reply((config) => {
+    mock.onPatch(`/api/v1/users/${USER_ID}`).reply((config) => {
       observedBody = JSON.parse(config.data ?? "{}");
       return [
         200,
@@ -88,8 +88,8 @@ describe("<UserDetailPage />", () => {
   });
 
   it("deactivates with a confirm dialog", async () => {
-    mock.onGet(`/users/${USER_ID}`).reply(200, activeUser());
-    mock.onPost(`/users/${USER_ID}/deactivate`).reply(200, {
+    mock.onGet(`/api/v1/users/${USER_ID}`).reply(200, activeUser());
+    mock.onPost(`/api/v1/users/${USER_ID}/deactivate`).reply(200, {
       ...activeUser(),
       is_active: false,
     });
@@ -110,9 +110,9 @@ describe("<UserDetailPage />", () => {
   });
 
   it("reset password flow opens a modal with the new password", async () => {
-    mock.onGet(`/users/${USER_ID}`).reply(200, activeUser());
+    mock.onGet(`/api/v1/users/${USER_ID}`).reply(200, activeUser());
     mock
-      .onPost(`/users/${USER_ID}/reset-password`)
+      .onPost(`/api/v1/users/${USER_ID}/reset-password`)
       .reply(200, { user_id: USER_ID, generated_password: "Newpw-1!aA" });
 
     renderPage();

@@ -15,7 +15,7 @@ describe("apiClient 401 interceptor", () => {
   });
 
   it("redirects to /login?next=<original> on 401 for non-auth endpoints", async () => {
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
     mock.onGet("/protected").reply(401);
 
@@ -41,7 +41,7 @@ describe("apiClient 401 interceptor", () => {
       user: { id: "u1", email: "x@y.z", role: "owner" },
     });
 
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
     mock.onGet("/protected").reply(401);
 
@@ -53,15 +53,15 @@ describe("apiClient 401 interceptor", () => {
   });
 
   it("does NOT redirect on 401 from /auth/login", async () => {
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
-    mock.onPost("/auth/login").reply(401);
+    mock.onPost("/api/v1/auth/login").reply(401);
 
     const handler = vi.fn();
     const restore = setUnauthorizedHandler(handler);
 
     await expect(
-      client.post("/auth/login", { email: "a", password: "b" }),
+      client.post("/api/v1/auth/login", { email: "a", password: "b" }),
     ).rejects.toThrow();
 
     expect(handler).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe("apiClient 401 interceptor", () => {
       user: { id: "u1", email: "x@y.z", role: "owner" },
     });
 
-    const client = createApiClient("/api/v1");
+    const client = createApiClient("");
     const mock = new MockAdapter(client);
     mock.onGet("/me").reply((config) => {
       expect(config.headers?.["Authorization"]).toBe("Bearer the-token");

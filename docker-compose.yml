@@ -77,7 +77,7 @@ services:
       HOST: "0.0.0.0"
       # Point the SPA at the backend service exposed by compose. Adjust this
       # in .env.dev if you proxy differently.
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
     volumes:
       - ./:/repo
       - frontend_node_modules:/repo/node_modules

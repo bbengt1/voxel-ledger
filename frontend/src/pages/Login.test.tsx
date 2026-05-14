@@ -52,7 +52,7 @@ describe("<LoginPage />", () => {
   });
 
   it("shows a generic error on 401 without revealing which field is wrong", async () => {
-    mock.onPost("/auth/login").reply(401, { detail: "bad creds" });
+    mock.onPost("/api/v1/auth/login").reply(401, { detail: "bad creds" });
     const user = userEvent.setup();
     renderLogin();
 
@@ -74,13 +74,13 @@ describe("<LoginPage />", () => {
   });
 
   it("navigates to ?next= on success and stores the session", async () => {
-    mock.onPost("/auth/login").reply(200, {
+    mock.onPost("/api/v1/auth/login").reply(200, {
       access_token: "at-1",
       refresh_token: "rt-1",
       expires_in: 900,
       token_type: "bearer",
     });
-    mock.onGet("/auth/me").reply(200, {
+    mock.onGet("/api/v1/auth/me").reply(200, {
       id: "user-1",
       email: "user@example.com",
       full_name: "User One",
@@ -103,13 +103,13 @@ describe("<LoginPage />", () => {
   });
 
   it("defaults to / when no next param", async () => {
-    mock.onPost("/auth/login").reply(200, {
+    mock.onPost("/api/v1/auth/login").reply(200, {
       access_token: "at-2",
       refresh_token: "rt-2",
       expires_in: 900,
       token_type: "bearer",
     });
-    mock.onGet("/auth/me").reply(200, {
+    mock.onGet("/api/v1/auth/me").reply(200, {
       id: "user-1",
       email: "user@example.com",
       full_name: "User One",
