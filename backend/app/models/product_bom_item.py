@@ -20,10 +20,10 @@ from decimal import Decimal
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Enum as SAEnum,
     ForeignKey,
     Index,
     Numeric,
-    String,
     Text,
     func,
 )
@@ -40,6 +40,18 @@ COMPONENT_KIND_VALUES: tuple[str, ...] = (
     COMPONENT_KIND_MATERIAL,
     COMPONENT_KIND_SUPPLY,
     COMPONENT_KIND_PRODUCT,
+)
+
+# The column is an actual PG ENUM (`bom_component_kind`) — see the
+# alembic migration. Declaring it as ``SAEnum`` here teaches the ORM to
+# emit the right cast on comparisons; declaring it as plain ``String``
+# made every WHERE clause fail with "operator does not exist:
+# bom_component_kind = character varying" on Postgres.
+BOM_COMPONENT_KIND_ENUM = SAEnum(
+    *COMPONENT_KIND_VALUES,
+    name="bom_component_kind",
+    native_enum=True,
+    create_type=False,
 )
 
 
@@ -62,8 +74,9 @@ class ProductBomItem(Base):
         nullable=False,
     )
     # Polymorphic discriminator. PG: ENUM ``bom_component_kind``. SQLite:
-    # plain string with a CHECK constraint added by the migration.
-    component_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    # plain VARCHAR with a CHECK constraint (rendered by SAEnum on dialects
+    # that don't have a native enum type).
+    component_kind: Mapped[str] = mapped_column(BOM_COMPONENT_KIND_ENUM, nullable=False)
     # Polymorphic reference. No FK — see module docstring.
     component_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
 
