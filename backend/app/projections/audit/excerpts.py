@@ -132,3 +132,39 @@ register_excerpt_fields(
     inventory_events.TYPE_MATERIAL_RECEIVED,
     ("material_id", "grams", "total_cost"),
 )
+
+
+# ---------------------------------------------------------------------------
+# Catalog: Supplies (Phase 2.2)
+# ---------------------------------------------------------------------------
+# Identifying metadata only — no sensitive content.
+
+register_excerpt_fields(
+    catalog_events.TYPE_SUPPLY_CREATED,
+    ("name", "unit", "unit_cost", "vendor"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_SUPPLY_UPDATED,
+    ("before", "after"),
+)
+# Archive/unarchive carry only the supply_id — no excerpt is useful.
+
+
+# ---------------------------------------------------------------------------
+# Catalog: Rates (Phase 2.2)
+# ---------------------------------------------------------------------------
+# Rates are configuration knobs; no sensitive content.
+
+register_excerpt_fields(
+    catalog_events.TYPE_RATE_CREATED,
+    ("name", "kind", "value", "is_default_for_kind"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_RATE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    catalog_events.TYPE_RATE_DEFAULTED,
+    ("kind", "previous_default_rate_id"),
+)
+# Archive/unarchive carry only the rate_id — no excerpt is useful.
