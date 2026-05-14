@@ -1,34 +1,154 @@
 {
   "components": {
     "schemas": {
-      "BulkSettingUpdateRequest": {
-        "description": "POST body for a batch update.\n\nThe request is all-or-nothing: if any value fails validation, no\nwrites happen.",
+      "AuditLogResponse": {
+        "description": "Paginated list response. ``next_cursor`` is an opaque base64 token\nthat, when passed back, resumes pagination just past the last returned\nrow. ``null`` when the list is exhausted.",
         "properties": {
-          "updates": {
-            "additionalProperties": true,
-            "title": "Updates",
-            "type": "object"
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
           }
         },
         "required": [
-          "updates"
+          "items"
         ],
-        "title": "BulkSettingUpdateRequest",
+        "title": "AuditLogResponse",
         "type": "object"
       },
-      "BulkSettingUpdateResponse": {
-        "description": "Response for a successful batch update.\n\n``updated`` mirrors the request keys with their validated (typed)\nvalues as returned by the service.",
+      "AuditLogRow": {
+        "description": "One row in the audit_log read model, as returned by the query API.",
         "properties": {
-          "updated": {
-            "additionalProperties": true,
-            "title": "Updated",
-            "type": "object"
+          "actor_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Email"
+          },
+          "actor_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Role"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "aggregate_id": {
+            "format": "uuid",
+            "title": "Aggregate Id",
+            "type": "string"
+          },
+          "aggregate_type": {
+            "title": "Aggregate Type",
+            "type": "string"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "event_position": {
+            "title": "Event Position",
+            "type": "integer"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload_excerpt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload Excerpt"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
           }
         },
         "required": [
-          "updated"
+          "id",
+          "event_id",
+          "event_position",
+          "event_type",
+          "actor_user_id",
+          "actor_email",
+          "actor_role",
+          "aggregate_type",
+          "aggregate_id",
+          "occurred_at",
+          "summary",
+          "ip_address",
+          "payload_excerpt"
         ],
-        "title": "BulkSettingUpdateResponse",
+        "title": "AuditLogRow",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -158,73 +278,6 @@
         "title": "Role",
         "type": "string"
       },
-      "SettingResponse": {
-        "description": "One setting, merged with its schema default and provenance.",
-        "properties": {
-          "default": {
-            "title": "Default"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "schema_type": {
-            "description": "Friendly Python type name for the value (e.g. 'Decimal', 'str', 'dict'). Used by the frontend to pick an editor.",
-            "title": "Schema Type",
-            "type": "string"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "When the row was last written. None if no row exists yet.",
-            "title": "Updated At"
-          },
-          "updated_by_user_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "User who last wrote the row. None if from default.",
-            "title": "Updated By User Id"
-          },
-          "value": {
-            "title": "Value"
-          }
-        },
-        "required": [
-          "key",
-          "value",
-          "default",
-          "schema_type"
-        ],
-        "title": "SettingResponse",
-        "type": "object"
-      },
-      "SettingUpdateRequest": {
-        "description": "PUT body for a single setting.",
-        "properties": {
-          "value": {
-            "title": "Value"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "title": "SettingUpdateRequest",
-        "type": "object"
-      },
       "TokenPair": {
         "properties": {
           "access_token": {
@@ -350,6 +403,312 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/audit-log": {
+      "get": {
+        "description": "Cursor-paginated audit-log query, descending by ``event_position``.",
+        "operationId": "query_audit_log_api_v1_admin_audit_log_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregate_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aggregate Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregate_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aggregate Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Query Audit Log",
+        "tags": [
+          "admin",
+          "admin-audit-log"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-log/export.csv": {
+      "get": {
+        "description": "Stream the audit log as CSV. Same filters as the JSON endpoint.",
+        "operationId": "export_audit_log_csv_api_v1_admin_audit_log_export_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregate_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aggregate Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "aggregate_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Aggregate Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Audit Log Csv",
+        "tags": [
+          "admin",
+          "admin-audit-log"
+        ]
+      }
+    },
     "/api/v1/admin/events/verify-chain": {
       "get": {
         "description": "Walk the event log in ``position`` order and recompute every hash.\n\nWindow-bounded: ``to_position - from_position`` may not exceed 1M.\nReturns ``ok=true`` for a clean chain, otherwise ``ok=false`` with\nthe position where the chain first breaks.",
@@ -589,188 +948,6 @@
         "summary": "Refresh",
         "tags": [
           "auth"
-        ]
-      }
-    },
-    "/api/v1/settings": {
-      "get": {
-        "description": "Return every registered setting, merged with schema defaults.",
-        "operationId": "list_settings_api_v1_settings_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SettingResponse"
-                  },
-                  "title": "Response List Settings Api V1 Settings Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "List Settings",
-        "tags": [
-          "settings"
-        ]
-      }
-    },
-    "/api/v1/settings/{key}": {
-      "get": {
-        "description": "Return a single setting by key. 400 on unknown key.",
-        "operationId": "get_setting_api_v1_settings__key__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "title": "Key",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Get Setting",
-        "tags": [
-          "settings"
-        ]
-      },
-      "put": {
-        "description": "Validate and persist a single setting. Emits SettingChanged.",
-        "operationId": "put_setting_api_v1_settings__key__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "key",
-            "required": true,
-            "schema": {
-              "title": "Key",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SettingUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Put Setting",
-        "tags": [
-          "settings"
-        ]
-      }
-    },
-    "/api/v1/settings:bulk": {
-      "post": {
-        "description": "Atomic batch update. One invalid value rolls back everything.",
-        "operationId": "bulk_update_settings_api_v1_settings_bulk_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkSettingUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkSettingUpdateResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Bulk Update Settings",
-        "tags": [
-          "settings"
         ]
       }
     },

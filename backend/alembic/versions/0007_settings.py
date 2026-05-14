@@ -6,14 +6,12 @@ deployment-time, env-driven ``app.core.settings.Settings``: that one is
 read-only at boot, this one is mutated by the owner via the API.
 
 Revision ID: 0007_settings
-Revises: 0005_reference_sequence
+Revises: 0006_audit_log
 Create Date: 2026-05-14 00:00:00.000000
 
-Note on the alembic graph: issue #24 (audit log) is being implemented in
-parallel and claims revision ``0006_audit_log``. We deliberately skip
-``0006`` and use ``0007`` here so the two branches don't collide on a
-revision id; the merge-time rebase only needs to swap ``down_revision``
-to point at ``0006_audit_log``.
+Note on the alembic graph: issue #24 (audit log, revision 0006) was
+landed in parallel and merged first; this migration was rebased onto
+0006 at merge time to keep the alembic graph linear.
 """
 
 from __future__ import annotations
@@ -25,7 +23,7 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "0007_settings"
-down_revision: str | None = "0005_reference_sequence"
+down_revision: str | None = "0006_audit_log"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
