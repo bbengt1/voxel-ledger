@@ -237,6 +237,29 @@ async def rotate_refresh_token(
     )
 
 
+async def revoke_all_families(
+    session: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    reason: str,
+) -> int:
+    """Revoke every non-revoked refresh token row for a user (all families).
+
+    Used by Phase 1.6 user-admin flows (deactivate, admin password reset)
+    to force-logout a user across every device. Returns the number of
+    rows affected for diagnostics. Caller owns the transaction.
+    """
+    now = datetime.now(UTC)
+    stmt = (
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id)
+        .where(RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=now, revocation_reason=reason)
+    )
+    result = await session.execute(stmt)
+    return int(result.rowcount or 0)
+
+
 async def logout(
     session: AsyncSession,
     *,

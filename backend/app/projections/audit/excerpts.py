@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.events.types import auth as auth_events
+from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
 # excerpt at all.
@@ -88,3 +89,16 @@ register_excerpt_fields(auth_events.TYPE_LOGIN_SUCCEEDED, _EMAIL_ONLY)
 register_excerpt_fields(auth_events.TYPE_LOGIN_FAILED, _EMAIL_ONLY)
 register_excerpt_fields(auth_events.TYPE_LOGIN_INACTIVE, _EMAIL_ONLY)
 # Refresh / logout / family-revoked / rate-limited carry no email — no excerpt.
+
+
+# ---------------------------------------------------------------------------
+# Users-admin event whitelists (Phase 1.6).
+# ---------------------------------------------------------------------------
+# Never whitelist anything password-shaped; the global forbidden set
+# (password, password_hash, token, ...) is enforced at register time as a
+# belt-and-suspenders defense.
+
+register_excerpt_fields(users_events.TYPE_USER_CREATED, ("email", "full_name", "role"))
+register_excerpt_fields(users_events.TYPE_USER_UPDATED, ("before", "after"))
+register_excerpt_fields(users_events.TYPE_USER_DEACTIVATED, ("reason",))
+# Reactivated + password-reset-by-admin carry only ids — no excerpt is useful.

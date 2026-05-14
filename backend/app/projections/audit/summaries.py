@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import auth as auth_events
+from app.events.types import users as users_events
 
 Formatter = Callable[[dict[str, Any], str], str]
 
@@ -95,3 +96,42 @@ register_summary(auth_events.TYPE_REFRESH_ROTATED, _refresh_rotated)
 register_summary(auth_events.TYPE_FAMILY_REVOKED, _family_revoked)
 register_summary(auth_events.TYPE_LOGGED_OUT, _logged_out)
 register_summary(auth_events.TYPE_RATE_LIMITED, _rate_limited)
+
+
+# ---------------------------------------------------------------------------
+# Users-admin event summaries (Phase 1.6)
+# ---------------------------------------------------------------------------
+
+
+def _user_created(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} created user {payload.get('email', '?')} as {payload.get('role', '?')}"
+
+
+def _user_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated user {payload.get('user_id', '?')}: {changes}"
+
+
+def _user_deactivated(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} deactivated user {payload.get('user_id', '?')} "
+        f"({payload.get('reason', 'admin_action')})"
+    )
+
+
+def _user_reactivated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} reactivated user {payload.get('user_id', '?')}"
+
+
+def _password_reset_by_admin(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} reset password for user {payload.get('user_id', '?')}"
+
+
+register_summary(users_events.TYPE_USER_CREATED, _user_created)
+register_summary(users_events.TYPE_USER_UPDATED, _user_updated)
+register_summary(users_events.TYPE_USER_DEACTIVATED, _user_deactivated)
+register_summary(users_events.TYPE_USER_REACTIVATED, _user_reactivated)
+register_summary(users_events.TYPE_PASSWORD_RESET_BY_ADMIN, _password_reset_by_admin)
