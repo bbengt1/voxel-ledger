@@ -72,6 +72,7 @@ docker-compose.override.yml
 .env.*
 !.env.example
 !.env.dev.example
+!.env.prod.example
 !.env.test.example
 
 # ---- Editors / IDE ----
