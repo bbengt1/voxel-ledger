@@ -1,32 +1,33 @@
-"""Inventory-bounded-context event types (Phase 2.1).
+"""Inventory-bounded-context event types (Phase 2.1, 3.1).
 
-The inventory domain owns physical-stock movements: receipts (this
-issue), consumption by jobs, write-offs (later phases).
+The inventory domain owns physical-stock movements and the locations
+stock lives in. ``inventory.MaterialReceived`` is emitted when a
+material receipt is recorded. The ``material_cost`` projection consumes
+it to recompute the weighted-average cost-per-gram and on-hand grams in
+the same transaction as the event.
 
-``inventory.MaterialReceived`` is emitted when a material receipt is
-recorded. The ``material_cost`` projection consumes it to recompute the
-weighted-average cost-per-gram and on-hand grams in the same transaction
-as the event.
+Phase 3.1 (#50) adds ``inventory.Location*`` lifecycle events for the
+``inventory_location`` aggregate. These are catalog-style CRUD events;
+no projection consumes them today beyond the wildcard audit log.
 
 Decimal payload fields are stored as canonical strings so the registry
-round-trips them losslessly through JSON. Callers should pass
-``Decimal`` instances; Pydantic v2 will serialize them via ``mode='json'``
-in ``EventStore.append``'s ``validate_payload`` step.
-
-Aggregate type is ``material`` (the receipt mutates a material's
-inventory state — the receipt row itself is incidental).
+round-trips them losslessly through JSON.
 """
 
 from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
 from app.events.registry import register_event
 
+# Material-receipt aggregate stays ``material`` for backwards-compat with #37.
 AGGREGATE_TYPE: str = "material"
+# Phase 3.1: inventory-location aggregate.
+AGGREGATE_TYPE_INVENTORY_LOCATION: str = "inventory_location"
 
 
 class _InventoryPayloadBase(BaseModel):
@@ -52,3 +53,39 @@ TYPE_MATERIAL_RECEIVED = "inventory.MaterialReceived"
 
 
 register_event(TYPE_MATERIAL_RECEIVED, MaterialReceivedPayload)
+
+
+# --- Inventory locations (Phase 3.1) ---
+
+
+class LocationCreatedPayload(_InventoryPayloadBase):
+    location_id: uuid.UUID
+    name: str
+    code: str
+    kind: str
+
+
+class LocationUpdatedPayload(_InventoryPayloadBase):
+    location_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class LocationArchivedPayload(_InventoryPayloadBase):
+    location_id: uuid.UUID
+
+
+class LocationUnarchivedPayload(_InventoryPayloadBase):
+    location_id: uuid.UUID
+
+
+TYPE_LOCATION_CREATED = "inventory.LocationCreated"
+TYPE_LOCATION_UPDATED = "inventory.LocationUpdated"
+TYPE_LOCATION_ARCHIVED = "inventory.LocationArchived"
+TYPE_LOCATION_UNARCHIVED = "inventory.LocationUnarchived"
+
+
+register_event(TYPE_LOCATION_CREATED, LocationCreatedPayload)
+register_event(TYPE_LOCATION_UPDATED, LocationUpdatedPayload)
+register_event(TYPE_LOCATION_ARCHIVED, LocationArchivedPayload)
+register_event(TYPE_LOCATION_UNARCHIVED, LocationUnarchivedPayload)

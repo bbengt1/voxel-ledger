@@ -20,6 +20,9 @@ import { RatesListPage } from "@/pages/catalog/RatesList";
 import { SuppliesListPage } from "@/pages/catalog/SuppliesList";
 import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
 import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
+import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
+import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
+import { LocationsListPage } from "@/pages/inventory/LocationsList";
 
 export function App() {
   return (
@@ -161,6 +164,36 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <SupplyDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/locations"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LocationsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/locations/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LocationCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inventory/locations/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LocationDetailPage />
             </AppShell>
           </RequireAuth>
         }
