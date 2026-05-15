@@ -51,9 +51,7 @@ def _to_response(order: ProductionOrder) -> ProductionOrderResponse:
 
 
 def _map_error(exc: Exception) -> HTTPException:
-    if isinstance(
-        exc, po_service.ProductionOrderNotFoundError | po_service.JobNotFoundError
-    ):
+    if isinstance(exc, po_service.ProductionOrderNotFoundError | po_service.JobNotFoundError):
         return HTTPException(status_code=404, detail=str(exc))
     if isinstance(exc, po_service.InvalidProductionOrderStateError):
         return HTTPException(status_code=400, detail=str(exc))

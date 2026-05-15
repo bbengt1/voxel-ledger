@@ -37,9 +37,7 @@ async def test_create_role_matrix(
     client: AsyncClient, app_session: AsyncSession, role: Role, expected: int
 ) -> None:
     token = await token_for(role, client, app_session)
-    r = await client.post(
-        "/api/v1/production-orders", headers=auth_header(token), json=_payload()
-    )
+    r = await client.post("/api/v1/production-orders", headers=auth_header(token), json=_payload())
     assert r.status_code == expected, r.text
 
 
@@ -74,9 +72,7 @@ async def test_create_get_happy_path(client: AsyncClient, app_session: AsyncSess
     assert body["order_number"].startswith("PO-")
     assert body["jobs"] == []
 
-    got = await client.get(
-        f"/api/v1/production-orders/{body['id']}", headers=auth_header(owner)
-    )
+    got = await client.get(f"/api/v1/production-orders/{body['id']}", headers=auth_header(owner))
     assert got.status_code == 200
     assert got.json()["order_number"] == body["order_number"]
 
@@ -171,9 +167,7 @@ async def test_discover_endpoint_accepts_any_auth_role(
     viewer = await token_for(Role.VIEWER, client, app_session)
     from pathlib import Path
 
-    sample = (
-        Path(__file__).parent / "fixtures" / "prusaslicer_sample.gcode.json"
-    ).read_bytes()
+    sample = (Path(__file__).parent / "fixtures" / "prusaslicer_sample.gcode.json").read_bytes()
     r = await client.post(
         "/api/v1/jobs/discover",
         headers=auth_header(viewer),

@@ -117,9 +117,7 @@ def _looks_bambu(doc: dict) -> bool:
 
 def _parse_prusaslicer(doc: dict) -> DiscoveredPlate:
     minutes = _parse_time_to_minutes(
-        doc.get("estimated_printing_time_normal_mode")
-        or doc.get("estimated_printing_time")
-        or 0
+        doc.get("estimated_printing_time_normal_mode") or doc.get("estimated_printing_time") or 0
     )
 
     grams_field = doc.get("filament_used_g")
@@ -165,18 +163,8 @@ def _parse_bambu(doc: dict) -> DiscoveredPlate:
             if isinstance(item, dict):
                 # Bambu format: {"id": "...", "used_g": "12.3"} or
                 # {"tray_id": 2, "weight": 12.3}
-                used = (
-                    item.get("used_g")
-                    or item.get("weight")
-                    or item.get("filament_used_g")
-                    or 0
-                )
-                slot = (
-                    item.get("id")
-                    or item.get("tray_id")
-                    or item.get("extruder_id")
-                    or idx
-                )
+                used = item.get("used_g") or item.get("weight") or item.get("filament_used_g") or 0
+                slot = item.get("id") or item.get("tray_id") or item.get("extruder_id") or idx
                 grams_by_slot[f"slot_{slot}"] = _coerce_decimal(used)
             else:
                 grams_by_slot[f"slot_{idx}"] = _coerce_decimal(item)
@@ -218,8 +206,7 @@ def parse_gcode_sidecar(
         raise MalformedSidecarError(f"not valid JSON: {exc}") from exc
     if not isinstance(doc, dict):
         raise UnknownSidecarFormatError(
-            "sidecar root must be a JSON object — got "
-            f"{type(doc).__name__}"
+            "sidecar root must be a JSON object — got " f"{type(doc).__name__}"
         )
 
     if _looks_prusa(doc):

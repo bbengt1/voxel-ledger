@@ -882,8 +882,7 @@ def _production_order_updated(payload: dict[str, Any], actor: str) -> str:
     fields = sorted(set(before) | set(after))
     changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
     return (
-        f"{actor} updated production order "
-        f"{payload.get('production_order_id', '?')}: {changes}"
+        f"{actor} updated production order " f"{payload.get('production_order_id', '?')}: {changes}"
     )
 
 

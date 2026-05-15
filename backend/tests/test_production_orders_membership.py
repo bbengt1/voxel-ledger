@@ -94,9 +94,7 @@ async def test_reorder_jobs(client: AsyncClient, app_session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
-async def test_job_in_only_one_active_order(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_job_in_only_one_active_order(client: AsyncClient, app_session: AsyncSession) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
     product = await seed_product(app_session)
     job_id = await _seed_job(client, owner, str(product.id))
@@ -179,9 +177,7 @@ async def test_add_job_to_archived_order_400(
     job_id = await _seed_job(client, owner, str(product.id))
     order_id = await _seed_order(client, owner)
 
-    await client.post(
-        f"/api/v1/production-orders/{order_id}/archive", headers=auth_header(owner)
-    )
+    await client.post(f"/api/v1/production-orders/{order_id}/archive", headers=auth_header(owner))
     r = await client.post(
         f"/api/v1/production-orders/{order_id}/jobs",
         headers=auth_header(owner),

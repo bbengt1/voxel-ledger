@@ -426,18 +426,14 @@ async def discover_from_sidecar(
     """
     content = await file.read()
     try:
-        result = discovery_service.parse_gcode_sidecar(
-            content, source_filename=file.filename
-        )
+        result = discovery_service.parse_gcode_sidecar(content, source_filename=file.filename)
     except discovery_service.UnknownSidecarFormatError as exc:
         raise HTTPException(status_code=415, detail=str(exc)) from None
     except discovery_service.MalformedSidecarError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from None
     return DiscoveredPlateResponse(
         print_minutes=result.print_minutes,
-        filament_grams_by_material={
-            k: v for k, v in result.filament_grams_by_material.items()
-        },
+        filament_grams_by_material={k: v for k, v in result.filament_grams_by_material.items()},
         parts_per_set=result.parts_per_set,
         source_format=result.source_format,
         source_filename=result.source_filename,
