@@ -3,6 +3,11 @@
 from app.core.db import Base
 from app.models.account import ACCOUNT_TYPE_VALUES, Account, AccountType
 from app.models.account_balance import AccountBalance
+from app.models.approval_request import (
+    APPROVAL_STATE_VALUES,
+    ApprovalRequest,
+    ApprovalState,
+)
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
@@ -35,6 +40,9 @@ __all__ = [
     "Account",
     "AccountBalance",
     "AccountType",
+    "APPROVAL_STATE_VALUES",
+    "ApprovalRequest",
+    "ApprovalState",
     "Attachment",
     "AuditLog",
     "Base",

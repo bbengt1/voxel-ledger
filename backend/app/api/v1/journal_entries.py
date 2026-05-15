@@ -22,7 +22,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,10 +30,12 @@ from app.api.deps import require_role
 from app.core.db import get_session
 from app.models.account import Account
 from app.models.account_balance import AccountBalance
+from app.models.approval_request import ApprovalRequest, ApprovalState
 from app.models.auth import User
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
 from app.schemas.accounts import AccountTypeLiteral
+from app.schemas.approvals import JournalEntryPendingApprovalResponse
 from app.schemas.journal_entries import (
     AccountBalanceListResponse,
     AccountBalanceResponse,
@@ -44,6 +46,12 @@ from app.schemas.journal_entries import (
     JournalLineResponse,
 )
 from app.services import journal_entries as je_service
+from app.services.approvals import (
+    ApprovalAlreadyConsumedError,
+    ApprovalRequestNotFoundError,
+    ApprovalsService,
+    ApprovalsServiceError,
+)
 
 router = APIRouter(prefix="/accounting", tags=["accounting"])
 
@@ -122,14 +130,15 @@ def _map_service_error(exc: je_service.JournalEntriesServiceError) -> HTTPExcept
 
 @router.post(
     "/entries",
-    response_model=JournalEntryResponse,
+    response_model=JournalEntryResponse | JournalEntryPendingApprovalResponse,
     status_code=status.HTTP_201_CREATED,
 )
 async def post_entry(
     payload: JournalEntryCreate,
+    response: Response,
     session: Annotated[AsyncSession, Depends(get_session)],
     actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
-) -> JournalEntryResponse:
+) -> JournalEntryResponse | JournalEntryPendingApprovalResponse:
     lines = [
         je_service.JournalLineInput(
             account_id=ln.account_id,
@@ -141,7 +150,7 @@ async def post_entry(
         for ln in payload.lines
     ]
     try:
-        entry = await je_service.post(
+        result = await je_service.post(
             je_service.JournalEntryInput(
                 description=payload.description,
                 posted_at=payload.posted_at,
@@ -153,9 +162,103 @@ async def post_entry(
     except je_service.JournalEntriesServiceError as exc:
         await session.rollback()
         raise _map_service_error(exc) from None
-    response = await _entry_to_response(session, entry)
+    if isinstance(result, ApprovalRequest):
+        # Above threshold — entry was queued for approval, not posted.
+        approval_id = result.id
+        await session.commit()
+        response.status_code = status.HTTP_202_ACCEPTED
+        return JournalEntryPendingApprovalResponse(
+            approval_request_id=approval_id,
+        )
+    entry_response = await _entry_to_response(session, result)
     await session.commit()
-    return response
+    return entry_response
+
+
+@router.post(
+    "/entries/from-approval/{approval_request_id}",
+    response_model=JournalEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_entry_from_approval(
+    approval_request_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> JournalEntryResponse:
+    """Dispatch a previously approved large-journal-entry approval into a
+    posted entry.
+
+    Preserves the original requester as ``actor_user_id`` so audit /
+    balance attribution stays accurate. The post call sets
+    ``_internal_skip_approval_check=True`` — the request already passed
+    the gate when it was approved.
+    """
+    try:
+        approval = await ApprovalsService.get(approval_request_id, session=session)
+    except ApprovalRequestNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from None
+    if approval.request_type != "accounting.large_journal_entry":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(f"approval request {approval_request_id} is not a " "journal-entry approval"),
+        )
+    if approval.state != ApprovalState.APPROVED.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"approval request {approval_request_id} is " f"{approval.state}, not approved"
+            ),
+        )
+    if approval.consumed_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(f"approval request {approval_request_id} has already " "been consumed"),
+        )
+
+    snapshot = approval.payload
+    snapshot_lines = [
+        je_service.JournalLineInput(
+            account_id=uuid.UUID(str(ln["account_id"])),
+            debit=ln["debit"],
+            credit=ln["credit"],
+            line_number=int(ln["line_number"]),
+            memo=ln.get("memo"),
+        )
+        for ln in snapshot["lines"]
+    ]
+    try:
+        entry = await je_service.post(
+            je_service.JournalEntryInput(
+                description=str(snapshot["description"]),
+                posted_at=datetime.fromisoformat(str(snapshot["posted_at"])),
+                lines=snapshot_lines,
+            ),
+            session=session,
+            actor_user_id=approval.requested_by_user_id,
+            _internal_skip_approval_check=True,
+        )
+        try:
+            await ApprovalsService.mark_consumed(approval_request_id, session=session)
+        except ApprovalsServiceError as exc:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from None
+    except je_service.JournalEntriesServiceError as exc:
+        await session.rollback()
+        raise _map_service_error(exc) from None
+    except ApprovalAlreadyConsumedError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+    assert isinstance(entry, JournalEntry)
+    entry_response = await _entry_to_response(session, entry)
+    await session.commit()
+    return entry_response
 
 
 @router.post(

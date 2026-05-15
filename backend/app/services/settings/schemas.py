@@ -225,3 +225,33 @@ class DefaultReceivingLocationId(SettingSchema):
     # ``uuid.UUID``. The settings service's ``_serialize_for_storage``
     # casts our UUID to str via the dict-recursion path below.
     value: uuid.UUID | None = None
+
+
+@register
+class JournalEntryApprovalThreshold(SettingSchema):
+    """USD threshold above which a journal entry routes to the approval
+    queue instead of posting directly (Phase 4.4, #67).
+
+    Compared against the sum of debits on the proposed entry. Strict
+    ``>`` — an entry whose total exactly equals the threshold posts
+    normally.
+    """
+
+    key: ClassVar[str] = "accounting.journal_entry.approval_threshold"
+    default: ClassVar[Decimal] = Decimal("1000.00")
+    value: Decimal = Field(ge=0)
+
+
+@register
+class RefundApprovalThreshold(SettingSchema):
+    """USD threshold above which a refund routes to the approval queue
+    (Phase 4.4, #67 — Phase 6 consumes this).
+
+    Registered here so the registry surface stays complete; the sales
+    refund flow will wire its read through ``SettingsService.get`` once
+    it lands.
+    """
+
+    key: ClassVar[str] = "sales.refund.approval_threshold"
+    default: ClassVar[Decimal] = Decimal("50.00")
+    value: Decimal = Field(ge=0)

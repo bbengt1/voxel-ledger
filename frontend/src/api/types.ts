@@ -53,6 +53,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounting/entries/from-approval/{approval_request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Entry From Approval
+         * @description Dispatch a previously approved large-journal-entry approval into a
+         *     posted entry.
+         *
+         *     Preserves the original requester as ``actor_user_id`` so audit /
+         *     balance attribution stays accurate. The post call sets
+         *     ``_internal_skip_approval_check=True`` — the request already passed
+         *     the gate when it was approved.
+         */
+        post: operations["post_entry_from_approval_api_v1_accounting_entries_from_approval__approval_request_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounting/entries/{entry_id}": {
         parameters: {
             query?: never;
@@ -253,6 +279,105 @@ export interface paths {
         get: operations["list_reference_sequences_api_v1_admin_reference_sequences_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Approvals
+         * @description List approval requests.
+         *
+         *     Admin roles (owner, bookkeeper) see all rows. Other roles see only
+         *     their own requests — the service scopes the query by
+         *     ``requested_by_user_id``.
+         */
+        get: operations["list_approvals_api_v1_approvals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Approval */
+        get: operations["get_approval_api_v1_approvals__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_approvals__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel
+         * @description Cancel a pending request.
+         *
+         *     Allowed for the original requester or an owner. The endpoint passes
+         *     ``actor_is_owner`` to the service rather than letting the service
+         *     re-query user roles.
+         */
+        post: operations["cancel_api_v1_approvals__request_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{request_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject */
+        post: operations["reject_api_v1_approvals__request_id__reject_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1499,6 +1624,85 @@ export interface components {
             /** Parent Account Id */
             parent_account_id?: string | null;
         };
+        /**
+         * ApprovalActionRequest
+         * @description Used for approve / reject. ``decision_note`` is optional free text.
+         */
+        ApprovalActionRequest: {
+            /** Decision Note */
+            decision_note?: string | null;
+        };
+        /**
+         * ApprovalCancelRequest
+         * @description Cancel uses ``reason`` for surface symmetry; stored as decision_note.
+         */
+        ApprovalCancelRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /** ApprovalRequestListResponse */
+        ApprovalRequestListResponse: {
+            /** Items */
+            items: components["schemas"]["ApprovalRequestResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** ApprovalRequestResponse */
+        ApprovalRequestResponse: {
+            /** Consumed At */
+            consumed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at?: string | null;
+            /** Decided By User Id */
+            decided_by_user_id?: string | null;
+            /** Decision Note */
+            decision_note?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Request Type */
+            request_type: string;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /**
+             * Requested By User Id
+             * Format: uuid
+             */
+            requested_by_user_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "approved" | "rejected" | "cancelled";
+            /**
+             * Subject Id
+             * Format: uuid
+             */
+            subject_id: string;
+            /** Subject Kind */
+            subject_kind: string;
+            /** Threshold Amount */
+            threshold_amount?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AttachmentListResponse */
         AttachmentListResponse: {
             /** Items */
@@ -2158,6 +2362,24 @@ export interface components {
             items: components["schemas"]["JournalEntryResponse"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /**
+         * JournalEntryPendingApprovalResponse
+         * @description Returned from POST /accounting/entries with HTTP 202 when an entry
+         *     crosses the configured approval threshold.
+         */
+        JournalEntryPendingApprovalResponse: {
+            /**
+             * Approval Request Id
+             * Format: uuid
+             */
+            approval_request_id: string;
+            /**
+             * Status
+             * @default pending_approval
+             * @constant
+             */
+            status: "pending_approval";
         };
         /** JournalEntryResponse */
         JournalEntryResponse: {
@@ -3196,6 +3418,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["JournalEntryResponse"] | components["schemas"]["JournalEntryPendingApprovalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_entry_from_approval_api_v1_accounting_entries_from_approval__approval_request_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["JournalEntryResponse"];
                 };
             };
@@ -3625,6 +3878,177 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferenceSequenceRow"][];
+                };
+            };
+        };
+    };
+    list_approvals_api_v1_approvals_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                request_type?: string | null;
+                subject_kind?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_approval_api_v1_approvals__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_v1_approvals__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_approvals__request_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_api_v1_approvals__request_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

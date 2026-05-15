@@ -49,11 +49,14 @@ from sqlalchemy.orm import selectinload
 
 from app.events.types import accounting as accounting_events
 from app.models.account import Account
+from app.models.approval_request import ApprovalRequest
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
 from app.schemas.events import EventCreate
 from app.services import event_store
+from app.services.approvals import ApprovalsService
 from app.services.reference_number import ReferenceNumberService
+from app.services.settings import SettingsService
 
 # Match Numeric(18, 6).
 _QUANTUM = Decimal("0.000001")
@@ -260,11 +263,18 @@ async def post(
     session: AsyncSession,
     actor_user_id: uuid.UUID,
     reversal_of_entry_id: uuid.UUID | None = None,
-) -> JournalEntry:
+    _internal_skip_approval_check: bool = False,
+) -> JournalEntry | ApprovalRequest:
     """Post a balanced journal entry. Returns the persisted header + lines.
 
     ``reversal_of_entry_id`` is set internally by :func:`reverse`; callers
     should leave it as ``None``.
+
+    Above the configured approval threshold the entry is NOT posted —
+    instead a pending :class:`ApprovalRequest` is returned and the caller
+    surfaces HTTP 202. The reversal path and the
+    ``/from-approval/{id}`` dispatcher pass
+    ``_internal_skip_approval_check=True`` to bypass this gate.
     """
     description = (entry_input.description or "").strip()
     if not description:
@@ -274,6 +284,39 @@ async def post(
     _validate_lines(lines)
     _validate_balanced(lines)
     await _load_and_check_accounts(session, lines)
+
+    # --- Threshold gating → approval queue (Phase 4.4) ---
+    if not _internal_skip_approval_check and reversal_of_entry_id is None:
+        total_debits = sum((_to_decimal(line.debit) for line in lines), Decimal("0")).quantize(
+            _QUANTUM
+        )
+        threshold = await SettingsService.get(
+            "accounting.journal_entry.approval_threshold", session=session
+        )
+        if total_debits > threshold:
+            snapshot = {
+                "description": description,
+                "posted_at": entry_input.posted_at.isoformat(),
+                "lines": [
+                    {
+                        "account_id": str(line.account_id),
+                        "debit": _to_decimal(line.debit).quantize(_QUANTUM).to_eng_string(),
+                        "credit": _to_decimal(line.credit).quantize(_QUANTUM).to_eng_string(),
+                        "line_number": line.line_number,
+                        "memo": line.memo,
+                    }
+                    for line in lines
+                ],
+            }
+            return await ApprovalsService.create(
+                request_type="accounting.large_journal_entry",
+                subject_kind="journal_entry",
+                subject_id=uuid.uuid4(),
+                payload=snapshot,
+                threshold_amount=threshold,
+                session=session,
+                actor_user_id=actor_user_id,
+            )
 
     entry_number = await ReferenceNumberService.allocate("JE", session=session)
 
@@ -387,6 +430,9 @@ async def reverse(
         actor_user_id=actor_user_id,
         reversal_of_entry_id=original.id,
     )
+    # reversal_of_entry_id is non-None so post() can't return an
+    # ApprovalRequest here; narrow for the type checker.
+    assert isinstance(reversal_entry, JournalEntry)
 
     # The PG immutability trigger explicitly allows this exact mutation
     # (OLD.is_reversed=false → NEW.is_reversed=true with every other

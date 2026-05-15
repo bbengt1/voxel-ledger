@@ -19,6 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import accounting as accounting_events
+from app.events.types import approvals as approvals_events
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
@@ -389,4 +390,39 @@ register_excerpt_transformer(
 register_excerpt_fields(
     accounting_events.TYPE_JOURNAL_ENTRY_REVERSED,
     ("original_entry_id", "reversal_entry_id", "reversal_entry_number"),
+)
+
+
+# --- Approvals (Phase 4.4) ---
+#
+# Critical: ``payload`` is NEVER whitelisted. The approval-request row
+# carries the full proposed mutation — a journal entry, a refund, etc. —
+# which could contain sensitive content (counterparty info, free-text
+# memos, etc.). Only the short ``payload_summary`` (~100 chars, built
+# by the service from request_type + subject_kind) is allowed through.
+# A regression test in test_approvals_payload_not_leaked_to_audit.py
+# guards this invariant.
+
+register_excerpt_fields(
+    approvals_events.TYPE_APPROVAL_REQUESTED,
+    (
+        "request_type",
+        "subject_kind",
+        "subject_id",
+        "requested_by_user_id",
+        "threshold_amount",
+        "payload_summary",
+    ),
+)
+register_excerpt_fields(
+    approvals_events.TYPE_APPROVAL_APPROVED,
+    ("approver_user_id", "decision_note_preview"),
+)
+register_excerpt_fields(
+    approvals_events.TYPE_APPROVAL_REJECTED,
+    ("approver_user_id", "decision_note_preview"),
+)
+register_excerpt_fields(
+    approvals_events.TYPE_APPROVAL_CANCELLED,
+    ("cancelled_by_user_id",),
 )
