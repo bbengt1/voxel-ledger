@@ -30,6 +30,8 @@ import { JournalEntryDetailPage } from "@/pages/accounting/JournalEntryDetail";
 import { PeriodsListPage } from "@/pages/accounting/PeriodsList";
 import { ApprovalDetailPage } from "@/pages/approvals/ApprovalDetail";
 import { ApprovalsListPage } from "@/pages/approvals/ApprovalsList";
+import { JobComposerPage } from "@/pages/production/JobComposer";
+import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
 import { PrinterCreatePage } from "@/pages/production/PrinterCreate";
 import { PrinterDetailPage } from "@/pages/production/PrinterDetail";
@@ -361,6 +363,26 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <JobsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/jobs/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JobComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/jobs/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JobDetailPage />
             </AppShell>
           </RequireAuth>
         }
