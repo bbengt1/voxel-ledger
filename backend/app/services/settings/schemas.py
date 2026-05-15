@@ -258,6 +258,25 @@ class SalesPostingCogsAccountId(SettingSchema):
 
 
 @register
+class SalesPostingDefaultInventoryAccountId(SettingSchema):
+    """Default inventory asset account for sale-confirm postings (Phase 6.3, #95).
+
+    Credited for the total FIFO cost of all product/job lines on a sale.
+    Required for any sale that carries non-zero COGS — the COGS service
+    raises ``MissingSalesPostingAccountError`` with a clear "configure
+    default sales-posting accounts" message if unset.
+
+    Decoupled from the COGS account: routing the inventory credit to the
+    COGS account's parent (the prior shortcut) breaks any chart of
+    accounts that doesn't nest inventory under COGS.
+    """
+
+    key: ClassVar[str] = "sales_posting.default_inventory_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class SalesPostingSalesTaxPayableAccountId(SettingSchema):
     """Default sales-tax-payable liability account (Phase 6.3, #95).
 

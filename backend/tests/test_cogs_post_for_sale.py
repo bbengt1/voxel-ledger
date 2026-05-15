@@ -139,7 +139,16 @@ async def test_confirm_emits_inventory_transactions_and_journal_entry(
     costs = sorted(r.unit_cost_at_transaction for r in rows)
     assert Decimal("2.000000") in costs and Decimal("3.000000") in costs
 
-    # Journal entry exists with the expected description.
+    # Sale row has the posting_journal_entry_id FK populated.
+    from app.models.sale import Sale
+
+    refreshed_sale = (
+        await app_session.execute(select(Sale).where(Sale.id == sale.id))
+    ).scalar_one()
+    assert refreshed_sale.posting_journal_entry_id is not None
+
+    # Journal entry exists with the expected description, and the sale's
+    # FK points to it.
     je = (
         await app_session.execute(
             select(JournalEntry).where(
@@ -147,6 +156,7 @@ async def test_confirm_emits_inventory_transactions_and_journal_entry(
             )
         )
     ).scalar_one()
+    assert refreshed_sale.posting_journal_entry_id == je.id
     lines = (
         (await app_session.execute(select(JournalLine).where(JournalLine.entry_id == je.id)))
         .scalars()

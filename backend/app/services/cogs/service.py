@@ -32,15 +32,23 @@ invariant for the sales pathway. Do not introduce nested commits.
 
 Inventory-credit account
 ------------------------
-The journal entry's inventory-side credit is routed to
-``cogs_account_id``'s parent in the chart-of-accounts, when one exists.
-This keeps Phase 6.3's settings surface narrow (one COGS account key,
-not two) while still recording the inventory drawdown on a distinct
-account when operators set up their chart correctly (Inventory parent
-→ COGS child). If no parent is set, we fall back to the COGS account
-itself and rely on the bookkeeper to fix the hierarchy. A dedicated
-``sales_posting.default_inventory_account_id`` setting is a deliberate
-follow-up.
+The journal entry's inventory-side credit is routed to the dedicated
+``sales_posting.default_inventory_account_id`` setting. If unset, the
+service raises :class:`MissingSalesPostingAccountError` with the same
+"configure default sales-posting accounts" message used for the other
+required keys. The earlier shortcut of walking up the chart-of-accounts
+to ``cogs_account_id``'s parent was removed because it coupled two
+unrelated accounts and broke any chart of accounts that didn't nest
+inventory under COGS.
+
+Reversal FK
+-----------
+``post_for_sale`` writes the new journal entry's ID to
+``sale.posting_journal_entry_id`` inside the same transaction; the
+column is the durable handle ``reverse_for_sale`` uses to find the
+entry to reverse. Description-based scanning of the GL is no longer
+used — the only legitimate path from a confirmed sale to its posting
+entry is the column FK.
 """
 
 from __future__ import annotations
@@ -55,7 +63,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.events.types import sales as sales_events
-from app.models.account import Account
 from app.models.inventory_transaction import (
     ENTITY_KIND_PRODUCT,
     KIND_SALE_CONSUMPTION,
@@ -245,21 +252,6 @@ async def _require_account(session: AsyncSession, *, key: str, why: str) -> uuid
     return value
 
 
-async def _resolve_inventory_account_id(
-    session: AsyncSession, *, cogs_account_id: uuid.UUID
-) -> uuid.UUID:
-    """Use the COGS account's parent as the inventory account when set.
-
-    See the module docstring's "Inventory-credit account" section for
-    rationale.
-    """
-    stmt = select(Account.parent_account_id).where(Account.id == cogs_account_id)
-    row = (await session.execute(stmt)).one_or_none()
-    if row is None or row[0] is None:
-        return cogs_account_id
-    return row[0]
-
-
 async def _load_sale(session: AsyncSession, sale_id: uuid.UUID) -> Sale:
     stmt = select(Sale).where(Sale.id == sale_id).options(selectinload(Sale.items))
     row = (await session.execute(stmt)).scalar_one_or_none()
@@ -395,8 +387,10 @@ async def post_for_sale(
             f"no default_revenue_account_id (needed to credit revenue)"
         )
     revenue_account_id = channel.default_revenue_account_id
-    inventory_account_id = await _resolve_inventory_account_id(
-        session, cogs_account_id=cogs_account_id
+    inventory_account_id = await _require_account(
+        session,
+        key="sales_posting.default_inventory_account_id",
+        why="credit inventory for the FIFO cost of consumed lots",
     )
 
     tax_amount = _q(sale.tax_amount)
@@ -559,6 +553,11 @@ async def post_for_sale(
     assert isinstance(entry, JournalEntry)
     journal_entry_id: uuid.UUID = entry.id
 
+    # Persist the FK on the sale so the cancel path can find this entry
+    # without a description-string scan. Same TX as the post above.
+    sale.posting_journal_entry_id = journal_entry_id
+    await session.flush()
+
     result = PostResult(
         journal_entry_id=journal_entry_id,
         inventory_transaction_ids=inventory_tx_ids,
@@ -611,22 +610,25 @@ async def reverse_for_sale(
     sale = await _load_sale(session, sale_id)
     effective_actor: uuid.UUID = actor_user_id or sale.created_by_user_id
 
-    # Locate the original journal entry (one per posted sale). If none
-    # exists, the sale was cancelled from draft and there's nothing to
-    # reverse.
-    stmt = (
-        select(JournalEntry)
-        .where(JournalEntry.description == f"Sale {sale.sale_number}: posting")
-        .where(JournalEntry.is_reversed.is_(False))
-        .order_by(JournalEntry.posted_at.desc())
-        .limit(1)
-    )
-    original = (await session.execute(stmt)).scalar_one_or_none()
+    # Locate the original journal entry via the FK populated at confirm
+    # time. The caller (sales.cancel) only invokes this function when
+    # the sale was previously confirmed, so a NULL FK here means the
+    # row was created before this column existed — raise loudly rather
+    # than silently scanning the GL by description.
+    if sale.posting_journal_entry_id is None:
+        raise CogsServiceError(
+            f"sale {sale.sale_number} has no posting_journal_entry_id; "
+            "cannot reverse (data created before column existed?)"
+        )
+    original = (
+        await session.execute(
+            select(JournalEntry).where(JournalEntry.id == sale.posting_journal_entry_id)
+        )
+    ).scalar_one_or_none()
     if original is None:
-        return PostResult(
-            journal_entry_id=uuid.UUID(int=0),
-            inventory_transaction_ids=[],
-            total_cost=_ZERO,
+        raise CogsServiceError(
+            f"sale {sale.sale_number} references journal_entry "
+            f"{sale.posting_journal_entry_id} which does not exist"
         )
 
     # Restore inventory: walk the prior sale_consumption rows and emit

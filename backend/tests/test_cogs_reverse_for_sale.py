@@ -163,6 +163,87 @@ async def test_confirm_then_cancel_nets_to_zero(app_session: AsyncSession) -> No
 
 
 @pytest.mark.asyncio
+async def test_reverse_raises_when_fk_is_null(app_session: AsyncSession) -> None:
+    """If ``posting_journal_entry_id`` is NULL on a sale that was
+    previously confirmed (e.g. pre-PR data), reversal must raise rather
+    than silently fall back to description-based scanning of the GL.
+
+    We simulate this by confirming a sale (which populates the FK),
+    nulling the column, then invoking the reversal directly. The
+    service raises ``CogsServiceError``.
+    """
+    from app.models.sale import Sale
+    from app.services.cogs import service as cogs_service
+    from app.services.cogs.service import CogsServiceError
+    from sqlalchemy import update
+
+    user = await seed_user(app_session)
+    defaults = await seed_posting_defaults(app_session, actor_user_id=user.id)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
+    location = await locations_service.create(
+        app_session, name="WS", code="WS", kind="workshop", actor_user_id=None
+    )
+    product = await products_service.create(
+        app_session,
+        name="Widget",
+        description=None,
+        unit_price=Decimal("20.00"),
+        sku=f"PRD-{uuid.uuid4().hex[:6]}",
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    await inventory_tx_service.record(
+        app_session,
+        kind=KIND_PRODUCTION_IN,
+        entity_kind="product",
+        entity_id=product.id,
+        location_id=location.id,
+        quantity=Decimal("5"),
+        unit_cost=Decimal("3.00"),
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    sale = await sales_service.create_draft(
+        app_session,
+        channel_id=channel.id,
+        external_order_id=None,
+        customer_name="C",
+        customer_email=None,
+        occurred_at=datetime.now(UTC),
+        items=[
+            {
+                "kind": "product",
+                "product_id": str(product.id),
+                "description": "Widget",
+                "quantity": "2",
+                "unit_price": "20.00",
+            }
+        ],
+        actor_user_id=user.id,
+    )
+    await app_session.commit()
+    await sales_service.confirm(app_session, sale_id=sale.id, actor_user_id=user.id)
+    await app_session.commit()
+
+    # Nullify the FK to simulate pre-PR data.
+    await app_session.execute(
+        update(Sale).where(Sale.id == sale.id).values(posting_journal_entry_id=None)
+    )
+    await app_session.commit()
+
+    with pytest.raises(CogsServiceError) as exc_info:
+        await cogs_service.reverse_for_sale(sale.id, session=app_session, actor_user_id=user.id)
+    assert "posting_journal_entry_id" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
 async def test_cancel_from_draft_emits_no_reversal(app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     defaults = await seed_posting_defaults(app_session, actor_user_id=user.id)

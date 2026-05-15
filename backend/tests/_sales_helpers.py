@@ -130,7 +130,6 @@ async def seed_posting_defaults(
         code="5100",
         name="Cost of Goods Sold",
         type="expense",
-        parent_account_id=inventory_account.id,
     )
     ar_account = Account(id=uuid.uuid4(), code="1200", name="AR", type="asset")
     revenue_account = Account(id=uuid.uuid4(), code="4000", name="Revenue", type="revenue")
@@ -144,6 +143,12 @@ async def seed_posting_defaults(
     await SettingsService.set(
         "sales_posting.cogs_account_id",
         cogs_account.id,
+        session=session,
+        actor_user_id=actor_user_id,
+    )
+    await SettingsService.set(
+        "sales_posting.default_inventory_account_id",
+        inventory_account.id,
         session=session,
         actor_user_id=actor_user_id,
     )
