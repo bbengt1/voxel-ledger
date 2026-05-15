@@ -78,7 +78,7 @@ describe("<LocationDetailPage />", () => {
       return [200, aLocation({ name: "Workshop bench (main)" })];
     });
     renderPage();
-    const nameInput = (await screen.findAllByDisplayValue("Workshop bench"))[0];
+    const nameInput = (await screen.findAllByDisplayValue("Workshop bench"))[0]!;
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "Workshop bench (main)");
     await userEvent.click(screen.getByTestId("save-btn"));

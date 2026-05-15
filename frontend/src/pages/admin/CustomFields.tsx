@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { api } from "@/api/typed";
+import { apiClient } from "@/api/client";
+
+// Query-string and path-template URLs aren't in the typed `paths` map
+// (the typed wrapper only accepts exact spec strings). Every call site
+// in this file falls back to the raw axios client until the typed
+// wrapper grows path-template support. Same workaround pattern as
+// UserDetail (Phase 1.6) uses for `/users/{id}/...`.
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -47,11 +53,11 @@ export function CustomFieldsPage() {
   const reload = () => {
     setLoading(true);
     setError(null);
-    api
-      .get(
+    apiClient
+      .get<{ items: CustomFieldRow[] }>(
         `/api/v1/custom-fields?entity_type=${encodeURIComponent(tab)}&include_archived=true`,
       )
-      .then((res) => setRows(res.data.items as CustomFieldRow[]))
+      .then((res) => setRows(res.data.items))
       .catch((err: unknown) => {
         const msg =
           (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -79,7 +85,10 @@ export function CustomFieldsPage() {
         required: newRequired,
       };
       if (newType === "select") body["options"] = newOptions;
-      await api.post("/api/v1/custom-fields", body);
+      // body shape is dynamic (options array only present when field_type is
+      // "select"); the typed wrapper requires a static shape, so we use the
+      // raw client here. Backend Pydantic schema validates the payload.
+      await apiClient.post("/api/v1/custom-fields", body);
       setNewKey("");
       setNewLabel("");
       setNewRequired(false);
@@ -96,12 +105,12 @@ export function CustomFieldsPage() {
   };
 
   const onArchive = async (id: string) => {
-    await api.post(`/api/v1/custom-fields/${id}/archive`);
+    await apiClient.post(`/api/v1/custom-fields/${id}/archive`);
     reload();
   };
 
   const onUnarchive = async (id: string) => {
-    await api.post(`/api/v1/custom-fields/${id}/unarchive`);
+    await apiClient.post(`/api/v1/custom-fields/${id}/unarchive`);
     reload();
   };
 
