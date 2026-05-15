@@ -19,7 +19,7 @@ hard-deleted (deleting JEs is not a real workflow today — entries are
 reversed, not deleted — but the FK should not lock the sale to its
 posting entry).
 
-Revision ID: 0029_sale_posting_journal_entry_fk
+Revision ID: 0029_sale_je_fk
 Revises: 0028_sale_consumption_enum
 Create Date: 2026-05-15 00:00:00.000000
 """
@@ -31,7 +31,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0029_sale_posting_journal_entry_fk"
+revision: str = "0029_sale_je_fk"
 down_revision: str | None = "0028_sale_consumption_enum"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
