@@ -83,10 +83,10 @@ describe("<PrinterCreatePage />", () => {
     );
     await screen.findByText("printer-detail");
     expect(posted).not.toBeNull();
-    expect((posted as Record<string, unknown>)["slug"]).toBe("p1");
-    expect((posted as Record<string, unknown>)["moonraker_api_key"]).toBe(
-      "shh-secret",
-    );
+    expect((posted as unknown as Record<string, unknown>)["slug"]).toBe("p1");
+    expect(
+      (posted as unknown as Record<string, unknown>)["moonraker_api_key"],
+    ).toBe("shh-secret");
   });
 
   it("shows error on 400", async () => {
