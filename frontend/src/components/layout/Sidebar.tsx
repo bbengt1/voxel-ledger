@@ -63,6 +63,7 @@ const SECTIONS: NavSection[] = [
   {
     label: "Accounting",
     items: [
+      { label: "Accounts", href: "/accounting/accounts" },
       { label: "Invoices", href: "#accounting/invoices" },
       { label: "Payments", href: "#accounting/payments" },
     ],
