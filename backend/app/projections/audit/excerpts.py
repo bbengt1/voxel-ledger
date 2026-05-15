@@ -25,6 +25,7 @@ from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
+from app.events.types import production as production_events
 from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
@@ -472,4 +473,41 @@ register_excerpt_fields(
 register_excerpt_fields(
     accounting_events.TYPE_BUDGET_UNSET,
     ("account_id", "division_id", "period_id"),
+)
+
+
+# ---------------------------------------------------------------------------
+# Production: printers + cameras (Phase 5.1)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL: ``moonraker_api_key`` and ``password_secret`` MUST NEVER be
+# whitelisted here. They are the only secret-shaped fields on the
+# printer + camera aggregates. The service layer replaces them with
+# the sentinel ``"***"`` before emitting any event, so a slip in the
+# whitelist below still couldn't surface the real value — but we keep
+# the whitelist narrow as belt-and-suspenders. A regression test
+# (test_printers_secrets_never_leak.py) guards this invariant.
+
+register_excerpt_fields(
+    production_events.TYPE_PRINTER_CREATED,
+    ("name", "slug", "printer_type"),
+)
+register_excerpt_fields(
+    production_events.TYPE_PRINTER_UPDATED,
+    ("before", "after"),
+)
+# PrinterArchived / PrinterUnarchived carry only the printer_id — no
+# excerpt is useful.
+
+register_excerpt_fields(
+    production_events.TYPE_CAMERA_CONFIGURED,
+    ("printer_id", "kind", "snapshot_url"),
+)
+register_excerpt_fields(
+    production_events.TYPE_CAMERA_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    production_events.TYPE_CAMERA_DELETED,
+    ("printer_id",),
 )

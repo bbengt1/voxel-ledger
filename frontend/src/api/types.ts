@@ -1199,6 +1199,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/printers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Printers */
+        get: operations["list_printers_api_v1_printers_get"];
+        put?: never;
+        /** Create Printer */
+        post: operations["create_printer_api_v1_printers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Printer */
+        get: operations["get_printer_api_v1_printers__printer_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Printer */
+        patch: operations["update_printer_api_v1_printers__printer_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Printer */
+        post: operations["archive_printer_api_v1_printers__printer_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/cameras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera */
+        get: operations["get_camera_api_v1_printers__printer_id__cameras_get"];
+        put?: never;
+        /** Upsert Camera */
+        post: operations["upsert_camera_api_v1_printers__printer_id__cameras_post"];
+        /** Delete Camera */
+        delete: operations["delete_camera_api_v1_printers__printer_id__cameras_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/cameras/snapshot.jpg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Camera Snapshot */
+        get: operations["get_camera_snapshot_api_v1_printers__printer_id__cameras_snapshot_jpg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Printer */
+        post: operations["unarchive_printer_api_v1_printers__printer_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products": {
         parameters: {
             query?: never;
@@ -2290,6 +2396,71 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * CameraConfigRequest
+         * @description Used for both POST (set/replace) and the body of PUT/PATCH-style
+         *     upserts. ``password_secret`` is write-only — never echoed back.
+         */
+        CameraConfigRequest: {
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "wyze" | "rtsp" | "go2rtc" | "other";
+            /** Password Secret */
+            password_secret?: string | null;
+            /** Snapshot Url */
+            snapshot_url: string;
+            /** Username */
+            username?: string | null;
+        };
+        /**
+         * CameraResponse
+         * @description Camera response. Excludes ``password_secret`` by construction.
+         */
+        CameraResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "wyze" | "rtsp" | "go2rtc" | "other";
+            /**
+             * Password Secret Set
+             * @default false
+             */
+            password_secret_set: boolean;
+            /**
+             * Printer Id
+             * Format: uuid
+             */
+            printer_id: string;
+            /** Snapshot Url */
+            snapshot_url: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Username */
+            username?: string | null;
+        };
         /** CostBreakdownComponent */
         CostBreakdownComponent: {
             /**
@@ -3304,6 +3475,101 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** PrinterCreateRequest */
+        PrinterCreateRequest: {
+            /** Moonraker Api Key */
+            moonraker_api_key?: string | null;
+            /** Moonraker Url */
+            moonraker_url?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Power Draw Watts */
+            power_draw_watts?: number | null;
+            /**
+             * Printer Type
+             * @enum {string}
+             */
+            printer_type: "prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other";
+            /** Slug */
+            slug: string;
+        };
+        /** PrinterListResponse */
+        PrinterListResponse: {
+            /** Items */
+            items: components["schemas"]["PrinterResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * PrinterResponse
+         * @description Printer response. Excludes ``moonraker_api_key`` by construction —
+         *     the boolean ``moonraker_api_key_set`` is the only signal we surface
+         *     so the UI can decide whether to show "configured" vs "not set".
+         */
+        PrinterResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Archived */
+            is_archived: boolean;
+            /**
+             * Moonraker Api Key Set
+             * @default false
+             */
+            moonraker_api_key_set: boolean;
+            /** Moonraker Url */
+            moonraker_url?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Power Draw Watts */
+            power_draw_watts?: number | null;
+            /**
+             * Printer Type
+             * @enum {string}
+             */
+            printer_type: "prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other";
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * PrinterUpdateRequest
+         * @description PATCH-style — only fields the user wants to change.
+         *
+         *     Passing ``moonraker_api_key: null`` clears the stored secret; passing
+         *     a non-null string replaces it.
+         */
+        PrinterUpdateRequest: {
+            /** Moonraker Api Key */
+            moonraker_api_key?: string | null;
+            /** Moonraker Url */
+            moonraker_url?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Power Draw Watts */
+            power_draw_watts?: number | null;
+            /** Printer Type */
+            printer_type?: ("prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other") | null;
+            /** Slug */
+            slug?: string | null;
         };
         /** ProductCreateRequest */
         ProductCreateRequest: {
@@ -6586,6 +6852,340 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_printers_api_v1_printers_get: {
+        parameters: {
+            query?: {
+                is_archived?: boolean | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_printer_api_v1_printers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrinterCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_printer_api_v1_printers__printer_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_printer_api_v1_printers__printer_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrinterUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_printer_api_v1_printers__printer_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_api_v1_printers__printer_id__cameras_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_camera_api_v1_printers__printer_id__cameras_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_camera_api_v1_printers__printer_id__cameras_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_snapshot_api_v1_printers__printer_id__cameras_snapshot_jpg_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description snapshot kind not implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description upstream snapshot fetch failed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unarchive_printer_api_v1_printers__printer_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterResponse"];
                 };
             };
             /** @description Validation Error */
