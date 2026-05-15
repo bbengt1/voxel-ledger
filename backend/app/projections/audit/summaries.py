@@ -953,3 +953,44 @@ register_summary(sales_events.TYPE_SALES_CHANNEL_CREATED, _sales_channel_created
 register_summary(sales_events.TYPE_SALES_CHANNEL_UPDATED, _sales_channel_updated)
 register_summary(sales_events.TYPE_SALES_CHANNEL_ARCHIVED, _sales_channel_archived)
 register_summary(sales_events.TYPE_SALES_CHANNEL_UNARCHIVED, _sales_channel_unarchived)
+
+
+# --- Sales: sales (Phase 6.2) ---
+
+
+def _sale_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created sale {payload.get('sale_number', '?')} "
+        f"on channel {payload.get('channel_id', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _sale_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated sale {payload.get('sale_id', '?')}: {changes}"
+
+
+def _sale_confirmed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} confirmed sale {payload.get('sale_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _sale_fulfilled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} fulfilled sale {payload.get('sale_number', '?')}"
+
+
+def _sale_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled sale {payload.get('sale_number', '?')}"
+
+
+register_summary(sales_events.TYPE_SALE_CREATED, _sale_created)
+register_summary(sales_events.TYPE_SALE_UPDATED, _sale_updated)
+register_summary(sales_events.TYPE_SALE_CONFIRMED, _sale_confirmed)
+register_summary(sales_events.TYPE_SALE_FULFILLED, _sale_fulfilled)
+register_summary(sales_events.TYPE_SALE_CANCELLED, _sale_cancelled)
