@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.events.types import accounting as accounting_events
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
@@ -305,3 +306,16 @@ register_excerpt_fields(
     ("entity_kind", "entity_id", "filename", "mime_type", "byte_size"),
 )
 # AttachmentArchived carries only the attachment_id.
+
+
+# --- Accounting: accounts (Phase 4.1) ---
+
+register_excerpt_fields(
+    accounting_events.TYPE_ACCOUNT_CREATED,
+    ("code", "name", "type", "parent_account_id"),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_ACCOUNT_UPDATED,
+    ("before", "after"),
+)
+# Archive / unarchive carry only the account_id — no excerpt useful.

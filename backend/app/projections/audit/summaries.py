@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from app.events.types import accounting as accounting_events
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
@@ -536,3 +537,37 @@ register_summary(notes_events.TYPE_NOTE_PINNED, _note_pinned)
 register_summary(notes_events.TYPE_NOTE_UNPINNED, _note_unpinned)
 register_summary(notes_events.TYPE_ATTACHMENT_UPLOADED, _attachment_uploaded)
 register_summary(notes_events.TYPE_ATTACHMENT_ARCHIVED, _attachment_archived)
+
+
+# --- Accounting: accounts (Phase 4.1) ---
+
+
+def _account_created(payload: dict[str, Any], actor: str) -> str:
+    parent = payload.get("parent_account_id")
+    suffix = f" (parent {parent})" if parent else ""
+    return (
+        f"{actor} created account {payload.get('code', '?')} "
+        f"({payload.get('name', '?')}) [{payload.get('type', '?')}]{suffix}"
+    )
+
+
+def _account_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated account {payload.get('account_id', '?')}: {changes}"
+
+
+def _account_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived account {payload.get('account_id', '?')}"
+
+
+def _account_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived account {payload.get('account_id', '?')}"
+
+
+register_summary(accounting_events.TYPE_ACCOUNT_CREATED, _account_created)
+register_summary(accounting_events.TYPE_ACCOUNT_UPDATED, _account_updated)
+register_summary(accounting_events.TYPE_ACCOUNT_ARCHIVED, _account_archived)
+register_summary(accounting_events.TYPE_ACCOUNT_UNARCHIVED, _account_unarchived)

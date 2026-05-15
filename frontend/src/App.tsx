@@ -20,6 +20,7 @@ import { RatesListPage } from "@/pages/catalog/RatesList";
 import { SuppliesListPage } from "@/pages/catalog/SuppliesList";
 import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
 import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
+import { AccountsListPage } from "@/pages/accounting/AccountsList";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { AlertsListPage } from "@/pages/inventory/AlertsList";
@@ -257,6 +258,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <RateDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/accounts"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AccountsListPage />
             </AppShell>
           </RequireAuth>
         }
