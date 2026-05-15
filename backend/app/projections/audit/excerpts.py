@@ -511,3 +511,16 @@ register_excerpt_fields(
     production_events.TYPE_CAMERA_DELETED,
     ("printer_id",),
 )
+
+
+# --- Production: printer history (Phase 5.4) ---
+#
+# ``details`` is intentionally NOT whitelisted — it's the monitor's
+# free-form scratch payload (current filename, progress, error message)
+# and could contain user-supplied gcode names. Audit readers get just
+# the structural fields.
+
+register_excerpt_fields(
+    production_events.TYPE_PRINTER_HISTORY_EVENT_RECORDED,
+    ("printer_id", "event_kind", "occurred_at"),
+)

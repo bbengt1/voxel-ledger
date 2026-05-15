@@ -28,6 +28,7 @@ from app.api.v1.inventory_transactions import router as inventory_transactions_r
 from app.api.v1.journal_entries import router as journal_entries_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
+from app.api.v1.printer_state import router as printer_state_router
 from app.api.v1.printers import router as printers_router
 from app.api.v1.products import router as products_router
 from app.api.v1.rates import router as rates_router
@@ -56,6 +57,7 @@ api_router.include_router(journal_entries_router)
 api_router.include_router(materials_router)
 api_router.include_router(notes_router)
 api_router.include_router(printers_router)
+api_router.include_router(printer_state_router)
 api_router.include_router(cameras_router)
 api_router.include_router(products_router)
 api_router.include_router(bom_router)

@@ -457,6 +457,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/printer-monitor/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart Printer Monitor */
+        post: operations["restart_printer_monitor_api_v1_admin_printer_monitor_restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/reference-sequences": {
         parameters: {
             query?: never;
@@ -1280,6 +1297,40 @@ export interface paths {
         };
         /** Get Camera Snapshot */
         get: operations["get_camera_snapshot_api_v1_printers__printer_id__cameras_snapshot_jpg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Printer History */
+        get: operations["list_printer_history_api_v1_printers__printer_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Printer State */
+        get: operations["get_printer_state_api_v1_printers__printer_id__state_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3338,6 +3389,13 @@ export interface components {
             is_active: boolean;
             role: components["schemas"]["Role"];
         };
+        /** MonitorRestartResponse */
+        MonitorRestartResponse: {
+            /** Printers Monitored */
+            printers_monitored: number;
+            /** Restarted */
+            restarted: boolean;
+        };
         /** NoteCreateRequest */
         NoteCreateRequest: {
             /** Body */
@@ -3496,6 +3554,40 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** PrinterHistoryEventResponse */
+        PrinterHistoryEventResponse: {
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Event Kind
+             * @enum {string}
+             */
+            event_kind: "print_started" | "print_paused" | "print_resumed" | "print_completed" | "print_errored" | "connected" | "disconnected";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Printer Id
+             * Format: uuid
+             */
+            printer_id: string;
+        };
+        /** PrinterHistoryListResponse */
+        PrinterHistoryListResponse: {
+            /** Items */
+            items: components["schemas"]["PrinterHistoryEventResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** PrinterListResponse */
         PrinterListResponse: {
             /** Items */
@@ -3547,6 +3639,40 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /**
+         * PrinterStateResponse
+         * @description Live state snapshot for a single printer.
+         */
+        PrinterStateResponse: {
+            /** Current File */
+            current_file?: string | null;
+            /** Elapsed Seconds */
+            elapsed_seconds?: number | null;
+            /** Last Seen At */
+            last_seen_at?: string | null;
+            /**
+             * Printer Id
+             * Format: uuid
+             */
+            printer_id: string;
+            /** Progress Pct */
+            progress_pct?: number | null;
+            /** Remaining Seconds Estimate */
+            remaining_seconds_estimate?: number | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "printing" | "paused" | "error" | "disconnected";
+            temperatures?: components["schemas"]["PrinterTemperatures"];
+        };
+        /** PrinterTemperatures */
+        PrinterTemperatures: {
+            /** Bed */
+            bed?: number | null;
+            /** Extruder */
+            extruder?: number | null;
         };
         /**
          * PrinterUpdateRequest
@@ -5116,6 +5242,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restart_printer_monitor_api_v1_admin_printer_monitor_restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorRestartResponse"];
                 };
             };
         };
@@ -7165,6 +7311,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_printer_history_api_v1_printers__printer_id__history_get: {
+        parameters: {
+            query?: {
+                from_at?: string | null;
+                to_at?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterHistoryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_printer_state_api_v1_printers__printer_id__state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrinterStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

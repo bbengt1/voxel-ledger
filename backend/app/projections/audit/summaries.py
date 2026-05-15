@@ -778,3 +778,19 @@ register_summary(production_events.TYPE_PRINTER_UNARCHIVED, _printer_unarchived)
 register_summary(production_events.TYPE_CAMERA_CONFIGURED, _camera_configured)
 register_summary(production_events.TYPE_CAMERA_UPDATED, _camera_updated)
 register_summary(production_events.TYPE_CAMERA_DELETED, _camera_deleted)
+
+
+# --- Production: printer history (Phase 5.4) ---
+
+
+def _printer_history_event_recorded(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"printer {payload.get('printer_id', '?')} observed "
+        f"{payload.get('event_kind', '?')} at {payload.get('occurred_at', '?')}"
+    )
+
+
+register_summary(
+    production_events.TYPE_PRINTER_HISTORY_EVENT_RECORDED,
+    _printer_history_event_recorded,
+)
