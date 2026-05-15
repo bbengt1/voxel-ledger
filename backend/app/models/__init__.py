@@ -54,6 +54,13 @@ from app.models.production_order import (
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
+from app.models.sales_channel import (
+    SALES_CHANNEL_FEE_MODEL_VALUES,
+    SALES_CHANNEL_KIND_VALUES,
+    SalesChannel,
+    SalesChannelFeeModel,
+    SalesChannelKind,
+)
 from app.models.setting import Setting
 from app.models.supply import Supply
 
@@ -114,6 +121,11 @@ __all__ = [
     "ReferenceSequence",
     "RefreshToken",
     "Role",
+    "SALES_CHANNEL_FEE_MODEL_VALUES",
+    "SALES_CHANNEL_KIND_VALUES",
+    "SalesChannel",
+    "SalesChannelFeeModel",
+    "SalesChannelKind",
     "Setting",
     "Supply",
     "User",
