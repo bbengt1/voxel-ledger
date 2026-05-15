@@ -593,3 +593,40 @@ def _journal_entry_reversed(payload: dict[str, Any], actor: str) -> str:
 
 register_summary(accounting_events.TYPE_JOURNAL_ENTRY_POSTED, _journal_entry_posted)
 register_summary(accounting_events.TYPE_JOURNAL_ENTRY_REVERSED, _journal_entry_reversed)
+
+
+# --- Accounting: periods (Phase 4.3) ---
+
+
+def _period_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created accounting period {payload.get('name', '?')} "
+        f"({payload.get('start_date', '?')}..{payload.get('end_date', '?')})"
+    )
+
+
+def _period_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated accounting period {payload.get('period_id', '?')}: {changes}"
+
+
+def _period_closed(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} closed accounting period {payload.get('period_id', '?')}"
+
+
+def _period_reopened(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} reopened accounting period {payload.get('period_id', '?')}"
+
+
+def _period_locked(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} locked accounting period {payload.get('period_id', '?')}"
+
+
+register_summary(accounting_events.TYPE_PERIOD_CREATED, _period_created)
+register_summary(accounting_events.TYPE_PERIOD_UPDATED, _period_updated)
+register_summary(accounting_events.TYPE_PERIOD_CLOSED, _period_closed)
+register_summary(accounting_events.TYPE_PERIOD_REOPENED, _period_reopened)
+register_summary(accounting_events.TYPE_PERIOD_LOCKED, _period_locked)

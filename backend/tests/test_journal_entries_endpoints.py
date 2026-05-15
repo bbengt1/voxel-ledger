@@ -44,7 +44,21 @@ async def _seed_accounts(client: AsyncClient, owner_token: str) -> tuple[str, st
         headers=_h(owner_token),
         json={"code": "4000", "name": "Revenue", "type": "revenue"},
     )
+    await _seed_open_period(client, owner_token)
     return cash.json()["id"], rev.json()["id"]
+
+
+async def _seed_open_period(client: AsyncClient, owner_token: str) -> None:
+    """Phase 4.3: posts require a covering open period.
+
+    Idempotent — if a 400 (overlap) comes back, an earlier test already
+    seeded one.
+    """
+    await client.post(
+        "/api/v1/accounting/periods",
+        headers=_h(owner_token),
+        json={"name": "test-current", "start_date": "2000-01-01", "end_date": "2100-12-31"},
+    )
 
 
 def _entry_body(cash_id: str, rev_id: str) -> dict:

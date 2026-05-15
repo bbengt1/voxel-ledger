@@ -88,7 +88,16 @@ async def _seed_user_and_entry(factory):
     entry_id = uuid.uuid4()
     line_id = uuid.uuid4()
     account_id = uuid.uuid4()
+    period_id = uuid.uuid4()
     async with factory() as s:
+        await s.execute(
+            text(
+                "INSERT INTO accounting_period "
+                "(id, name, start_date, end_date, state, created_at, updated_at) "
+                "VALUES (:id, :n, '2000-01-01', '2100-12-31', 'open', now(), now())"
+            ),
+            {"id": period_id, "n": f"P-{period_id}"},
+        )
         await s.execute(
             text(
                 'INSERT INTO "user" (id, email, password_hash, full_name, role, is_active,'
@@ -106,11 +115,11 @@ async def _seed_user_and_entry(factory):
         )
         await s.execute(
             text(
-                "INSERT INTO journal_entry (id, entry_number, posted_at, description, "
-                "actor_user_id, is_reversed, created_at) "
-                "VALUES (:id, :n, now(), 'd', :uid, false, now())"
+                "INSERT INTO journal_entry (id, entry_number, posted_at, period_id, "
+                "description, actor_user_id, is_reversed, created_at) "
+                "VALUES (:id, :n, now(), :pid, 'd', :uid, false, now())"
             ),
-            {"id": entry_id, "n": f"JE-T-{entry_id}", "uid": user_id},
+            {"id": entry_id, "n": f"JE-T-{entry_id}", "pid": period_id, "uid": user_id},
         )
         await s.execute(
             text(
