@@ -170,9 +170,7 @@ def downgrade() -> None:
     op.drop_index("ix_journal_line_division", table_name="journal_line")
     with op.batch_alter_table("journal_line") as batch:
         if is_pg:
-            batch.drop_constraint(
-                "fk_journal_line_division_id", type_="foreignkey"
-            )
+            batch.drop_constraint("fk_journal_line_division_id", type_="foreignkey")
         batch.drop_column("division_id")
 
     if is_pg:
@@ -181,9 +179,7 @@ def downgrade() -> None:
         # ``drop_table`` below disposes of it. On PG the constraint was
         # added via ALTER; drop it explicitly so the downgrade is clean
         # even if a future migration depends on the table still existing.
-        op.drop_constraint(
-            "ux_budget_account_division_period", "budget", type_="unique"
-        )
+        op.drop_constraint("ux_budget_account_division_period", "budget", type_="unique")
     op.drop_index("ix_budget_division", table_name="budget")
     op.drop_index("ix_budget_period_account", table_name="budget")
     op.drop_table("budget")
