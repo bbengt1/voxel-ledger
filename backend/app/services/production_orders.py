@@ -30,7 +30,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import and_, asc, delete as sa_delete, desc, exists, or_, select
+from sqlalchemy import and_, asc, desc, exists, or_, select
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -44,7 +45,6 @@ from app.models.production_order import (
 from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services.reference_number import ReferenceNumberService
-
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -100,9 +100,7 @@ _TRANSITIONS: dict[ProductionOrderState, frozenset[ProductionOrderState]] = {
 }
 
 
-def _ensure_transition(
-    current: ProductionOrderState, target: ProductionOrderState
-) -> None:
+def _ensure_transition(current: ProductionOrderState, target: ProductionOrderState) -> None:
     if target not in _TRANSITIONS[current]:
         raise InvalidProductionOrderStateError(
             f"cannot transition production order from {current.value} to {target.value}"
@@ -348,9 +346,7 @@ async def archive(
 
 
 async def _job_exists(session: AsyncSession, job_id: uuid.UUID) -> bool:
-    return (
-        await session.execute(select(exists().where(Job.id == job_id)))
-    ).scalar_one()
+    return (await session.execute(select(exists().where(Job.id == job_id)))).scalar_one()
 
 
 async def _job_in_active_order(
@@ -374,9 +370,7 @@ async def _job_in_active_order(
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
-async def _members_ordered(
-    session: AsyncSession, order_id: uuid.UUID
-) -> list[ProductionOrderJob]:
+async def _members_ordered(session: AsyncSession, order_id: uuid.UUID) -> list[ProductionOrderJob]:
     stmt = (
         select(ProductionOrderJob)
         .where(ProductionOrderJob.production_order_id == order_id)
@@ -395,9 +389,7 @@ async def add_job(
 ) -> ProductionOrder:
     order = await _load(session, order_id)
     if order.state == ProductionOrderState.ARCHIVED:
-        raise InvalidProductionOrderStateError(
-            "cannot add a job to an archived production order"
-        )
+        raise InvalidProductionOrderStateError("cannot add a job to an archived production order")
 
     if not await _job_exists(session, job_id):
         raise JobNotFoundError(str(job_id))
@@ -405,16 +397,12 @@ async def add_job(
     # Already in this order?
     already = next((m for m in order.jobs if m.job_id == job_id), None)
     if already is not None:
-        raise JobAlreadyInOrderError(
-            f"job {job_id} is already in production order {order_id}"
-        )
+        raise JobAlreadyInOrderError(f"job {job_id} is already in production order {order_id}")
 
     # Service-level guard: at most one active order per job. If this order
     # is the active one, the existing check already excludes it via
     # ``exclude_order_id``; the job being elsewhere-active blocks the add.
-    conflict = await _job_in_active_order(
-        session, job_id=job_id, exclude_order_id=order_id
-    )
+    conflict = await _job_in_active_order(session, job_id=job_id, exclude_order_id=order_id)
     if conflict is not None:
         raise JobAlreadyInActiveOrderError(
             f"job {job_id} is already in active production order {conflict}"
@@ -561,9 +549,7 @@ async def list_orders(
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
-    next_cursor = (
-        _encode_cursor(rows[-1].created_at, rows[-1].id) if (rows and has_more) else None
-    )
+    next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if (rows and has_more) else None
     return ProductionOrderPage(items=rows, next_cursor=next_cursor)
 
 
