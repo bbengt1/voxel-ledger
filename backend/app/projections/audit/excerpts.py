@@ -26,6 +26,7 @@ from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
 from app.events.types import production as production_events
+from app.events.types import sales as sales_events
 from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
@@ -576,3 +577,33 @@ register_excerpt_fields(
     production_events.TYPE_JOB_REMOVED_FROM_ORDER,
     ("job_id",),
 )
+
+
+# ---------------------------------------------------------------------------
+# Sales: channels (Phase 6.1)
+# ---------------------------------------------------------------------------
+#
+# Fee percentages, flat fees, and account references are configuration
+# metadata — denormalizing them into the audit excerpt is exactly what
+# we want for later "what changed?" UIs. ``external_id_format_hint`` is
+# operator-provided free-form text but is bounded (regex / example) and
+# safe to surface.
+
+register_excerpt_fields(
+    sales_events.TYPE_SALES_CHANNEL_CREATED,
+    (
+        "name",
+        "slug",
+        "kind",
+        "fee_model",
+        "fee_percent",
+        "fee_flat",
+        "external_id_format_hint",
+    ),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALES_CHANNEL_UPDATED,
+    ("before", "after"),
+)
+# Archived / Unarchived carry only the sales_channel_id — no excerpt is
+# useful.

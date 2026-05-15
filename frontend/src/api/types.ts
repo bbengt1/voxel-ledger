@@ -1934,6 +1934,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sales Channels */
+        get: operations["list_sales_channels_api_v1_sales_channels_get"];
+        put?: never;
+        /** Create Sales Channel */
+        post: operations["create_sales_channel_api_v1_sales_channels_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-channels/{channel_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sales Channel */
+        get: operations["get_sales_channel_api_v1_sales_channels__channel_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Sales Channel */
+        patch: operations["update_sales_channel_api_v1_sales_channels__channel_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/sales-channels/{channel_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Sales Channel */
+        post: operations["archive_sales_channel_api_v1_sales_channels__channel_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales-channels/{channel_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Sales Channel */
+        post: operations["unarchive_sales_channel_api_v1_sales_channels__channel_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -4664,6 +4734,106 @@ export interface components {
          * @enum {string}
          */
         Role: "owner" | "bookkeeper" | "production" | "sales" | "viewer";
+        /** SalesChannelCreate */
+        SalesChannelCreate: {
+            /** Default Fee Account Id */
+            default_fee_account_id?: string | null;
+            /** Default Revenue Account Id */
+            default_revenue_account_id?: string | null;
+            /** External Id Format Hint */
+            external_id_format_hint?: string | null;
+            /** Fee Flat */
+            fee_flat?: number | string | null;
+            /**
+             * Fee Model
+             * @enum {string}
+             */
+            fee_model: "none" | "flat" | "percent" | "percent_plus_flat";
+            /** Fee Percent */
+            fee_percent?: number | string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pos" | "marketplace" | "direct_web" | "wholesale" | "other";
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /** SalesChannelListResponse */
+        SalesChannelListResponse: {
+            /** Items */
+            items: components["schemas"]["SalesChannelResponse"][];
+        };
+        /** SalesChannelResponse */
+        SalesChannelResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Default Fee Account Id */
+            default_fee_account_id?: string | null;
+            /** Default Revenue Account Id */
+            default_revenue_account_id?: string | null;
+            /** External Id Format Hint */
+            external_id_format_hint?: string | null;
+            /** Fee Flat */
+            fee_flat?: string | null;
+            /**
+             * Fee Model
+             * @enum {string}
+             */
+            fee_model: "none" | "flat" | "percent" | "percent_plus_flat";
+            /** Fee Percent */
+            fee_percent?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pos" | "marketplace" | "direct_web" | "wholesale" | "other";
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * SalesChannelUpdate
+         * @description PATCH-style — only fields the caller wants to change.
+         */
+        SalesChannelUpdate: {
+            /** Default Fee Account Id */
+            default_fee_account_id?: string | null;
+            /** Default Revenue Account Id */
+            default_revenue_account_id?: string | null;
+            /** External Id Format Hint */
+            external_id_format_hint?: string | null;
+            /** Fee Flat */
+            fee_flat?: number | string | null;
+            /** Fee Model */
+            fee_model?: ("none" | "flat" | "percent" | "percent_plus_flat") | null;
+            /** Fee Percent */
+            fee_percent?: number | string | null;
+            /** Kind */
+            kind?: ("pos" | "marketplace" | "direct_web" | "wholesale" | "other") | null;
+            /** Name */
+            name?: string | null;
+            /** Slug */
+            slug?: string | null;
+        };
         /**
          * SettingResponse
          * @description One setting, merged with its schema default and provenance.
@@ -9629,6 +9799,198 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sales_channels_api_v1_sales_channels_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_sales_channel_api_v1_sales_channels_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesChannelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sales_channel_api_v1_sales_channels__channel_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_sales_channel_api_v1_sales_channels__channel_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SalesChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_sales_channel_api_v1_sales_channels__channel_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_sales_channel_api_v1_sales_channels__channel_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channel_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesChannelResponse"];
                 };
             };
             /** @description Validation Error */

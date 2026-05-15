@@ -23,6 +23,7 @@ from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
 from app.events.types import production as production_events
+from app.events.types import sales as sales_events
 from app.events.types import users as users_events
 
 Formatter = Callable[[dict[str, Any], str], str]
@@ -919,3 +920,36 @@ register_summary(production_events.TYPE_PRODUCTION_ORDER_COMPLETED, _production_
 register_summary(production_events.TYPE_PRODUCTION_ORDER_ARCHIVED, _production_order_archived)
 register_summary(production_events.TYPE_JOB_ADDED_TO_ORDER, _job_added_to_order)
 register_summary(production_events.TYPE_JOB_REMOVED_FROM_ORDER, _job_removed_from_order)
+
+
+# --- Sales: channels (Phase 6.1) ---
+
+
+def _sales_channel_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created sales channel {payload.get('slug', '?')} "
+        f"({payload.get('name', '?')}) [{payload.get('kind', '?')}/"
+        f"{payload.get('fee_model', '?')}]"
+    )
+
+
+def _sales_channel_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated sales channel {payload.get('sales_channel_id', '?')}: {changes}"
+
+
+def _sales_channel_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived sales channel {payload.get('sales_channel_id', '?')}"
+
+
+def _sales_channel_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived sales channel {payload.get('sales_channel_id', '?')}"
+
+
+register_summary(sales_events.TYPE_SALES_CHANNEL_CREATED, _sales_channel_created)
+register_summary(sales_events.TYPE_SALES_CHANNEL_UPDATED, _sales_channel_updated)
+register_summary(sales_events.TYPE_SALES_CHANNEL_ARCHIVED, _sales_channel_archived)
+register_summary(sales_events.TYPE_SALES_CHANNEL_UNARCHIVED, _sales_channel_unarchived)
