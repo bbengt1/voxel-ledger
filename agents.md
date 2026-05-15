@@ -83,11 +83,63 @@ The v1 app is still live on `web01` and will continue serving production until v
 - **Single-VM hardware failure.** Mitigated by tested PITR restore and a documented runbook; RPO ≤ 24 h, RTO ≤ 2 h.
 - **Scope creep into v1 features.** Honor explicit v2 won't-do list.
 
+## PostgreSQL Strict Typing — Hard-Learned Patterns
+
+PG strict-types ENUM columns. SQLite is permissive. The codebase has hit four distinct shapes of this gotcha; every new migration / model / query needs to honor the rules below. See the PRs cited for each — they have full diffs.
+
+### 1. Migration: new ENUM type — DO NOT pre-create
+
+Reference the enum on a column with `sa.Enum(*VALUES, name="...")` and let `op.create_table` auto-create the PG type via its dialect hook. Do **not** call `sa.Enum(...).create(bind, checkfirst=True)` first — `create_type=False` on the column is **not** honored by `_on_table_create`, so the auto-create still fires and you get `DuplicateObjectError: type "..." already exists`. (Fixed once in [#49](https://github.com/bbengt1/voxel-ledger/pull/49); the pattern crept back in `0011_product_bom` and `0012_custom_fields` and got fixed again with the same diff.)
+
+### 2. Migration: reference an existing ENUM created by an earlier migration
+
+Use the dialect-specific class with `create_type=False`. `sa.Enum(..., create_type=False)` (the generic class) does **not** suppress the auto-create — only `postgresql.ENUM(..., create_type=False)` does, because the dialect class actually checks the flag in its `create()` short-circuit. Branch by dialect:
+
+```python
+if bind.dialect.name == "postgresql":
+    entity_kind_col_type = postgresql.ENUM(*VALUES, name="inventory_entity_kind", create_type=False)
+else:
+    entity_kind_col_type = sa.Enum(*VALUES, name="inventory_entity_kind")
+```
+
+(Bug + fix: [#60](https://github.com/bbengt1/voxel-ledger/pull/60).)
+
+### 3. ORM column declaration for an ENUM
+
+Always `SAEnum(*VALUES, name="account_type", create_type=False)`. Never `String(N)`. If the model declares String but the column is actually a PG enum, every `WHERE col = 'literal'` fails with `operator does not exist: account_type = character varying`. (Bug + fix: [#55](https://github.com/bbengt1/voxel-ledger/pull/55) for `product_bom_item.component_kind`.)
+
+### 4. `literal()` values in queries against ENUM columns
+
+When you build a sub-select that produces a static value compared against an enum column (e.g. a UNION ALL across `(material, "material")` / `(supply, "supply")` rows joined against `inventory_on_hand.entity_kind`), pass the enum type:
+
+```python
+literal(entity_kind, type_=INVENTORY_ENTITY_KIND_ENUM).label("entity_kind")
+```
+
+Without `type_=...` the literal renders as VARCHAR and PG refuses the implicit cast. (Bug + fix: [#63](https://github.com/bbengt1/voxel-ledger/pull/63) for `inventory_alerts.list_low_stock`.)
+
+### Boolean defaults — adjacent gotcha
+
+PG strict-types booleans the same way. Use `sa.false()` / `sa.true()`, never `sa.text("0")` / `sa.text("1")`. SQLite accepts integer literals; PG rejects them with `column "is_archived" is of type boolean but default expression is of type integer`. (Fixed across six migrations in [#49](https://github.com/bbengt1/voxel-ledger/pull/49).)
+
+### Symptom: browser reports a CORS error
+
+Two real bug rounds presented as CORS failures in the browser console. Both were 500-from-the-backend with no CORS headers attached (PG strict-typing errors out of the projection handler / service query). When a CORS error appears for a path that previously worked, **check the backend logs first** before chasing CORS config.
+
+---
+
 ## Expected Change Pattern
 
 - Backend feature work usually means updating: model or migration, event types + projection handler, schema, service, endpoint, and tests.
 - Frontend feature work usually means updating: regenerated types, API hooks (TanStack Query), route/page state, form schema (zod), and loading/error handling.
 - If a change touches sales, printers, inventory, or accounting, inspect existing tests first and extend them with the behavior change. Property tests are expected for BOM rollup, COGS FIFO, reference allocator, pieces-min, and depreciation schedules.
+
+### Test-fixture patterns
+
+Two setup patterns keep getting relearned by new tests. Steal them from existing tests instead of rolling your own each time.
+
+- **Workshop location**: any test that exercises a material receipt or any inventory transaction needs an active `kind=workshop` `inventory_location` to land at. The receipt flow's default-receiving fallback (Phase 3.2) reads the `inventory.default_receiving_location_id` setting first, then falls back to the lowest-code active workshop. Without one, the receipt POST returns 400 with a clear configuration message. Centralizing fixture work is tracked in [#57](https://github.com/bbengt1/voxel-ledger/issues/57).
+- **Open accounting period**: any test that posts a journal entry needs an open `accounting_period` covering the entry's `posted_at` date. Phase 4.3 wires the period-gating check before any other validation in `JournalEntriesService.post(...)`. The fix in every Phase 4 test is a 60-day window centered on today via `POST /api/v1/accounting/periods`. Tracked in the same spirit as #57 — worth a centralized fixture when fixture sprawl outgrows the inline pattern.
 
 ## Performance Budgets (must hold)
 
