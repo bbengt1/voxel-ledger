@@ -13,6 +13,7 @@ from app.schemas.accounts import AccountTypeLiteral
 
 class JournalLineCreate(BaseModel):
     account_id: uuid.UUID
+    division_id: uuid.UUID | None = None
     debit: Decimal = Field(default=Decimal("0"))
     credit: Decimal = Field(default=Decimal("0"))
     line_number: int = Field(ge=0)
@@ -44,6 +45,7 @@ class JournalLineResponse(BaseModel):
     account_code: str
     account_name: str
     account_type: AccountTypeLiteral
+    division_id: uuid.UUID | None = None
     debit: Decimal
     credit: Decimal
     line_number: int

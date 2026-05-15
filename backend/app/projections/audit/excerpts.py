@@ -450,3 +450,26 @@ register_excerpt_fields(
     approvals_events.TYPE_APPROVAL_CANCELLED,
     ("cancelled_by_user_id",),
 )
+
+
+# --- Accounting: divisions + budgets (Phase 4.5) ---
+
+register_excerpt_fields(
+    accounting_events.TYPE_DIVISION_CREATED,
+    ("name", "code"),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_DIVISION_UPDATED,
+    ("before", "after"),
+)
+# DivisionArchived / DivisionUnarchived carry only the division_id — no
+# excerpt is useful.
+
+register_excerpt_fields(
+    accounting_events.TYPE_BUDGET_SET,
+    ("account_id", "division_id", "period_id", "old_amount", "new_amount"),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_BUDGET_UNSET,
+    ("account_id", "division_id", "period_id"),
+)

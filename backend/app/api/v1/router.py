@@ -16,7 +16,9 @@ from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bom import router as bom_router
+from app.api.v1.budgets import router as budgets_router
 from app.api.v1.custom_fields import router as custom_fields_router
+from app.api.v1.divisions import router as divisions_router
 from app.api.v1.form_templates import router as form_templates_router
 from app.api.v1.inventory_alerts import router as inventory_alerts_router
 from app.api.v1.inventory_locations import router as inventory_locations_router
@@ -38,6 +40,8 @@ api_router.include_router(accounts_router)
 api_router.include_router(admin_router)
 api_router.include_router(approvals_router)
 api_router.include_router(attachments_router)
+api_router.include_router(budgets_router)
+api_router.include_router(divisions_router)
 api_router.include_router(settings_router)
 api_router.include_router(users_router)
 api_router.include_router(custom_fields_router)

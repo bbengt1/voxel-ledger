@@ -76,6 +76,10 @@ class JournalLinePayload(_AccountingPayloadBase):
     credit: str
     line_number: int
     memo: str | None = None
+    # Optional second analytical dimension (Phase 4.5, #68). Older
+    # events written before Phase 4.5 simply omit the key — the default
+    # keeps replay parity.
+    division_id: uuid.UUID | None = None
 
 
 class JournalEntryPostedPayload(_AccountingPayloadBase):
@@ -153,3 +157,64 @@ register_event(TYPE_PERIOD_UPDATED, PeriodUpdatedPayload)
 register_event(TYPE_PERIOD_CLOSED, PeriodClosedPayload)
 register_event(TYPE_PERIOD_REOPENED, PeriodReopenedPayload)
 register_event(TYPE_PERIOD_LOCKED, PeriodLockedPayload)
+
+
+# --- Divisions + budgets (Phase 4.5) ---
+#
+# Divisions are a light second analytical dimension on journal lines.
+# Budgets are slots keyed by ``(account_id, division_id, period_id)`` —
+# ``division_id`` may be NULL for the catch-all budget per account/period.
+# Decimal amounts on budgets serialize as canonical strings.
+
+AGGREGATE_TYPE_DIVISION: str = "division"
+AGGREGATE_TYPE_BUDGET: str = "budget"
+
+
+class DivisionCreatedPayload(_AccountingPayloadBase):
+    division_id: uuid.UUID
+    name: str
+    code: str
+
+
+class DivisionUpdatedPayload(_AccountingPayloadBase):
+    division_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class DivisionArchivedPayload(_AccountingPayloadBase):
+    division_id: uuid.UUID
+
+
+class DivisionUnarchivedPayload(_AccountingPayloadBase):
+    division_id: uuid.UUID
+
+
+class BudgetSetPayload(_AccountingPayloadBase):
+    account_id: uuid.UUID
+    division_id: uuid.UUID | None = None
+    period_id: uuid.UUID
+    old_amount: str | None = None
+    new_amount: str
+
+
+class BudgetUnsetPayload(_AccountingPayloadBase):
+    account_id: uuid.UUID
+    division_id: uuid.UUID | None = None
+    period_id: uuid.UUID
+
+
+TYPE_DIVISION_CREATED = "accounting.DivisionCreated"
+TYPE_DIVISION_UPDATED = "accounting.DivisionUpdated"
+TYPE_DIVISION_ARCHIVED = "accounting.DivisionArchived"
+TYPE_DIVISION_UNARCHIVED = "accounting.DivisionUnarchived"
+TYPE_BUDGET_SET = "accounting.BudgetSet"
+TYPE_BUDGET_UNSET = "accounting.BudgetUnset"
+
+
+register_event(TYPE_DIVISION_CREATED, DivisionCreatedPayload)
+register_event(TYPE_DIVISION_UPDATED, DivisionUpdatedPayload)
+register_event(TYPE_DIVISION_ARCHIVED, DivisionArchivedPayload)
+register_event(TYPE_DIVISION_UNARCHIVED, DivisionUnarchivedPayload)
+register_event(TYPE_BUDGET_SET, BudgetSetPayload)
+register_event(TYPE_BUDGET_UNSET, BudgetUnsetPayload)

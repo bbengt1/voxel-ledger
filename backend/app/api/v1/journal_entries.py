@@ -83,6 +83,7 @@ def _line_to_response(line: JournalLine, account: Account) -> JournalLineRespons
         account_code=account.code,
         account_name=account.name,
         account_type=cast(AccountTypeLiteral, account.type),
+        division_id=line.division_id,
         debit=line.debit,
         credit=line.credit,
         line_number=line.line_number,
@@ -144,6 +145,7 @@ async def post_entry(
     lines = [
         je_service.JournalLineInput(
             account_id=ln.account_id,
+            division_id=ln.division_id,
             debit=ln.debit,
             credit=ln.credit,
             line_number=ln.line_number,
@@ -224,6 +226,7 @@ async def post_entry_from_approval(
     snapshot_lines = [
         je_service.JournalLineInput(
             account_id=uuid.UUID(str(ln["account_id"])),
+            division_id=(uuid.UUID(str(ln["division_id"])) if ln.get("division_id") else None),
             debit=ln["debit"],
             credit=ln["credit"],
             line_number=int(ln["line_number"]),

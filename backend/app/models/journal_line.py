@@ -25,6 +25,7 @@ class JournalLine(Base):
         ),
         Index("ix_journal_line_entry_id", "entry_id"),
         Index("ix_journal_line_account_entry", "account_id", "entry_id"),
+        Index("ix_journal_line_division", "division_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -35,6 +36,13 @@ class JournalLine(Base):
 
     account_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("account.id", ondelete="RESTRICT"), nullable=False
+    )
+
+    # Optional analytical dimension introduced in Phase 4.5 (#68). The
+    # ``account_balance`` projection (Phase 4.2) stays single-dimensional;
+    # only the budget-variance read model slices by division.
+    division_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("division.id", ondelete="RESTRICT"), nullable=True
     )
 
     debit: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False, server_default="0")

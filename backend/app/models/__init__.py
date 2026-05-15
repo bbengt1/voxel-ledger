@@ -16,6 +16,7 @@ from app.models.approval_request import (
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
+from app.models.budget import Budget
 from app.models.custom_field import (
     CUSTOM_FIELD_ENTITY_TYPES,
     CustomField,
@@ -23,6 +24,7 @@ from app.models.custom_field import (
     FormTemplate,
     FormTemplateField,
 )
+from app.models.division import Division
 from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
@@ -54,9 +56,11 @@ __all__ = [
     "Attachment",
     "AuditLog",
     "Base",
+    "Budget",
     "CUSTOM_FIELD_ENTITY_TYPES",
     "CustomField",
     "CustomFieldType",
+    "Division",
     "Event",
     "FormTemplate",
     "FormTemplateField",

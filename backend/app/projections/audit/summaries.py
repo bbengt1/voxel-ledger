@@ -660,3 +660,60 @@ register_summary(approvals_events.TYPE_APPROVAL_REQUESTED, _approval_requested)
 register_summary(approvals_events.TYPE_APPROVAL_APPROVED, _approval_approved)
 register_summary(approvals_events.TYPE_APPROVAL_REJECTED, _approval_rejected)
 register_summary(approvals_events.TYPE_APPROVAL_CANCELLED, _approval_cancelled)
+
+
+# --- Accounting: divisions + budgets (Phase 4.5) ---
+
+
+def _division_created(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} created division {payload.get('code', '?')} " f"({payload.get('name', '?')})"
+
+
+def _division_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated division {payload.get('division_id', '?')}: {changes}"
+
+
+def _division_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived division {payload.get('division_id', '?')}"
+
+
+def _division_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived division {payload.get('division_id', '?')}"
+
+
+def _budget_set(payload: dict[str, Any], actor: str) -> str:
+    old = payload.get("old_amount")
+    new = payload.get("new_amount", "?")
+    div = payload.get("division_id") or "(catch-all)"
+    if old is None:
+        return (
+            f"{actor} set budget for account "
+            f"{payload.get('account_id', '?')} / div {div} / period "
+            f"{payload.get('period_id', '?')} = {new}"
+        )
+    return (
+        f"{actor} updated budget for account "
+        f"{payload.get('account_id', '?')} / div {div} / period "
+        f"{payload.get('period_id', '?')}: {old} -> {new}"
+    )
+
+
+def _budget_unset(payload: dict[str, Any], actor: str) -> str:
+    div = payload.get("division_id") or "(catch-all)"
+    return (
+        f"{actor} cleared budget for account "
+        f"{payload.get('account_id', '?')} / div {div} / period "
+        f"{payload.get('period_id', '?')}"
+    )
+
+
+register_summary(accounting_events.TYPE_DIVISION_CREATED, _division_created)
+register_summary(accounting_events.TYPE_DIVISION_UPDATED, _division_updated)
+register_summary(accounting_events.TYPE_DIVISION_ARCHIVED, _division_archived)
+register_summary(accounting_events.TYPE_DIVISION_UNARCHIVED, _division_unarchived)
+register_summary(accounting_events.TYPE_BUDGET_SET, _budget_set)
+register_summary(accounting_events.TYPE_BUDGET_UNSET, _budget_unset)
