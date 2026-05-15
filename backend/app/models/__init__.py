@@ -30,11 +30,13 @@ from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
+from app.models.job import JOB_STATE_VALUES, Job, JobState
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
+from app.models.plate import Plate
 from app.models.printer import PRINTER_TYPE_VALUES, Printer, PrinterType
 from app.models.printer_history_event import (
     PRINTER_EVENT_KIND_VALUES,
@@ -78,6 +80,9 @@ __all__ = [
     "InventoryLocationKind",
     "InventoryOnHand",
     "InventoryTransaction",
+    "JOB_STATE_VALUES",
+    "Job",
+    "JobState",
     "JournalEntry",
     "JournalLine",
     "Material",
@@ -85,6 +90,7 @@ __all__ = [
     "Note",
     "PRINTER_EVENT_KIND_VALUES",
     "PRINTER_TYPE_VALUES",
+    "Plate",
     "Printer",
     "PrinterEventKind",
     "PrinterHistoryEvent",

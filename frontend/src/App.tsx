@@ -30,6 +30,7 @@ import { JournalEntryDetailPage } from "@/pages/accounting/JournalEntryDetail";
 import { PeriodsListPage } from "@/pages/accounting/PeriodsList";
 import { ApprovalDetailPage } from "@/pages/approvals/ApprovalDetail";
 import { ApprovalsListPage } from "@/pages/approvals/ApprovalsList";
+import { JobsListPage } from "@/pages/production/JobsList";
 import { PrinterCreatePage } from "@/pages/production/PrinterCreate";
 import { PrinterDetailPage } from "@/pages/production/PrinterDetail";
 import { PrintersListPage } from "@/pages/production/PrintersList";
@@ -350,6 +351,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <BudgetsVariancePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/jobs"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JobsListPage />
             </AppShell>
           </RequireAuth>
         }

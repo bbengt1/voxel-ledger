@@ -6,12 +6,11 @@ is NOT pre-created; ``op.create_table`` autocreates the PG type via the
 column's dialect hook. On SQLite the same ``sa.Enum`` renders as
 ``VARCHAR + CHECK``.
 
-down_revision is ``0022_printers_cameras``. The parallel Phase 5.2
-agent owns ``0023_jobs_plates``; Alembic linearizes by revision id so
-both can land independently.
+down_revision chained onto ``0023_jobs_plates`` at merge time so the
+alembic graph stays linear. The parallel Phase 5.2 PR (#87) landed first.
 
 Revision ID: 0024_printer_history
-Revises: 0022_printers_cameras
+Revises: 0023_jobs_plates
 Create Date: 2026-05-15 00:00:00.000000
 """
 
@@ -23,7 +22,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0024_printer_history"
-down_revision: str | None = "0022_printers_cameras"
+down_revision: str | None = "0023_jobs_plates"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

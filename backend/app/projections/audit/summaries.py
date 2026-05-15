@@ -780,6 +780,76 @@ register_summary(production_events.TYPE_CAMERA_UPDATED, _camera_updated)
 register_summary(production_events.TYPE_CAMERA_DELETED, _camera_deleted)
 
 
+# --- Production: jobs + plates (Phase 5.2) ---
+
+
+def _job_created(payload: dict[str, Any], actor: str) -> str:
+    plates = payload.get("plates") or []
+    return (
+        f"{actor} created job {payload.get('job_number', '?')} "
+        f"(product {payload.get('product_id', '?')}, "
+        f"qty {payload.get('quantity_ordered', '?')}, {len(plates)} plates)"
+    )
+
+
+def _job_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated job {payload.get('job_id', '?')}: {changes}"
+
+
+def _job_submitted(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} submitted job {payload.get('job_id', '?')}"
+
+
+def _job_started(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} started job {payload.get('job_id', '?')}"
+
+
+def _job_completed(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} completed job {payload.get('job_id', '?')}"
+
+
+def _job_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled job {payload.get('job_id', '?')}"
+
+
+def _plate_assigned(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} assigned printer {payload.get('printer_id', '?')} "
+        f"to plate {payload.get('plate_id', '?')}"
+    )
+
+
+def _plate_unassigned(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} unassigned printer {payload.get('printer_id', '?')} "
+        f"from plate {payload.get('plate_id', '?')}"
+    )
+
+
+def _plate_run_recorded(payload: dict[str, Any], actor: str) -> str:
+    consumed = payload.get("materials_consumed") or []
+    return (
+        f"{actor} recorded run on plate {payload.get('plate_id', '?')} "
+        f"(runs_completed={payload.get('new_runs_completed', '?')}, "
+        f"{len(consumed)} materials consumed)"
+    )
+
+
+register_summary(production_events.TYPE_JOB_CREATED, _job_created)
+register_summary(production_events.TYPE_JOB_UPDATED, _job_updated)
+register_summary(production_events.TYPE_JOB_SUBMITTED, _job_submitted)
+register_summary(production_events.TYPE_JOB_STARTED, _job_started)
+register_summary(production_events.TYPE_JOB_COMPLETED, _job_completed)
+register_summary(production_events.TYPE_JOB_CANCELLED, _job_cancelled)
+register_summary(production_events.TYPE_PLATE_ASSIGNED, _plate_assigned)
+register_summary(production_events.TYPE_PLATE_UNASSIGNED, _plate_unassigned)
+register_summary(production_events.TYPE_PLATE_RUN_RECORDED, _plate_run_recorded)
+
+
 # --- Production: printer history (Phase 5.4) ---
 
 
