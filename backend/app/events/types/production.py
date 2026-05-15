@@ -27,6 +27,7 @@ AGGREGATE_TYPE_PRINTER: str = "printer"
 AGGREGATE_TYPE_CAMERA: str = "camera"
 AGGREGATE_TYPE_JOB: str = "job"
 AGGREGATE_TYPE_PLATE: str = "plate"
+AGGREGATE_TYPE_PRODUCTION_ORDER: str = "production_order"
 
 
 class _ProductionPayloadBase(BaseModel):
@@ -213,3 +214,54 @@ class PrinterHistoryEventRecordedPayload(_ProductionPayloadBase):
 TYPE_PRINTER_HISTORY_EVENT_RECORDED = "production.PrinterHistoryEventRecorded"
 
 register_event(TYPE_PRINTER_HISTORY_EVENT_RECORDED, PrinterHistoryEventRecordedPayload)
+
+
+# --- Production orders (Phase 5.5) -------------------------------------------
+
+
+class ProductionOrderCreatedPayload(_ProductionPayloadBase):
+    production_order_id: uuid.UUID
+    order_number: str
+    name: str
+    state: str
+    priority: int
+    due_at: datetime | None = None
+
+
+class ProductionOrderUpdatedPayload(_ProductionPayloadBase):
+    production_order_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class ProductionOrderStateChangePayload(_ProductionPayloadBase):
+    production_order_id: uuid.UUID
+
+
+class JobAddedToOrderPayload(_ProductionPayloadBase):
+    production_order_id: uuid.UUID
+    job_id: uuid.UUID
+    display_order: int
+
+
+class JobRemovedFromOrderPayload(_ProductionPayloadBase):
+    production_order_id: uuid.UUID
+    job_id: uuid.UUID
+
+
+TYPE_PRODUCTION_ORDER_CREATED = "production.ProductionOrderCreated"
+TYPE_PRODUCTION_ORDER_UPDATED = "production.ProductionOrderUpdated"
+TYPE_PRODUCTION_ORDER_ACTIVATED = "production.ProductionOrderActivated"
+TYPE_PRODUCTION_ORDER_COMPLETED = "production.ProductionOrderCompleted"
+TYPE_PRODUCTION_ORDER_ARCHIVED = "production.ProductionOrderArchived"
+TYPE_JOB_ADDED_TO_ORDER = "production.JobAddedToOrder"
+TYPE_JOB_REMOVED_FROM_ORDER = "production.JobRemovedFromOrder"
+
+
+register_event(TYPE_PRODUCTION_ORDER_CREATED, ProductionOrderCreatedPayload)
+register_event(TYPE_PRODUCTION_ORDER_UPDATED, ProductionOrderUpdatedPayload)
+register_event(TYPE_PRODUCTION_ORDER_ACTIVATED, ProductionOrderStateChangePayload)
+register_event(TYPE_PRODUCTION_ORDER_COMPLETED, ProductionOrderStateChangePayload)
+register_event(TYPE_PRODUCTION_ORDER_ARCHIVED, ProductionOrderStateChangePayload)
+register_event(TYPE_JOB_ADDED_TO_ORDER, JobAddedToOrderPayload)
+register_event(TYPE_JOB_REMOVED_FROM_ORDER, JobRemovedFromOrderPayload)

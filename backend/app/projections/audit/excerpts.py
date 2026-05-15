@@ -552,3 +552,27 @@ register_excerpt_fields(
     production_events.TYPE_PRINTER_HISTORY_EVENT_RECORDED,
     ("printer_id", "event_kind", "occurred_at"),
 )
+
+
+# ---------------------------------------------------------------------------
+# Production: production orders (Phase 5.5)
+# ---------------------------------------------------------------------------
+
+register_excerpt_fields(
+    production_events.TYPE_PRODUCTION_ORDER_CREATED,
+    ("order_number", "name", "state", "priority"),
+)
+register_excerpt_fields(
+    production_events.TYPE_PRODUCTION_ORDER_UPDATED,
+    ("before", "after"),
+)
+# Activated / Completed / Archived carry only the production_order_id —
+# no excerpt beyond the aggregate ID itself is useful.
+register_excerpt_fields(
+    production_events.TYPE_JOB_ADDED_TO_ORDER,
+    ("job_id", "display_order"),
+)
+register_excerpt_fields(
+    production_events.TYPE_JOB_REMOVED_FROM_ORDER,
+    ("job_id",),
+)

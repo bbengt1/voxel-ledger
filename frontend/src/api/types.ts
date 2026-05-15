@@ -1093,6 +1093,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover From Sidecar
+         * @description Parse a PrusaSlicer/Bambu Studio .gcode.json sidecar and return the
+         *     extracted plate fields. No DB writes — the UI uses this to pre-fill
+         *     the plate-create form. Any authenticated role may call this.
+         */
+        post: operations["discover_from_sidecar_api_v1_jobs_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -1558,6 +1580,128 @@ export interface paths {
         /** Unarchive Printer */
         post: operations["unarchive_printer_api_v1_printers__printer_id__unarchive_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Production Orders */
+        get: operations["list_production_orders_api_v1_production_orders_get"];
+        put?: never;
+        /** Create Production Order */
+        post: operations["create_production_order_api_v1_production_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Production Order */
+        get: operations["get_production_order_api_v1_production_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Production Order */
+        patch: operations["update_production_order_api_v1_production_orders__order_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Production Order */
+        post: operations["activate_production_order_api_v1_production_orders__order_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Production Order */
+        post: operations["archive_production_order_api_v1_production_orders__order_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Production Order */
+        post: operations["complete_production_order_api_v1_production_orders__order_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Job To Order */
+        post: operations["add_job_to_order_api_v1_production_orders__order_id__jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reorder Job In Order */
+        patch: operations["reorder_job_in_order_api_v1_production_orders__order_id__jobs_patch"];
+        trace?: never;
+    };
+    "/api/v1/production-orders/{order_id}/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Job From Order */
+        delete: operations["remove_job_from_order_api_v1_production_orders__order_id__jobs__job_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2441,6 +2585,11 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** Body_discover_from_sidecar_api_v1_jobs_discover_post */
+        Body_discover_from_sidecar_api_v1_jobs_discover_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_attachment_api_v1_attachments_post */
         Body_upload_attachment_api_v1_attachments_post: {
             /**
@@ -2930,6 +3079,30 @@ export interface components {
             /** Required */
             required?: boolean | null;
         };
+        /**
+         * DiscoveredPlateResponse
+         * @description Parser output. No DB writes — the UI uses this to pre-fill a plate form.
+         */
+        DiscoveredPlateResponse: {
+            /** Filament Grams By Material */
+            filament_grams_by_material?: {
+                [key: string]: string;
+            };
+            /**
+             * Parts Per Set
+             * @default 1
+             */
+            parts_per_set: number;
+            /** Print Minutes */
+            print_minutes: number;
+            /** Source Filename */
+            source_filename?: string | null;
+            /**
+             * Source Format
+             * @description prusaslicer | bambu
+             */
+            source_format: string;
+        };
         /** DivisionCreateRequest */
         DivisionCreateRequest: {
             /** Code */
@@ -3304,6 +3477,26 @@ export interface components {
             items: components["schemas"]["JobResponse"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** JobMembershipRequest */
+        JobMembershipRequest: {
+            /** Display Order */
+            display_order?: number | null;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+        };
+        /** JobReorderRequest */
+        JobReorderRequest: {
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** New Position */
+            new_position: number;
         };
         /** JobResponse */
         JobResponse: {
@@ -4278,6 +4471,91 @@ export interface components {
             upc?: string | null;
             /** Weight Grams */
             weight_grams?: number | string | null;
+        };
+        /** ProductionOrderCreate */
+        ProductionOrderCreate: {
+            /** Due At */
+            due_at?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Priority
+             * @default 0
+             */
+            priority: number;
+        };
+        /** ProductionOrderJobMember */
+        ProductionOrderJobMember: {
+            /** Display Order */
+            display_order: number;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+        };
+        /** ProductionOrderListResponse */
+        ProductionOrderListResponse: {
+            /** Items */
+            items: components["schemas"]["ProductionOrderResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** ProductionOrderResponse */
+        ProductionOrderResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Due At */
+            due_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Jobs */
+            jobs?: components["schemas"]["ProductionOrderJobMember"][];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Order Number */
+            order_number: string;
+            /** Priority */
+            priority: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "planning" | "active" | "completed" | "archived";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ProductionOrderUpdate
+         * @description Editable fields after create: ``name``, ``priority``, ``due_at``, ``notes``.
+         */
+        ProductionOrderUpdate: {
+            /** Due At */
+            due_at?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Priority */
+            priority?: number | null;
         };
         /** RateCreateRequest */
         RateCreateRequest: {
@@ -7130,6 +7408,39 @@ export interface operations {
             };
         };
     };
+    discover_from_sidecar_api_v1_jobs_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_discover_from_sidecar_api_v1_jobs_discover_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveredPlateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_job_api_v1_jobs__job_id__get: {
         parameters: {
             query?: never;
@@ -8374,6 +8685,334 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrinterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_production_orders_api_v1_production_orders_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                search?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_production_order_api_v1_production_orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductionOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_production_order_api_v1_production_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_production_order_api_v1_production_orders__order_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductionOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_production_order_api_v1_production_orders__order_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_production_order_api_v1_production_orders__order_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_production_order_api_v1_production_orders__order_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_job_to_order_api_v1_production_orders__order_id__jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_job_in_order_api_v1_production_orders__order_id__jobs_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_job_from_order_api_v1_production_orders__order_id__jobs__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductionOrderResponse"];
                 };
             };
             /** @description Validation Error */
