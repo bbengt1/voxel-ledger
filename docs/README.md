@@ -1,29 +1,39 @@
 # `docs/`
 
-Runbooks, architecture diagrams, and reference material for Voxel Ledger / Print Sales v2.
+Runbooks, architecture reference, and operator-facing documentation for Voxel Ledger / Print Sales v2.
 
-## What lives here
+## Index
 
-This directory will fill in as Phase 0+ work lands:
+### Architecture & reference
 
-- `architecture.md` — current implemented state of the codebase: bounded contexts, event-sourced foundation, cross-cutting platform contracts, what's not yet implemented.
-- `event_catalog.md` — index of every event type the system writes, organized by aggregate / context, plus the audit excerpt whitelist.
-- `migrations.md` — reverse-chronological changelog of every Alembic revision, with operator gotchas.
-- `development.md` — local development guide; one-command bootstrap.
-- `deployment_n8n_workflow.md` — operator runbook for the canonical n8n deploy ([#9](https://github.com/bbengt1/voxel-ledger/issues/9)).
-- `web01_runbook.md` — manual SSH path: where things live, how to tail logs, emergency restart, rollback ([#9](https://github.com/bbengt1/voxel-ledger/issues/9)).
-- `openapi-codegen.md` — how the frontend type-generation contract works ([#5](https://github.com/bbengt1/voxel-ledger/issues/5)).
-- `index.md` — task-based documentation hub (once there's enough to organize).
-- `reference/` — authoritative technical reference tied to the codebase.
-- `assets/` — mermaid sources and SVGs for diagrams.
+- [`architecture.md`](architecture.md) — current implementation map. Bounded contexts, projections, key data flows. The "what landed" companion to [`../print-sales-v2/04_architecture.md`](../print-sales-v2/04_architecture.md) (which is now historical design).
+- [`event_catalog.md`](event_catalog.md) — every event type in the system, organized by aggregate. Payload schemas, emitters, subscribers. The source of truth for the event-sourced parts of the codebase.
+- [`migrations.md`](migrations.md) — reverse-chronological migration changelog. What each migration does, what it depends on, any operator gotchas.
+
+### Development
+
+- [`development.md`](development.md) — first-clone to working stack walkthrough.
+- [`openapi-codegen.md`](openapi-codegen.md) — frontend type-generation contract.
+
+### Deployment & operations
+
+- [`deployment_n8n_workflow.md`](deployment_n8n_workflow.md) — canonical n8n deploy workflow runbook.
+- [`web01_runbook.md`](web01_runbook.md) — manual SSH ops path.
 
 ## Source-of-truth model
 
-Until Phase 0 lands, the authoritative specs live under [`../print-sales-v2/`](../print-sales-v2/). Once code exists, this directory becomes the home for runbooks and reference material that tracks the actual implementation.
+- This directory tracks **what's implemented**.
+- [`../print-sales-v2/`](../print-sales-v2/) holds the **original design specs** — historical, not maintained. Useful for "why did we decide X" archaeology, not for "what does X do today."
+- [`../agents.md`](../agents.md) is the collaboration guide. PG strict-typing patterns + test fixture conventions live there.
 
-[`../print-sales-v2/`](../print-sales-v2/) will then be marked as the historical design record — readers should not mistake design specs for the maintained reference path.
+## Conventions
+
+- Markdown only. Tables where they help; bullets where they don't.
+- Cross-link liberally between docs. File paths in backticks.
+- When a behavior changes, update the relevant doc in the same PR. CI doesn't enforce this; reviewers should call it out.
+- Diagrams use Mermaid (renders on GitHub) or source-controlled SVGs under `assets/`. No screenshots unless a real UI capture is the point.
 
 ## Related
 
-- [`../print-sales-v2/IMPLEMENTATION_PLAN.md`](../print-sales-v2/IMPLEMENTATION_PLAN.md) — phased roadmap.
-- [`../agents.md`](../agents.md) — documentation UX rules and freshness expectations.
+- [`../print-sales-v2/IMPLEMENTATION_PLAN.md`](../print-sales-v2/IMPLEMENTATION_PLAN.md) — phased roadmap (the original plan; still useful for sequencing context).
+- [`../README.md`](../README.md) — repo-root orientation.
