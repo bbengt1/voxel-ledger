@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.models.auth import Role
@@ -41,6 +41,19 @@ async def _setup(client: AsyncClient, session: AsyncSession) -> tuple[str, str, 
         headers=_h(owner_token),
         json={"code": "4000", "name": "Revenue", "type": "revenue"},
     )
+    # Seed an open period covering today so #66's post-time period gate
+    # passes; threshold gating still runs after.
+    today = datetime.now(UTC).date()
+    pr = await client.post(
+        "/api/v1/accounting/periods",
+        headers=_h(owner_token),
+        json={
+            "name": "test-period",
+            "start_date": (today - timedelta(days=30)).isoformat(),
+            "end_date": (today + timedelta(days=30)).isoformat(),
+        },
+    )
+    assert pr.status_code == 201, pr.text
     return owner_token, cash.json()["id"], rev.json()["id"]
 
 

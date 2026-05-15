@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.models.auth import Role
@@ -54,6 +54,18 @@ async def test_dispatch_posts_entry_and_marks_consumed(
         "/api/v1/accounts",
         headers=_h(a_token),
         json={"code": "4000", "name": "Revenue", "type": "revenue"},
+    )
+    # Seed an open period covering today so the post-time period gate
+    # from #66 passes. Threshold-gating still runs after.
+    today = datetime.now(UTC).date()
+    await client.post(
+        "/api/v1/accounting/periods",
+        headers=_h(a_token),
+        json={
+            "name": "test-period",
+            "start_date": (today - timedelta(days=30)).isoformat(),
+            "end_date": (today + timedelta(days=30)).isoformat(),
+        },
     )
 
     # Requester (bookkeeper) submits an over-threshold entry.
