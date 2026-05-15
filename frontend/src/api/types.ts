@@ -1076,6 +1076,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Calculate Cost */
+        post: operations["calculate_cost_api_v1_jobs_calculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -2645,6 +2662,68 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** CalcInputsPayload */
+        CalcInputsPayload: {
+            /** Plates */
+            plates: components["schemas"]["CalcPlateInputPayload"][];
+            /** Quantity Ordered */
+            quantity_ordered: number;
+        };
+        /**
+         * CalcPlateInputPayload
+         * @description A single plate's shape as proposed by the composer.
+         */
+        CalcPlateInputPayload: {
+            /** Assigned Printer Ids */
+            assigned_printer_ids?: string[];
+            /** Parts Per Set */
+            parts_per_set: number;
+            /** Print Grams By Material */
+            print_grams_by_material?: {
+                [key: string]: number | string;
+            };
+            /** Print Minutes */
+            print_minutes: number;
+            /**
+             * Setup Minutes
+             * @default 0
+             */
+            setup_minutes: number;
+        };
+        /**
+         * CalcRequest
+         * @description POST body. Exactly one of ``job_id`` or ``inputs`` must be set.
+         */
+        CalcRequest: {
+            inputs?: components["schemas"]["CalcInputsPayload"] | null;
+            /** Job Id */
+            job_id?: string | null;
+        };
+        /** CalcResultResponse */
+        CalcResultResponse: {
+            /** Cost Per Piece */
+            cost_per_piece: string;
+            /** Labor Cost */
+            labor_cost: string;
+            /** Machine Cost */
+            machine_cost: string;
+            /** Material Cost */
+            material_cost: string;
+            /** Overhead Cost */
+            overhead_cost: string;
+            /** Per Plate */
+            per_plate: components["schemas"]["PerPlateCostResponse"][];
+            /** Pieces Per Set */
+            pieces_per_set: number;
+            /** Sets Required */
+            sets_required: number;
+            /** Suggested Unit Price */
+            suggested_unit_price: string;
+            /** Supply Cost */
+            supply_cost: string;
+            /** Total Cost */
+            total_cost: string;
+        };
         /**
          * CameraConfigRequest
          * @description Used for both POST (set/replace) and the body of PUT/PATCH-style
@@ -3826,6 +3905,21 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** PerPlateCostResponse */
+        PerPlateCostResponse: {
+            /** Labor Cost */
+            labor_cost: string;
+            /** Machine Cost */
+            machine_cost: string;
+            /** Material Cost */
+            material_cost: string;
+            /** Parts Per Set */
+            parts_per_set: number;
+            /** Plate Index */
+            plate_index: number;
+            /** Runs */
+            runs: number;
         };
         /** PlateCreate */
         PlateCreate: {
@@ -6990,6 +7084,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calculate_cost_api_v1_jobs_calculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalcRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalcResultResponse"];
                 };
             };
             /** @description Validation Error */
