@@ -49,9 +49,9 @@ const SECTIONS: NavSection[] = [
   {
     label: "Production",
     items: [
-      { label: "Printers", href: "/production/printers" },
       { label: "Jobs", href: "/production/jobs" },
-      { label: "Print queue", href: "#production/queue" },
+      { label: "Production queue", href: "/production/queue" },
+      { label: "Printers", href: "/production/printers" },
     ],
   },
   {
