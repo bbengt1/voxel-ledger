@@ -1540,6 +1540,132 @@
         "title": "BulkSettingUpdateResponse",
         "type": "object"
       },
+      "CameraConfigRequest": {
+        "description": "Used for both POST (set/replace) and the body of PUT/PATCH-style\nupserts. ``password_secret`` is write-only — never echoed back.",
+        "properties": {
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "wyze",
+              "rtsp",
+              "go2rtc",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "password_secret": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password Secret"
+          },
+          "snapshot_url": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Snapshot Url",
+            "type": "string"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "kind",
+          "snapshot_url"
+        ],
+        "title": "CameraConfigRequest",
+        "type": "object"
+      },
+      "CameraResponse": {
+        "description": "Camera response. Excludes ``password_secret`` by construction.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "wyze",
+              "rtsp",
+              "go2rtc",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "password_secret_set": {
+            "default": false,
+            "title": "Password Secret Set",
+            "type": "boolean"
+          },
+          "printer_id": {
+            "format": "uuid",
+            "title": "Printer Id",
+            "type": "string"
+          },
+          "snapshot_url": {
+            "title": "Snapshot Url",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "id",
+          "printer_id",
+          "kind",
+          "snapshot_url",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CameraResponse",
+        "type": "object"
+      },
       "CostBreakdownComponent": {
         "properties": {
           "bom_item_id": {
@@ -4201,6 +4327,311 @@
           "generated_password"
         ],
         "title": "PasswordResetResponse",
+        "type": "object"
+      },
+      "PrinterCreateRequest": {
+        "properties": {
+          "moonraker_api_key": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moonraker Api Key"
+          },
+          "moonraker_url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moonraker Url"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "power_draw_watts": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Draw Watts"
+          },
+          "printer_type": {
+            "enum": [
+              "prusa_mk4",
+              "prusa_mk3s",
+              "bambu_x1c",
+              "bambu_a1",
+              "voron_v2_4",
+              "other"
+            ],
+            "title": "Printer Type",
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "printer_type"
+        ],
+        "title": "PrinterCreateRequest",
+        "type": "object"
+      },
+      "PrinterListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PrinterResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PrinterListResponse",
+        "type": "object"
+      },
+      "PrinterResponse": {
+        "description": "Printer response. Excludes ``moonraker_api_key`` by construction —\nthe boolean ``moonraker_api_key_set`` is the only signal we surface\nso the UI can decide whether to show \"configured\" vs \"not set\".",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_archived": {
+            "title": "Is Archived",
+            "type": "boolean"
+          },
+          "moonraker_api_key_set": {
+            "default": false,
+            "title": "Moonraker Api Key Set",
+            "type": "boolean"
+          },
+          "moonraker_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moonraker Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "power_draw_watts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Draw Watts"
+          },
+          "printer_type": {
+            "enum": [
+              "prusa_mk4",
+              "prusa_mk3s",
+              "bambu_x1c",
+              "bambu_a1",
+              "voron_v2_4",
+              "other"
+            ],
+            "title": "Printer Type",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "printer_type",
+          "is_archived",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PrinterResponse",
+        "type": "object"
+      },
+      "PrinterUpdateRequest": {
+        "description": "PATCH-style — only fields the user wants to change.\n\nPassing ``moonraker_api_key: null`` clears the stored secret; passing\na non-null string replaces it.",
+        "properties": {
+          "moonraker_api_key": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moonraker Api Key"
+          },
+          "moonraker_url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moonraker Url"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "power_draw_watts": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Draw Watts"
+          },
+          "printer_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "prusa_mk4",
+                  "prusa_mk3s",
+                  "bambu_x1c",
+                  "bambu_a1",
+                  "voron_v2_4",
+                  "other"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printer Type"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "title": "PrinterUpdateRequest",
         "type": "object"
       },
       "ProductCreateRequest": {
@@ -10836,6 +11267,525 @@
         "summary": "Unpin Note",
         "tags": [
           "notes"
+        ]
+      }
+    },
+    "/api/v1/printers": {
+      "get": {
+        "operationId": "list_printers_api_v1_printers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "is_archived",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Archived"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Printers",
+        "tags": [
+          "printers"
+        ]
+      },
+      "post": {
+        "operationId": "create_printer_api_v1_printers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrinterCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Printer",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}": {
+      "get": {
+        "operationId": "get_printer_api_v1_printers__printer_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Printer",
+        "tags": [
+          "printers"
+        ]
+      },
+      "patch": {
+        "operationId": "update_printer_api_v1_printers__printer_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrinterUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Printer",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/archive": {
+      "post": {
+        "operationId": "archive_printer_api_v1_printers__printer_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Printer",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/cameras": {
+      "delete": {
+        "operationId": "delete_camera_api_v1_printers__printer_id__cameras_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Camera",
+        "tags": [
+          "cameras"
+        ]
+      },
+      "get": {
+        "operationId": "get_camera_api_v1_printers__printer_id__cameras_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Camera",
+        "tags": [
+          "cameras"
+        ]
+      },
+      "post": {
+        "operationId": "upsert_camera_api_v1_printers__printer_id__cameras_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CameraConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CameraResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upsert Camera",
+        "tags": [
+          "cameras"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/cameras/snapshot.jpg": {
+      "get": {
+        "operationId": "get_camera_snapshot_api_v1_printers__printer_id__cameras_snapshot_jpg_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "501": {
+            "description": "snapshot kind not implemented"
+          },
+          "502": {
+            "description": "upstream snapshot fetch failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Camera Snapshot",
+        "tags": [
+          "cameras"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/unarchive": {
+      "post": {
+        "operationId": "unarchive_printer_api_v1_printers__printer_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unarchive Printer",
+        "tags": [
+          "printers"
         ]
       }
     },

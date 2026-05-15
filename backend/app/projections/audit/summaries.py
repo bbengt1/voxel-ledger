@@ -22,6 +22,7 @@ from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
+from app.events.types import production as production_events
 from app.events.types import users as users_events
 
 Formatter = Callable[[dict[str, Any], str], str]
@@ -717,3 +718,63 @@ register_summary(accounting_events.TYPE_DIVISION_ARCHIVED, _division_archived)
 register_summary(accounting_events.TYPE_DIVISION_UNARCHIVED, _division_unarchived)
 register_summary(accounting_events.TYPE_BUDGET_SET, _budget_set)
 register_summary(accounting_events.TYPE_BUDGET_UNSET, _budget_unset)
+
+
+# --- Production: printers + cameras (Phase 5.1) ---
+
+
+def _printer_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created printer {payload.get('slug', '?')} "
+        f"({payload.get('name', '?')}) [{payload.get('printer_type', '?')}]"
+    )
+
+
+def _printer_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated printer {payload.get('printer_id', '?')}: {changes}"
+
+
+def _printer_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived printer {payload.get('printer_id', '?')}"
+
+
+def _printer_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived printer {payload.get('printer_id', '?')}"
+
+
+def _camera_configured(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} configured {payload.get('kind', '?')} camera "
+        f"for printer {payload.get('printer_id', '?')}"
+    )
+
+
+def _camera_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return (
+        f"{actor} updated camera {payload.get('camera_id', '?')} "
+        f"(printer {payload.get('printer_id', '?')}): {changes}"
+    )
+
+
+def _camera_deleted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} deleted camera {payload.get('camera_id', '?')} "
+        f"from printer {payload.get('printer_id', '?')}"
+    )
+
+
+register_summary(production_events.TYPE_PRINTER_CREATED, _printer_created)
+register_summary(production_events.TYPE_PRINTER_UPDATED, _printer_updated)
+register_summary(production_events.TYPE_PRINTER_ARCHIVED, _printer_archived)
+register_summary(production_events.TYPE_PRINTER_UNARCHIVED, _printer_unarchived)
+register_summary(production_events.TYPE_CAMERA_CONFIGURED, _camera_configured)
+register_summary(production_events.TYPE_CAMERA_UPDATED, _camera_updated)
+register_summary(production_events.TYPE_CAMERA_DELETED, _camera_deleted)
