@@ -25,6 +25,7 @@ from app.api.v1.inventory_alerts import router as inventory_alerts_router
 from app.api.v1.inventory_locations import router as inventory_locations_router
 from app.api.v1.inventory_on_hand import router as inventory_on_hand_router
 from app.api.v1.inventory_transactions import router as inventory_transactions_router
+from app.api.v1.jobs import router as jobs_router
 from app.api.v1.journal_entries import router as journal_entries_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
@@ -52,6 +53,7 @@ api_router.include_router(inventory_alerts_router)
 api_router.include_router(inventory_locations_router)
 api_router.include_router(inventory_on_hand_router)
 api_router.include_router(inventory_transactions_router)
+api_router.include_router(jobs_router)
 api_router.include_router(journal_entries_router)
 api_router.include_router(materials_router)
 api_router.include_router(notes_router)

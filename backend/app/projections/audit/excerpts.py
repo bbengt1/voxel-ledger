@@ -511,3 +511,31 @@ register_excerpt_fields(
     production_events.TYPE_CAMERA_DELETED,
     ("printer_id",),
 )
+
+
+# ---------------------------------------------------------------------------
+# Production: jobs + plates (Phase 5.2)
+# ---------------------------------------------------------------------------
+
+register_excerpt_fields(
+    production_events.TYPE_JOB_CREATED,
+    ("job_number", "product_id"),
+)
+register_excerpt_fields(
+    production_events.TYPE_JOB_UPDATED,
+    ("before", "after"),
+)
+# Job submit/start/complete/cancel carry only ``job_id`` — no excerpt
+# beyond the aggregate ID itself is useful.
+register_excerpt_fields(
+    production_events.TYPE_PLATE_ASSIGNED,
+    ("plate_id", "printer_id"),
+)
+register_excerpt_fields(
+    production_events.TYPE_PLATE_UNASSIGNED,
+    ("plate_id", "printer_id"),
+)
+register_excerpt_fields(
+    production_events.TYPE_PLATE_RUN_RECORDED,
+    ("plate_id", "new_runs_completed"),
+)

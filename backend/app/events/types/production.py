@@ -24,6 +24,8 @@ from app.events.registry import register_event
 
 AGGREGATE_TYPE_PRINTER: str = "printer"
 AGGREGATE_TYPE_CAMERA: str = "camera"
+AGGREGATE_TYPE_JOB: str = "job"
+AGGREGATE_TYPE_PLATE: str = "plate"
 
 
 class _ProductionPayloadBase(BaseModel):
@@ -108,3 +110,81 @@ TYPE_CAMERA_DELETED = "production.CameraDeleted"
 register_event(TYPE_CAMERA_CONFIGURED, CameraConfiguredPayload)
 register_event(TYPE_CAMERA_UPDATED, CameraUpdatedPayload)
 register_event(TYPE_CAMERA_DELETED, CameraDeletedPayload)
+
+
+# --- Jobs + plates (Phase 5.2) ---------------------------------------------
+
+
+class JobPlateSummary(_ProductionPayloadBase):
+    """Embedded plate descriptor for ``JobCreated``."""
+
+    plate_id: uuid.UUID
+    name: str
+    plate_number: int
+    parts_per_set: int
+    print_minutes: int
+    print_hours_setup_minutes: int
+
+
+class JobCreatedPayload(_ProductionPayloadBase):
+    job_id: uuid.UUID
+    job_number: str
+    product_id: uuid.UUID
+    quantity_ordered: int
+    plates: list[JobPlateSummary]
+
+
+class JobUpdatedPayload(_ProductionPayloadBase):
+    job_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class JobStateChangePayload(_ProductionPayloadBase):
+    job_id: uuid.UUID
+
+
+class PlateAssignedPayload(_ProductionPayloadBase):
+    plate_id: uuid.UUID
+    job_id: uuid.UUID
+    printer_id: uuid.UUID
+
+
+class PlateUnassignedPayload(_ProductionPayloadBase):
+    plate_id: uuid.UUID
+    job_id: uuid.UUID
+    printer_id: uuid.UUID
+
+
+class PlateMaterialConsumption(_ProductionPayloadBase):
+    material_id: uuid.UUID
+    grams: str
+
+
+class PlateRunRecordedPayload(_ProductionPayloadBase):
+    plate_id: uuid.UUID
+    job_id: uuid.UUID
+    new_runs_completed: int
+    materials_consumed: list[PlateMaterialConsumption]
+
+
+TYPE_JOB_CREATED = "production.JobCreated"
+TYPE_JOB_UPDATED = "production.JobUpdated"
+TYPE_JOB_SUBMITTED = "production.JobSubmitted"
+TYPE_JOB_STARTED = "production.JobStarted"
+TYPE_JOB_COMPLETED = "production.JobCompleted"
+TYPE_JOB_CANCELLED = "production.JobCancelled"
+TYPE_PLATE_ASSIGNED = "production.PlateAssigned"
+TYPE_PLATE_UNASSIGNED = "production.PlateUnassigned"
+TYPE_PLATE_RUN_RECORDED = "production.PlateRunRecorded"
+
+
+register_event(TYPE_JOB_CREATED, JobCreatedPayload)
+register_event(TYPE_JOB_UPDATED, JobUpdatedPayload)
+register_event(TYPE_JOB_SUBMITTED, JobStateChangePayload)
+register_event(TYPE_JOB_STARTED, JobStateChangePayload)
+register_event(TYPE_JOB_COMPLETED, JobStateChangePayload)
+register_event(TYPE_JOB_CANCELLED, JobStateChangePayload)
+register_event(TYPE_PLATE_ASSIGNED, PlateAssignedPayload)
+register_event(TYPE_PLATE_UNASSIGNED, PlateUnassignedPayload)
+register_event(TYPE_PLATE_RUN_RECORDED, PlateRunRecordedPayload)
