@@ -109,6 +109,69 @@ async def app_session(client: AsyncClient) -> AsyncIterator[AsyncSession]:
         yield s
 
 
+@pytest_asyncio.fixture
+async def workshop_location(app_session: AsyncSession):
+    """An active workshop-kind inventory location pre-seeded against the
+    running app's DB.
+
+    Many tests need *some* workshop location to exist because:
+
+    - The Phase 3.2 material-receipt refactor (#56) writes an
+      `inventory_transaction` row alongside the receipt. The fallback for
+      the target location is "lowest-code active workshop" unless
+      `inventory.default_receiving_location_id` is set.
+    - Several inventory-transaction tests need a destination location at
+      all.
+
+    Use this fixture in any test that hits the HTTP layer for
+    receipts/transactions. Service-layer tests that need multiple
+    locations (transfers, etc.) should seed their own.
+
+    See `agents.md` "Test-fixture patterns" and issue #57.
+    """
+    from app.services import inventory_locations as locations_service
+
+    loc = await locations_service.create(
+        app_session,
+        name="Test workshop",
+        code="WSB",
+        kind="workshop",
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    return loc
+
+
+@pytest_asyncio.fixture
+async def accounting_period_today(app_session: AsyncSession):
+    """An open accounting period whose date range contains today.
+
+    The Phase 4.3 period-gating check (#66) runs before any other
+    validation in ``JournalEntriesService.post(...)``. Any test that
+    posts a journal entry needs an open period covering the entry's
+    ``posted_at`` date or every POST will 400 with
+    ``posted_at falls outside any defined accounting period``.
+
+    The window is 60 days centred on today, named ``test-period``.
+
+    See `agents.md` "Test-fixture patterns" and issue #57.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from app.services import accounting_periods as periods_service
+
+    today = datetime.now(UTC).date()
+    period = await periods_service.create(
+        name="test-period",
+        start_date=today - timedelta(days=30),
+        end_date=today + timedelta(days=30),
+        session=app_session,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    return period
+
+
 @pytest.fixture
 def postgres_url() -> Iterator[str]:
     """Opt-in Postgres URL via testcontainers; skip when Docker missing."""

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
 from app.models.auth import Role
@@ -41,19 +41,9 @@ async def _setup(client: AsyncClient, session: AsyncSession) -> tuple[str, str, 
         headers=_h(owner_token),
         json={"code": "4000", "name": "Revenue", "type": "revenue"},
     )
-    # Seed an open period covering today so #66's post-time period gate
-    # passes; threshold gating still runs after.
-    today = datetime.now(UTC).date()
-    pr = await client.post(
-        "/api/v1/accounting/periods",
-        headers=_h(owner_token),
-        json={
-            "name": "test-period",
-            "start_date": (today - timedelta(days=30)).isoformat(),
-            "end_date": (today + timedelta(days=30)).isoformat(),
-        },
-    )
-    assert pr.status_code == 201, pr.text
+    # Period seeding moved to the shared `accounting_period_today` fixture
+    # (conftest.py). Tests declare it in their signature; the fixture's
+    # commit makes the period visible to the HTTP layer.
     return owner_token, cash.json()["id"], rev.json()["id"]
 
 
@@ -70,7 +60,7 @@ def _body(cash: str, rev: str, amount: str) -> dict:
 
 @pytest.mark.asyncio
 async def test_under_threshold_posts_immediately(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, accounting_period_today
 ) -> None:
     owner, cash, rev = await _setup(client, app_session)
     r = await client.post(
@@ -86,7 +76,7 @@ async def test_under_threshold_posts_immediately(
 
 @pytest.mark.asyncio
 async def test_above_threshold_routes_to_approval(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, accounting_period_today
 ) -> None:
     owner, cash, rev = await _setup(client, app_session)
     # Default threshold is 1000.00.
