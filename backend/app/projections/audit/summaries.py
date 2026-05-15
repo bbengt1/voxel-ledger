@@ -571,3 +571,25 @@ register_summary(accounting_events.TYPE_ACCOUNT_CREATED, _account_created)
 register_summary(accounting_events.TYPE_ACCOUNT_UPDATED, _account_updated)
 register_summary(accounting_events.TYPE_ACCOUNT_ARCHIVED, _account_archived)
 register_summary(accounting_events.TYPE_ACCOUNT_UNARCHIVED, _account_unarchived)
+
+
+# --- Accounting: journal entries (Phase 4.2) ---
+
+
+def _journal_entry_posted(payload: dict[str, Any], actor: str) -> str:
+    lines = payload.get("lines") or []
+    return (
+        f"{actor} posted journal entry {payload.get('entry_number', '?')} "
+        f"({len(lines)} lines): {payload.get('description', '?')}"
+    )
+
+
+def _journal_entry_reversed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} reversed journal entry {payload.get('original_entry_id', '?')} "
+        f"via {payload.get('reversal_entry_number', '?')}"
+    )
+
+
+register_summary(accounting_events.TYPE_JOURNAL_ENTRY_POSTED, _journal_entry_posted)
+register_summary(accounting_events.TYPE_JOURNAL_ENTRY_REVERSED, _journal_entry_reversed)

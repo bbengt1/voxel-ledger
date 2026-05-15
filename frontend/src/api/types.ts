@@ -10,6 +10,83 @@
  */
 
 export interface paths {
+    "/api/v1/accounting/account-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Account Balances
+         * @description Return per-account balances.
+         *
+         *     A row with no posted activity yet still appears here with zero
+         *     totals (we left-join Account → AccountBalance). Single-account
+         *     lookup via ``?account_id=`` always returns one row, even if no
+         *     activity has accumulated.
+         */
+        get: operations["list_account_balances_api_v1_accounting_account_balances_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Entries */
+        get: operations["list_entries_api_v1_accounting_entries_get"];
+        put?: never;
+        /** Post Entry */
+        post: operations["post_entry_api_v1_accounting_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Entry */
+        get: operations["get_entry_api_v1_accounting_entries__entry_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounting/entries/{entry_id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reverse Entry */
+        post: operations["reverse_entry_api_v1_accounting_entries__entry_id__reverse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/accounts": {
         parameters: {
             query?: never;
@@ -1276,6 +1353,41 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountBalanceListResponse */
+        AccountBalanceListResponse: {
+            /** Items */
+            items: components["schemas"]["AccountBalanceResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** AccountBalanceResponse */
+        AccountBalanceResponse: {
+            /** Account Code */
+            account_code: string;
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Account Name */
+            account_name: string;
+            /**
+             * Account Type
+             * @enum {string}
+             */
+            account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
+            /** Balance */
+            balance: string;
+            /** Total Credits */
+            total_credits: string;
+            /** Total Debits */
+            total_debits: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** AccountCreateRequest */
         AccountCreateRequest: {
             /** Code */
@@ -2027,6 +2139,117 @@ export interface components {
              * Format: uuid
              */
             transfer_pair_id: string;
+        };
+        /** JournalEntryCreate */
+        JournalEntryCreate: {
+            /** Description */
+            description: string;
+            /** Lines */
+            lines: components["schemas"]["JournalLineCreate"][];
+            /**
+             * Posted At
+             * Format: date-time
+             */
+            posted_at: string;
+        };
+        /** JournalEntryListResponse */
+        JournalEntryListResponse: {
+            /** Items */
+            items: components["schemas"]["JournalEntryResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** JournalEntryResponse */
+        JournalEntryResponse: {
+            /**
+             * Actor User Id
+             * Format: uuid
+             */
+            actor_user_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Entry Number */
+            entry_number: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Reversed */
+            is_reversed: boolean;
+            /** Lines */
+            lines: components["schemas"]["JournalLineResponse"][];
+            /** Period Id */
+            period_id?: string | null;
+            /**
+             * Posted At
+             * Format: date-time
+             */
+            posted_at: string;
+            /** Reversal Of Entry Id */
+            reversal_of_entry_id?: string | null;
+        };
+        /** JournalEntryReverseRequest */
+        JournalEntryReverseRequest: {
+            /** Description */
+            description?: string | null;
+        };
+        /** JournalLineCreate */
+        JournalLineCreate: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Credit
+             * @default 0
+             */
+            credit: number | string;
+            /**
+             * Debit
+             * @default 0
+             */
+            debit: number | string;
+            /** Line Number */
+            line_number: number;
+            /** Memo */
+            memo?: string | null;
+        };
+        /** JournalLineResponse */
+        JournalLineResponse: {
+            /** Account Code */
+            account_code: string;
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Account Name */
+            account_name: string;
+            /**
+             * Account Type
+             * @enum {string}
+             */
+            account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
+            /** Credit */
+            credit: string;
+            /** Debit */
+            debit: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Number */
+            line_number: number;
+            /** Memo */
+            memo?: string | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2887,6 +3110,172 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_account_balances_api_v1_accounting_account_balances_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountBalanceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entries_api_v1_accounting_entries_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                posted_at_from?: string | null;
+                posted_at_to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_entry_api_v1_accounting_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JournalEntryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entry_api_v1_accounting_entries__entry_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reverse_entry_api_v1_accounting_entries__entry_id__reverse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JournalEntryReverseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalEntryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_accounts_api_v1_accounts_get: {
         parameters: {
             query?: {

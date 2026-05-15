@@ -15,6 +15,7 @@ deny-list below is a belt-and-suspenders check.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from app.events.types import accounting as accounting_events
@@ -28,6 +29,15 @@ from app.events.types import users as users_events
 # Event type → tuple of allowed payload field names. Empty/absent = no
 # excerpt at all.
 _WHITELIST: dict[str, tuple[str, ...]] = {}
+
+# Optional per-(event_type, field) post-processor that rewrites the
+# excerpt value. Used by event types that need to summarize a bulky
+# field (e.g. a list of journal lines → count + totals) rather than
+# verbatim-copy it. The transformer receives the FULL payload so it can
+# compute summaries that span multiple raw fields and returns the value
+# to store under that excerpt key. Returning ``None`` drops the field.
+ExcerptTransformer = Callable[[dict[str, Any]], Any]
+_TRANSFORMERS: dict[tuple[str, str], ExcerptTransformer] = {}
 
 # Field names that MUST NEVER appear in an excerpt, regardless of whether
 # they were whitelisted. Belt-and-suspenders defense against a typo in the
@@ -62,6 +72,22 @@ def register_excerpt_fields(event_type: str, fields: tuple[str, ...]) -> None:
     _WHITELIST[event_type] = tuple(fields)
 
 
+def register_excerpt_transformer(event_type: str, field: str, fn: ExcerptTransformer) -> None:
+    """Attach a transformer for a single excerpt field.
+
+    The transformer fires whenever ``compute_excerpt`` would emit
+    ``field`` for ``event_type``; it replaces the raw payload value. If
+    the transformer returns ``None`` the field is dropped from the
+    excerpt entirely.
+
+    The ``field`` itself must still be in the whitelist registered via
+    :func:`register_excerpt_fields`. We keep the whitelist as the
+    single source of truth for "what's in the excerpt"; transformers
+    only rewrite the value.
+    """
+    _TRANSFORMERS[(event_type, field)] = fn
+
+
 def compute_excerpt(event_type: str, payload: dict[str, Any]) -> dict[str, Any] | None:
     """Return the excerpt dict for ``event_type``, or ``None`` if no
     whitelist is registered (deny by default).
@@ -78,7 +104,12 @@ def compute_excerpt(event_type: str, payload: dict[str, Any]) -> dict[str, Any] 
     for field in fields:
         if field.lower() in _FORBIDDEN_FIELDS:
             continue
-        if field in payload:
+        transformer = _TRANSFORMERS.get((event_type, field))
+        if transformer is not None:
+            value = transformer(payload)
+            if value is not None:
+                excerpt[field] = value
+        elif field in payload:
             excerpt[field] = payload[field]
     return excerpt or None
 
@@ -319,3 +350,43 @@ register_excerpt_fields(
     ("before", "after"),
 )
 # Archive / unarchive carry only the account_id — no excerpt useful.
+
+
+# --- Accounting: journal entries (Phase 4.2) ---
+#
+# Lines are intentionally NOT denormalized verbatim — an entry could
+# carry 30+ lines, which would bloat the audit log. Instead we surface
+# a ``lines`` summary built by a transformer: ``{count, total_debit,
+# total_credit}``.
+
+from decimal import Decimal  # noqa: E402
+
+
+def _journal_lines_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    lines = payload.get("lines") or []
+    total_d = Decimal("0")
+    total_c = Decimal("0")
+    for line in lines:
+        try:
+            total_d += Decimal(str(line.get("debit", "0")))
+            total_c += Decimal(str(line.get("credit", "0")))
+        except (ArithmeticError, ValueError):
+            continue
+    return {
+        "count": len(lines),
+        "total_debit": str(total_d),
+        "total_credit": str(total_c),
+    }
+
+
+register_excerpt_fields(
+    accounting_events.TYPE_JOURNAL_ENTRY_POSTED,
+    ("entry_number", "description", "actor_user_id", "posted_at", "lines"),
+)
+register_excerpt_transformer(
+    accounting_events.TYPE_JOURNAL_ENTRY_POSTED, "lines", _journal_lines_summary
+)
+register_excerpt_fields(
+    accounting_events.TYPE_JOURNAL_ENTRY_REVERSED,
+    ("original_entry_id", "reversal_entry_id", "reversal_entry_number"),
+)
