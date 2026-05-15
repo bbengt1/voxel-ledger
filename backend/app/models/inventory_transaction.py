@@ -60,6 +60,11 @@ KIND_TRANSFER_IN = "transfer_in"
 KIND_TRANSFER_OUT = "transfer_out"
 # Added in Phase 5.2 (#78): material draw at plate-run time.
 KIND_PRODUCTION_CONSUMPTION = "production_consumption"
+# Added in Phase 6.3 (#95): product draw at sale-confirm time. Tagged
+# separately from ``sale_out`` so the FIFO calculator can replay
+# "consumption against a posted sale" without ambiguity. The sign rules
+# match ``sale_out`` (negative).
+KIND_SALE_CONSUMPTION = "sale_consumption"
 INVENTORY_TRANSACTION_KIND_VALUES: tuple[str, ...] = (
     KIND_PRODUCTION_IN,
     KIND_SALE_OUT,
@@ -70,6 +75,7 @@ INVENTORY_TRANSACTION_KIND_VALUES: tuple[str, ...] = (
     KIND_TRANSFER_IN,
     KIND_TRANSFER_OUT,
     KIND_PRODUCTION_CONSUMPTION,
+    KIND_SALE_CONSUMPTION,
 )
 
 # Per-kind sign of ``quantity``. ``adjustment`` is ``None`` — caller
@@ -78,7 +84,13 @@ POSITIVE_KINDS: frozenset[str] = frozenset(
     {KIND_PRODUCTION_IN, KIND_RETURN_IN, KIND_RECEIPT, KIND_TRANSFER_IN}
 )
 NEGATIVE_KINDS: frozenset[str] = frozenset(
-    {KIND_SALE_OUT, KIND_WASTE, KIND_TRANSFER_OUT, KIND_PRODUCTION_CONSUMPTION}
+    {
+        KIND_SALE_OUT,
+        KIND_WASTE,
+        KIND_TRANSFER_OUT,
+        KIND_PRODUCTION_CONSUMPTION,
+        KIND_SALE_CONSUMPTION,
+    }
 )
 
 # Polymorphic entity_kind enum.

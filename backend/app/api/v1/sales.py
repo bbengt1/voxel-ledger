@@ -21,6 +21,9 @@ from app.core.db import get_session
 from app.models.auth import User
 from app.models.sale import Sale, SaleItem, SaleItemKind
 from app.schemas.sales import (
+    SaleCogsBreakdownResponse,
+    SaleCogsConsumptionResponse,
+    SaleCogsLineResponse,
     SaleCreate,
     SaleItemResponse,
     SaleListResponse,
@@ -29,6 +32,7 @@ from app.schemas.sales import (
     SaleUpdate,
 )
 from app.services import sales as sales_service
+from app.services.cogs import service as cogs_service
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -85,6 +89,14 @@ def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, sales_service.InvalidCursorError):
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, sales_service.SalesServiceError):
+        return HTTPException(status_code=400, detail=str(exc))
+    # Phase 6.3 (#95) — COGS / posting errors surface during confirm /
+    # cancel. All map to 400 with the service-supplied message.
+    if isinstance(exc, cogs_service.InsufficientInventory):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, cogs_service.MissingSalesPostingAccountError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, cogs_service.CogsServiceError):
         return HTTPException(status_code=400, detail=str(exc))
     raise exc
 
@@ -226,6 +238,53 @@ async def fulfill_sale(
     await session.commit()
     sale = await sales_service.get(session, sale_id)
     return _to_response(sale)
+
+
+@router.get("/{sale_id}/cogs-preview", response_model=SaleCogsBreakdownResponse)
+async def get_sale_cogs_preview(
+    sale_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "bookkeeper", "sales", "viewer"))],
+) -> SaleCogsBreakdownResponse:
+    """Return the FIFO COGS breakdown for ``sale_id`` (no writes)."""
+    try:
+        breakdown = await cogs_service.preview(sale_id, session=session)
+    except Exception as exc:
+        raise _map_error(exc) from None
+    return SaleCogsBreakdownResponse(
+        sale_id=breakdown.sale_id,
+        sale_number=breakdown.sale_number,
+        state=breakdown.state,
+        subtotal=breakdown.subtotal,
+        discount_amount=breakdown.discount_amount,
+        shipping_amount=breakdown.shipping_amount,
+        tax_amount=breakdown.tax_amount,
+        channel_fee_amount=breakdown.channel_fee_amount,
+        total_amount=breakdown.total_amount,
+        total_cost=breakdown.total_cost,
+        lines=[
+            SaleCogsLineResponse(
+                line_number=line.line_number,
+                kind=line.kind,
+                product_id=line.product_id,
+                job_id=line.job_id,
+                description=line.description,
+                quantity=line.quantity,
+                unit_price=line.unit_price,
+                extended_amount=line.extended_amount,
+                cost=line.cost,
+                consumption=[
+                    SaleCogsConsumptionResponse(
+                        lot_id=c.lot_id,
+                        quantity=c.quantity,
+                        unit_cost=c.unit_cost,
+                    )
+                    for c in line.consumption
+                ],
+            )
+            for line in breakdown.lines
+        ],
+    )
 
 
 @router.post("/{sale_id}/cancel", response_model=SaleResponse)

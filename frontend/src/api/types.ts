@@ -2057,6 +2057,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/{sale_id}/cogs-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sale Cogs Preview
+         * @description Return the FIFO COGS breakdown for ``sale_id`` (no writes).
+         */
+        get: operations["get_sale_cogs_preview_api_v1_sales__sale_id__cogs_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales/{sale_id}/confirm": {
         parameters: {
             query?: never;
@@ -4821,6 +4841,84 @@ export interface components {
          * @enum {string}
          */
         Role: "owner" | "bookkeeper" | "production" | "sales" | "viewer";
+        /**
+         * SaleCogsBreakdownResponse
+         * @description Result of ``GET /api/v1/sales/{id}/cogs-preview``.
+         */
+        SaleCogsBreakdownResponse: {
+            /** Channel Fee Amount */
+            channel_fee_amount: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Lines */
+            lines?: components["schemas"]["SaleCogsLineResponse"][];
+            /**
+             * Sale Id
+             * Format: uuid
+             */
+            sale_id: string;
+            /** Sale Number */
+            sale_number: string;
+            /** Shipping Amount */
+            shipping_amount: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "confirmed" | "fulfilled" | "cancelled";
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /** Total Cost */
+            total_cost: string;
+        };
+        /**
+         * SaleCogsConsumptionResponse
+         * @description One slice taken from a single FIFO lot.
+         */
+        SaleCogsConsumptionResponse: {
+            /**
+             * Lot Id
+             * Format: uuid
+             */
+            lot_id: string;
+            /** Quantity */
+            quantity: string;
+            /** Unit Cost */
+            unit_cost: string;
+        };
+        /**
+         * SaleCogsLineResponse
+         * @description Per-line COGS breakdown.
+         */
+        SaleCogsLineResponse: {
+            /** Consumption */
+            consumption?: components["schemas"]["SaleCogsConsumptionResponse"][];
+            /** Cost */
+            cost: string;
+            /** Description */
+            description: string;
+            /** Extended Amount */
+            extended_amount: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Unit Price */
+            unit_price: string;
+        };
         /** SaleCreate */
         SaleCreate: {
             /**
@@ -10462,6 +10560,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sale_cogs_preview_api_v1_sales__sale_id__cogs_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleCogsBreakdownResponse"];
                 };
             };
             /** @description Validation Error */

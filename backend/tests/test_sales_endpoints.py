@@ -7,7 +7,13 @@ from app.models.auth import Role
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._sales_helpers import auth_header, sample_sale_body, seed_channel, token_for
+from tests._sales_helpers import (
+    auth_header,
+    sample_sale_body,
+    seed_channel,
+    seed_posting_defaults,
+    token_for,
+)
 
 
 @pytest.mark.asyncio
@@ -125,7 +131,14 @@ async def test_update_draft_replaces_items_and_replays_totals(
 async def test_update_after_confirm_is_blocked(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    channel = await seed_channel(app_session)
+    defaults = await seed_posting_defaults(app_session)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
     owner = await token_for(Role.OWNER, client, app_session)
     create = await client.post(
         "/api/v1/sales",
@@ -134,7 +147,7 @@ async def test_update_after_confirm_is_blocked(
     )
     sale_id = create.json()["id"]
     confirm = await client.post(f"/api/v1/sales/{sale_id}/confirm", headers=auth_header(owner))
-    assert confirm.status_code == 200
+    assert confirm.status_code == 200, confirm.json()
 
     patched = await client.patch(
         f"/api/v1/sales/{sale_id}",
@@ -148,7 +161,14 @@ async def test_update_after_confirm_is_blocked(
 async def test_state_machine_draft_confirmed_fulfilled(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    channel = await seed_channel(app_session)
+    defaults = await seed_posting_defaults(app_session)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
     owner = await token_for(Role.OWNER, client, app_session)
     create = await client.post(
         "/api/v1/sales",
@@ -239,8 +259,22 @@ async def test_create_unknown_channel_400(client: AsyncClient, app_session: Asyn
 async def test_list_filter_by_state_and_channel(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    ch1 = await seed_channel(app_session, name="Etsy", slug="etsy")
-    ch2 = await seed_channel(app_session, name="Shopify", slug="shopify", fee_percent="0.029")
+    defaults = await seed_posting_defaults(app_session)
+    ch1 = await seed_channel(
+        app_session,
+        name="Etsy",
+        slug="etsy",
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
+    ch2 = await seed_channel(
+        app_session,
+        name="Shopify",
+        slug="shopify",
+        fee_percent="0.029",
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
     owner = await token_for(Role.OWNER, client, app_session)
 
     a = await client.post(

@@ -59,6 +59,7 @@ from app.models.sale import Sale, SaleItem, SaleItemKind, SaleState
 from app.models.sales_channel import SalesChannel
 from app.schemas.events import EventCreate
 from app.services import event_store
+from app.services.cogs import service as cogs_service
 from app.services.reference_number import ReferenceNumberService
 from app.services.sales_channels import compute_fee
 
@@ -628,6 +629,14 @@ async def confirm(
     sale_id: uuid.UUID,
     actor_user_id: uuid.UUID | None,
 ) -> Sale:
+    """Confirm a draft sale and post inventory + journal entries.
+
+    Atomicity invariant (Phase 6.3, #95): the state flip, the
+    ``SaleConfirmed`` event, the COGS service's inventory transactions,
+    the journal entry post, and the ``SalePosted`` event all live in
+    the caller's transaction. Any raise rolls back everything — there
+    is no partial confirm.
+    """
     sale = await _load(session, sale_id)
     _ensure_transition(sale.state, SaleState.CONFIRMED)
     sale.state = SaleState.CONFIRMED
@@ -644,6 +653,11 @@ async def confirm(
         },
         actor_user_id=actor_user_id,
     )
+    # Same-TX side effects: inventory transactions, journal entry,
+    # SalePosted audit event. If any of these raises, the router's
+    # ``rollback()`` discards EVERYTHING above this line too — that's
+    # the keystone invariant.
+    await cogs_service.post_for_sale(sale.id, session=session, actor_user_id=actor_user_id)
     return sale
 
 
@@ -673,7 +687,15 @@ async def cancel(
     sale_id: uuid.UUID,
     actor_user_id: uuid.UUID | None,
 ) -> Sale:
+    """Cancel a sale.
+
+    If the sale was previously confirmed, the COGS service reverses
+    the inventory + journal-entry posting in the same transaction.
+    Cancelling from ``draft`` is a no-op on the side-effect side
+    (nothing was posted yet); the SaleCancelled event still fires.
+    """
     sale = await _load(session, sale_id)
+    was_confirmed = sale.state == SaleState.CONFIRMED
     _ensure_transition(sale.state, SaleState.CANCELLED)
     sale.state = SaleState.CANCELLED
     await session.flush()
@@ -684,6 +706,8 @@ async def cancel(
         payload={"sale_id": str(sale.id), "sale_number": sale.sale_number},
         actor_user_id=actor_user_id,
     )
+    if was_confirmed:
+        await cogs_service.reverse_for_sale(sale.id, session=session, actor_user_id=actor_user_id)
     return sale
 
 

@@ -639,3 +639,18 @@ register_excerpt_fields(
     sales_events.TYPE_SALE_CANCELLED,
     ("sale_number",),
 )
+# Phase 6.3 (#95): SalePosted / SaleReversed carry sale_number + ID
+# references for audit traceability. No customer data ever lands in
+# these payloads.
+register_excerpt_fields(
+    sales_events.TYPE_SALE_POSTED,
+    ("sale_number", "journal_entry_id", "total_amount"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALE_REVERSED,
+    (
+        "sale_number",
+        "reversing_journal_entry_id",
+        "original_journal_entry_id",
+    ),
+)

@@ -78,6 +78,7 @@ class Sale(Base):
         Index("ix_sale_channel_id", "channel_id"),
         Index("ix_sale_occurred_at", "occurred_at"),
         Index("ix_sale_created_at_id", "created_at", "id"),
+        Index("ix_sale_posting_journal_entry_id", "posting_journal_entry_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -126,6 +127,15 @@ class Sale(Base):
 
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("user.id", ondelete="RESTRICT"), nullable=False
+    )
+
+    # Populated by ``app.services.cogs.service.post_for_sale`` inside the
+    # same transaction that posts the journal entry. ``reverse_for_sale``
+    # uses this FK to find the entry to reverse — much more durable than
+    # matching on the JE description string. Nullable for draft sales and
+    # to allow ``ON DELETE SET NULL``.
+    posting_journal_entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("journal_entry.id", ondelete="SET NULL"), nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(

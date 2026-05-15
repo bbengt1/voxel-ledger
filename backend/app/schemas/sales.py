@@ -128,3 +128,45 @@ class SaleStateTransitionRequest(BaseModel):
     """
 
     note: str | None = None
+
+
+# --- COGS preview (Phase 6.3, #95) ----------------------------------------
+
+
+class SaleCogsConsumptionResponse(BaseModel):
+    """One slice taken from a single FIFO lot."""
+
+    lot_id: uuid.UUID
+    quantity: Decimal
+    unit_cost: Decimal
+
+
+class SaleCogsLineResponse(BaseModel):
+    """Per-line COGS breakdown."""
+
+    line_number: int
+    kind: SaleItemKindLiteral
+    product_id: uuid.UUID | None = None
+    job_id: uuid.UUID | None = None
+    description: str
+    quantity: Decimal
+    unit_price: Decimal
+    extended_amount: Decimal
+    cost: Decimal
+    consumption: list[SaleCogsConsumptionResponse] = Field(default_factory=list)
+
+
+class SaleCogsBreakdownResponse(BaseModel):
+    """Result of ``GET /api/v1/sales/{id}/cogs-preview``."""
+
+    sale_id: uuid.UUID
+    sale_number: str
+    state: SaleStateLiteral
+    subtotal: Decimal
+    discount_amount: Decimal
+    shipping_amount: Decimal
+    tax_amount: Decimal
+    channel_fee_amount: Decimal
+    total_amount: Decimal
+    total_cost: Decimal
+    lines: list[SaleCogsLineResponse] = Field(default_factory=list)
