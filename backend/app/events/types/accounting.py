@@ -19,6 +19,10 @@ from app.events.registry import register_event
 # Account aggregate. Each chart-of-accounts row is its own aggregate.
 AGGREGATE_TYPE_ACCOUNT: str = "account"
 
+# Journal-entry aggregate. Each posted entry is its own aggregate; lines
+# do not have aggregate identity of their own.
+AGGREGATE_TYPE_JOURNAL_ENTRY: str = "journal_entry"
+
 
 class _AccountingPayloadBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -56,3 +60,45 @@ register_event(TYPE_ACCOUNT_CREATED, AccountCreatedPayload)
 register_event(TYPE_ACCOUNT_UPDATED, AccountUpdatedPayload)
 register_event(TYPE_ACCOUNT_ARCHIVED, AccountArchivedPayload)
 register_event(TYPE_ACCOUNT_UNARCHIVED, AccountUnarchivedPayload)
+
+
+# --- Journal entries (Phase 4.2) ---
+#
+# Decimals are serialized as canonical strings (``Decimal.to_eng_string()``)
+# so the projection can recover exact values without float drift. UUIDs are
+# serialized as strings. ``extra="forbid"`` on every payload model so a
+# stray key trips registration immediately.
+
+
+class JournalLinePayload(_AccountingPayloadBase):
+    account_id: uuid.UUID
+    debit: str
+    credit: str
+    line_number: int
+    memo: str | None = None
+
+
+class JournalEntryPostedPayload(_AccountingPayloadBase):
+    entry_id: uuid.UUID
+    entry_number: str
+    posted_at: str  # ISO-8601, tz-aware
+    period_id: uuid.UUID | None = None
+    description: str
+    source_event_id: uuid.UUID | None = None
+    actor_user_id: uuid.UUID | None = None
+    reversal_of_entry_id: uuid.UUID | None = None
+    lines: list[JournalLinePayload]
+
+
+class JournalEntryReversedPayload(_AccountingPayloadBase):
+    original_entry_id: uuid.UUID
+    reversal_entry_id: uuid.UUID
+    reversal_entry_number: str
+
+
+TYPE_JOURNAL_ENTRY_POSTED = "accounting.JournalEntryPosted"
+TYPE_JOURNAL_ENTRY_REVERSED = "accounting.JournalEntryReversed"
+
+
+register_event(TYPE_JOURNAL_ENTRY_POSTED, JournalEntryPostedPayload)
+register_event(TYPE_JOURNAL_ENTRY_REVERSED, JournalEntryReversedPayload)

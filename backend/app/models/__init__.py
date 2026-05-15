@@ -2,6 +2,7 @@
 
 from app.core.db import Base
 from app.models.account import ACCOUNT_TYPE_VALUES, Account, AccountType
+from app.models.account_balance import AccountBalance
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
@@ -16,6 +17,8 @@ from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
+from app.models.journal_entry import JournalEntry
+from app.models.journal_line import JournalLine
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
@@ -30,6 +33,7 @@ from app.models.supply import Supply
 __all__ = [
     "ACCOUNT_TYPE_VALUES",
     "Account",
+    "AccountBalance",
     "AccountType",
     "Attachment",
     "AuditLog",
@@ -44,6 +48,8 @@ __all__ = [
     "InventoryLocationKind",
     "InventoryOnHand",
     "InventoryTransaction",
+    "JournalEntry",
+    "JournalLine",
     "Material",
     "MaterialReceipt",
     "Note",
