@@ -6,6 +6,10 @@ Runbooks, architecture diagrams, and reference material for Voxel Ledger / Print
 
 This directory will fill in as Phase 0+ work lands:
 
+- `architecture.md` — current implemented state of the codebase: bounded contexts, event-sourced foundation, cross-cutting platform contracts, what's not yet implemented.
+- `event_catalog.md` — index of every event type the system writes, organized by aggregate / context, plus the audit excerpt whitelist.
+- `migrations.md` — reverse-chronological changelog of every Alembic revision, with operator gotchas.
+- `development.md` — local development guide; one-command bootstrap.
 - `deployment_n8n_workflow.md` — operator runbook for the canonical n8n deploy ([#9](https://github.com/bbengt1/voxel-ledger/issues/9)).
 - `web01_runbook.md` — manual SSH path: where things live, how to tail logs, emergency restart, rollback ([#9](https://github.com/bbengt1/voxel-ledger/issues/9)).
 - `openapi-codegen.md` — how the frontend type-generation contract works ([#5](https://github.com/bbengt1/voxel-ledger/issues/5)).
