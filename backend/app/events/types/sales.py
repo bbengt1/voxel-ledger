@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict
 from app.events.registry import register_event
 
 AGGREGATE_TYPE_SALES_CHANNEL: str = "sales_channel"
+AGGREGATE_TYPE_SALE: str = "sale"
 
 
 class _SalesPayloadBase(BaseModel):
@@ -66,3 +67,67 @@ register_event(TYPE_SALES_CHANNEL_CREATED, SalesChannelCreatedPayload)
 register_event(TYPE_SALES_CHANNEL_UPDATED, SalesChannelUpdatedPayload)
 register_event(TYPE_SALES_CHANNEL_ARCHIVED, SalesChannelArchivedPayload)
 register_event(TYPE_SALES_CHANNEL_UNARCHIVED, SalesChannelUnarchivedPayload)
+
+
+# --- Sales (Phase 6.2) ------------------------------------------------------
+#
+# CRITICAL: ``customer_email`` and ``notes`` MUST NEVER be whitelisted into
+# the audit excerpt. The payload carries them (so replay can reconstruct
+# the sale) but the audit denormalization keeps strictly to
+# channel_id / sale_number / total_amount. See excerpts.py.
+
+
+class SaleCreatedPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+    channel_id: uuid.UUID
+    external_order_id: str | None = None
+    customer_name: str
+    customer_email: str | None = None
+    occurred_at: str
+    subtotal: str
+    discount_amount: str
+    shipping_amount: str
+    tax_amount: str
+    channel_fee_amount: str
+    total_amount: str
+    state: str
+    notes: str | None = None
+    items: list[dict[str, Any]]
+
+
+class SaleUpdatedPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class SaleConfirmedPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+    channel_id: uuid.UUID
+    total_amount: str
+
+
+class SaleFulfilledPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+
+
+class SaleCancelledPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+
+
+TYPE_SALE_CREATED = "sales.SaleCreated"
+TYPE_SALE_UPDATED = "sales.SaleUpdated"
+TYPE_SALE_CONFIRMED = "sales.SaleConfirmed"
+TYPE_SALE_FULFILLED = "sales.SaleFulfilled"
+TYPE_SALE_CANCELLED = "sales.SaleCancelled"
+
+
+register_event(TYPE_SALE_CREATED, SaleCreatedPayload)
+register_event(TYPE_SALE_UPDATED, SaleUpdatedPayload)
+register_event(TYPE_SALE_CONFIRMED, SaleConfirmedPayload)
+register_event(TYPE_SALE_FULFILLED, SaleFulfilledPayload)
+register_event(TYPE_SALE_CANCELLED, SaleCancelledPayload)

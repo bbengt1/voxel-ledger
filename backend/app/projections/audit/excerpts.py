@@ -607,3 +607,35 @@ register_excerpt_fields(
 )
 # Archived / Unarchived carry only the sales_channel_id — no excerpt is
 # useful.
+
+
+# ---------------------------------------------------------------------------
+# Sales: sales (Phase 6.2)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL: ``customer_email`` and ``notes`` MUST NEVER be whitelisted —
+# they are PII / operator free-text and the spec forbids surfacing them
+# in the audit denormalization. The whitelist intentionally stays narrow:
+# channel_id, sale_number, total_amount only on Created/Confirmed; the
+# diff fields on Updated; sale_number on Fulfilled/Cancelled.
+
+register_excerpt_fields(
+    sales_events.TYPE_SALE_CREATED,
+    ("sale_number", "channel_id", "total_amount"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALE_CONFIRMED,
+    ("sale_number", "channel_id", "total_amount"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALE_FULFILLED,
+    ("sale_number",),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SALE_CANCELLED,
+    ("sale_number",),
+)

@@ -54,6 +54,14 @@ from app.models.production_order import (
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
+from app.models.sale import (
+    SALE_ITEM_KIND_VALUES,
+    SALE_STATE_VALUES,
+    Sale,
+    SaleItem,
+    SaleItemKind,
+    SaleState,
+)
 from app.models.sales_channel import (
     SALES_CHANNEL_FEE_MODEL_VALUES,
     SALES_CHANNEL_KIND_VALUES,
@@ -121,8 +129,14 @@ __all__ = [
     "ReferenceSequence",
     "RefreshToken",
     "Role",
+    "SALE_ITEM_KIND_VALUES",
+    "SALE_STATE_VALUES",
     "SALES_CHANNEL_FEE_MODEL_VALUES",
     "SALES_CHANNEL_KIND_VALUES",
+    "Sale",
+    "SaleItem",
+    "SaleItemKind",
+    "SaleState",
     "SalesChannel",
     "SalesChannelFeeModel",
     "SalesChannelKind",

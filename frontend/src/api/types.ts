@@ -1934,6 +1934,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sales */
+        get: operations["list_sales_api_v1_sales_get"];
+        put?: never;
+        /** Create Sale */
+        post: operations["create_sale_api_v1_sales_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales-channels": {
         parameters: {
             query?: never;
@@ -1998,6 +2016,75 @@ export interface paths {
         put?: never;
         /** Unarchive Sales Channel */
         post: operations["unarchive_sales_channel_api_v1_sales_channels__channel_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/{sale_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Sale */
+        get: operations["get_sale_api_v1_sales__sale_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Sale */
+        patch: operations["update_sale_api_v1_sales__sale_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/sales/{sale_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Sale */
+        post: operations["cancel_sale_api_v1_sales__sale_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/{sale_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Sale */
+        post: operations["confirm_sale_api_v1_sales__sale_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/{sale_id}/fulfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fulfill Sale */
+        post: operations["fulfill_sale_api_v1_sales__sale_id__fulfill_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4734,6 +4821,219 @@ export interface components {
          * @enum {string}
          */
         Role: "owner" | "bookkeeper" | "production" | "sales" | "viewer";
+        /** SaleCreate */
+        SaleCreate: {
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** External Order Id */
+            external_order_id?: string | null;
+            /** Items */
+            items?: components["schemas"]["SaleItemCreate"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Shipping Amount
+             * @default 0
+             */
+            shipping_amount: number | string;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+        };
+        /**
+         * SaleItemCreate
+         * @description One line on a draft sale. The service computes ``extended_amount``
+         *     from ``quantity * unit_price`` — the caller doesn't supply it.
+         *
+         *     ``description`` and ``sku_or_job_number`` are snapshotted onto the
+         *     sale_item row at create/update time so later catalog edits don't
+         *     rewrite history.
+         */
+        SaleItemCreate: {
+            /** Description */
+            description: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** SaleItemResponse */
+        SaleItemResponse: {
+            /** Description */
+            description: string;
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** SaleListResponse */
+        SaleListResponse: {
+            /** Items */
+            items: components["schemas"]["SaleResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** SaleResponse */
+        SaleResponse: {
+            /** Channel Fee Amount */
+            channel_fee_amount: string;
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** External Order Id */
+            external_order_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["SaleItemResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Sale Number */
+            sale_number: string;
+            /** Shipping Amount */
+            shipping_amount: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "confirmed" | "fulfilled" | "cancelled";
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * SaleStateTransitionRequest
+         * @description Reserved for any future per-transition payload (note, reason).
+         *
+         *     Phase 6.2 ships with zero-body state transitions — the endpoint paths
+         *     encode the target state — but the schema is wired so Phase 6.3 can
+         *     extend it without breaking codegen.
+         */
+        SaleStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * SaleUpdate
+         * @description PATCH-style — only fields the caller wants to change.
+         *
+         *     ``items`` replaces the entire line set when supplied (simplest model
+         *     for a draft). Omit to keep existing lines.
+         */
+        SaleUpdate: {
+            /** Channel Id */
+            channel_id?: string | null;
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** External Order Id */
+            external_order_id?: string | null;
+            /** Items */
+            items?: components["schemas"]["SaleItemCreate"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Shipping Amount */
+            shipping_amount?: number | string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
+        };
         /** SalesChannelCreate */
         SalesChannelCreate: {
             /** Default Fee Account Id */
@@ -9812,6 +10112,76 @@ export interface operations {
             };
         };
     };
+    list_sales_api_v1_sales_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                channel_id?: string | null;
+                search?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_sale_api_v1_sales_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sales_channels_api_v1_sales_channels_get: {
         parameters: {
             query?: {
@@ -9991,6 +10361,177 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalesChannelResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sale_api_v1_sales__sale_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_sale_api_v1_sales__sale_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_sale_api_v1_sales__sale_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaleStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_sale_api_v1_sales__sale_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaleStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fulfill_sale_api_v1_sales__sale_id__fulfill_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SaleStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleResponse"];
                 };
             };
             /** @description Validation Error */
