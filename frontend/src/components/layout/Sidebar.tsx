@@ -63,9 +63,11 @@ const SECTIONS: NavSection[] = [
   {
     label: "Accounting",
     items: [
-      { label: "Accounts", href: "/accounting/accounts" },
-      { label: "Invoices", href: "#accounting/invoices" },
-      { label: "Payments", href: "#accounting/payments" },
+      { label: "Chart of accounts", href: "/accounting/accounts" },
+      { label: "Journal entries", href: "/accounting/entries" },
+      { label: "Periods", href: "/accounting/periods" },
+      { label: "Divisions", href: "/accounting/divisions" },
+      { label: "Budgets", href: "/accounting/budgets" },
     ],
   },
   {
