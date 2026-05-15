@@ -1554,6 +1554,185 @@
         "title": "BulkSettingUpdateResponse",
         "type": "object"
       },
+      "CalcInputsPayload": {
+        "properties": {
+          "plates": {
+            "items": {
+              "$ref": "#/components/schemas/CalcPlateInputPayload"
+            },
+            "minItems": 1,
+            "title": "Plates",
+            "type": "array"
+          },
+          "quantity_ordered": {
+            "minimum": 0.0,
+            "title": "Quantity Ordered",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plates",
+          "quantity_ordered"
+        ],
+        "title": "CalcInputsPayload",
+        "type": "object"
+      },
+      "CalcPlateInputPayload": {
+        "description": "A single plate's shape as proposed by the composer.",
+        "properties": {
+          "assigned_printer_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Assigned Printer Ids",
+            "type": "array"
+          },
+          "parts_per_set": {
+            "exclusiveMinimum": 0.0,
+            "title": "Parts Per Set",
+            "type": "integer"
+          },
+          "print_grams_by_material": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                  "type": "string"
+                }
+              ]
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Print Grams By Material",
+            "type": "object"
+          },
+          "print_minutes": {
+            "minimum": 0.0,
+            "title": "Print Minutes",
+            "type": "integer"
+          },
+          "setup_minutes": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Setup Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "parts_per_set",
+          "print_minutes"
+        ],
+        "title": "CalcPlateInputPayload",
+        "type": "object"
+      },
+      "CalcRequest": {
+        "description": "POST body. Exactly one of ``job_id`` or ``inputs`` must be set.",
+        "properties": {
+          "inputs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalcInputsPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          }
+        },
+        "title": "CalcRequest",
+        "type": "object"
+      },
+      "CalcResultResponse": {
+        "properties": {
+          "cost_per_piece": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cost Per Piece",
+            "type": "string"
+          },
+          "labor_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "machine_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Machine Cost",
+            "type": "string"
+          },
+          "material_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Material Cost",
+            "type": "string"
+          },
+          "overhead_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Overhead Cost",
+            "type": "string"
+          },
+          "per_plate": {
+            "items": {
+              "$ref": "#/components/schemas/PerPlateCostResponse"
+            },
+            "title": "Per Plate",
+            "type": "array"
+          },
+          "pieces_per_set": {
+            "title": "Pieces Per Set",
+            "type": "integer"
+          },
+          "sets_required": {
+            "title": "Sets Required",
+            "type": "integer"
+          },
+          "suggested_unit_price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Suggested Unit Price",
+            "type": "string"
+          },
+          "supply_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Supply Cost",
+            "type": "string"
+          },
+          "total_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cost",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pieces_per_set",
+          "sets_required",
+          "material_cost",
+          "supply_cost",
+          "labor_cost",
+          "machine_cost",
+          "overhead_cost",
+          "total_cost",
+          "cost_per_piece",
+          "suggested_unit_price",
+          "per_plate"
+        ],
+        "title": "CalcResultResponse",
+        "type": "object"
+      },
       "CameraConfigRequest": {
         "description": "Used for both POST (set/replace) and the body of PUT/PATCH-style\nupserts. ``password_secret`` is write-only — never echoed back.",
         "properties": {
@@ -4598,6 +4777,47 @@
           "generated_password"
         ],
         "title": "PasswordResetResponse",
+        "type": "object"
+      },
+      "PerPlateCostResponse": {
+        "properties": {
+          "labor_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Labor Cost",
+            "type": "string"
+          },
+          "machine_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Machine Cost",
+            "type": "string"
+          },
+          "material_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Material Cost",
+            "type": "string"
+          },
+          "parts_per_set": {
+            "title": "Parts Per Set",
+            "type": "integer"
+          },
+          "plate_index": {
+            "title": "Plate Index",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "plate_index",
+          "parts_per_set",
+          "runs",
+          "material_cost",
+          "labor_cost",
+          "machine_cost"
+        ],
+        "title": "PerPlateCostResponse",
         "type": "object"
       },
       "PlateCreate": {
@@ -11370,6 +11590,52 @@
           }
         ],
         "summary": "Create Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/calculate": {
+      "post": {
+        "operationId": "calculate_cost_api_v1_jobs_calculate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalcRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalcResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Calculate Cost",
         "tags": [
           "jobs"
         ]

@@ -18,6 +18,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.budgets import router as budgets_router
 from app.api.v1.cameras import router as cameras_router
+from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.divisions import router as divisions_router
 from app.api.v1.form_templates import router as form_templates_router
@@ -54,6 +55,10 @@ api_router.include_router(inventory_alerts_router)
 api_router.include_router(inventory_locations_router)
 api_router.include_router(inventory_on_hand_router)
 api_router.include_router(inventory_transactions_router)
+# Cost-calc router shares the ``/jobs`` prefix but registers a specific
+# ``/jobs/calculate`` route. It must be included BEFORE jobs_router so
+# the more specific path matches before ``/jobs/{job_id}`` swallows it.
+api_router.include_router(cost_calc_router)
 api_router.include_router(jobs_router)
 api_router.include_router(journal_entries_router)
 api_router.include_router(materials_router)
