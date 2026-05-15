@@ -12,6 +12,7 @@ from fastapi import APIRouter
 from app.api.v1.accounting_periods import router as accounting_periods_router
 from app.api.v1.accounts import router as accounts_router
 from app.api.v1.admin import admin_router
+from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bom import router as bom_router
@@ -35,6 +36,7 @@ api_router.include_router(auth_router)
 api_router.include_router(accounting_periods_router)
 api_router.include_router(accounts_router)
 api_router.include_router(admin_router)
+api_router.include_router(approvals_router)
 api_router.include_router(attachments_router)
 api_router.include_router(settings_router)
 api_router.include_router(users_router)

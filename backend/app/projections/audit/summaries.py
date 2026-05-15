@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import accounting as accounting_events
+from app.events.types import approvals as approvals_events
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
@@ -630,3 +631,32 @@ register_summary(accounting_events.TYPE_PERIOD_UPDATED, _period_updated)
 register_summary(accounting_events.TYPE_PERIOD_CLOSED, _period_closed)
 register_summary(accounting_events.TYPE_PERIOD_REOPENED, _period_reopened)
 register_summary(accounting_events.TYPE_PERIOD_LOCKED, _period_locked)
+
+
+# --- Approvals (Phase 4.4) ---
+
+
+def _approval_requested(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} requested approval [{payload.get('request_type', '?')}] "
+        f"on {payload.get('subject_kind', '?')}:"
+        f"{payload.get('subject_id', '?')}"
+    )
+
+
+def _approval_approved(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} approved request {payload.get('request_id', '?')}"
+
+
+def _approval_rejected(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} rejected request {payload.get('request_id', '?')}"
+
+
+def _approval_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled request {payload.get('request_id', '?')}"
+
+
+register_summary(approvals_events.TYPE_APPROVAL_REQUESTED, _approval_requested)
+register_summary(approvals_events.TYPE_APPROVAL_APPROVED, _approval_approved)
+register_summary(approvals_events.TYPE_APPROVAL_REJECTED, _approval_rejected)
+register_summary(approvals_events.TYPE_APPROVAL_CANCELLED, _approval_cancelled)

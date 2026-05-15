@@ -21,6 +21,8 @@ import { SuppliesListPage } from "@/pages/catalog/SuppliesList";
 import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
 import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
 import { AccountsListPage } from "@/pages/accounting/AccountsList";
+import { ApprovalDetailPage } from "@/pages/approvals/ApprovalDetail";
+import { ApprovalsListPage } from "@/pages/approvals/ApprovalsList";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { AlertsListPage } from "@/pages/inventory/AlertsList";
@@ -268,6 +270,26 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <AccountsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ApprovalsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/approvals/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ApprovalDetailPage />
             </AppShell>
           </RequireAuth>
         }

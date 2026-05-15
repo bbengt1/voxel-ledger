@@ -69,6 +69,13 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    // Workflow is platform-level — the same approval surface will also
+    // host refunds (Phase 6) and period-close finalization (Phase 4.3).
+    // Top-level placement keeps it independent of any one domain.
+    label: "Workflow",
+    items: [{ label: "Approvals", href: "/approvals" }],
+  },
+  {
     label: "Reports",
     items: [{ label: "Overview", href: "#reports/overview" }],
   },
