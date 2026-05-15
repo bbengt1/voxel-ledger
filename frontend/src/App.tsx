@@ -20,7 +20,14 @@ import { RatesListPage } from "@/pages/catalog/RatesList";
 import { SuppliesListPage } from "@/pages/catalog/SuppliesList";
 import { SupplyCreatePage } from "@/pages/catalog/SupplyCreate";
 import { SupplyDetailPage } from "@/pages/catalog/SupplyDetail";
-import { AccountsListPage } from "@/pages/accounting/AccountsList";
+import { AccountsTreePage } from "@/pages/accounting/AccountsTree";
+import { BudgetsListPage } from "@/pages/accounting/BudgetsList";
+import { BudgetsVariancePage } from "@/pages/accounting/BudgetsVariance";
+import { DivisionsListPage } from "@/pages/accounting/DivisionsList";
+import { JournalEntriesListPage } from "@/pages/accounting/JournalEntriesList";
+import { JournalEntryComposerPage } from "@/pages/accounting/JournalEntryComposer";
+import { JournalEntryDetailPage } from "@/pages/accounting/JournalEntryDetail";
+import { PeriodsListPage } from "@/pages/accounting/PeriodsList";
 import { ApprovalDetailPage } from "@/pages/approvals/ApprovalDetail";
 import { ApprovalsListPage } from "@/pages/approvals/ApprovalsList";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
@@ -269,7 +276,77 @@ export function App() {
         element={
           <RequireAuth>
             <AppShell>
-              <AccountsListPage />
+              <AccountsTreePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/entries"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JournalEntriesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/entries/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JournalEntryComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/entries/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <JournalEntryDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/periods"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <PeriodsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/divisions"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <DivisionsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/budgets"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BudgetsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/accounting/budgets/variance"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BudgetsVariancePage />
             </AppShell>
           </RequireAuth>
         }

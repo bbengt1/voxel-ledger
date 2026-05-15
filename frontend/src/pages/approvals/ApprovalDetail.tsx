@@ -1,14 +1,20 @@
 /**
- * Approval-request detail page (Phase 4.4).
+ * Approval-request detail page (Phase 4.4, polished in Phase 4.6).
  *
- * Renders the full payload as ``<pre>`` (no syntax-highlight dependency
- * — keeping the page minimal). Buttons gate on role + state + the
- * self-approval rule: a requester sees Cancel but not Approve / Reject.
+ * Renders a type-aware payload for known request types (currently:
+ * ``accounting.large_journal_entry``) and falls back to a raw JSON
+ * ``<pre>`` for anything else. Adds a "Post entry now" action when the
+ * request is approved + not yet consumed + the journal-entry type.
  */
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
+import {
+  JournalEntryPayloadRenderer,
+  type JournalEntryPayload,
+} from "@/components/accounting/JournalEntryPayloadRenderer";
+import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface ApprovalDetail {
@@ -27,8 +33,12 @@ interface ApprovalDetail {
   consumed_at: string | null;
 }
 
+const POST_ENTRY_ROLES = new Set(["owner", "bookkeeper"]);
+const LARGE_JE_TYPE = "accounting.large_journal_entry";
+
 export function ApprovalDetailPage() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [row, setRow] = useState<ApprovalDetail | null>(null);
   const [note, setNote] = useState<string>("");
@@ -73,6 +83,27 @@ export function ApprovalDetailPage() {
     }
   };
 
+  async function postEntryNow() {
+    if (!row) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await apiClient.post<{ id: string }>(
+        `/api/v1/accounting/entries/from-approval/${row.id}`,
+        {},
+      );
+      const entry = res.data;
+      navigate(`/accounting/entries/${entry.id}`);
+    } catch (err) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Post entry failed.";
+      setError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!row) {
     return (
       <section className="text-sm text-muted-foreground">
@@ -86,6 +117,13 @@ export function ApprovalDetailPage() {
   const rejectDisabled = approveDisabled;
   const cancelDisabled =
     busy || !isPending || !(isRequester || user?.role === "owner");
+
+  const canPostEntry =
+    !!user &&
+    POST_ENTRY_ROLES.has(user.role) &&
+    row.request_type === LARGE_JE_TYPE &&
+    row.state === "approved" &&
+    row.consumed_at === null;
 
   return (
     <section className="flex flex-col gap-4">
@@ -126,13 +164,32 @@ export function ApprovalDetailPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Payload
         </h2>
-        <pre
-          data-testid="payload"
-          className="mt-1 max-h-96 overflow-auto rounded border border-border bg-muted/30 p-3 text-xs"
-        >
-          {JSON.stringify(row.payload, null, 2)}
-        </pre>
+        {row.request_type === LARGE_JE_TYPE ? (
+          <JournalEntryPayloadRenderer
+            payload={row.payload as unknown as JournalEntryPayload}
+          />
+        ) : (
+          <pre
+            data-testid="payload"
+            className="mt-1 max-h-96 overflow-auto rounded border border-border bg-muted/30 p-3 text-xs"
+          >
+            {JSON.stringify(row.payload, null, 2)}
+          </pre>
+        )}
       </div>
+
+      {canPostEntry && (
+        <div>
+          <Button
+            type="button"
+            onClick={postEntryNow}
+            disabled={busy}
+            data-testid="post-entry-now"
+          >
+            Post entry now
+          </Button>
+        </div>
+      )}
 
       {isPending && (
         <div className="flex flex-col gap-2">
