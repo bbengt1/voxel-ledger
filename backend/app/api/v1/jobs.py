@@ -10,10 +10,10 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_role
+from app.api.deps import get_current_user, require_role
 from app.core.db import get_session
 from app.models.auth import User
 from app.models.job import Job
@@ -29,6 +29,8 @@ from app.schemas.jobs import (
     PlateRunRequest,
     PlateUpdate,
 )
+from app.schemas.production_orders import DiscoveredPlateResponse
+from app.services import job_discovery as discovery_service
 from app.services import jobs as jobs_service
 from app.services import plates as plates_service
 from app.services.jobs import PlateInput
@@ -411,6 +413,35 @@ async def unassign_printer(
         raise HTTPException(status_code=404, detail="plate not found on this job")
     await session.commit()
     return _plate_to_response(plate)
+
+
+@router.post("/discover", response_model=DiscoveredPlateResponse)
+async def discover_from_sidecar(
+    _actor: Annotated[User, Depends(get_current_user)],
+    file: Annotated[UploadFile, File()],
+) -> DiscoveredPlateResponse:
+    """Parse a PrusaSlicer/Bambu Studio .gcode.json sidecar and return the
+    extracted plate fields. No DB writes — the UI uses this to pre-fill
+    the plate-create form. Any authenticated role may call this.
+    """
+    content = await file.read()
+    try:
+        result = discovery_service.parse_gcode_sidecar(
+            content, source_filename=file.filename
+        )
+    except discovery_service.UnknownSidecarFormatError as exc:
+        raise HTTPException(status_code=415, detail=str(exc)) from None
+    except discovery_service.MalformedSidecarError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    return DiscoveredPlateResponse(
+        print_minutes=result.print_minutes,
+        filament_grams_by_material={
+            k: v for k, v in result.filament_grams_by_material.items()
+        },
+        parts_per_set=result.parts_per_set,
+        source_format=result.source_format,
+        source_filename=result.source_filename,
+    )
 
 
 @router.post(

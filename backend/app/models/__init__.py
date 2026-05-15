@@ -45,6 +45,12 @@ from app.models.printer_history_event import (
 )
 from app.models.product import Product
 from app.models.product_bom_item import ProductBomItem
+from app.models.production_order import (
+    PRODUCTION_ORDER_STATE_VALUES,
+    ProductionOrder,
+    ProductionOrderJob,
+    ProductionOrderState,
+)
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.rate import Rate, RateKind
 from app.models.reference_sequence import ReferenceSequence
@@ -95,8 +101,12 @@ __all__ = [
     "PrinterEventKind",
     "PrinterHistoryEvent",
     "PrinterType",
+    "PRODUCTION_ORDER_STATE_VALUES",
     "Product",
     "ProductBomItem",
+    "ProductionOrder",
+    "ProductionOrderJob",
+    "ProductionOrderState",
     "ProjectionCursor",
     "ProjectionTestEvent",
     "Rate",

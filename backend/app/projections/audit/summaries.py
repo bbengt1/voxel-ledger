@@ -864,3 +864,59 @@ register_summary(
     production_events.TYPE_PRINTER_HISTORY_EVENT_RECORDED,
     _printer_history_event_recorded,
 )
+
+
+# --- Production orders (Phase 5.5) ---
+
+
+def _production_order_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created production order {payload.get('order_number', '?')} "
+        f"({payload.get('name', '?')})"
+    )
+
+
+def _production_order_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return (
+        f"{actor} updated production order "
+        f"{payload.get('production_order_id', '?')}: {changes}"
+    )
+
+
+def _production_order_activated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} activated production order {payload.get('production_order_id', '?')}"
+
+
+def _production_order_completed(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} completed production order {payload.get('production_order_id', '?')}"
+
+
+def _production_order_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived production order {payload.get('production_order_id', '?')}"
+
+
+def _job_added_to_order(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added job {payload.get('job_id', '?')} "
+        f"to production order {payload.get('production_order_id', '?')}"
+    )
+
+
+def _job_removed_from_order(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed job {payload.get('job_id', '?')} "
+        f"from production order {payload.get('production_order_id', '?')}"
+    )
+
+
+register_summary(production_events.TYPE_PRODUCTION_ORDER_CREATED, _production_order_created)
+register_summary(production_events.TYPE_PRODUCTION_ORDER_UPDATED, _production_order_updated)
+register_summary(production_events.TYPE_PRODUCTION_ORDER_ACTIVATED, _production_order_activated)
+register_summary(production_events.TYPE_PRODUCTION_ORDER_COMPLETED, _production_order_completed)
+register_summary(production_events.TYPE_PRODUCTION_ORDER_ARCHIVED, _production_order_archived)
+register_summary(production_events.TYPE_JOB_ADDED_TO_ORDER, _job_added_to_order)
+register_summary(production_events.TYPE_JOB_REMOVED_FROM_ORDER, _job_removed_from_order)

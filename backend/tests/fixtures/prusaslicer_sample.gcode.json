@@ -1,0 +1,12 @@
+{
+  "estimated_printing_time_normal_mode": "2h 15m 30s",
+  "filament_used_g": [42.5, 7.25],
+  "filament_used_mm": [13420.1, 2310.5],
+  "objects": [
+    {"name": "widget_body"},
+    {"name": "widget_lid"},
+    {"name": "widget_clip"}
+  ],
+  "printer_model": "MK4",
+  "filament_type": ["PLA", "PETG"]
+}

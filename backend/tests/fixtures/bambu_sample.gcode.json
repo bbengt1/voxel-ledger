@@ -1,0 +1,19 @@
+{
+  "version": "1.9.0",
+  "printer": "Bambu X1C",
+  "plates": [
+    {
+      "plate_index": 1,
+      "prediction": 4530,
+      "weight": 38.4,
+      "filaments": [
+        {"id": "1", "tray_id": 1, "used_g": 22.1},
+        {"id": "2", "tray_id": 2, "used_g": 16.3}
+      ],
+      "objects": [
+        {"name": "thingA"},
+        {"name": "thingB"}
+      ]
+    }
+  ]
+}
