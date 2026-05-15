@@ -35,7 +35,8 @@ import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
 import { PrinterCreatePage } from "@/pages/production/PrinterCreate";
 import { PrinterDetailPage } from "@/pages/production/PrinterDetail";
-import { PrintersListPage } from "@/pages/production/PrintersList";
+import { PrintersMonitorPage } from "@/pages/production/PrintersMonitor";
+import { ProductionQueuePage } from "@/pages/production/ProductionQueue";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { AlertsListPage } from "@/pages/inventory/AlertsList";
@@ -388,11 +389,21 @@ export function App() {
         }
       />
       <Route
+        path="/production/queue"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ProductionQueuePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/production/printers"
         element={
           <RequireAuth>
             <AppShell>
-              <PrintersListPage />
+              <PrintersMonitorPage />
             </AppShell>
           </RequireAuth>
         }
