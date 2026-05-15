@@ -16,6 +16,7 @@ guards this invariant.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -188,3 +189,27 @@ register_event(TYPE_JOB_CANCELLED, JobStateChangePayload)
 register_event(TYPE_PLATE_ASSIGNED, PlateAssignedPayload)
 register_event(TYPE_PLATE_UNASSIGNED, PlateUnassignedPayload)
 register_event(TYPE_PLATE_RUN_RECORDED, PlateRunRecordedPayload)
+
+
+# --- Printer history (Phase 5.4) ---------------------------------------------
+#
+# The lazy printer monitor (``app.services.printer_monitor``) appends one
+# ``PrinterHistoryEventRecorded`` per state transition observed on the
+# Moonraker feed plus synthetic ``connected``/``disconnected`` rows
+# derived from socket liveness. The event ``details`` blob is opaque
+# scratch metadata (e.g. ``{"file": "thing.gcode", "progress": 0.42}``)
+# and is intentionally NOT whitelisted into the audit excerpt — only
+# ``event_kind`` / ``printer_id`` / ``occurred_at`` are.
+
+
+class PrinterHistoryEventRecordedPayload(_ProductionPayloadBase):
+    event_id: uuid.UUID
+    printer_id: uuid.UUID
+    event_kind: str
+    occurred_at: datetime
+    details: dict[str, Any] | None = None
+
+
+TYPE_PRINTER_HISTORY_EVENT_RECORDED = "production.PrinterHistoryEventRecorded"
+
+register_event(TYPE_PRINTER_HISTORY_EVENT_RECORDED, PrinterHistoryEventRecordedPayload)

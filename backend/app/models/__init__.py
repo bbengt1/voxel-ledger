@@ -38,6 +38,11 @@ from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
 from app.models.plate import Plate
 from app.models.printer import PRINTER_TYPE_VALUES, Printer, PrinterType
+from app.models.printer_history_event import (
+    PRINTER_EVENT_KIND_VALUES,
+    PrinterEventKind,
+    PrinterHistoryEvent,
+)
 from app.models.product import Product
 from app.models.product_bom_item import ProductBomItem
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
@@ -83,9 +88,12 @@ __all__ = [
     "Material",
     "MaterialReceipt",
     "Note",
+    "PRINTER_EVENT_KIND_VALUES",
     "PRINTER_TYPE_VALUES",
     "Plate",
     "Printer",
+    "PrinterEventKind",
+    "PrinterHistoryEvent",
     "PrinterType",
     "Product",
     "ProductBomItem",

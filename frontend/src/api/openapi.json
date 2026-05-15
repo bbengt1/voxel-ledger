@@ -4305,6 +4305,24 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "MonitorRestartResponse": {
+        "properties": {
+          "printers_monitored": {
+            "title": "Printers Monitored",
+            "type": "integer"
+          },
+          "restarted": {
+            "title": "Restarted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "restarted",
+          "printers_monitored"
+        ],
+        "title": "MonitorRestartResponse",
+        "type": "object"
+      },
       "NoteCreateRequest": {
         "properties": {
           "body": {
@@ -4913,6 +4931,85 @@
         "title": "PrinterCreateRequest",
         "type": "object"
       },
+      "PrinterHistoryEventResponse": {
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "event_kind": {
+            "enum": [
+              "print_started",
+              "print_paused",
+              "print_resumed",
+              "print_completed",
+              "print_errored",
+              "connected",
+              "disconnected"
+            ],
+            "title": "Event Kind",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "printer_id": {
+            "format": "uuid",
+            "title": "Printer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "printer_id",
+          "event_kind",
+          "occurred_at"
+        ],
+        "title": "PrinterHistoryEventResponse",
+        "type": "object"
+      },
+      "PrinterHistoryListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PrinterHistoryEventResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PrinterHistoryListResponse",
+        "type": "object"
+      },
       "PrinterListResponse": {
         "properties": {
           "items": {
@@ -5031,6 +5128,124 @@
           "updated_at"
         ],
         "title": "PrinterResponse",
+        "type": "object"
+      },
+      "PrinterStateResponse": {
+        "description": "Live state snapshot for a single printer.",
+        "properties": {
+          "current_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current File"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "printer_id": {
+            "format": "uuid",
+            "title": "Printer Id",
+            "type": "string"
+          },
+          "progress_pct": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Pct"
+          },
+          "remaining_seconds_estimate": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Seconds Estimate"
+          },
+          "state": {
+            "enum": [
+              "idle",
+              "printing",
+              "paused",
+              "error",
+              "disconnected"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "temperatures": {
+            "$ref": "#/components/schemas/PrinterTemperatures"
+          }
+        },
+        "required": [
+          "printer_id",
+          "state"
+        ],
+        "title": "PrinterStateResponse",
+        "type": "object"
+      },
+      "PrinterTemperatures": {
+        "properties": {
+          "bed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bed"
+          },
+          "extruder": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extruder"
+          }
+        },
+        "title": "PrinterTemperatures",
         "type": "object"
       },
       "PrinterUpdateRequest": {
@@ -8635,6 +8850,33 @@
         "tags": [
           "admin",
           "admin-events"
+        ]
+      }
+    },
+    "/api/v1/admin/printer-monitor/restart": {
+      "post": {
+        "operationId": "restart_printer_monitor_api_v1_admin_printer_monitor_restart_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorRestartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restart Printer Monitor",
+        "tags": [
+          "admin",
+          "admin-printer-monitor"
         ]
       }
     },
@@ -13072,6 +13314,164 @@
         "summary": "Get Camera Snapshot",
         "tags": [
           "cameras"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/history": {
+      "get": {
+        "operationId": "list_printer_history_api_v1_printers__printer_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From At"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To At"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterHistoryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Printer History",
+        "tags": [
+          "printers-state"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/state": {
+      "get": {
+        "operationId": "get_printer_state_api_v1_printers__printer_id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Printer State",
+        "tags": [
+          "printers-state"
         ]
       }
     },
