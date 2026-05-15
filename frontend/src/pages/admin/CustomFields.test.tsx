@@ -110,8 +110,8 @@ describe("<CustomFieldsPage />", () => {
     renderPage();
 
     const inputs = await screen.findAllByRole("textbox");
-    await userEvent.type(inputs[0], "supplier_code");
-    await userEvent.type(inputs[1], "Supplier Code");
+    await userEvent.type(inputs[0]!, "supplier_code");
+    await userEvent.type(inputs[1]!, "Supplier Code");
     await userEvent.click(screen.getByRole("button", { name: /add field/i }));
 
     await waitFor(() => expect(created).toHaveBeenCalled());
