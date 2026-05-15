@@ -102,3 +102,54 @@ TYPE_JOURNAL_ENTRY_REVERSED = "accounting.JournalEntryReversed"
 
 register_event(TYPE_JOURNAL_ENTRY_POSTED, JournalEntryPostedPayload)
 register_event(TYPE_JOURNAL_ENTRY_REVERSED, JournalEntryReversedPayload)
+
+
+# --- Accounting periods (Phase 4.3) ---
+#
+# Each accounting period is its own aggregate. Dates serialize as ISO
+# strings; UUIDs serialize as strings. ``extra="forbid"`` keeps the
+# payload contract tight.
+
+AGGREGATE_TYPE_ACCOUNTING_PERIOD: str = "accounting_period"
+
+
+class PeriodCreatedPayload(_AccountingPayloadBase):
+    period_id: uuid.UUID
+    name: str
+    start_date: str  # ISO date
+    end_date: str  # ISO date
+
+
+class PeriodUpdatedPayload(_AccountingPayloadBase):
+    period_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class PeriodClosedPayload(_AccountingPayloadBase):
+    period_id: uuid.UUID
+    closed_by_user_id: uuid.UUID | None = None
+
+
+class PeriodReopenedPayload(_AccountingPayloadBase):
+    period_id: uuid.UUID
+    reopened_by_user_id: uuid.UUID | None = None
+
+
+class PeriodLockedPayload(_AccountingPayloadBase):
+    period_id: uuid.UUID
+    locked_by_user_id: uuid.UUID | None = None
+
+
+TYPE_PERIOD_CREATED = "accounting.PeriodCreated"
+TYPE_PERIOD_UPDATED = "accounting.PeriodUpdated"
+TYPE_PERIOD_CLOSED = "accounting.PeriodClosed"
+TYPE_PERIOD_REOPENED = "accounting.PeriodReopened"
+TYPE_PERIOD_LOCKED = "accounting.PeriodLocked"
+
+
+register_event(TYPE_PERIOD_CREATED, PeriodCreatedPayload)
+register_event(TYPE_PERIOD_UPDATED, PeriodUpdatedPayload)
+register_event(TYPE_PERIOD_CLOSED, PeriodClosedPayload)
+register_event(TYPE_PERIOD_REOPENED, PeriodReopenedPayload)
+register_event(TYPE_PERIOD_LOCKED, PeriodLockedPayload)

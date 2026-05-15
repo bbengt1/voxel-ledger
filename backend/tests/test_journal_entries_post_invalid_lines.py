@@ -89,11 +89,16 @@ async def test_db_check_constraint_catches_bypass(session: AsyncSession, engine)
     await ensure_schema(engine)
     owner = await seed_owner(session)
     cash = await seed_account(session, code="1000", name="Cash", type="asset")
+    from app.models.accounting_period import AccountingPeriod
+    from sqlalchemy import select
+
+    period = (await session.execute(select(AccountingPeriod).limit(1))).scalar_one()
 
     entry = JournalEntry(
         id=uuid.uuid4(),
         entry_number="JE-2026-9999",
         posted_at=now_utc(),
+        period_id=period.id,
         description="bypass",
         actor_user_id=owner.id,
         is_reversed=False,

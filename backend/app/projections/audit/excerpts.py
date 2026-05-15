@@ -390,3 +390,27 @@ register_excerpt_fields(
     accounting_events.TYPE_JOURNAL_ENTRY_REVERSED,
     ("original_entry_id", "reversal_entry_id", "reversal_entry_number"),
 )
+
+
+# --- Accounting: periods (Phase 4.3) ---
+
+register_excerpt_fields(
+    accounting_events.TYPE_PERIOD_CREATED,
+    ("name", "start_date", "end_date"),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_PERIOD_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_PERIOD_CLOSED,
+    ("closed_by_user_id",),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_PERIOD_REOPENED,
+    ("reopened_by_user_id",),
+)
+register_excerpt_fields(
+    accounting_events.TYPE_PERIOD_LOCKED,
+    ("locked_by_user_id",),
+)

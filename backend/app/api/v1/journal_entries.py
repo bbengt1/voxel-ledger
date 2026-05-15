@@ -112,6 +112,8 @@ def _map_service_error(exc: je_service.JournalEntriesServiceError) -> HTTPExcept
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"account not found: {exc}",
         )
+    if isinstance(exc, je_service.NoMatchingPeriodError | je_service.PeriodNotOpenError):
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -31,9 +31,13 @@ class JournalEntry(Base):
     # Operative business date.
     posted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    # Placeholder column today; the period FK + NOT NULL constraint
-    # arrive in Phase 4.3 (#67). Nullable on purpose for now.
-    period_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # FK + NOT NULL added in Phase 4.3 (#66). Every posted entry must
+    # belong to an open accounting period (service enforces).
+    period_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(),
+        ForeignKey("accounting_period.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
 
     description: Mapped[str] = mapped_column(Text(), nullable=False)
 

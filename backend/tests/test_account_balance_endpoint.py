@@ -26,7 +26,18 @@ async def _owner(client: AsyncClient, session: AsyncSession) -> dict[str, str]:
         "/api/v1/auth/login",
         json={"email": "owner@example.com", "password": "pw-correct"},
     )
-    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    # Phase 4.3: posts require a covering open period.
+    await client.post(
+        "/api/v1/accounting/periods",
+        headers=h,
+        json={
+            "name": "test-current",
+            "start_date": "2000-01-01",
+            "end_date": "2100-12-31",
+        },
+    )
+    return h
 
 
 @pytest.mark.asyncio

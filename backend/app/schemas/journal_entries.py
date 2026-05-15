@@ -56,7 +56,7 @@ class JournalEntryResponse(BaseModel):
     id: uuid.UUID
     entry_number: str
     posted_at: datetime
-    period_id: uuid.UUID | None = None
+    period_id: uuid.UUID
     description: str
     actor_user_id: uuid.UUID
     is_reversed: bool
