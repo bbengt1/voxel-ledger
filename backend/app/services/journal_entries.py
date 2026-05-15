@@ -133,6 +133,12 @@ class JournalLineInput:
     credit: Decimal
     line_number: int
     memo: str | None = None
+    # Optional second analytical dimension introduced in Phase 4.5 (#68).
+    # Passes through to the row + event payload; no validation against
+    # division archival here — callers above the service layer (or the
+    # endpoint schema) should pre-validate. We trust ON DELETE RESTRICT
+    # for FK integrity.
+    division_id: uuid.UUID | None = None
 
 
 @dataclass
@@ -329,6 +335,7 @@ async def post(
                         "credit": _to_decimal(line.credit).quantize(_QUANTUM).to_eng_string(),
                         "line_number": line.line_number,
                         "memo": line.memo,
+                        "division_id": (str(line.division_id) if line.division_id else None),
                     }
                     for line in lines
                 ],
@@ -366,6 +373,7 @@ async def post(
             id=uuid.uuid4(),
             entry_id=entry_id,
             account_id=line.account_id,
+            division_id=line.division_id,
             debit=debit,
             credit=credit,
             line_number=line.line_number,
@@ -394,6 +402,7 @@ async def post(
                 "credit": _to_decimal(line.credit).quantize(_QUANTUM).to_eng_string(),
                 "line_number": line.line_number,
                 "memo": line.memo,
+                "division_id": str(line.division_id) if line.division_id else None,
             }
             for line in lines
         ],
@@ -442,6 +451,7 @@ async def reverse(
             credit=_to_decimal(line.debit),
             line_number=line.line_number,
             memo=line.memo,
+            division_id=line.division_id,
         )
         for line in original.lines
     ]
