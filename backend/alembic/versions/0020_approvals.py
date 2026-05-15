@@ -22,7 +22,7 @@ from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "0020_approvals"
-down_revision: str | None = "0018_journal_entries"
+down_revision: str | None = "0019_accounting_periods"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

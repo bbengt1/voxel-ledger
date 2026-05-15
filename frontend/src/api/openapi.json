@@ -399,49 +399,38 @@
         "title": "AccountUpdateRequest",
         "type": "object"
       },
-      "ApprovalActionRequest": {
-        "description": "Used for approve / reject. ``decision_note`` is optional free text.",
+      "AccountingPeriodCreate": {
         "properties": {
-          "decision_note": {
-            "anyOf": [
-              {
-                "maxLength": 4096,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decision Note"
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
           }
         },
-        "title": "ApprovalActionRequest",
+        "required": [
+          "name",
+          "start_date",
+          "end_date"
+        ],
+        "title": "AccountingPeriodCreate",
         "type": "object"
       },
-      "ApprovalCancelRequest": {
-        "description": "Cancel uses ``reason`` for surface symmetry; stored as decision_note.",
-        "properties": {
-          "reason": {
-            "anyOf": [
-              {
-                "maxLength": 4096,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          }
-        },
-        "title": "ApprovalCancelRequest",
-        "type": "object"
-      },
-      "ApprovalRequestListResponse": {
+      "AccountingPeriodListResponse": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/ApprovalRequestResponse"
+              "$ref": "#/components/schemas/AccountingPeriodResponse"
             },
             "title": "Items",
             "type": "array"
@@ -461,12 +450,12 @@
         "required": [
           "items"
         ],
-        "title": "ApprovalRequestListResponse",
+        "title": "AccountingPeriodListResponse",
         "type": "object"
       },
-      "ApprovalRequestResponse": {
+      "AccountingPeriodResponse": {
         "properties": {
-          "consumed_at": {
+          "closed_at": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -476,26 +465,9 @@
                 "type": "null"
               }
             ],
-            "title": "Consumed At"
+            "title": "Closed At"
           },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "decided_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decided At"
-          },
-          "decided_by_user_id": {
+          "closed_by_user_id": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -505,73 +477,64 @@
                 "type": "null"
               }
             ],
-            "title": "Decided By User Id"
+            "title": "Closed By User Id"
           },
-          "decision_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Decision Note"
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "payload": {
-            "additionalProperties": true,
-            "title": "Payload",
-            "type": "object"
-          },
-          "request_type": {
-            "title": "Request Type",
-            "type": "string"
-          },
-          "requested_at": {
-            "format": "date-time",
-            "title": "Requested At",
-            "type": "string"
-          },
-          "requested_by_user_id": {
-            "format": "uuid",
-            "title": "Requested By User Id",
-            "type": "string"
-          },
-          "state": {
-            "enum": [
-              "pending",
-              "approved",
-              "rejected",
-              "cancelled"
-            ],
-            "title": "State",
-            "type": "string"
-          },
-          "subject_id": {
-            "format": "uuid",
-            "title": "Subject Id",
-            "type": "string"
-          },
-          "subject_kind": {
-            "title": "Subject Kind",
-            "type": "string"
-          },
-          "threshold_amount": {
+          "locked_at": {
             "anyOf": [
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "format": "date-time",
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Threshold Amount"
+            "title": "Locked At"
+          },
+          "locked_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked By User Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed",
+              "locked"
+            ],
+            "title": "State",
+            "type": "string"
           },
           "updated_at": {
             "format": "date-time",
@@ -581,17 +544,30 @@
         },
         "required": [
           "id",
-          "request_type",
-          "subject_kind",
-          "subject_id",
-          "requested_by_user_id",
-          "requested_at",
+          "name",
+          "start_date",
+          "end_date",
           "state",
-          "payload",
           "created_at",
           "updated_at"
         ],
-        "title": "ApprovalRequestResponse",
+        "title": "AccountingPeriodResponse",
+        "type": "object"
+      },
+      "AccountingPeriodUpdate": {
+        "description": "Only the display name is mutable post-create. Dates are immutable.",
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AccountingPeriodUpdate",
         "type": "object"
       },
       "AttachmentListResponse": {
@@ -2326,27 +2302,6 @@
         "title": "JournalEntryListResponse",
         "type": "object"
       },
-      "JournalEntryPendingApprovalResponse": {
-        "description": "Returned from POST /accounting/entries with HTTP 202 when an entry\ncrosses the configured approval threshold.",
-        "properties": {
-          "approval_request_id": {
-            "format": "uuid",
-            "title": "Approval Request Id",
-            "type": "string"
-          },
-          "status": {
-            "const": "pending_approval",
-            "default": "pending_approval",
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "approval_request_id"
-        ],
-        "title": "JournalEntryPendingApprovalResponse",
-        "type": "object"
-      },
       "JournalEntryResponse": {
         "properties": {
           "actor_user_id": {
@@ -2384,16 +2339,9 @@
             "type": "array"
           },
           "period_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period Id"
+            "format": "uuid",
+            "title": "Period Id",
+            "type": "string"
           },
           "posted_at": {
             "format": "date-time",
@@ -2417,6 +2365,7 @@
           "id",
           "entry_number",
           "posted_at",
+          "period_id",
           "description",
           "actor_user_id",
           "is_reversed",
@@ -5140,63 +5089,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/JournalEntryResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/JournalEntryPendingApprovalResponse"
-                    }
-                  ],
-                  "title": "Response Post Entry Api V1 Accounting Entries Post"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Post Entry",
-        "tags": [
-          "accounting"
-        ]
-      }
-    },
-    "/api/v1/accounting/entries/from-approval/{approval_request_id}": {
-      "post": {
-        "description": "Dispatch a previously approved large-journal-entry approval into a\nposted entry.\n\nPreserves the original requester as ``actor_user_id`` so audit /\nbalance attribution stays accurate. The post call sets\n``_internal_skip_approval_check=True`` — the request already passed\nthe gate when it was approved.",
-        "operationId": "post_entry_from_approval_api_v1_accounting_entries_from_approval__approval_request_id__post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "approval_request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Approval Request Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
                   "$ref": "#/components/schemas/JournalEntryResponse"
                 }
               }
@@ -5219,7 +5111,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Post Entry From Approval",
+        "summary": "Post Entry",
         "tags": [
           "accounting"
         ]
@@ -5328,6 +5220,403 @@
         "summary": "Reverse Entry",
         "tags": [
           "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods": {
+      "get": {
+        "operationId": "list_periods_api_v1_accounting_periods_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "closed",
+                    "locked"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 9999,
+                  "minimum": 1900,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Periods",
+        "tags": [
+          "accounting-periods"
+        ]
+      },
+      "post": {
+        "operationId": "create_period_api_v1_accounting_periods_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountingPeriodCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Period",
+        "tags": [
+          "accounting-periods"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{period_id}": {
+      "get": {
+        "operationId": "get_period_api_v1_accounting_periods__period_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Period",
+        "tags": [
+          "accounting-periods"
+        ]
+      },
+      "patch": {
+        "operationId": "update_period_api_v1_accounting_periods__period_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountingPeriodUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Period",
+        "tags": [
+          "accounting-periods"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{period_id}/close": {
+      "post": {
+        "operationId": "close_period_api_v1_accounting_periods__period_id__close_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Close Period",
+        "tags": [
+          "accounting-periods"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{period_id}/lock": {
+      "post": {
+        "operationId": "lock_period_api_v1_accounting_periods__period_id__lock_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lock Period",
+        "tags": [
+          "accounting-periods"
+        ]
+      }
+    },
+    "/api/v1/accounting/periods/{period_id}/reopen": {
+      "post": {
+        "operationId": "reopen_period_api_v1_accounting_periods__period_id__reopen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountingPeriodResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reopen Period",
+        "tags": [
+          "accounting-periods"
         ]
       }
     },
@@ -6147,344 +6436,6 @@
         "tags": [
           "admin",
           "admin-reference-sequences"
-        ]
-      }
-    },
-    "/api/v1/approvals": {
-      "get": {
-        "description": "List approval requests.\n\nAdmin roles (owner, bookkeeper) see all rows. Other roles see only\ntheir own requests — the service scopes the query by\n``requested_by_user_id``.",
-        "operationId": "list_approvals_api_v1_approvals_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "State"
-            }
-          },
-          {
-            "in": "query",
-            "name": "request_type",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Request Type"
-            }
-          },
-          {
-            "in": "query",
-            "name": "subject_kind",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Subject Kind"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestListResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "List Approvals",
-        "tags": [
-          "approvals"
-        ]
-      }
-    },
-    "/api/v1/approvals/{request_id}": {
-      "get": {
-        "operationId": "get_approval_api_v1_approvals__request_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Get Approval",
-        "tags": [
-          "approvals"
-        ]
-      }
-    },
-    "/api/v1/approvals/{request_id}/approve": {
-      "post": {
-        "operationId": "approve_api_v1_approvals__request_id__approve_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalActionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Approve",
-        "tags": [
-          "approvals"
-        ]
-      }
-    },
-    "/api/v1/approvals/{request_id}/cancel": {
-      "post": {
-        "description": "Cancel a pending request.\n\nAllowed for the original requester or an owner. The endpoint passes\n``actor_is_owner`` to the service rather than letting the service\nre-query user roles.",
-        "operationId": "cancel_api_v1_approvals__request_id__cancel_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalCancelRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Cancel",
-        "tags": [
-          "approvals"
-        ]
-      }
-    },
-    "/api/v1/approvals/{request_id}/reject": {
-      "post": {
-        "operationId": "reject_api_v1_approvals__request_id__reject_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalActionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "summary": "Reject",
-        "tags": [
-          "approvals"
         ]
       }
     },

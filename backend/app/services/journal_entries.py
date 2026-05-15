@@ -49,10 +49,12 @@ from sqlalchemy.orm import selectinload
 
 from app.events.types import accounting as accounting_events
 from app.models.account import Account
+from app.models.accounting_period import AccountingPeriodState
 from app.models.approval_request import ApprovalRequest
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
 from app.schemas.events import EventCreate
+from app.services import accounting_periods as periods_service
 from app.services import event_store
 from app.services.approvals import ApprovalsService
 from app.services.reference_number import ReferenceNumberService
@@ -109,6 +111,14 @@ class JournalEntryIsReversalError(JournalEntriesServiceError):
 
 class InvalidCursorError(JournalEntriesServiceError):
     pass
+
+
+class NoMatchingPeriodError(JournalEntriesServiceError):
+    """posted_at falls outside any defined accounting period."""
+
+
+class PeriodNotOpenError(JournalEntriesServiceError):
+    """The accounting period covering posted_at is closed or locked."""
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +295,21 @@ async def post(
     _validate_balanced(lines)
     await _load_and_check_accounts(session, lines)
 
+    # --- Period gating (Phase 4.3) ---
+    # Resolve the period covering the entry's business date BEFORE
+    # allocating the entry number so a rejected post doesn't consume a
+    # JE sequence value.
+    posted_date = entry_input.posted_at.date()
+    period = await periods_service.find_period_for(posted_date, session=session)
+    if period is None:
+        raise NoMatchingPeriodError(
+            f"posted_at {posted_date.isoformat()} falls outside any defined " f"accounting period"
+        )
+    if period.state != AccountingPeriodState.OPEN.value:
+        raise PeriodNotOpenError(
+            f"cannot post to period {period.name!r}: state is " f"{period.state!r} (must be 'open')"
+        )
+
     # --- Threshold gating → approval queue (Phase 4.4) ---
     if not _internal_skip_approval_check and reversal_of_entry_id is None:
         total_debits = sum((_to_decimal(line.debit) for line in lines), Decimal("0")).quantize(
@@ -325,6 +350,7 @@ async def post(
         id=entry_id,
         entry_number=entry_number,
         posted_at=entry_input.posted_at,
+        period_id=period.id,
         description=description,
         actor_user_id=actor_user_id,
         is_reversed=False,
@@ -354,7 +380,7 @@ async def post(
         "entry_id": str(entry_id),
         "entry_number": entry_number,
         "posted_at": entry_input.posted_at.isoformat(),
-        "period_id": None,
+        "period_id": str(period.id),
         "description": description,
         "source_event_id": None,
         "actor_user_id": str(actor_user_id),
@@ -543,6 +569,8 @@ __all__ = [
     "JournalEntryUnbalancedError",
     "JournalLineInput",
     "JournalLineInvalidError",
+    "NoMatchingPeriodError",
+    "PeriodNotOpenError",
     "get",
     "list_entries",
     "post",

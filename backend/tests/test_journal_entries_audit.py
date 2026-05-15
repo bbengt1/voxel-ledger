@@ -29,7 +29,18 @@ async def _setup(client: AsyncClient, session: AsyncSession) -> dict[str, str]:
         "/api/v1/auth/login",
         json={"email": "owner@example.com", "password": "pw-correct"},
     )
-    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    # Phase 4.3: posts require a covering open period.
+    await client.post(
+        "/api/v1/accounting/periods",
+        headers=headers,
+        json={
+            "name": "test-current",
+            "start_date": "2000-01-01",
+            "end_date": "2100-12-31",
+        },
+    )
+    return headers
 
 
 @pytest.mark.asyncio
