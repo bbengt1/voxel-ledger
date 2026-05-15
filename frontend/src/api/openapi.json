@@ -6595,6 +6595,197 @@
         "title": "Role",
         "type": "string"
       },
+      "SaleCogsBreakdownResponse": {
+        "description": "Result of ``GET /api/v1/sales/{id}/cogs-preview``.",
+        "properties": {
+          "channel_fee_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Channel Fee Amount",
+            "type": "string"
+          },
+          "discount_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Amount",
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/SaleCogsLineResponse"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "sale_id": {
+            "format": "uuid",
+            "title": "Sale Id",
+            "type": "string"
+          },
+          "sale_number": {
+            "title": "Sale Number",
+            "type": "string"
+          },
+          "shipping_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Shipping Amount",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "draft",
+              "confirmed",
+              "fulfilled",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "subtotal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Subtotal",
+            "type": "string"
+          },
+          "tax_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tax Amount",
+            "type": "string"
+          },
+          "total_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "total_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cost",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sale_id",
+          "sale_number",
+          "state",
+          "subtotal",
+          "discount_amount",
+          "shipping_amount",
+          "tax_amount",
+          "channel_fee_amount",
+          "total_amount",
+          "total_cost"
+        ],
+        "title": "SaleCogsBreakdownResponse",
+        "type": "object"
+      },
+      "SaleCogsConsumptionResponse": {
+        "description": "One slice taken from a single FIFO lot.",
+        "properties": {
+          "lot_id": {
+            "format": "uuid",
+            "title": "Lot Id",
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "unit_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unit Cost",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lot_id",
+          "quantity",
+          "unit_cost"
+        ],
+        "title": "SaleCogsConsumptionResponse",
+        "type": "object"
+      },
+      "SaleCogsLineResponse": {
+        "description": "Per-line COGS breakdown.",
+        "properties": {
+          "consumption": {
+            "items": {
+              "$ref": "#/components/schemas/SaleCogsConsumptionResponse"
+            },
+            "title": "Consumption",
+            "type": "array"
+          },
+          "cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cost",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "extended_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Extended Amount",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "kind": {
+            "enum": [
+              "product",
+              "job",
+              "manual"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "line_number": {
+            "title": "Line Number",
+            "type": "integer"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "quantity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "unit_price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unit Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "line_number",
+          "kind",
+          "description",
+          "quantity",
+          "unit_price",
+          "extended_amount",
+          "cost"
+        ],
+        "title": "SaleCogsLineResponse",
+        "type": "object"
+      },
       "SaleCreate": {
         "properties": {
           "channel_id": {
@@ -17448,6 +17639,55 @@
           }
         ],
         "summary": "Cancel Sale",
+        "tags": [
+          "sales"
+        ]
+      }
+    },
+    "/api/v1/sales/{sale_id}/cogs-preview": {
+      "get": {
+        "description": "Return the FIFO COGS breakdown for ``sale_id`` (no writes).",
+        "operationId": "get_sale_cogs_preview_api_v1_sales__sale_id__cogs_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sale_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sale Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleCogsBreakdownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Sale Cogs Preview",
         "tags": [
           "sales"
         ]

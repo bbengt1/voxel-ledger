@@ -131,3 +131,38 @@ register_event(TYPE_SALE_UPDATED, SaleUpdatedPayload)
 register_event(TYPE_SALE_CONFIRMED, SaleConfirmedPayload)
 register_event(TYPE_SALE_FULFILLED, SaleFulfilledPayload)
 register_event(TYPE_SALE_CANCELLED, SaleCancelledPayload)
+
+
+# --- Sales posting trail (Phase 6.3) ----------------------------------------
+#
+# Emitted right AFTER SaleConfirmed / SaleCancelled by SalesService.confirm /
+# cancel once the COGS service has fully posted (or reversed) the inventory
+# and journal-entry side effects. The payloads carry the new audit traceable
+# IDs (journal entry, inventory transactions) so the audit log can link a
+# sale to its accounting + inventory footprint without re-querying.
+#
+# No PII surfaces here: sale_number + total_amount + ids only.
+
+
+class SalePostedPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+    journal_entry_id: uuid.UUID
+    inventory_transaction_ids: list[uuid.UUID]
+    total_amount: str
+
+
+class SaleReversedPayload(_SalesPayloadBase):
+    sale_id: uuid.UUID
+    sale_number: str
+    reversing_journal_entry_id: uuid.UUID
+    original_journal_entry_id: uuid.UUID
+    inventory_transaction_ids: list[uuid.UUID]
+
+
+TYPE_SALE_POSTED = "sales.SalePosted"
+TYPE_SALE_REVERSED = "sales.SaleReversed"
+
+
+register_event(TYPE_SALE_POSTED, SalePostedPayload)
+register_event(TYPE_SALE_REVERSED, SaleReversedPayload)

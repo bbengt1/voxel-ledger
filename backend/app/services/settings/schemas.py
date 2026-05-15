@@ -243,6 +243,63 @@ class JournalEntryApprovalThreshold(SettingSchema):
 
 
 @register
+class SalesPostingCogsAccountId(SettingSchema):
+    """Default COGS expense account for sale-confirm postings (Phase 6.3, #95).
+
+    Debited for the total FIFO cost of all product/job lines on a sale.
+    Optional — if unset, ``CogsService.post_for_sale`` raises
+    ``MissingSalesPostingAccountError`` with a clear "configure default
+    sales-posting accounts" message.
+    """
+
+    key: ClassVar[str] = "sales_posting.cogs_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class SalesPostingSalesTaxPayableAccountId(SettingSchema):
+    """Default sales-tax-payable liability account (Phase 6.3, #95).
+
+    Credited for the sale's ``tax_amount`` at confirm time. Only required
+    when a sale carries non-zero tax.
+    """
+
+    key: ClassVar[str] = "sales_posting.sales_tax_payable_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class SalesPostingDefaultArAccountId(SettingSchema):
+    """Default accounts-receivable asset account (Phase 6.3, #95).
+
+    Debited for the sale's gross ``total_amount`` at confirm time when
+    the operator hasn't yet implemented per-channel cash/AR routing.
+    The Phase 6.4 payment-method work will refine this.
+    """
+
+    key: ClassVar[str] = "sales_posting.default_ar_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class SalesPostingDefaultCashAccountId(SettingSchema):
+    """Default cash asset account (Phase 6.3, #95).
+
+    Currently unused by the confirm path (AR is the default debit target)
+    but registered alongside the other sales-posting keys so the registry
+    surface is complete and the Phase 6.4 POS / payment flow can read it
+    without an additional settings migration.
+    """
+
+    key: ClassVar[str] = "sales_posting.default_cash_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class RefundApprovalThreshold(SettingSchema):
     """USD threshold above which a refund routes to the approval queue
     (Phase 4.4, #67 — Phase 6 consumes this).

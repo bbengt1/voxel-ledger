@@ -1,8 +1,14 @@
-"""Shared helpers for sales tests (Phase 6.2, #94)."""
+"""Shared helpers for sales tests (Phase 6.2, #94).
+
+Phase 6.3 (#95) extended the helpers with a ``seed_posting_defaults``
+helper that registers default GL accounts + an open accounting period so
+tests that confirm a sale don't have to repeat the boilerplate.
+"""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from app.models.auth import Role
@@ -58,6 +64,8 @@ async def seed_channel(
     fee_model: str = "percent",
     fee_percent: str | None = "0.05",
     fee_flat: str | None = None,
+    default_revenue_account_id: uuid.UUID | None = None,
+    default_fee_account_id: uuid.UUID | None = None,
 ):
     channel = await channels_service.create(
         session,
@@ -67,10 +75,99 @@ async def seed_channel(
         fee_model=fee_model,
         fee_percent=Decimal(fee_percent) if fee_percent else None,
         fee_flat=Decimal(fee_flat) if fee_flat else None,
+        default_revenue_account_id=default_revenue_account_id,
+        default_fee_account_id=default_fee_account_id,
         actor_user_id=None,
     )
     await session.commit()
     return channel
+
+
+async def seed_posting_defaults(
+    session: AsyncSession,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+):
+    """Seed all GL accounts + settings + open accounting period needed
+    to confirm a sale through the Phase 6.3 COGS service.
+
+    Returns a dict of created entity IDs so tests can target specific
+    accounts:
+
+        {
+          "cogs_account_id": ...,
+          "ar_account_id": ...,
+          "revenue_account_id": ...,
+          "tax_account_id": ...,
+          "fee_account_id": ...,
+          "inventory_account_id": ...,
+          "channel_id": ...,
+        }
+    """
+    from app.models.account import Account
+    from app.models.accounting_period import AccountingPeriod, AccountingPeriodState
+    from app.services.settings.service import SettingsService
+
+    today = datetime.now(UTC).date()
+    existing_period = await session.execute(
+        # local import to avoid top-level overhead
+        __import__("sqlalchemy").select(AccountingPeriod).limit(1)
+    )
+    if existing_period.scalar_one_or_none() is None:
+        session.add(
+            AccountingPeriod(
+                id=uuid.uuid4(),
+                name="phase63-test-period",
+                start_date=today - timedelta(days=30),
+                end_date=today + timedelta(days=30),
+                state=AccountingPeriodState.OPEN.value,
+            )
+        )
+
+    inventory_account = Account(id=uuid.uuid4(), code="1300", name="Inventory", type="asset")
+    cogs_account = Account(
+        id=uuid.uuid4(),
+        code="5100",
+        name="Cost of Goods Sold",
+        type="expense",
+        parent_account_id=inventory_account.id,
+    )
+    ar_account = Account(id=uuid.uuid4(), code="1200", name="AR", type="asset")
+    revenue_account = Account(id=uuid.uuid4(), code="4000", name="Revenue", type="revenue")
+    tax_account = Account(id=uuid.uuid4(), code="2200", name="Sales Tax Payable", type="liability")
+    fee_account = Account(id=uuid.uuid4(), code="5200", name="Channel Fees", type="expense")
+    session.add_all(
+        [inventory_account, cogs_account, ar_account, revenue_account, tax_account, fee_account]
+    )
+    await session.flush()
+
+    await SettingsService.set(
+        "sales_posting.cogs_account_id",
+        cogs_account.id,
+        session=session,
+        actor_user_id=actor_user_id,
+    )
+    await SettingsService.set(
+        "sales_posting.default_ar_account_id",
+        ar_account.id,
+        session=session,
+        actor_user_id=actor_user_id,
+    )
+    await SettingsService.set(
+        "sales_posting.sales_tax_payable_account_id",
+        tax_account.id,
+        session=session,
+        actor_user_id=actor_user_id,
+    )
+    await session.commit()
+    return {
+        "inventory_account_id": inventory_account.id,
+        "cogs_account_id": cogs_account.id,
+        "ar_account_id": ar_account.id,
+        "revenue_account_id": revenue_account.id,
+        "tax_account_id": tax_account.id,
+        "fee_account_id": fee_account.id,
+    }
 
 
 def sample_sale_body(*, channel_id: str, items: list[dict] | None = None, **extra) -> dict:

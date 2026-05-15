@@ -1,0 +1,129 @@
+"""COGS handling of ``kind=job`` sale lines (Phase 6.3, #95).
+
+Confirming a job-line sale must:
+
+* derive the line's cost basis from the job's recorded run cost
+  (cost-engine snapshot) — NOT from the FIFO inventory ledger,
+* NOT emit a ``sale_consumption`` inventory transaction (jobs feed
+  inventory at production time, not at sale time),
+* still post the journal entry with COGS / AR / Revenue.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import UTC, datetime
+from decimal import Decimal
+
+import pytest
+from app.models.inventory_transaction import (
+    KIND_SALE_CONSUMPTION,
+    InventoryTransaction,
+)
+from app.models.job import JobState
+from app.models.journal_entry import JournalEntry
+from app.services import jobs as jobs_service
+from app.services import products as products_service
+from app.services import sales as sales_service
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from tests._sales_helpers import (
+    seed_channel,
+    seed_posting_defaults,
+    seed_user,
+)
+
+
+@pytest.mark.asyncio
+async def test_job_line_costs_from_job_no_inventory_consumption(
+    app_session: AsyncSession,
+) -> None:
+    user = await seed_user(app_session)
+    defaults = await seed_posting_defaults(app_session, actor_user_id=user.id)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
+
+    # Minimal job: one product, no plates → cost-engine returns zero
+    # cost. That's still a legitimate cost basis for Phase 6.3; the
+    # important assertion below is "no inventory transaction was
+    # emitted for the job line, AND the journal entry still posts".
+    product = await products_service.create(
+        app_session,
+        name="Jobbed widget",
+        description=None,
+        unit_price=Decimal("50.00"),
+        sku=f"PRD-{uuid.uuid4().hex[:6]}",
+        actor_user_id=None,
+    )
+    job = await jobs_service.create(
+        app_session,
+        product_id=product.id,
+        quantity_ordered=1,
+        plates=[
+            jobs_service.PlateInput(
+                name="P1",
+                plate_number=1,
+                parts_per_set=1,
+                print_minutes=0,
+                print_grams_by_material={},
+                print_hours_setup_minutes=0,
+                assigned_printer_ids=[],
+            )
+        ],
+        actor_user_id=user.id,
+    )
+    await app_session.commit()
+
+    sale = await sales_service.create_draft(
+        app_session,
+        channel_id=channel.id,
+        external_order_id=None,
+        customer_name="C",
+        customer_email=None,
+        occurred_at=datetime.now(UTC),
+        items=[
+            {
+                "kind": "job",
+                "job_id": str(job.id),
+                "description": "Custom run",
+                "quantity": "1",
+                "unit_price": "50.00",
+            }
+        ],
+        actor_user_id=user.id,
+    )
+    await app_session.commit()
+
+    await sales_service.confirm(app_session, sale_id=sale.id, actor_user_id=user.id)
+    await app_session.commit()
+
+    # No sale_consumption inventory transaction for this sale.
+    rows = (
+        (
+            await app_session.execute(
+                select(InventoryTransaction)
+                .where(InventoryTransaction.linked_sale_id == sale.id)
+                .where(InventoryTransaction.kind == KIND_SALE_CONSUMPTION)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert rows == []
+
+    # Journal entry still posted (revenue + AR even with zero cost).
+    je = (
+        await app_session.execute(
+            select(JournalEntry).where(
+                JournalEntry.description == f"Sale {sale.sale_number}: posting"
+            )
+        )
+    ).scalar_one()
+    assert je is not None
+    assert job.state == JobState.DRAFT  # sanity — the job stays untouched

@@ -9,7 +9,7 @@ import pytest
 from app.services import sales as sales_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._sales_helpers import seed_channel, seed_user
+from tests._sales_helpers import seed_channel, seed_posting_defaults, seed_user
 
 
 def _items(*pairs: tuple[str, str]) -> list[dict]:
@@ -105,8 +105,14 @@ async def test_channel_fee_snapshot_does_not_recompute_on_confirm(
 ) -> None:
     """Confirming a sale must NOT recompute the channel fee (operator-side)."""
     user = await seed_user(app_session)
+    defaults = await seed_posting_defaults(app_session, actor_user_id=user.id)
     channel = await seed_channel(
-        app_session, fee_model="percent", fee_percent="0.05", fee_flat=None
+        app_session,
+        fee_model="percent",
+        fee_percent="0.05",
+        fee_flat=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
     )
     sale = await sales_service.create_draft(
         app_session,

@@ -22,7 +22,7 @@ from app.projections.audit.summaries import render_summary
 from app.services import sales as sales_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._sales_helpers import seed_channel, seed_user
+from tests._sales_helpers import seed_channel, seed_posting_defaults, seed_user
 
 
 def test_all_five_event_types_are_registered() -> None:
@@ -183,7 +183,14 @@ async def test_events_flow_through_to_audit_log(app_session: AsyncSession) -> No
     from sqlalchemy import select
 
     user = await seed_user(app_session)
-    channel = await seed_channel(app_session, fee_model="none", fee_percent=None)
+    defaults = await seed_posting_defaults(app_session, actor_user_id=user.id)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
     sale = await sales_service.create_draft(
         app_session,
         channel_id=channel.id,
