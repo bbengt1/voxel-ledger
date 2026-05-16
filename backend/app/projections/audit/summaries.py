@@ -1035,3 +1035,50 @@ register_summary(sales_events.TYPE_REFUND_APPROVED, _refund_approved)
 register_summary(sales_events.TYPE_REFUND_REJECTED, _refund_rejected)
 register_summary(sales_events.TYPE_REFUND_POSTED, _refund_posted)
 register_summary(sales_events.TYPE_REFUND_CANCELLED, _refund_cancelled)
+
+
+# --- POS carts (Phase 6.4) ---
+
+
+def _pos_cart_opened(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} opened POS cart {payload.get('cart_id', '?')}"
+
+
+def _pos_line_added(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added line {payload.get('line_number', '?')} to POS cart "
+        f"{payload.get('cart_id', '?')}"
+    )
+
+
+def _pos_line_updated(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} updated line {payload.get('line_number', '?')} on POS cart "
+        f"{payload.get('cart_id', '?')}"
+    )
+
+
+def _pos_line_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed line {payload.get('line_number', '?')} from POS cart "
+        f"{payload.get('cart_id', '?')}"
+    )
+
+
+def _pos_cart_checked_out(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} checked out POS cart {payload.get('cart_id', '?')} "
+        f"(sale {payload.get('sale_number', '?')}, total {payload.get('total', '?')})"
+    )
+
+
+def _pos_cart_voided(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} voided POS cart {payload.get('cart_id', '?')}"
+
+
+register_summary(sales_events.TYPE_POS_CART_OPENED, _pos_cart_opened)
+register_summary(sales_events.TYPE_POS_LINE_ADDED, _pos_line_added)
+register_summary(sales_events.TYPE_POS_LINE_UPDATED, _pos_line_updated)
+register_summary(sales_events.TYPE_POS_LINE_REMOVED, _pos_line_removed)
+register_summary(sales_events.TYPE_POS_CART_CHECKED_OUT, _pos_cart_checked_out)
+register_summary(sales_events.TYPE_POS_CART_VOIDED, _pos_cart_voided)

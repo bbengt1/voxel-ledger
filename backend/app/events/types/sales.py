@@ -21,6 +21,7 @@ from app.events.registry import register_event
 
 AGGREGATE_TYPE_SALES_CHANNEL: str = "sales_channel"
 AGGREGATE_TYPE_SALE: str = "sale"
+AGGREGATE_TYPE_POS_CART: str = "pos_cart"
 
 
 class _SalesPayloadBase(BaseModel):
@@ -236,3 +237,66 @@ register_event(TYPE_REFUND_APPROVED, RefundApprovedPayload)
 register_event(TYPE_REFUND_REJECTED, RefundRejectedPayload)
 register_event(TYPE_REFUND_POSTED, RefundPostedPayload)
 register_event(TYPE_REFUND_CANCELLED, RefundCancelledPayload)
+
+
+# --- POS carts (Phase 6.4) --------------------------------------------------
+#
+# CRITICAL: ``customer_email`` MUST NEVER be whitelisted into the audit
+# excerpt. The payload may carry it (so the cart can be reconstructed) but
+# the audit excerpts.py whitelist intentionally surfaces only cart_id,
+# channel_id, line_number, total — no PII.
+
+
+class PosCartOpenedPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    channel_id: uuid.UUID
+    cashier_user_id: uuid.UUID
+
+
+class PosLineAddedPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    line_number: int
+    product_id: uuid.UUID | None = None
+    sku: str | None = None
+    quantity: str
+    unit_price: str
+
+
+class PosLineUpdatedPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    line_number: int
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class PosLineRemovedPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    line_number: int
+
+
+class PosCartCheckedOutPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    channel_id: uuid.UUID
+    sale_id: uuid.UUID
+    sale_number: str
+    total: str
+
+
+class PosCartVoidedPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+
+
+TYPE_POS_CART_OPENED = "sales.PosCartOpened"
+TYPE_POS_LINE_ADDED = "sales.PosLineAdded"
+TYPE_POS_LINE_UPDATED = "sales.PosLineUpdated"
+TYPE_POS_LINE_REMOVED = "sales.PosLineRemoved"
+TYPE_POS_CART_CHECKED_OUT = "sales.PosCartCheckedOut"
+TYPE_POS_CART_VOIDED = "sales.PosCartVoided"
+
+
+register_event(TYPE_POS_CART_OPENED, PosCartOpenedPayload)
+register_event(TYPE_POS_LINE_ADDED, PosLineAddedPayload)
+register_event(TYPE_POS_LINE_UPDATED, PosLineUpdatedPayload)
+register_event(TYPE_POS_LINE_REMOVED, PosLineRemovedPayload)
+register_event(TYPE_POS_CART_CHECKED_OUT, PosCartCheckedOutPayload)
+register_event(TYPE_POS_CART_VOIDED, PosCartVoidedPayload)

@@ -30,6 +30,7 @@ from app.api.v1.jobs import router as jobs_router
 from app.api.v1.journal_entries import router as journal_entries_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
+from app.api.v1.pos import router as pos_router
 from app.api.v1.printer_state import router as printer_state_router
 from app.api.v1.printers import router as printers_router
 from app.api.v1.production_orders import router as production_orders_router
@@ -77,4 +78,5 @@ api_router.include_router(rates_router)
 api_router.include_router(sales_channels_router)
 api_router.include_router(sales_router)
 api_router.include_router(refunds_router)
+api_router.include_router(pos_router)
 api_router.include_router(supplies_router)

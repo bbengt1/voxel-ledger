@@ -37,6 +37,12 @@ from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
 from app.models.plate import Plate
+from app.models.pos_cart import (
+    POS_CART_STATE_VALUES,
+    PosCart,
+    PosCartItem,
+    PosCartState,
+)
 from app.models.printer import PRINTER_TYPE_VALUES, Printer, PrinterType
 from app.models.printer_history_event import (
     PRINTER_EVENT_KIND_VALUES,
@@ -120,6 +126,10 @@ __all__ = [
     "PRINTER_EVENT_KIND_VALUES",
     "PRINTER_TYPE_VALUES",
     "Plate",
+    "POS_CART_STATE_VALUES",
+    "PosCart",
+    "PosCartItem",
+    "PosCartState",
     "Printer",
     "PrinterEventKind",
     "PrinterHistoryEvent",
