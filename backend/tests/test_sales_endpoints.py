@@ -158,6 +158,45 @@ async def test_update_after_confirm_is_blocked(
 
 
 @pytest.mark.asyncio
+async def test_posting_journal_entry_id_exposed_on_response(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    """Contract: SaleResponse.posting_journal_entry_id is null on draft
+    and populated after confirm. Phase 6.3 follow-up — surfacing the FK
+    on the OpenAPI contract so the UI doesn't have to defensive-cast.
+    """
+    defaults = await seed_posting_defaults(app_session)
+    channel = await seed_channel(
+        app_session,
+        fee_model="none",
+        fee_percent=None,
+        default_revenue_account_id=defaults["revenue_account_id"],
+        default_fee_account_id=defaults["fee_account_id"],
+    )
+    owner = await token_for(Role.OWNER, client, app_session)
+    create = await client.post(
+        "/api/v1/sales",
+        headers=auth_header(owner),
+        json=sample_sale_body(channel_id=str(channel.id)),
+    )
+    assert create.status_code == 201, create.text
+    body = create.json()
+    assert "posting_journal_entry_id" in body
+    assert body["posting_journal_entry_id"] is None
+
+    sale_id = body["id"]
+    confirm = await client.post(f"/api/v1/sales/{sale_id}/confirm", headers=auth_header(owner))
+    assert confirm.status_code == 200, confirm.json()
+    confirmed = confirm.json()
+    assert confirmed["state"] == "confirmed"
+    assert confirmed["posting_journal_entry_id"] is not None
+    # And it round-trips through GET.
+    got = await client.get(f"/api/v1/sales/{sale_id}", headers=auth_header(owner))
+    assert got.status_code == 200
+    assert got.json()["posting_journal_entry_id"] == confirmed["posting_journal_entry_id"]
+
+
+@pytest.mark.asyncio
 async def test_state_machine_draft_confirmed_fulfilled(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:

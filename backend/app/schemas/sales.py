@@ -111,6 +111,9 @@ class SaleResponse(BaseModel):
     created_by_user_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    # Populated after the sale is confirmed (Phase 6.3 posting). Null on
+    # draft/cancelled.
+    posting_journal_entry_id: uuid.UUID | None = None
     items: list[SaleItemResponse] = Field(default_factory=list)
 
 

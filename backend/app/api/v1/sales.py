@@ -73,6 +73,7 @@ def _to_response(sale: Sale) -> SaleResponse:
         created_by_user_id=sale.created_by_user_id,
         created_at=sale.created_at,
         updated_at=sale.updated_at,
+        posting_journal_entry_id=sale.posting_journal_entry_id,
         items=[_to_item(i) for i in sorted(sale.items, key=lambda x: x.line_number)],
     )
 
