@@ -140,6 +140,38 @@ class ApprovalRequestPage:
 
 
 # ---------------------------------------------------------------------------
+# Subject resolver registry (Phase 4.4 / Phase 6.5)
+# ---------------------------------------------------------------------------
+#
+# Generic mapping from ``subject_kind`` to a loader. Consumers (the
+# refunds service in Phase 6.5, plus any future module that gates on
+# approvals) call ``register_subject_resolver(kind, fn)`` at import
+# time. The approvals API surface uses these to optionally hydrate the
+# subject row when serving an ApprovalRequest. Nothing is load-bearing
+# yet — approval routes do not require a resolver — but the registry is
+# the agreed integration point.
+
+from collections.abc import Awaitable, Callable  # noqa: E402
+
+SubjectResolver = Callable[[uuid.UUID, AsyncSession], Awaitable[Any]]
+_SUBJECT_RESOLVERS: dict[str, SubjectResolver] = {}
+
+
+def register_subject_resolver(subject_kind: str, fn: SubjectResolver) -> None:
+    """Register a loader for ``subject_kind``.
+
+    Re-registration is allowed (test re-imports). Loaders take
+    ``(subject_id, session)`` and return whatever ORM row represents
+    the subject (or raise if not found).
+    """
+    _SUBJECT_RESOLVERS[subject_kind] = fn
+
+
+def get_subject_resolver(subject_kind: str) -> SubjectResolver | None:
+    return _SUBJECT_RESOLVERS.get(subject_kind)
+
+
+# ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
 
@@ -390,4 +422,7 @@ __all__ = [
     "ApprovalsServiceError",
     "InvalidCursorError",
     "SelfApprovalError",
+    "SubjectResolver",
+    "get_subject_resolver",
+    "register_subject_resolver",
 ]

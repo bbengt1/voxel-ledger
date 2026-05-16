@@ -654,3 +654,31 @@ register_excerpt_fields(
         "original_journal_entry_id",
     ),
 )
+
+
+# --- Sales: refunds (Phase 6.5) ---
+#
+# CRITICAL: ``notes`` and any customer-email-shaped field MUST NEVER be
+# whitelisted here. Refund payloads carry the operator's free-text notes
+# (needed for replay) but those are never surfaced in the audit
+# denormalization.
+register_excerpt_fields(
+    sales_events.TYPE_REFUND_CREATED,
+    ("refund_number", "sale_id", "total_amount", "reason_code"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_REFUND_APPROVED,
+    ("refund_number", "sale_id", "total_amount", "reason_code"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_REFUND_REJECTED,
+    ("refund_number", "sale_id"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_REFUND_POSTED,
+    ("refund_number", "sale_id", "total_amount", "reason_code"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_REFUND_CANCELLED,
+    ("refund_number", "sale_id"),
+)

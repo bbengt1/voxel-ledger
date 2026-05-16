@@ -166,3 +166,73 @@ TYPE_SALE_REVERSED = "sales.SaleReversed"
 
 register_event(TYPE_SALE_POSTED, SalePostedPayload)
 register_event(TYPE_SALE_REVERSED, SaleReversedPayload)
+
+
+# --- Refunds (Phase 6.5) ----------------------------------------------------
+#
+# Refund payloads carry ``reason_code`` and ``refund_number`` plus ID
+# references — never ``notes`` (operator free-text) and never any
+# customer-email field (which doesn't appear here at all since refunds
+# always reference a sale_id).
+
+AGGREGATE_TYPE_REFUND: str = "refund"
+
+
+class RefundCreatedPayload(_SalesPayloadBase):
+    refund_id: uuid.UUID
+    refund_number: str
+    sale_id: uuid.UUID
+    kind: str
+    state: str
+    total_amount: str
+    restock_inventory: bool
+    reason_code: str
+    notes: str | None = None
+    approval_request_id: uuid.UUID | None = None
+    items: list[dict[str, Any]]
+
+
+class RefundApprovedPayload(_SalesPayloadBase):
+    refund_id: uuid.UUID
+    refund_number: str
+    sale_id: uuid.UUID
+    total_amount: str
+    reason_code: str
+    approved_by_user_id: uuid.UUID
+
+
+class RefundRejectedPayload(_SalesPayloadBase):
+    refund_id: uuid.UUID
+    refund_number: str
+    sale_id: uuid.UUID
+    rejected_by_user_id: uuid.UUID
+
+
+class RefundPostedPayload(_SalesPayloadBase):
+    refund_id: uuid.UUID
+    refund_number: str
+    sale_id: uuid.UUID
+    total_amount: str
+    reason_code: str
+    reversing_journal_entry_id: uuid.UUID | None = None
+    inventory_transaction_ids: list[uuid.UUID]
+
+
+class RefundCancelledPayload(_SalesPayloadBase):
+    refund_id: uuid.UUID
+    refund_number: str
+    sale_id: uuid.UUID
+
+
+TYPE_REFUND_CREATED = "sales.RefundCreated"
+TYPE_REFUND_APPROVED = "sales.RefundApproved"
+TYPE_REFUND_REJECTED = "sales.RefundRejected"
+TYPE_REFUND_POSTED = "sales.RefundPosted"
+TYPE_REFUND_CANCELLED = "sales.RefundCancelled"
+
+
+register_event(TYPE_REFUND_CREATED, RefundCreatedPayload)
+register_event(TYPE_REFUND_APPROVED, RefundApprovedPayload)
+register_event(TYPE_REFUND_REJECTED, RefundRejectedPayload)
+register_event(TYPE_REFUND_POSTED, RefundPostedPayload)
+register_event(TYPE_REFUND_CANCELLED, RefundCancelledPayload)

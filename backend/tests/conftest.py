@@ -49,6 +49,18 @@ def _reset_login_limiter() -> Iterator[None]:
     reset_login_limiter()
 
 
+@pytest.fixture(autouse=True)
+def _reset_settings_cache() -> Iterator[None]:
+    """Settings cache is a module-level singleton with a 5s TTL; clear
+    between tests so a setting written by test A doesn't leak into test B
+    via cached value."""
+    from app.services.settings.cache import get_cache
+
+    get_cache().clear()
+    yield
+    get_cache().clear()
+
+
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
