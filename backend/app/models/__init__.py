@@ -16,6 +16,14 @@ from app.models.approval_request import (
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
+from app.models.bill import (
+    BILL_ITEM_KIND_VALUES,
+    BILL_STATE_VALUES,
+    Bill,
+    BillItem,
+    BillItemKind,
+    BillState,
+)
 from app.models.budget import Budget
 from app.models.camera import CAMERA_KIND_VALUES, Camera, CameraKind
 from app.models.credit_note import (
@@ -171,7 +179,13 @@ __all__ = [
     "ApprovalState",
     "Attachment",
     "AuditLog",
+    "BILL_ITEM_KIND_VALUES",
+    "BILL_STATE_VALUES",
     "Base",
+    "Bill",
+    "BillItem",
+    "BillItemKind",
+    "BillState",
     "Budget",
     "CAMERA_KIND_VALUES",
     "CUSTOM_FIELD_ENTITY_TYPES",

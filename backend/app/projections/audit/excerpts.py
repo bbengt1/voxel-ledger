@@ -1066,3 +1066,48 @@ register_excerpt_fields(
     ap_events.TYPE_VENDOR_CONTACT_REMOVED,
     ("contact_id",),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: bills (Phase 8.2, #129)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` and ``billing_address_snapshot`` MUST NEVER be
+# whitelisted here. The payload carries them so replay can reconstruct
+# the bill, but the audit denormalization keeps strictly to
+# ``bill_number``, ``vendor_id``, ``total_amount``, and ``due_at``.
+
+register_excerpt_fields(
+    ap_events.TYPE_BILL_CREATED,
+    ("bill_number", "vendor_id", "total_amount", "due_at", "vendor_invoice_number"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_ISSUED,
+    (
+        "bill_number",
+        "vendor_id",
+        "total_amount",
+        "due_at",
+        "journal_entry_id",
+    ),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_POSTED,
+    ("bill_number", "journal_entry_id", "total_amount"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_VOIDED,
+    ("bill_number", "vendor_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_REVERSED,
+    (
+        "bill_number",
+        "reversing_journal_entry_id",
+        "original_journal_entry_id",
+    ),
+)
