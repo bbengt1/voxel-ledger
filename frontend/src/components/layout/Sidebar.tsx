@@ -55,15 +55,12 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    // Sales group skeleton — 6.7a fills in the Sales list / Channels /
-    // Shipments entries. 6.7b appends POS + Refunds at the bottom.
     label: "Sales",
     items: [
-      { label: "Sales", href: "#sales" },
-      { label: "Channels", href: "#sales/channels" },
-      { label: "Shipments", href: "#sales/shipments" },
-      // --- 6.7b appended entries ---
+      { label: "Sales", href: "/sales" },
       { label: "POS", href: "/sales/pos" },
+      { label: "Channels", href: "/sales/channels" },
+      { label: "Shipments", href: "/sales?has_shipments=true" },
       { label: "Refunds", href: "#sales/refunds" },
     ],
   },

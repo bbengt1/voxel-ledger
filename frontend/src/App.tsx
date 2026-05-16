@@ -46,6 +46,14 @@ import { AlertsListPage } from "@/pages/inventory/AlertsList";
 import { LocationsListPage } from "@/pages/inventory/LocationsList";
 import { StartingBalancesPage } from "@/pages/inventory/StartingBalances";
 import { TransactionsListPage } from "@/pages/inventory/TransactionsList";
+// --- 6.7a sales routes ---
+import { ChannelsListPage } from "@/pages/sales/ChannelsList";
+import { SaleComposerPage } from "@/pages/sales/SaleComposer";
+import { SaleDetailPage } from "@/pages/sales/SaleDetail";
+import { SalesListPage } from "@/pages/sales/SalesList";
+import { ShipmentDetailPage } from "@/pages/sales/ShipmentDetail";
+import { ShipmentNewPage } from "@/pages/sales/ShipmentNew";
+// --- end 6.7a sales routes ---
 
 export function App() {
   return (
@@ -431,13 +439,64 @@ export function App() {
           </RequireAuth>
         }
       />
-      {/* --- 6.7b POS + refunds routes --- */}
+      {/* --- 6.7a + 6.7b sales routes --- */}
+      {/* Specific paths first; dynamic /sales/:id last. */}
+      <Route
+        path="/sales"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SalesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
       <Route
         path="/sales/pos"
         element={
           <RequireAuth>
             <AppShell>
               <PosScreenPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/channels"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ChannelsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SaleComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/refunds/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RefundDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/shipments/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ShipmentDetailPage />
             </AppShell>
           </RequireAuth>
         }
@@ -453,16 +512,26 @@ export function App() {
         }
       />
       <Route
-        path="/sales/refunds/:id"
+        path="/sales/:id/shipments/new"
         element={
           <RequireAuth>
             <AppShell>
-              <RefundDetailPage />
+              <ShipmentNewPage />
             </AppShell>
           </RequireAuth>
         }
       />
-      {/* --- /6.7b --- */}
+      <Route
+        path="/sales/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SaleDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end sales routes --- */}
       <Route
         path="/approvals"
         element={
