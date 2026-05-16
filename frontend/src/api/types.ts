@@ -1445,6 +1445,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pos/carts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open Cart */
+        post: operations["open_cart_api_v1_pos_carts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Cart */
+        get: operations["get_cart_api_v1_pos_carts__cart_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checkout */
+        post: operations["checkout_api_v1_pos_carts__cart_id__checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}/lines/{line_number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Line */
+        delete: operations["delete_line_api_v1_pos_carts__cart_id__lines__line_number__delete"];
+        options?: never;
+        head?: never;
+        /** Update Line */
+        patch: operations["update_line_api_v1_pos_carts__cart_id__lines__line_number__patch"];
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Scan */
+        post: operations["scan_api_v1_pos_carts__cart_id__scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void */
+        post: operations["void_api_v1_pos_carts__cart_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/printers": {
         parameters: {
             query?: never;
@@ -3218,6 +3321,29 @@ export interface components {
             /** Username */
             username?: string | null;
         };
+        /** CheckoutRequest */
+        CheckoutRequest: {
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name?: string | null;
+            /** Payment Method */
+            payment_method: string;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+            /** Tendered Amount */
+            tendered_amount: number | string;
+        };
+        /** CheckoutResponse */
+        CheckoutResponse: {
+            cart: components["schemas"]["PosCartResponse"];
+            /** Change Due */
+            change_due: string;
+            sale: components["schemas"]["SaleResponse"];
+        };
         /** CostBreakdownComponent */
         CostBreakdownComponent: {
             /**
@@ -3981,6 +4107,15 @@ export interface components {
             /** Memo */
             memo?: string | null;
         };
+        /** LineUpdateRequest */
+        LineUpdateRequest: {
+            /** Discount Kind */
+            discount_kind?: ("percent" | "amount") | null;
+            /** Discount Value */
+            discount_value?: number | string | null;
+            /** Quantity */
+            quantity?: number | string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -4348,6 +4483,18 @@ export interface components {
             /** Total On Hand */
             total_on_hand: string;
         };
+        /** OpenCartRequest */
+        OpenCartRequest: {
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name?: string | null;
+        };
         /**
          * ParentChainItem
          * @description Leaner shape for the parent chain — avoids recursive parent_chain
@@ -4481,6 +4628,91 @@ export interface components {
             print_hours_setup_minutes?: number | null;
             /** Print Minutes */
             print_minutes?: number | null;
+        };
+        /** PosCartItemResponse */
+        PosCartItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: string;
+            /** Discount Kind */
+            discount_kind?: ("percent" | "amount") | null;
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Sku */
+            sku?: string | null;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** PosCartResponse */
+        PosCartResponse: {
+            /** Cart Discount Amount */
+            cart_discount_amount: string;
+            /**
+             * Cashier User Id
+             * Format: uuid
+             */
+            cashier_user_id: string;
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Customer Email */
+            customer_email?: string | null;
+            /** Customer Name */
+            customer_name?: string | null;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: string;
+            /** Discount Kind */
+            discount_kind?: ("percent" | "amount") | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["PosCartItemResponse"][];
+            /** Line Discount Total */
+            line_discount_total: string;
+            /** Sale Id */
+            sale_id?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "checked_out" | "voided";
+            /** Subtotal */
+            subtotal: string;
+            /** Total */
+            total: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** PrinterCreateRequest */
         PrinterCreateRequest: {
@@ -5480,6 +5712,11 @@ export interface components {
             name?: string | null;
             /** Slug */
             slug?: string | null;
+        };
+        /** ScanRequest */
+        ScanRequest: {
+            /** Barcode */
+            barcode: string;
         };
         /**
          * SettingResponse
@@ -9101,6 +9338,239 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_cart_api_v1_pos_carts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenCartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cart_api_v1_pos_carts__cart_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    checkout_api_v1_pos_carts__cart_id__checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_line_api_v1_pos_carts__cart_id__lines__line_number__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+                line_number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_line_api_v1_pos_carts__cart_id__lines__line_number__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+                line_number: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LineUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_api_v1_pos_carts__cart_id__scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    void_api_v1_pos_carts__cart_id__void_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
                 };
             };
             /** @description Validation Error */
