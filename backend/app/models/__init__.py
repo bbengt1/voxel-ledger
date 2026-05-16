@@ -18,6 +18,14 @@ from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
 from app.models.budget import Budget
 from app.models.camera import CAMERA_KIND_VALUES, Camera, CameraKind
+from app.models.credit_note import (
+    CREDIT_NOTE_STATE_VALUES,
+    DEBIT_NOTE_STATE_VALUES,
+    CreditNote,
+    CreditNoteState,
+    DebitNote,
+    DebitNoteState,
+)
 from app.models.custom_field import (
     CUSTOM_FIELD_ENTITY_TYPES,
     CustomField,
@@ -30,6 +38,12 @@ from app.models.customer import (
     Customer,
     CustomerContact,
     CustomerState,
+)
+from app.models.customer_credit import (
+    CUSTOMER_CREDIT_KIND_VALUES,
+    CustomerCreditBalance,
+    CustomerCreditKind,
+    CustomerCreditTransaction,
 )
 from app.models.division import Division
 from app.models.event import Event
@@ -50,6 +64,14 @@ from app.models.journal_line import JournalLine
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
+from app.models.payment import (
+    PAYMENT_METHOD_VALUES,
+    PAYMENT_STATE_VALUES,
+    Payment,
+    PaymentApplication,
+    PaymentMethod,
+    PaymentState,
+)
 from app.models.plate import Plate
 from app.models.pos_cart import (
     POS_CART_STATE_VALUES,
@@ -142,12 +164,28 @@ __all__ = [
     "InventoryLocationKind",
     "InventoryOnHand",
     "InventoryTransaction",
+    "CREDIT_NOTE_STATE_VALUES",
+    "CUSTOMER_CREDIT_KIND_VALUES",
+    "CreditNote",
+    "CreditNoteState",
+    "CustomerCreditBalance",
+    "CustomerCreditKind",
+    "CustomerCreditTransaction",
+    "DEBIT_NOTE_STATE_VALUES",
+    "DebitNote",
+    "DebitNoteState",
     "INVOICE_ITEM_KIND_VALUES",
     "INVOICE_STATE_VALUES",
     "Invoice",
     "InvoiceItem",
     "InvoiceItemKind",
     "InvoiceState",
+    "PAYMENT_METHOD_VALUES",
+    "PAYMENT_STATE_VALUES",
+    "Payment",
+    "PaymentApplication",
+    "PaymentMethod",
+    "PaymentState",
     "JOB_STATE_VALUES",
     "Job",
     "JobState",

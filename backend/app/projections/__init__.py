@@ -12,6 +12,7 @@ Importing the package side-effects each handler module into the registry
 from app.projections import (
     account_balance,  # noqa: F401
     audit,  # noqa: F401
+    customer_credit,  # noqa: F401
     inventory_on_hand,  # noqa: F401
     material_cost,  # noqa: F401
     product_cost,  # noqa: F401

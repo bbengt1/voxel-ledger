@@ -933,6 +933,24 @@ async def void(
     paid invoice is illegal (issue a refund / credit memo instead).
     If ``amount_paid > 0`` we raise ``InvoiceHasPaymentsError`` and
     point at Phase 7.4's unapply flow.
+
+    Operator workflow when payments are attached
+    --------------------------------------------
+    Phase 7.4 (#112) lands the ``payments`` service. To void an invoice
+    that has ``amount_paid > 0`` the operator must:
+
+    1. List the payments touching this invoice (each
+       ``payment_application`` row links a payment to this invoice).
+    2. ``POST /api/v1/payments/{id}/unapply`` for each payment that
+       references this invoice. The unapply restores
+       ``amount_outstanding`` and removes the application row.
+    3. Then call ``POST /api/v1/invoices/{id}/void``.
+
+    We deliberately do NOT auto-cascade the unapply — the operator must
+    decide whether to refund those payments to the customer, leave them
+    pending for re-application to another invoice, or mark them
+    bounced. The same-TX void invariant is preserved by raising before
+    we touch anything.
     """
     invoice = await _load(session, invoice_id)
     _ensure_transition(invoice.state, InvoiceState.VOID)

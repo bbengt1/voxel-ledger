@@ -32,6 +32,12 @@ from app.api.v1.jobs import router as jobs_router
 from app.api.v1.journal_entries import router as journal_entries_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
+from app.api.v1.payments import (
+    credit_notes_router,
+    customers_credit_router,
+    debit_notes_router,
+    payments_router,
+)
 from app.api.v1.pos import router as pos_router
 from app.api.v1.printer_state import router as printer_state_router
 from app.api.v1.printers import router as printers_router
@@ -93,5 +99,14 @@ api_router.include_router(refunds_router)
 api_router.include_router(pos_router)
 api_router.include_router(quotes_router)
 api_router.include_router(invoices_router)
+api_router.include_router(payments_router)
+api_router.include_router(credit_notes_router)
+api_router.include_router(debit_notes_router)
+# Customer-credit-balance read endpoint shares the /customers prefix
+# with the main customers router. Register before the bulkier customers
+# router so FastAPI matches the more specific /credit-balance route
+# first (the existing customers_router was already included earlier in
+# this file).
+api_router.include_router(customers_credit_router)
 api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)
