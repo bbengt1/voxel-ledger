@@ -714,6 +714,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bill-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Bill Payments */
+        get: operations["list_bill_payments_api_v1_bill_payments_get"];
+        put?: never;
+        /** Record Bill Payment */
+        post: operations["record_bill_payment_api_v1_bill_payments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bill-payments/{bill_payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bill Payment */
+        get: operations["get_bill_payment_api_v1_bill_payments__bill_payment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bill-payments/{bill_payment_id}/bounce": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bounce Bill Payment */
+        post: operations["bounce_bill_payment_api_v1_bill_payments__bill_payment_id__bounce_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bill-payments/{bill_payment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Bill Payment */
+        post: operations["cancel_bill_payment_api_v1_bill_payments__bill_payment_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bill-payments/{bill_payment_id}/unapply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unapply Bill Payment */
+        post: operations["unapply_bill_payment_api_v1_bill_payments__bill_payment_id__unapply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bills": {
         parameters: {
             query?: never;
@@ -4345,6 +4431,131 @@ export interface components {
             items: components["schemas"]["BillResponse"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** BillPaymentApplicationInput */
+        BillPaymentApplicationInput: {
+            /** Amount Applied */
+            amount_applied: number | string;
+            /**
+             * Bill Id
+             * Format: uuid
+             */
+            bill_id: string;
+        };
+        /** BillPaymentApplicationResponse */
+        BillPaymentApplicationResponse: {
+            /** Amount Applied */
+            amount_applied: string;
+            /**
+             * Bill Id
+             * Format: uuid
+             */
+            bill_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BillPaymentCreate */
+        BillPaymentCreate: {
+            /** Amount */
+            amount: number | string;
+            /** Applications */
+            applications?: components["schemas"]["BillPaymentApplicationInput"][];
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "cash" | "check" | "ach" | "wire" | "card" | "other";
+            /** Notes */
+            notes?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Reference Number */
+            reference_number?: string | null;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+        };
+        /** BillPaymentListResponse */
+        BillPaymentListResponse: {
+            /** Items */
+            items: components["schemas"]["BillPaymentResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** BillPaymentResponse */
+        BillPaymentResponse: {
+            /** Amount */
+            amount: string;
+            /** Applications */
+            applications?: components["schemas"]["BillPaymentApplicationResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "cash" | "check" | "ach" | "wire" | "card" | "other";
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Payment Number */
+            payment_number: string;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Reference Number */
+            reference_number?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "posted" | "bounced" | "cancelled";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+        };
+        /** BillPaymentTransitionRequest */
+        BillPaymentTransitionRequest: {
+            /** Note */
+            note?: string | null;
         };
         /** BillResponse */
         BillResponse: {
@@ -10505,6 +10716,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bill_payments_api_v1_bill_payments_get: {
+        parameters: {
+            query?: {
+                vendor_id?: string | null;
+                state?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_bill_payment_api_v1_bill_payments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillPaymentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bill_payment_api_v1_bill_payments__bill_payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bounce_bill_payment_api_v1_bill_payments__bill_payment_id__bounce_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BillPaymentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_bill_payment_api_v1_bill_payments__bill_payment_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BillPaymentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unapply_bill_payment_api_v1_bill_payments__bill_payment_id__unapply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_payment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BillPaymentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillPaymentResponse"];
                 };
             };
             /** @description Validation Error */
