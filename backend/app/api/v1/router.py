@@ -31,8 +31,8 @@ from app.api.v1.inventory_on_hand import router as inventory_on_hand_router
 from app.api.v1.inventory_transactions import router as inventory_transactions_router
 from app.api.v1.invoices import router as invoices_router
 from app.api.v1.jobs import router as jobs_router
-from app.api.v1.late_fee_policies import router as late_fee_policies_router
 from app.api.v1.journal_entries import router as journal_entries_router
+from app.api.v1.late_fee_policies import router as late_fee_policies_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
 from app.api.v1.payments import (
