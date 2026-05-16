@@ -6,7 +6,7 @@
  * for us, so the page simply renders ``GET /api/v1/approvals``.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 
@@ -27,6 +27,8 @@ interface ApprovalsListResponse {
 }
 
 export function ApprovalsListPage() {
+  const [searchParams] = useSearchParams();
+  const banner = searchParams.get("banner");
   const [items, setItems] = useState<ApprovalRow[]>([]);
   const [stateFilter, setStateFilter] = useState<string>("pending");
   const [loading, setLoading] = useState(false);
@@ -82,6 +84,16 @@ export function ApprovalsListPage() {
         </label>
       </header>
 
+      {banner === "refund-pending" && (
+        <div
+          role="status"
+          data-testid="banner-refund-pending"
+          className="rounded border border-amber-500 bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          Refund submitted — routed for approval. Awaiting sign-off below.
+        </div>
+      )}
+
       {error && (
         <div role="alert" className="rounded border border-destructive p-3 text-sm">
           {error}
@@ -116,13 +128,22 @@ export function ApprovalsListPage() {
                 <td>{row.state}</td>
                 <td>{row.threshold_amount ?? "—"}</td>
                 <td>{new Date(row.requested_at).toLocaleString()}</td>
-                <td>
+                <td className="space-x-2">
                   <Link
                     to={`/approvals/${row.id}`}
                     className="text-primary underline"
                   >
                     Open
                   </Link>
+                  {row.subject_kind === "refund" && (
+                    <Link
+                      to={`/sales/refunds/${row.subject_id}`}
+                      data-testid={`view-refund-${row.id}`}
+                      className="text-primary underline"
+                    >
+                      View refund
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

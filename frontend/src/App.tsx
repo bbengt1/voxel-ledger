@@ -37,6 +37,9 @@ import { PrinterCreatePage } from "@/pages/production/PrinterCreate";
 import { PrinterDetailPage } from "@/pages/production/PrinterDetail";
 import { PrintersMonitorPage } from "@/pages/production/PrintersMonitor";
 import { ProductionQueuePage } from "@/pages/production/ProductionQueue";
+import { PosScreenPage } from "@/pages/sales/PosScreen";
+import { RefundComposerPage } from "@/pages/sales/RefundComposer";
+import { RefundDetailPage } from "@/pages/sales/RefundDetail";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { AlertsListPage } from "@/pages/inventory/AlertsList";
@@ -428,6 +431,38 @@ export function App() {
           </RequireAuth>
         }
       />
+      {/* --- 6.7b POS + refunds routes --- */}
+      <Route
+        path="/sales/pos"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <PosScreenPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/:id/refund/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RefundComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/refunds/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RefundDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- /6.7b --- */}
       <Route
         path="/approvals"
         element={
