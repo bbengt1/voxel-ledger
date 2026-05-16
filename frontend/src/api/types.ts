@@ -2055,6 +2055,157 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Quotes */
+        get: operations["list_quotes_api_v1_quotes_get"];
+        put?: never;
+        /** Create Quote */
+        post: operations["create_quote_api_v1_quotes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quote */
+        get: operations["get_quote_api_v1_quotes__quote_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Quote */
+        patch: operations["update_quote_api_v1_quotes__quote_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Quote */
+        post: operations["accept_quote_api_v1_quotes__quote_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Quote */
+        post: operations["cancel_quote_api_v1_quotes__quote_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/convert-to-invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convert Quote To Invoice
+         * @description Convert an accepted quote into an invoice.
+         *
+         *     This endpoint depends on the Phase 7.3 (#111) invoice service. Until
+         *     that lands, the underlying service raises ``NotImplementedError`` and
+         *     this route returns HTTP 501 with the documented body so callers can
+         *     feature-detect cleanly::
+         *
+         *         {"detail": "Requires Phase 7.3 invoices", "phase": "7.3"}
+         *
+         *     Once #111 ships, this route will return ``{"invoice_id": ...}`` and
+         *     the docstring above goes away.
+         */
+        post: operations["convert_quote_to_invoice_api_v1_quotes__quote_id__convert_to_invoice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline Quote */
+        post: operations["decline_quote_api_v1_quotes__quote_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/expire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Expire Quote */
+        post: operations["expire_quote_api_v1_quotes__quote_id__expire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quotes/{quote_id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Quote */
+        post: operations["send_quote_api_v1_quotes__quote_id__send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rates": {
         parameters: {
             query?: never;
@@ -5490,6 +5641,176 @@ export interface components {
             notes?: string | null;
             /** Priority */
             priority?: number | null;
+        };
+        /** QuoteCreate */
+        QuoteCreate: {
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** Items */
+            items?: components["schemas"]["QuoteItemCreate"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+            /** Valid Until */
+            valid_until?: string | null;
+        };
+        /**
+         * QuoteItemCreate
+         * @description One line on a draft quote. The service computes
+         *     ``extended_amount`` from ``quantity * unit_price``.
+         */
+        QuoteItemCreate: {
+            /** Description */
+            description: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** QuoteItemResponse */
+        QuoteItemResponse: {
+            /** Description */
+            description: string;
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** QuoteListResponse */
+        QuoteListResponse: {
+            /** Items */
+            items: components["schemas"]["QuoteResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** QuoteResponse */
+        QuoteResponse: {
+            /** Accepted Invoice Id */
+            accepted_invoice_id?: string | null;
+            billing_address_snapshot?: components["schemas"]["CustomerAddress"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issued At */
+            issued_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["QuoteItemResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /** Quote Number */
+            quote_number: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "sent" | "accepted" | "declined" | "expired" | "cancelled";
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Valid Until */
+            valid_until?: string | null;
+        };
+        /**
+         * QuoteStateTransitionRequest
+         * @description Reserved for any future per-transition payload (note, reason).
+         */
+        QuoteStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * QuoteUpdate
+         * @description PATCH-style — only fields the caller wants to change.
+         *
+         *     ``items`` replaces the entire line set when supplied. Only legal
+         *     while the quote is in ``draft``.
+         */
+        QuoteUpdate: {
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** Items */
+            items?: components["schemas"]["QuoteItemCreate"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** RateCreateRequest */
         RateCreateRequest: {
@@ -11489,6 +11810,352 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_quotes_api_v1_quotes_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                customer_id?: string | null;
+                search?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_quote_api_v1_quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quote_api_v1_quotes__quote_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_quote_api_v1_quotes__quote_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuoteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_quote_api_v1_quotes__quote_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_quote_api_v1_quotes__quote_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    convert_quote_to_invoice_api_v1_quotes__quote_id__convert_to_invoice_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_quote_api_v1_quotes__quote_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    expire_quote_api_v1_quotes__quote_id__expire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_quote_api_v1_quotes__quote_id__send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quote_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuoteStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteResponse"];
                 };
             };
             /** @description Validation Error */

@@ -783,3 +783,47 @@ register_excerpt_fields(
     ar_events.TYPE_CUSTOMER_CONTACT_REMOVED,
     ("contact_id",),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: quotes (Phase 7.2, #110)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` (operator free-text) and ``billing_address_snapshot``
+# MUST NEVER be whitelisted here. The payload carries them so replay can
+# reconstruct the quote, but the audit denormalization keeps strictly to
+# ``quote_number``, ``customer_id``, and ``total_amount``. A regression
+# test in ``tests/test_quotes_events.py`` guards the invariant.
+
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_CREATED,
+    ("quote_number", "customer_id", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_SENT,
+    ("quote_number", "customer_id", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_ACCEPTED,
+    ("quote_number", "customer_id", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_DECLINED,
+    ("quote_number", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_EXPIRED,
+    ("quote_number", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_CANCELLED,
+    ("quote_number", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_QUOTE_CONVERTED_TO_INVOICE,
+    ("quote_number", "customer_id", "invoice_id", "total_amount"),
+)
