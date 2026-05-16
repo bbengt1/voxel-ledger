@@ -67,6 +67,7 @@ def _to_response(cart: PosCart) -> PosCartResponse:
         cashier_user_id=cart.cashier_user_id,
         channel_id=cart.channel_id,
         state=(cart.state.value if isinstance(cart.state, PosCartState) else cart.state),  # type: ignore[arg-type]
+        customer_id=cart.customer_id,
         customer_name=cart.customer_name,
         customer_email=cart.customer_email,
         discount_amount=cart.discount_amount,
@@ -118,6 +119,7 @@ async def open_cart(
             channel_id=payload.channel_id,
             cashier=actor,
             session=session,
+            customer_id=payload.customer_id,
             customer_name=payload.customer_name,
             customer_email=payload.customer_email,
         )
@@ -222,6 +224,7 @@ async def checkout(
             tendered_amount=payload.tendered_amount,
             session=session,
             actor=actor,
+            customer_id=payload.customer_id,
             customer_name=payload.customer_name,
             customer_email=payload.customer_email,
             tax_amount=payload.tax_amount,

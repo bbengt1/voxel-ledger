@@ -37,6 +37,10 @@ class PosCartResponse(BaseModel):
     cashier_user_id: uuid.UUID
     channel_id: uuid.UUID
     state: PosCartStateLiteral
+    # Phase 7.1 (#109): optional FK to a real customer aggregate. The
+    # snapshot fields below stay populated for receipt display even when
+    # ``customer_id`` is set.
+    customer_id: uuid.UUID | None = None
     customer_name: str | None = None
     customer_email: str | None = None
     discount_amount: Decimal = Decimal("0")
@@ -54,6 +58,7 @@ class PosCartResponse(BaseModel):
 
 class OpenCartRequest(BaseModel):
     channel_id: uuid.UUID
+    customer_id: uuid.UUID | None = None
     customer_name: str | None = Field(default=None, max_length=255)
     customer_email: str | None = Field(default=None, max_length=255)
 
@@ -79,6 +84,7 @@ class DiscountRequest(BaseModel):
 class CheckoutRequest(BaseModel):
     payment_method: str = Field(min_length=1, max_length=32)
     tendered_amount: Decimal
+    customer_id: uuid.UUID | None = None
     customer_name: str | None = Field(default=None, max_length=255)
     customer_email: str | None = Field(default=None, max_length=255)
     tax_amount: Decimal = Decimal("0")

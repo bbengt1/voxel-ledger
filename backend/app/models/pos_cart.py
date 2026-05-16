@@ -77,6 +77,14 @@ class PosCart(Base):
         server_default="open",
     )
 
+    # Phase 7.1 (#109): FK to the real ``customer`` aggregate. Optional —
+    # POS walk-ins typically don't pick a customer. When set, this is the
+    # AR grouping key; the snapshot fields below stay populated for
+    # receipt display.
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("customer.id", ondelete="SET NULL"), nullable=True
+    )
+
     customer_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

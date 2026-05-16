@@ -84,6 +84,9 @@ class SaleCreatedPayload(_SalesPayloadBase):
     sale_number: str
     channel_id: uuid.UUID
     external_order_id: str | None = None
+    # Phase 7.1 (#109): optional FK to the new ``customer`` aggregate.
+    # NEVER whitelisted in the audit excerpt — see excerpts.py.
+    customer_id: uuid.UUID | None = None
     customer_name: str
     customer_email: str | None = None
     occurred_at: str

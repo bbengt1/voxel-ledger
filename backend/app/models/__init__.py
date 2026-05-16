@@ -25,6 +25,12 @@ from app.models.custom_field import (
     FormTemplate,
     FormTemplateField,
 )
+from app.models.customer import (
+    CUSTOMER_STATE_VALUES,
+    Customer,
+    CustomerContact,
+    CustomerState,
+)
 from app.models.division import Division
 from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
@@ -106,8 +112,12 @@ __all__ = [
     "CUSTOM_FIELD_ENTITY_TYPES",
     "Camera",
     "CameraKind",
+    "CUSTOMER_STATE_VALUES",
     "CustomField",
     "CustomFieldType",
+    "Customer",
+    "CustomerContact",
+    "CustomerState",
     "Division",
     "Event",
     "FormTemplate",

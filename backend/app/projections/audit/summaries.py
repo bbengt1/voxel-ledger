@@ -1119,3 +1119,66 @@ register_summary(sales_events.TYPE_SHIPPING_LABEL_PURCHASED, _shipping_label_pur
 register_summary(sales_events.TYPE_SHIPMENT_SHIPPED, _shipment_shipped)
 register_summary(sales_events.TYPE_SHIPMENT_DELIVERED, _shipment_delivered)
 register_summary(sales_events.TYPE_SHIPMENT_CANCELLED, _shipment_cancelled)
+
+
+# --- AR: customers (Phase 7.1, #109) ---
+
+
+def _customer_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created customer {payload.get('customer_number', '?')} "
+        f"({payload.get('display_name', '?')})"
+    )
+
+
+def _customer_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated customer {payload.get('customer_id', '?')}: {changes}"
+
+
+def _customer_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived customer {payload.get('customer_id', '?')}"
+
+
+def _customer_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived customer {payload.get('customer_id', '?')}"
+
+
+def _customer_contact_added(payload: dict[str, Any], actor: str) -> str:
+    primary = " (primary)" if payload.get("is_primary") else ""
+    return (
+        f"{actor} added contact {payload.get('contact_id', '?')}"
+        f"{primary} to customer {payload.get('customer_id', '?')}"
+    )
+
+
+def _customer_contact_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return (
+        f"{actor} updated contact {payload.get('contact_id', '?')} "
+        f"on customer {payload.get('customer_id', '?')}: {changes}"
+    )
+
+
+def _customer_contact_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed contact {payload.get('contact_id', '?')} "
+        f"from customer {payload.get('customer_id', '?')}"
+    )
+
+
+from app.events.types import ar as ar_events  # noqa: E402
+
+register_summary(ar_events.TYPE_CUSTOMER_CREATED, _customer_created)
+register_summary(ar_events.TYPE_CUSTOMER_UPDATED, _customer_updated)
+register_summary(ar_events.TYPE_CUSTOMER_ARCHIVED, _customer_archived)
+register_summary(ar_events.TYPE_CUSTOMER_UNARCHIVED, _customer_unarchived)
+register_summary(ar_events.TYPE_CUSTOMER_CONTACT_ADDED, _customer_contact_added)
+register_summary(ar_events.TYPE_CUSTOMER_CONTACT_UPDATED, _customer_contact_updated)
+register_summary(ar_events.TYPE_CUSTOMER_CONTACT_REMOVED, _customer_contact_removed)

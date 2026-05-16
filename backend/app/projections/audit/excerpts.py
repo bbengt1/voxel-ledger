@@ -20,6 +20,7 @@ from typing import Any
 
 from app.events.types import accounting as accounting_events
 from app.events.types import approvals as approvals_events
+from app.events.types import ar as ar_events
 from app.events.types import auth as auth_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
@@ -747,4 +748,38 @@ register_excerpt_fields(
 register_excerpt_fields(
     sales_events.TYPE_SHIPMENT_CANCELLED,
     ("shipment_id", "sale_id", "carrier", "void_requested"),
+)
+
+
+# ---------------------------------------------------------------------------
+# AR: customers (Phase 7.1, #109)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``primary_email``, ``phone``, ``billing_address``,
+# ``shipping_address``, and ``notes`` MUST NEVER be whitelisted here.
+# The payload carries them so replay can reconstruct the customer row,
+# but the audit denormalization keeps strictly to ``customer_number`` +
+# ``display_name``. A regression test in
+# ``tests/test_customers_pii_audit.py`` guards the invariant.
+
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CREATED,
+    ("customer_number", "display_name"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_UPDATED,
+    ("before", "after"),
+)
+# Archived / Unarchived carry only the customer_id — no excerpt is useful.
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CONTACT_ADDED,
+    ("contact_id", "role_label", "is_primary"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CONTACT_UPDATED,
+    ("contact_id", "before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CONTACT_REMOVED,
+    ("contact_id",),
 )

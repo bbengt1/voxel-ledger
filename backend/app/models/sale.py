@@ -79,6 +79,7 @@ class Sale(Base):
         Index("ix_sale_occurred_at", "occurred_at"),
         Index("ix_sale_created_at_id", "created_at", "id"),
         Index("ix_sale_posting_journal_entry_id", "posting_journal_entry_id"),
+        Index("ix_sale_customer_id", "customer_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -89,6 +90,16 @@ class Sale(Base):
         ForeignKey("sales_channel.id", ondelete="RESTRICT"), nullable=False
     )
     external_order_id: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+    # Phase 7.1 (#109): FK to the real ``customer`` aggregate. Nullable —
+    # legacy rows + POS walk-ins where no customer is selected stay null.
+    # The free-text ``customer_name`` / ``customer_email`` snapshot fields
+    # below remain the canonical display source and are ALWAYS populated;
+    # ``customer_id`` is set only when a real customer is selected and
+    # acts as the AR grouping key (invoices, statements, aging).
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("customer.id", ondelete="SET NULL"), nullable=True
+    )
 
     customer_name: Mapped[str] = mapped_column(String(255), nullable=False)
     customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
