@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<body>
+<p>Hi {{ customer_name }},</p>
+
+<p>Your invoice <strong>{{ invoice_number }}</strong> is ready.
+Total: <strong>{{ total_amount }} {{ currency }}</strong>.</p>
+
+{% if due_at %}
+<p>Payment is due by {{ due_at }}.</p>
+{% endif %}
+
+<p>The PDF is attached.</p>
+
+<p>Thanks,<br>The team</p>
+</body>
+</html>

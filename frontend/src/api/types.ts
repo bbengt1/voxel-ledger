@@ -976,6 +976,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers/{customer_id}/statements/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Statement */
+        post: operations["send_statement_api_v1_customers__customer_id__statements_send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers/{customer_id}/unarchive": {
         parameters: {
             query?: never;
@@ -1074,6 +1091,91 @@ export interface paths {
         put?: never;
         /** Issue Debit Note */
         post: operations["issue_debit_note_api_v1_debit_notes__debit_note_id__issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Email Messages */
+        get: operations["list_email_messages_api_v1_email_messages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-messages/{email_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Email Message */
+        get: operations["get_email_message_api_v1_email_messages__email_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-messages/{email_id}/body": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Email Body */
+        get: operations["get_email_body_api_v1_email_messages__email_id__body_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-messages/{email_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Email Message */
+        post: operations["cancel_email_message_api_v1_email_messages__email_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/email-messages/{email_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Email Message */
+        post: operations["retry_email_message_api_v1_email_messages__email_id__retry_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4669,6 +4771,70 @@ export interface components {
             /** Name */
             name?: string | null;
         };
+        /** EmailAttachmentRef */
+        EmailAttachmentRef: {
+            /** Filename */
+            filename: string;
+            /** Storage Key */
+            storage_key: string;
+        };
+        /** EmailMessageListResponse */
+        EmailMessageListResponse: {
+            /** Items */
+            items: components["schemas"]["EmailMessageResponse"][];
+        };
+        /** EmailMessageResponse */
+        EmailMessageResponse: {
+            /** Attachments Json */
+            attachments_json: components["schemas"]["EmailAttachmentRef"][] | null;
+            /** Attempts */
+            attempts: number;
+            /** Body Html Storage Key */
+            body_html_storage_key: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** From Address */
+            from_address: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "quote" | "invoice" | "statement" | "recurring_invoice" | "password_reset" | "generic";
+            /** Last Error */
+            last_error: string | null;
+            /** Next Retry At */
+            next_retry_at: string | null;
+            /** Provider Message Id */
+            provider_message_id: string | null;
+            /** Sent At */
+            sent_at: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "sending" | "sent" | "failed" | "bounced";
+            /** Subject */
+            subject: string;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Subject Kind */
+            subject_kind: string | null;
+            /** To Address */
+            to_address: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** FormTemplateCreateRequest */
         FormTemplateCreateRequest: {
             /** Description */
@@ -7324,6 +7490,14 @@ export interface components {
             /** Barcode */
             barcode: string;
         };
+        /** SendStatementRequest */
+        SendStatementRequest: {
+            /**
+             * Include Paid
+             * @default false
+             */
+            include_paid: boolean;
+        };
         /**
          * SettingResponse
          * @description One setting, merged with its schema default and provenance.
@@ -9905,6 +10079,43 @@ export interface operations {
             };
         };
     };
+    send_statement_api_v1_customers__customer_id__statements_send_post: {
+        parameters: {
+            query?: {
+                include_paid?: boolean;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendStatementRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     unarchive_customer_api_v1_customers__customer_id__unarchive_post: {
         parameters: {
             query?: never;
@@ -10149,6 +10360,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebitNoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_email_messages_api_v1_email_messages_get: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+                state?: string | null;
+                subject_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_email_message_api_v1_email_messages__email_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_email_body_api_v1_email_messages__email_id__body_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_email_message_api_v1_email_messages__email_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_email_message_api_v1_email_messages__email_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailMessageResponse"];
                 };
             };
             /** @description Validation Error */

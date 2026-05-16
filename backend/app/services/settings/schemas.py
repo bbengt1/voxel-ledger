@@ -477,6 +477,87 @@ class ArPaymentMethodToAccount(SettingSchema):
     value: dict[str, Any]
 
 
+class EmailProvider(SettingSchema):
+    """Outbound email provider selection (Phase 7.7, #115).
+
+    ``static_file`` writes rendered emails to disk for local dev (default).
+    ``smtp`` uses the SMTP settings below. ``ses`` is a stub placeholder.
+    """
+
+    key: ClassVar[str] = "email.provider"
+    default: ClassVar[str] = "static_file"
+    value: str = Field(min_length=1)
+
+
+@register
+class EmailSmtpHost(SettingSchema):
+    """SMTP relay hostname. Empty disables SMTP and forces static-file."""
+
+    key: ClassVar[str] = "email.smtp_host"
+    default: ClassVar[str] = ""
+    value: str = ""
+
+
+@register
+class EmailSmtpPort(SettingSchema):
+    """SMTP relay port. 587 is the STARTTLS default."""
+
+    key: ClassVar[str] = "email.smtp_port"
+    default: ClassVar[int] = 587
+    value: int = Field(ge=1, le=65535)
+
+
+@register
+class EmailSmtpUsername(SettingSchema):
+    """SMTP username (often the from-address itself)."""
+
+    key: ClassVar[str] = "email.smtp_username"
+    default: ClassVar[str] = ""
+    value: str = ""
+
+
+@register
+class EmailSmtpPasswordSecret(SettingSchema):
+    """SMTP password / API key. Opaque — redacted from event diffs.
+
+    Follows the Phase 5.1 ``moonraker_api_key`` pattern. The
+    ``settings.SettingChanged`` event for this key substitutes ``"***"``
+    in both ``old_value`` and ``new_value`` so the event log never
+    contains the real secret. See ``SettingsService.set``.
+    """
+
+    key: ClassVar[str] = "email.smtp_password_secret"
+    default: ClassVar[str] = ""
+    value: str = ""
+
+
+@register
+class EmailFromAddress(SettingSchema):
+    """Default ``From:`` address on outbound emails."""
+
+    key: ClassVar[str] = "email.from_address"
+    default: ClassVar[str] = "no-reply@example.com"
+    value: str = Field(min_length=1)
+
+
+@register
+class EmailStorageRoot(SettingSchema):
+    """Filesystem root for rendered email bodies + static-file outputs.
+
+    Mirrors ``invoices.pdf_storage_root``. The email service joins
+    ``emails/{email_id}/body.html`` and
+    ``emails/{email_id}/static.eml`` underneath.
+    """
+
+    key: ClassVar[str] = "email.storage_root"
+    default: ClassVar[str] = "/srv/3d-print-sales/data/emails"
+    value: str = Field(min_length=1)
+
+
+# Set of setting keys whose values are sensitive — redacted in event payloads.
+SECRET_SETTING_KEYS: frozenset[str] = frozenset({"email.smtp_password_secret"})
+
+
 @register
 class RefundApprovalThreshold(SettingSchema):
     """USD threshold above which a refund routes to the approval queue

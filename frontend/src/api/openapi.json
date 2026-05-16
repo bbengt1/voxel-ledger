@@ -3640,6 +3640,206 @@
         "title": "DivisionUpdateRequest",
         "type": "object"
       },
+      "EmailAttachmentRef": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "storage_key": {
+            "title": "Storage Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "storage_key"
+        ],
+        "title": "EmailAttachmentRef",
+        "type": "object"
+      },
+      "EmailMessageListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EmailMessageResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "EmailMessageListResponse",
+        "type": "object"
+      },
+      "EmailMessageResponse": {
+        "properties": {
+          "attachments_json": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EmailAttachmentRef"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments Json"
+          },
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "body_html_storage_key": {
+            "title": "Body Html Storage Key",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "from_address": {
+            "title": "From Address",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "quote",
+              "invoice",
+              "statement",
+              "recurring_invoice",
+              "password_reset",
+              "generic"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "next_retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Retry At"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "sending",
+              "sent",
+              "failed",
+              "bounced"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "subject_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Kind"
+          },
+          "to_address": {
+            "title": "To Address",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "subject_kind",
+          "subject_id",
+          "to_address",
+          "from_address",
+          "subject",
+          "body_html_storage_key",
+          "attachments_json",
+          "state",
+          "attempts",
+          "next_retry_at",
+          "last_error",
+          "provider_message_id",
+          "sent_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EmailMessageResponse",
+        "type": "object"
+      },
       "FormTemplateCreateRequest": {
         "properties": {
           "description": {
@@ -11141,6 +11341,17 @@
         "title": "ScanRequest",
         "type": "object"
       },
+      "SendStatementRequest": {
+        "properties": {
+          "include_paid": {
+            "default": false,
+            "title": "Include Paid",
+            "type": "boolean"
+          }
+        },
+        "title": "SendStatementRequest",
+        "type": "object"
+      },
       "SettingResponse": {
         "description": "One setting, merged with its schema default and provenance.",
         "properties": {
@@ -16105,6 +16316,82 @@
         ]
       }
     },
+    "/api/v1/customers/{customer_id}/statements/send": {
+      "post": {
+        "operationId": "send_statement_api_v1_customers__customer_id__statements_send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Customer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_paid",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Paid",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SendStatementRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Send Statement",
+        "tags": [
+          "customers",
+          "statements"
+        ]
+      }
+    },
     "/api/v1/customers/{customer_id}/unarchive": {
       "post": {
         "operationId": "unarchive_customer_api_v1_customers__customer_id__unarchive_post",
@@ -16542,6 +16829,295 @@
         "summary": "Issue Debit Note",
         "tags": [
           "debit-notes"
+        ]
+      }
+    },
+    "/api/v1/email-messages": {
+      "get": {
+        "operationId": "list_email_messages_api_v1_email_messages_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Email Messages",
+        "tags": [
+          "email-messages"
+        ]
+      }
+    },
+    "/api/v1/email-messages/{email_id}": {
+      "get": {
+        "operationId": "get_email_message_api_v1_email_messages__email_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Email Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Email Message",
+        "tags": [
+          "email-messages"
+        ]
+      }
+    },
+    "/api/v1/email-messages/{email_id}/body": {
+      "get": {
+        "operationId": "get_email_body_api_v1_email_messages__email_id__body_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Email Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Email Body",
+        "tags": [
+          "email-messages"
+        ]
+      }
+    },
+    "/api/v1/email-messages/{email_id}/cancel": {
+      "post": {
+        "operationId": "cancel_email_message_api_v1_email_messages__email_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Email Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Email Message",
+        "tags": [
+          "email-messages"
+        ]
+      }
+    },
+    "/api/v1/email-messages/{email_id}/retry": {
+      "post": {
+        "operationId": "retry_email_message_api_v1_email_messages__email_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "email_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Email Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry Email Message",
+        "tags": [
+          "email-messages"
         ]
       }
     },

@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<body>
+<p>Hi {{ customer_name }},</p>
+
+<p>Here is your account statement as of {{ as_of }}.</p>
+
+<table border="1" cellpadding="4" cellspacing="0">
+  <thead>
+    <tr><th>Invoice</th><th>Issued</th><th>Due</th><th>Total</th><th>Outstanding</th><th>State</th></tr>
+  </thead>
+  <tbody>
+  {% for inv in invoices %}
+    <tr>
+      <td>{{ inv.invoice_number }}</td>
+      <td>{{ inv.issued_at }}</td>
+      <td>{{ inv.due_at }}</td>
+      <td>{{ inv.total_amount }}</td>
+      <td>{{ inv.amount_outstanding }}</td>
+      <td>{{ inv.state }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<p><strong>Total outstanding: {{ total_outstanding }} {{ currency }}</strong></p>
+
+<p>Thanks,<br>The team</p>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<body>
+<p>Hi {{ customer_name }},</p>
+
+<p>Your quote <strong>{{ quote_number }}</strong> is ready.
+Total: <strong>{{ total_amount }} {{ currency }}</strong>.</p>
+
+{% if valid_until %}
+<p>This quote is valid until {{ valid_until }}.</p>
+{% endif %}
+
+<p>The PDF is attached for your records.</p>
+
+<p>Thanks,<br>The team</p>
+</body>
+</html>

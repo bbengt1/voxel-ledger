@@ -502,3 +502,54 @@ TYPE_CUSTOMER_CREDIT_APPLIED = "ar.CustomerCreditApplied"
 
 register_event(TYPE_CUSTOMER_CREDIT_ACCRUED, CustomerCreditAccruedPayload)
 register_event(TYPE_CUSTOMER_CREDIT_APPLIED, CustomerCreditAppliedPayload)
+# --- Email delivery (Phase 7.7, #115) ---------------------------------------
+#
+# PII NOTE: ``to_address`` is carried in payloads so the event log can
+# reconstruct who got mailed, but the audit excerpt MUST NOT surface it.
+
+
+AGGREGATE_TYPE_EMAIL: str = "email_message"
+
+
+class EmailQueuedPayload(_ARPayloadBase):
+    email_id: uuid.UUID
+    kind: str
+    subject_kind: str | None = None
+    subject_id: uuid.UUID | None = None
+    to_address: str
+    subject: str
+
+
+class EmailSentPayload(_ARPayloadBase):
+    email_id: uuid.UUID
+    kind: str
+    subject_kind: str | None = None
+    subject_id: uuid.UUID | None = None
+    provider_message_id: str | None = None
+    sent_at: str
+
+
+class EmailFailedPayload(_ARPayloadBase):
+    email_id: uuid.UUID
+    kind: str
+    subject_kind: str | None = None
+    subject_id: uuid.UUID | None = None
+    attempts: int
+    last_error: str
+
+
+class EmailCancelledPayload(_ARPayloadBase):
+    email_id: uuid.UUID
+    kind: str
+
+
+TYPE_EMAIL_QUEUED = "ar.EmailQueued"
+TYPE_EMAIL_SENT = "ar.EmailSent"
+TYPE_EMAIL_FAILED = "ar.EmailFailed"
+TYPE_EMAIL_CANCELLED = "ar.EmailCancelled"
+
+
+register_event(TYPE_EMAIL_QUEUED, EmailQueuedPayload)
+register_event(TYPE_EMAIL_SENT, EmailSentPayload)
+register_event(TYPE_EMAIL_FAILED, EmailFailedPayload)
+register_event(TYPE_EMAIL_CANCELLED, EmailCancelledPayload)
