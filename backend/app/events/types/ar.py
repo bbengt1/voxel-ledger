@@ -25,6 +25,7 @@ from app.events.registry import register_event
 
 AGGREGATE_TYPE_CUSTOMER: str = "customer"
 AGGREGATE_TYPE_QUOTE: str = "quote"
+AGGREGATE_TYPE_INVOICE: str = "invoice"
 
 
 class _ARPayloadBase(BaseModel):
@@ -189,3 +190,82 @@ register_event(TYPE_QUOTE_DECLINED, QuoteDeclinedPayload)
 register_event(TYPE_QUOTE_EXPIRED, QuoteExpiredPayload)
 register_event(TYPE_QUOTE_CANCELLED, QuoteCancelledPayload)
 register_event(TYPE_QUOTE_CONVERTED_TO_INVOICE, QuoteConvertedToInvoicePayload)
+
+
+# --- Invoices (Phase 7.3, #111) ---------------------------------------------
+#
+# PII NOTE: ``notes`` and ``billing_address_snapshot`` are carried in
+# create/update payloads so replay can reconstruct the invoice, but the
+# audit-excerpt whitelist NEVER surfaces them. See
+# ``app/projections/audit/excerpts.py``.
+
+
+class InvoiceCreatedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+    quote_id: uuid.UUID | None = None
+    sale_id: uuid.UUID | None = None
+    state: str
+    issued_at: str | None = None
+    due_at: str | None = None
+    subtotal: str
+    discount_amount: str
+    tax_amount: str
+    total_amount: str
+    currency: str = "USD"
+    notes: str | None = None
+    billing_address_snapshot: dict[str, Any] | None = None
+    items: list[dict[str, Any]] = []
+
+
+class InvoiceUpdatedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class InvoiceIssuedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+    total_amount: str
+    issued_at: str
+    due_at: str | None = None
+    journal_entry_id: uuid.UUID
+
+
+class InvoicePostedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    journal_entry_id: uuid.UUID
+    total_amount: str
+
+
+class InvoiceVoidedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+
+
+class InvoiceReversedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    reversing_journal_entry_id: uuid.UUID
+    original_journal_entry_id: uuid.UUID
+
+
+TYPE_INVOICE_CREATED = "ar.InvoiceCreated"
+TYPE_INVOICE_UPDATED = "ar.InvoiceUpdated"
+TYPE_INVOICE_ISSUED = "ar.InvoiceIssued"
+TYPE_INVOICE_POSTED = "ar.InvoicePosted"
+TYPE_INVOICE_VOIDED = "ar.InvoiceVoided"
+TYPE_INVOICE_REVERSED = "ar.InvoiceReversed"
+
+
+register_event(TYPE_INVOICE_CREATED, InvoiceCreatedPayload)
+register_event(TYPE_INVOICE_UPDATED, InvoiceUpdatedPayload)
+register_event(TYPE_INVOICE_ISSUED, InvoiceIssuedPayload)
+register_event(TYPE_INVOICE_POSTED, InvoicePostedPayload)
+register_event(TYPE_INVOICE_VOIDED, InvoiceVoidedPayload)
+register_event(TYPE_INVOICE_REVERSED, InvoiceReversedPayload)

@@ -827,3 +827,48 @@ register_excerpt_fields(
     ar_events.TYPE_QUOTE_CONVERTED_TO_INVOICE,
     ("quote_number", "customer_id", "invoice_id", "total_amount"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: invoices (Phase 7.3, #111)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` and ``billing_address_snapshot`` MUST NEVER be
+# whitelisted here. The payload carries them so replay can reconstruct
+# the invoice, but the audit denormalization keeps strictly to
+# ``invoice_number``, ``customer_id``, ``total_amount``, and ``due_at``.
+
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_CREATED,
+    ("invoice_number", "customer_id", "total_amount", "due_at"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_ISSUED,
+    (
+        "invoice_number",
+        "customer_id",
+        "total_amount",
+        "due_at",
+        "journal_entry_id",
+    ),
+)
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_POSTED,
+    ("invoice_number", "journal_entry_id", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_VOIDED,
+    ("invoice_number", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_REVERSED,
+    (
+        "invoice_number",
+        "reversing_journal_entry_id",
+        "original_journal_entry_id",
+    ),
+)

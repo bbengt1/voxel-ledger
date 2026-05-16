@@ -1163,6 +1163,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invoices */
+        get: operations["list_invoices_api_v1_invoices_get"];
+        put?: never;
+        /** Create Invoice */
+        post: operations["create_invoice_api_v1_invoices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Invoice */
+        get: operations["get_invoice_api_v1_invoices__invoice_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Invoice */
+        patch: operations["update_invoice_api_v1_invoices__invoice_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Invoice */
+        post: operations["issue_invoice_api_v1_invoices__invoice_id__issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice Pdf */
+        get: operations["invoice_pdf_api_v1_invoices__invoice_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoice_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void Invoice */
+        post: operations["void_invoice_api_v1_invoices__invoice_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -2136,17 +2223,10 @@ export interface paths {
         put?: never;
         /**
          * Convert Quote To Invoice
-         * @description Convert an accepted quote into an invoice.
+         * @description Convert an accepted quote into an invoice (Phase 7.3, #111).
          *
-         *     This endpoint depends on the Phase 7.3 (#111) invoice service. Until
-         *     that lands, the underlying service raises ``NotImplementedError`` and
-         *     this route returns HTTP 501 with the documented body so callers can
-         *     feature-detect cleanly::
-         *
-         *         {"detail": "Requires Phase 7.3 invoices", "phase": "7.3"}
-         *
-         *     Once #111 ships, this route will return ``{"invoice_id": ...}`` and
-         *     the docstring above goes away.
+         *     Returns ``{"invoice_id": "..."}`` and a 201 status. The quote must
+         *     be in state ``accepted`` and not yet have an invoice attached.
          */
         post: operations["convert_quote_to_invoice_api_v1_quotes__quote_id__convert_to_invoice_post"];
         delete?: never;
@@ -4424,6 +4504,191 @@ export interface components {
              * Format: uuid
              */
             transfer_pair_id: string;
+        };
+        /** InvoiceCreate */
+        InvoiceCreate: {
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** Due At */
+            due_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["InvoiceItemCreate"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+        };
+        /**
+         * InvoiceItemCreate
+         * @description One line on a draft invoice. The service computes
+         *     ``extended_amount`` from ``quantity * unit_price``.
+         */
+        InvoiceItemCreate: {
+            /** Description */
+            description: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** InvoiceItemResponse */
+        InvoiceItemResponse: {
+            /** Description */
+            description: string;
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** InvoiceListResponse */
+        InvoiceListResponse: {
+            /** Items */
+            items: components["schemas"]["InvoiceResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** InvoiceResponse */
+        InvoiceResponse: {
+            /** Amount Outstanding */
+            amount_outstanding: string;
+            /** Amount Paid */
+            amount_paid: string;
+            billing_address_snapshot?: components["schemas"]["CustomerAddress"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Due At */
+            due_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invoice Number */
+            invoice_number: string;
+            /** Issued At */
+            issued_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["InvoiceItemResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Quote Id */
+            quote_id?: string | null;
+            /** Sale Id */
+            sale_id?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "issued" | "partially_paid" | "paid" | "overdue" | "void";
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * InvoiceStateTransitionRequest
+         * @description Reserved for any future per-transition payload (note, reason).
+         */
+        InvoiceStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * InvoiceUpdate
+         * @description PATCH-style — only fields the caller wants to change.
+         *
+         *     ``items`` replaces the entire line set when supplied. Only legal
+         *     while the invoice is in ``draft``.
+         */
+        InvoiceUpdate: {
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["InvoiceItemCreate"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
         };
         /** JobCreate */
         JobCreate: {
@@ -9481,6 +9746,243 @@ export interface operations {
             };
         };
     };
+    list_invoices_api_v1_invoices_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                customer_id?: string | null;
+                due_before?: string | null;
+                due_after?: string | null;
+                search?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_invoice_api_v1_invoices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_invoice_api_v1_invoices__invoice_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_invoice_api_v1_invoices__invoice_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_invoice_api_v1_invoices__invoice_id__issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["InvoiceStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_pdf_api_v1_invoices__invoice_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    void_invoice_api_v1_invoices__invoice_id__void_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["InvoiceStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_jobs_api_v1_jobs_get: {
         parameters: {
             query?: {
@@ -12045,7 +12547,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

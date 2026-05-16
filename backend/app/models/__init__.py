@@ -36,6 +36,14 @@ from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
+from app.models.invoice import (
+    INVOICE_ITEM_KIND_VALUES,
+    INVOICE_STATE_VALUES,
+    Invoice,
+    InvoiceItem,
+    InvoiceItemKind,
+    InvoiceState,
+)
 from app.models.job import JOB_STATE_VALUES, Job, JobState
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
@@ -134,6 +142,12 @@ __all__ = [
     "InventoryLocationKind",
     "InventoryOnHand",
     "InventoryTransaction",
+    "INVOICE_ITEM_KIND_VALUES",
+    "INVOICE_STATE_VALUES",
+    "Invoice",
+    "InvoiceItem",
+    "InvoiceItemKind",
+    "InvoiceState",
     "JOB_STATE_VALUES",
     "Job",
     "JobState",
