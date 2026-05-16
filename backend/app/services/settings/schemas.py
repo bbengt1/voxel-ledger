@@ -475,6 +475,8 @@ class ArPaymentMethodToAccount(SettingSchema):
     key: ClassVar[str] = "ar.payment_method_to_account"
     default: ClassVar[dict[str, Any]] = {}
     value: dict[str, Any]
+
+
 class EmailProvider(SettingSchema):
     """Outbound email provider selection (Phase 7.7, #115).
 
