@@ -68,6 +68,15 @@ import { QuoteDetailPage } from "@/pages/ar/QuoteDetail";
 import { QuotesListPage } from "@/pages/ar/QuotesList";
 import { RecordPaymentPage } from "@/pages/ar/RecordPayment";
 // --- end 7.8a AR routes ---
+// --- 7.8b AR routes ---
+import { ArAgingReportPage } from "@/pages/ar/ArAgingReport";
+import { LateFeePoliciesListPage } from "@/pages/ar/LateFeePoliciesList";
+import { LateFeePolicyComposerPage } from "@/pages/ar/LateFeePolicyComposer";
+import { RecurringComposerPage } from "@/pages/ar/RecurringComposer";
+import { RecurringDetailPage } from "@/pages/ar/RecurringDetail";
+import { RecurringListPage } from "@/pages/ar/RecurringList";
+import { EmailLogPage } from "@/pages/admin/EmailLog";
+// --- end 7.8b AR routes ---
 
 export function App() {
   return (
@@ -698,6 +707,98 @@ export function App() {
         }
       />
       {/* --- end 7.8a AR routes --- */}
+      {/* --- 7.8b AR routes --- */}
+      <Route
+        path="/recurring-invoices"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-invoices/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-invoices/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-invoices/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/late-fee-policies"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LateFeePoliciesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/late-fee-policies/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LateFeePolicyComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/late-fee-policies/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LateFeePolicyComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/ar-aging"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ArAgingReportPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/email-log"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <EmailLogPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 7.8b AR routes --- */}
       <Route
         path="/approvals"
         element={
