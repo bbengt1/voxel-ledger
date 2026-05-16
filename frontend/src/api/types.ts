@@ -5673,6 +5673,8 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
             /**
              * Recorded At
              * Format: date-time

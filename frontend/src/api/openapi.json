@@ -7911,6 +7911,18 @@
             "title": "Occurred At",
             "type": "string"
           },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
           "recorded_at": {
             "format": "date-time",
             "title": "Recorded At",
