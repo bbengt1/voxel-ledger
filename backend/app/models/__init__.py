@@ -151,6 +151,12 @@ from app.models.sales_channel import (
 from app.models.setting import Setting
 from app.models.shipment import SHIPMENT_STATE_VALUES, Shipment, ShipmentState
 from app.models.supply import Supply
+from app.models.vendor import (
+    VENDOR_STATE_VALUES,
+    Vendor,
+    VendorContact,
+    VendorState,
+)
 
 __all__ = [
     "ACCOUNTING_PERIOD_STATE_VALUES",
@@ -283,4 +289,8 @@ __all__ = [
     "ShipmentState",
     "Supply",
     "User",
+    "VENDOR_STATE_VALUES",
+    "Vendor",
+    "VendorContact",
+    "VendorState",
 ]

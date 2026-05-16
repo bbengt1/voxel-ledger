@@ -58,6 +58,7 @@ from app.api.v1.shipments import router as shipments_router
 from app.api.v1.shipments import sales_shipments_router
 from app.api.v1.supplies import router as supplies_router
 from app.api.v1.users import router as users_router
+from app.api.v1.vendors import router as vendors_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -122,3 +123,4 @@ api_router.include_router(supplies_router)
 # /customers/{id} (from customers_router) still wins for ID-only paths.
 api_router.include_router(statements_router)
 api_router.include_router(email_messages_router)
+api_router.include_router(vendors_router)

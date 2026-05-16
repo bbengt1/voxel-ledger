@@ -19,6 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import accounting as accounting_events
+from app.events.types import ap as ap_events
 from app.events.types import approvals as approvals_events
 from app.events.types import ar as ar_events
 from app.events.types import auth as auth_events
@@ -1030,4 +1031,38 @@ register_excerpt_fields(
         "amount",
         "days_overdue",
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# AP: vendors (Phase 8.1, #128)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``primary_email``, ``phone``, ``billing_address``,
+# ``shipping_address``, ``tax_id``, and ``notes`` MUST NEVER be
+# whitelisted here. The payload carries them so replay can reconstruct
+# the vendor row, but the audit denormalization keeps strictly to
+# ``vendor_number`` + ``display_name``. A regression test in
+# ``tests/test_vendor_audit_pii_redacted.py`` guards the invariant.
+
+register_excerpt_fields(
+    ap_events.TYPE_VENDOR_CREATED,
+    ("vendor_number", "display_name"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_VENDOR_UPDATED,
+    ("before", "after"),
+)
+# Archived / Unarchived carry only the vendor_id — no excerpt is useful.
+register_excerpt_fields(
+    ap_events.TYPE_VENDOR_CONTACT_ADDED,
+    ("contact_id", "role_label", "is_primary"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_VENDOR_CONTACT_UPDATED,
+    ("contact_id", "before", "after"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_VENDOR_CONTACT_REMOVED,
+    ("contact_id",),
 )

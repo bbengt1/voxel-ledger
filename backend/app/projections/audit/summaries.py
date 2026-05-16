@@ -1470,3 +1470,66 @@ register_summary(ar_events.TYPE_LATE_FEE_POLICY_CREATED, _late_fee_policy_create
 register_summary(ar_events.TYPE_LATE_FEE_POLICY_UPDATED, _late_fee_policy_updated)
 register_summary(ar_events.TYPE_LATE_FEE_POLICY_DEACTIVATED, _late_fee_policy_deactivated)
 register_summary(ar_events.TYPE_LATE_FEE_APPLIED, _late_fee_applied)
+
+
+# --- AP: vendors (Phase 8.1, #128) ---
+
+
+def _vendor_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created vendor {payload.get('vendor_number', '?')} "
+        f"({payload.get('display_name', '?')})"
+    )
+
+
+def _vendor_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated vendor {payload.get('vendor_id', '?')}: {changes}"
+
+
+def _vendor_archived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} archived vendor {payload.get('vendor_id', '?')}"
+
+
+def _vendor_unarchived(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unarchived vendor {payload.get('vendor_id', '?')}"
+
+
+def _vendor_contact_added(payload: dict[str, Any], actor: str) -> str:
+    primary = " (primary)" if payload.get("is_primary") else ""
+    return (
+        f"{actor} added contact {payload.get('contact_id', '?')}"
+        f"{primary} to vendor {payload.get('vendor_id', '?')}"
+    )
+
+
+def _vendor_contact_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return (
+        f"{actor} updated contact {payload.get('contact_id', '?')} "
+        f"on vendor {payload.get('vendor_id', '?')}: {changes}"
+    )
+
+
+def _vendor_contact_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed contact {payload.get('contact_id', '?')} "
+        f"from vendor {payload.get('vendor_id', '?')}"
+    )
+
+
+from app.events.types import ap as ap_events  # noqa: E402
+
+register_summary(ap_events.TYPE_VENDOR_CREATED, _vendor_created)
+register_summary(ap_events.TYPE_VENDOR_UPDATED, _vendor_updated)
+register_summary(ap_events.TYPE_VENDOR_ARCHIVED, _vendor_archived)
+register_summary(ap_events.TYPE_VENDOR_UNARCHIVED, _vendor_unarchived)
+register_summary(ap_events.TYPE_VENDOR_CONTACT_ADDED, _vendor_contact_added)
+register_summary(ap_events.TYPE_VENDOR_CONTACT_UPDATED, _vendor_contact_updated)
+register_summary(ap_events.TYPE_VENDOR_CONTACT_REMOVED, _vendor_contact_removed)
