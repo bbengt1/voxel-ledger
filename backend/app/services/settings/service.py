@@ -41,11 +41,14 @@ from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services.settings.cache import get_cache
 from app.services.settings.schemas import (
+    SECRET_SETTING_KEYS,
     SettingSchema,
     UnknownSettingError,
     all_schemas,
     get_schema,
 )
+
+SECRET_SENTINEL = "***"
 
 log = logging.getLogger(__name__)
 
@@ -276,6 +279,14 @@ class SettingsService:
         # projection runs synchronously from ``event_store.append`` and
         # invalidates the cache before this call returns — so the next
         # read sees the new value within the same tick.
+        # Redact secret-bearing values from the event payload so the event
+        # log never carries real credentials (Phase 7.7 / 5.1 pattern).
+        if key in SECRET_SETTING_KEYS:
+            event_old: Any = SECRET_SENTINEL
+            event_new: Any = SECRET_SENTINEL
+        else:
+            event_old = _serialize_for_event(old_value)
+            event_new = _serialize_for_event(validated)
         await event_store.append(
             EventCreate(
                 type=TYPE_SETTING_CHANGED,
@@ -283,8 +294,8 @@ class SettingsService:
                 aggregate_id=key_to_aggregate_id(key),
                 payload={
                     "key": key,
-                    "old_value": _serialize_for_event(old_value),
-                    "new_value": _serialize_for_event(validated),
+                    "old_value": event_old,
+                    "new_value": event_new,
                 },
                 occurred_at=datetime.now(UTC),
                 correlation_id=uuid.uuid4(),

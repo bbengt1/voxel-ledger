@@ -46,6 +46,13 @@ from app.models.customer_credit import (
     CustomerCreditTransaction,
 )
 from app.models.division import Division
+from app.models.email_message import (
+    EMAIL_KIND_VALUES,
+    EMAIL_STATE_VALUES,
+    EmailKind,
+    EmailMessage,
+    EmailState,
+)
 from app.models.event import Event
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
@@ -157,6 +164,11 @@ __all__ = [
     "CustomerContact",
     "CustomerState",
     "Division",
+    "EMAIL_KIND_VALUES",
+    "EMAIL_STATE_VALUES",
+    "EmailKind",
+    "EmailMessage",
+    "EmailState",
     "Event",
     "FormTemplate",
     "FormTemplateField",
