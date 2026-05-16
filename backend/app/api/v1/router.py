@@ -15,6 +15,7 @@ from app.api.v1.admin import admin_router
 from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.bills import router as bills_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.budgets import router as budgets_router
 from app.api.v1.cameras import router as cameras_router
@@ -105,6 +106,7 @@ api_router.include_router(refunds_router)
 api_router.include_router(pos_router)
 api_router.include_router(quotes_router)
 api_router.include_router(invoices_router)
+api_router.include_router(bills_router)
 api_router.include_router(payments_router)
 api_router.include_router(credit_notes_router)
 api_router.include_router(debit_notes_router)

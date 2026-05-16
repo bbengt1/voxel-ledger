@@ -1533,3 +1533,55 @@ register_summary(ap_events.TYPE_VENDOR_UNARCHIVED, _vendor_unarchived)
 register_summary(ap_events.TYPE_VENDOR_CONTACT_ADDED, _vendor_contact_added)
 register_summary(ap_events.TYPE_VENDOR_CONTACT_UPDATED, _vendor_contact_updated)
 register_summary(ap_events.TYPE_VENDOR_CONTACT_REMOVED, _vendor_contact_removed)
+
+
+# --- AP: bills (Phase 8.2, #129) ---
+
+
+def _bill_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created bill {payload.get('bill_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _bill_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated bill {payload.get('bill_id', '?')}: {changes}"
+
+
+def _bill_issued(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} issued bill {payload.get('bill_number', '?')} "
+        f"(total {payload.get('total_amount', '?')}, "
+        f"je {payload.get('journal_entry_id', '?')})"
+    )
+
+
+def _bill_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted bill {payload.get('bill_number', '?')} "
+        f"via journal entry {payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _bill_voided(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} voided bill {payload.get('bill_number', '?')}"
+
+
+def _bill_reversed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} reversed bill {payload.get('bill_number', '?')} "
+        f"(reversing je {payload.get('reversing_journal_entry_id', '?')})"
+    )
+
+
+register_summary(ap_events.TYPE_BILL_CREATED, _bill_created)
+register_summary(ap_events.TYPE_BILL_UPDATED, _bill_updated)
+register_summary(ap_events.TYPE_BILL_ISSUED, _bill_issued)
+register_summary(ap_events.TYPE_BILL_POSTED, _bill_posted)
+register_summary(ap_events.TYPE_BILL_VOIDED, _bill_voided)
+register_summary(ap_events.TYPE_BILL_REVERSED, _bill_reversed)

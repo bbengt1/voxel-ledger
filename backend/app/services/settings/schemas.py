@@ -617,6 +617,40 @@ class ApDefaultApAccountId(SettingSchema):
 
 
 @register
+class ApDefaultTaxExpenseAccountId(SettingSchema):
+    """Default Dr account for the tax portion of a bill (Phase 8.2, #129).
+
+    Debited at bill-issue time for ``bill.tax_amount`` when > 0. v2 keeps
+    tax simple: tax-on-purchases hits an expense account (non-recoverable
+    tax). Phase 9 may split into a recoverable-tax-asset path; until
+    then, set this to the same account used for purchase tax expense.
+
+    If a bill carries tax > 0 and this is unset, ``issue`` raises
+    ``MissingApPostingAccountError`` (mirrors invoices' sales-tax-payable
+    requirement).
+    """
+
+    key: ClassVar[str] = "ap.default_tax_expense_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class BillsPdfStorageRoot(SettingSchema):
+    """Filesystem root for rendered bill PDFs (Phase 8.2, #129).
+
+    Mirrors ``invoices.pdf_storage_root``. The bills router joins
+    ``bills/{bill_id}.pdf`` underneath. The same local-FS backend in
+    :mod:`app.services.files` is used; swap to S3 later as a
+    service-level concern.
+    """
+
+    key: ClassVar[str] = "bills.pdf_storage_root"
+    default: ClassVar[str] = "/srv/3d-print-sales/data/bills"
+    value: str = Field(min_length=1)
+
+
+@register
 class ArAgingBucketDays(SettingSchema):
     """Cut points for the AR aging report's day buckets (Phase 7.6, #114).
 

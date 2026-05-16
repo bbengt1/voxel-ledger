@@ -714,6 +714,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Bills */
+        get: operations["list_bills_api_v1_bills_get"];
+        put?: never;
+        /** Create Bill */
+        post: operations["create_bill_api_v1_bills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/{bill_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bill */
+        get: operations["get_bill_api_v1_bills__bill_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Bill */
+        patch: operations["update_bill_api_v1_bills__bill_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/bills/{bill_id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Bill */
+        post: operations["issue_bill_api_v1_bills__bill_id__issue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/{bill_id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bill Pdf */
+        get: operations["bill_pdf_api_v1_bills__bill_id__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bills/{bill_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void Bill */
+        post: operations["void_bill_api_v1_bills__bill_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/credit-notes": {
         parameters: {
             query?: never;
@@ -4164,6 +4251,193 @@ export interface components {
             } | null;
             /** Summary */
             summary: string;
+        };
+        /** BillCreate */
+        BillCreate: {
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** Due At */
+            due_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["BillItemCreate"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+            /** Vendor Invoice Number */
+            vendor_invoice_number?: string | null;
+        };
+        /**
+         * BillItemCreate
+         * @description One line on a draft bill. The service computes ``extended_amount``
+         *     from ``quantity * unit_price``.
+         */
+        BillItemCreate: {
+            /** Description */
+            description: string;
+            /** Expense Account Id Override */
+            expense_account_id_override?: string | null;
+            /** Expense Category Id */
+            expense_category_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "expense_category" | "manual";
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Unit Price */
+            unit_price: number | string;
+            /** Vendor Sku */
+            vendor_sku?: string | null;
+        };
+        /** BillItemResponse */
+        BillItemResponse: {
+            /** Description */
+            description: string;
+            /** Expense Account Id Override */
+            expense_account_id_override?: string | null;
+            /** Expense Category Id */
+            expense_category_id?: string | null;
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "expense_category" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Quantity */
+            quantity: string;
+            /** Unit Price */
+            unit_price: string;
+            /** Vendor Sku */
+            vendor_sku?: string | null;
+        };
+        /** BillListResponse */
+        BillListResponse: {
+            /** Items */
+            items: components["schemas"]["BillResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** BillResponse */
+        BillResponse: {
+            /** Amount Outstanding */
+            amount_outstanding: string;
+            /** Amount Paid */
+            amount_paid: string;
+            /** Bill Number */
+            bill_number: string;
+            billing_address_snapshot?: components["schemas"]["VendorAddress"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Due At */
+            due_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Issued At */
+            issued_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["BillItemResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "issued" | "partially_paid" | "paid" | "overdue" | "void";
+            /** Subtotal */
+            subtotal: string;
+            /** Tax Amount */
+            tax_amount: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+            /** Vendor Invoice Number */
+            vendor_invoice_number?: string | null;
+        };
+        /**
+         * BillStateTransitionRequest
+         * @description Reserved for any future per-transition payload (note, reason).
+         */
+        BillStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * BillUpdate
+         * @description PATCH-style — only fields the caller wants to change.
+         *
+         *     ``items`` replaces the entire line set when supplied. Only legal
+         *     while the bill is in ``draft``.
+         */
+        BillUpdate: {
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["BillItemCreate"][] | null;
+            /** Notes */
+            notes?: string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
+            /** Vendor Invoice Number */
+            vendor_invoice_number?: string | null;
         };
         /** Body_discover_from_sidecar_api_v1_jobs_discover_post */
         Body_discover_from_sidecar_api_v1_jobs_discover_post: {
@@ -10231,6 +10505,244 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bills_api_v1_bills_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                vendor_id?: string | null;
+                due_from?: string | null;
+                due_to?: string | null;
+                overdue?: boolean | null;
+                search?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_bill_api_v1_bills_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bill_api_v1_bills__bill_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_bill_api_v1_bills__bill_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_bill_api_v1_bills__bill_id__issue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BillStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bill_pdf_api_v1_bills__bill_id__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    void_bill_api_v1_bills__bill_id__void_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bill_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BillStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillResponse"];
                 };
             };
             /** @description Validation Error */
