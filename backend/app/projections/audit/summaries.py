@@ -1082,3 +1082,40 @@ register_summary(sales_events.TYPE_POS_LINE_UPDATED, _pos_line_updated)
 register_summary(sales_events.TYPE_POS_LINE_REMOVED, _pos_line_removed)
 register_summary(sales_events.TYPE_POS_CART_CHECKED_OUT, _pos_cart_checked_out)
 register_summary(sales_events.TYPE_POS_CART_VOIDED, _pos_cart_voided)
+# --- Sales: shipments (Phase 6.6, #98) ---
+
+
+def _shipping_label_purchased(payload: dict[str, Any], actor: str) -> str:
+    carrier = payload.get("carrier", "?")
+    tracking = payload.get("tracking_number") or "(no tracking)"
+    cost = payload.get("cost_amount", "0")
+    return (
+        f"{actor} purchased {carrier} label "
+        f"for shipment {payload.get('shipment_id', '?')} "
+        f"(tracking={tracking}, cost={cost})"
+    )
+
+
+def _shipment_shipped(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} marked shipment {payload.get('shipment_id', '?')} shipped "
+        f"({payload.get('carrier', '?')})"
+    )
+
+
+def _shipment_delivered(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} marked shipment {payload.get('shipment_id', '?')} delivered "
+        f"({payload.get('carrier', '?')})"
+    )
+
+
+def _shipment_cancelled(payload: dict[str, Any], actor: str) -> str:
+    suffix = " (void requested)" if payload.get("void_requested") else ""
+    return f"{actor} cancelled shipment {payload.get('shipment_id', '?')}{suffix}"
+
+
+register_summary(sales_events.TYPE_SHIPPING_LABEL_PURCHASED, _shipping_label_purchased)
+register_summary(sales_events.TYPE_SHIPMENT_SHIPPED, _shipment_shipped)
+register_summary(sales_events.TYPE_SHIPMENT_DELIVERED, _shipment_delivered)
+register_summary(sales_events.TYPE_SHIPMENT_CANCELLED, _shipment_cancelled)

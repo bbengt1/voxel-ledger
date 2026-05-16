@@ -22,6 +22,7 @@ from app.events.registry import register_event
 AGGREGATE_TYPE_SALES_CHANNEL: str = "sales_channel"
 AGGREGATE_TYPE_SALE: str = "sale"
 AGGREGATE_TYPE_POS_CART: str = "pos_cart"
+AGGREGATE_TYPE_SHIPMENT: str = "shipment"
 
 
 class _SalesPayloadBase(BaseModel):
@@ -300,3 +301,55 @@ register_event(TYPE_POS_LINE_UPDATED, PosLineUpdatedPayload)
 register_event(TYPE_POS_LINE_REMOVED, PosLineRemovedPayload)
 register_event(TYPE_POS_CART_CHECKED_OUT, PosCartCheckedOutPayload)
 register_event(TYPE_POS_CART_VOIDED, PosCartVoidedPayload)
+# --- Shipments (Phase 6.6, #98) -------------------------------------------
+#
+# CRITICAL: the ``ship_to`` / ``ship_from`` JSON snapshots, the
+# ``label_pdf_storage_key`` and any customer free-text MUST NEVER appear
+# in the audit excerpt. The payloads carry them so the event log can
+# reconstruct the shipment, but the projection whitelist (see
+# ``projections/audit/excerpts.py``) keeps strictly to carrier,
+# service_level, tracking_number, cost_amount, and IDs.
+
+
+class ShippingLabelPurchasedPayload(_SalesPayloadBase):
+    shipment_id: uuid.UUID
+    sale_id: uuid.UUID
+    carrier: str
+    service_level: str | None = None
+    tracking_number: str | None = None
+    tracking_url: str | None = None
+    cost_amount: str
+    label_pdf_storage_key: str | None = None
+
+
+class ShipmentShippedPayload(_SalesPayloadBase):
+    shipment_id: uuid.UUID
+    sale_id: uuid.UUID
+    carrier: str
+    tracking_number: str | None = None
+
+
+class ShipmentDeliveredPayload(_SalesPayloadBase):
+    shipment_id: uuid.UUID
+    sale_id: uuid.UUID
+    carrier: str
+    tracking_number: str | None = None
+
+
+class ShipmentCancelledPayload(_SalesPayloadBase):
+    shipment_id: uuid.UUID
+    sale_id: uuid.UUID
+    carrier: str
+    void_requested: bool = False
+
+
+TYPE_SHIPPING_LABEL_PURCHASED = "sales.ShippingLabelPurchased"
+TYPE_SHIPMENT_SHIPPED = "sales.ShipmentShipped"
+TYPE_SHIPMENT_DELIVERED = "sales.ShipmentDelivered"
+TYPE_SHIPMENT_CANCELLED = "sales.ShipmentCancelled"
+
+
+register_event(TYPE_SHIPPING_LABEL_PURCHASED, ShippingLabelPurchasedPayload)
+register_event(TYPE_SHIPMENT_SHIPPED, ShipmentShippedPayload)
+register_event(TYPE_SHIPMENT_DELIVERED, ShipmentDeliveredPayload)
+register_event(TYPE_SHIPMENT_CANCELLED, ShipmentCancelledPayload)

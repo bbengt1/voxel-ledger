@@ -84,6 +84,7 @@ from app.models.sales_channel import (
     SalesChannelKind,
 )
 from app.models.setting import Setting
+from app.models.shipment import SHIPMENT_STATE_VALUES, Shipment, ShipmentState
 from app.models.supply import Supply
 
 __all__ = [
@@ -164,7 +165,10 @@ __all__ = [
     "SalesChannel",
     "SalesChannelFeeModel",
     "SalesChannelKind",
+    "SHIPMENT_STATE_VALUES",
     "Setting",
+    "Shipment",
+    "ShipmentState",
     "Supply",
     "User",
 ]

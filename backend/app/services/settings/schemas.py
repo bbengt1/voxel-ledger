@@ -319,6 +319,64 @@ class SalesPostingDefaultCashAccountId(SettingSchema):
 
 
 @register
+class ShippingDefaultCarrier(SettingSchema):
+    """Carrier slug used when ``create_shipment`` isn't given an explicit
+    ``carrier_hint`` (Phase 6.6, #98).
+
+    Defaults to ``"static_fallback"`` — generates a local packing-slip
+    PDF with no tracking number and zero cost. Set to ``"stub"`` in tests
+    or to ``"usps"`` / ``"ups"`` / ``"fedex"`` once a real carrier
+    integration ships in a later phase.
+    """
+
+    key: ClassVar[str] = "shipping.default_carrier"
+    default: ClassVar[str] = "static_fallback"
+    value: str = Field(min_length=1)
+
+
+@register
+class ShippingShipFromAddress(SettingSchema):
+    """The shop's ``ship_from`` address snapshotted onto every shipment
+    at create time (Phase 6.6, #98).
+
+    Stored as a JSON dict with these expected keys: ``name``, ``street1``,
+    ``street2``, ``city``, ``region``, ``postal_code``, ``country``,
+    ``phone``. Empty defaults so brand-new deployments don't blow up — the
+    operator is expected to PUT this through the settings endpoint before
+    shipping anything in earnest.
+    """
+
+    key: ClassVar[str] = "shipping.ship_from_address"
+    default: ClassVar[dict[str, Any]] = {
+        "name": "",
+        "street1": "",
+        "street2": "",
+        "city": "",
+        "region": "",
+        "postal_code": "",
+        "country": "US",
+        "phone": "",
+    }
+    value: dict[str, Any]
+
+
+@register
+class ShippingLabelsStorageRoot(SettingSchema):
+    """Filesystem root for rendered shipping-label PDFs (Phase 6.6, #98).
+
+    Mirrors ``attachments.storage_root`` — stored as a string so dev /
+    prod can override. The shipping service joins
+    ``shipping-labels/{shipment_id}.pdf`` underneath. The local-FS
+    backend writes directly; once an S3 backend lands, the same key is
+    used as the S3 object key under a dedicated bucket prefix.
+    """
+
+    key: ClassVar[str] = "shipping.labels_storage_root"
+    default: ClassVar[str] = "/srv/3d-print-sales/data/shipping-labels"
+    value: str = Field(min_length=1)
+
+
+@register
 class RefundApprovalThreshold(SettingSchema):
     """USD threshold above which a refund routes to the approval queue
     (Phase 4.4, #67 — Phase 6 consumes this).
