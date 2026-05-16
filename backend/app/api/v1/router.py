@@ -47,6 +47,7 @@ from app.api.v1.production_orders import router as production_orders_router
 from app.api.v1.products import router as products_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.rates import router as rates_router
+from app.api.v1.recurring_invoices import router as recurring_invoices_router
 from app.api.v1.refunds import router as refunds_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
@@ -110,6 +111,7 @@ api_router.include_router(debit_notes_router)
 # first (the existing customers_router was already included earlier in
 # this file).
 api_router.include_router(customers_credit_router)
+api_router.include_router(recurring_invoices_router)
 api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)
 # The statements router lives under /customers but is mounted last so

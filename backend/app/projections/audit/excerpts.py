@@ -961,3 +961,38 @@ register_excerpt_fields(
     ar_events.TYPE_CUSTOMER_CREDIT_APPLIED,
     ("customer_id", "transaction_id", "amount", "applied_to_invoice_id"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: recurring invoice templates (Phase 7.5, #113)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` and line-level data (``items``) MUST NEVER be
+# whitelisted here. The payload carries them so replay can reconstruct the
+# template, but the audit denormalization strictly limits itself to ``name``,
+# ``customer_id``, and ``cadence_kind``.
+
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_TEMPLATE_CREATED,
+    ("name", "customer_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_TEMPLATE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_TEMPLATE_PAUSED,
+    ("name", "customer_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_TEMPLATE_RESUMED,
+    ("name", "customer_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_TEMPLATE_CANCELLED,
+    ("name", "customer_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_RECURRING_INVOICE_MATERIALIZED,
+    ("name", "customer_id", "cadence_kind", "invoice_id", "invoice_number"),
+)

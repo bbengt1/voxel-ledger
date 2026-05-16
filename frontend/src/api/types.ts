@@ -2769,6 +2769,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recurring-invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_v1_recurring_invoices_get"];
+        put?: never;
+        /** Create Template */
+        post: operations["create_template_api_v1_recurring_invoices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-invoices/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template */
+        get: operations["get_template_api_v1_recurring_invoices__template_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Template */
+        patch: operations["update_template_api_v1_recurring_invoices__template_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/recurring-invoices/{template_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Template */
+        post: operations["cancel_template_api_v1_recurring_invoices__template_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-invoices/{template_id}/materialize-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Materialize Now */
+        post: operations["materialize_now_api_v1_recurring_invoices__template_id__materialize_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-invoices/{template_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Template */
+        post: operations["pause_template_api_v1_recurring_invoices__template_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-invoices/{template_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume Template */
+        post: operations["resume_template_api_v1_recurring_invoices__template_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/refunds": {
         parameters: {
             query?: never;
@@ -6915,6 +7019,236 @@ export interface components {
             name?: string | null;
             /** Value */
             value?: number | string | null;
+        };
+        /** RecurringInvoiceMaterializeResponse */
+        RecurringInvoiceMaterializeResponse: {
+            /** Auto Issued */
+            auto_issued: boolean;
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+            /** Invoice Number */
+            invoice_number: string;
+            /**
+             * Materialized At
+             * Format: date-time
+             */
+            materialized_at: string;
+            /** Next Issue At */
+            next_issue_at?: string | null;
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+        };
+        /** RecurringTemplateCreate */
+        RecurringTemplateCreate: {
+            /**
+             * Auto Issue
+             * @default false
+             */
+            auto_issue: boolean;
+            /**
+             * Cadence Interval
+             * @default 1
+             */
+            cadence_interval: number;
+            /**
+             * Cadence Kind
+             * @enum {string}
+             */
+            cadence_kind: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** End At */
+            end_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["RecurringTemplateItemCreate"][];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+        };
+        /** RecurringTemplateItemCreate */
+        RecurringTemplateItemCreate: {
+            /** Description */
+            description: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Product Id */
+            product_id?: string | null;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: number | string;
+        };
+        /** RecurringTemplateItemResponse */
+        RecurringTemplateItemResponse: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "job" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Quantity */
+            quantity: string;
+            /** Sku Or Job Number */
+            sku_or_job_number?: string | null;
+            /** Unit Price */
+            unit_price: string;
+        };
+        /** RecurringTemplateListResponse */
+        RecurringTemplateListResponse: {
+            /** Items */
+            items: components["schemas"]["RecurringTemplateResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** RecurringTemplateResponse */
+        RecurringTemplateResponse: {
+            /** Auto Issue */
+            auto_issue: boolean;
+            /** Cadence Interval */
+            cadence_interval: number;
+            /**
+             * Cadence Kind
+             * @enum {string}
+             */
+            cadence_kind: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** End At */
+            end_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["RecurringTemplateItemResponse"][];
+            /** Last Issued At */
+            last_issued_at?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Next Issue At
+             * Format: date-time
+             */
+            next_issue_at: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "active" | "paused" | "cancelled";
+            /** Tax Amount */
+            tax_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** RecurringTemplateStateTransitionRequest */
+        RecurringTemplateStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /** RecurringTemplateUpdate */
+        RecurringTemplateUpdate: {
+            /** Auto Issue */
+            auto_issue?: boolean | null;
+            /** Cadence Interval */
+            cadence_interval?: number | null;
+            /** Cadence Kind */
+            cadence_kind?: ("daily" | "weekly" | "monthly" | "quarterly" | "yearly") | null;
+            /** Currency */
+            currency?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** End At */
+            end_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["RecurringTemplateItemCreate"][] | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Start At */
+            start_at?: string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
         };
         /**
          * ReferenceSequenceRow
@@ -14563,6 +14897,275 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_v1_recurring_invoices_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                customer_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_template_api_v1_recurring_invoices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_template_api_v1_recurring_invoices__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_template_api_v1_recurring_invoices__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_template_api_v1_recurring_invoices__template_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    materialize_now_api_v1_recurring_invoices__template_id__materialize_now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringInvoiceMaterializeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_template_api_v1_recurring_invoices__template_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_template_api_v1_recurring_invoices__template_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringTemplateResponse"];
                 };
             };
             /** @description Validation Error */
