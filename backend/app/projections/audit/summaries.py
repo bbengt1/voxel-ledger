@@ -1295,3 +1295,140 @@ register_summary(ar_events.TYPE_INVOICE_ISSUED, _invoice_issued)
 register_summary(ar_events.TYPE_INVOICE_POSTED, _invoice_posted)
 register_summary(ar_events.TYPE_INVOICE_VOIDED, _invoice_voided)
 register_summary(ar_events.TYPE_INVOICE_REVERSED, _invoice_reversed)
+
+
+# --- AR: payments + credit/debit notes + customer credit (Phase 7.4, #112) ---
+
+
+def _payment_recorded(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recorded payment {payload.get('payment_number', '?')} "
+        f"({payload.get('method', '?')}, amount {payload.get('amount', '?')})"
+    )
+
+
+def _payment_applied(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} applied payment {payload.get('payment_number', '?')} "
+        f"(applied {payload.get('total_applied', '?')}, "
+        f"credit excess {payload.get('excess_to_credit', '?')})"
+    )
+
+
+def _payment_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted payment {payload.get('payment_number', '?')} "
+        f"via journal entry {payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _payment_unapplied(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unapplied payment {payload.get('payment_number', '?')}"
+
+
+def _payment_bounced(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} marked payment {payload.get('payment_number', '?')} bounced"
+
+
+def _payment_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled payment {payload.get('payment_number', '?')}"
+
+
+register_summary(ar_events.TYPE_PAYMENT_RECORDED, _payment_recorded)
+register_summary(ar_events.TYPE_PAYMENT_APPLIED, _payment_applied)
+register_summary(ar_events.TYPE_PAYMENT_POSTED, _payment_posted)
+register_summary(ar_events.TYPE_PAYMENT_UNAPPLIED, _payment_unapplied)
+register_summary(ar_events.TYPE_PAYMENT_BOUNCED, _payment_bounced)
+register_summary(ar_events.TYPE_PAYMENT_CANCELLED, _payment_cancelled)
+
+
+def _credit_note_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created credit note {payload.get('credit_note_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _credit_note_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated credit note {payload.get('credit_note_id', '?')}"
+
+
+def _credit_note_issued(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} issued credit note {payload.get('credit_note_number', '?')} "
+        f"(je {payload.get('journal_entry_id', '?')})"
+    )
+
+
+def _credit_note_applied(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} applied credit note {payload.get('credit_note_number', '?')} "
+        f"to invoice {payload.get('invoice_id', '?')} "
+        f"(amount {payload.get('amount_applied', '?')})"
+    )
+
+
+def _credit_note_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled credit note {payload.get('credit_note_number', '?')}"
+
+
+register_summary(ar_events.TYPE_CREDIT_NOTE_CREATED, _credit_note_created)
+register_summary(ar_events.TYPE_CREDIT_NOTE_UPDATED, _credit_note_updated)
+register_summary(ar_events.TYPE_CREDIT_NOTE_ISSUED, _credit_note_issued)
+register_summary(ar_events.TYPE_CREDIT_NOTE_APPLIED, _credit_note_applied)
+register_summary(ar_events.TYPE_CREDIT_NOTE_CANCELLED, _credit_note_cancelled)
+
+
+def _debit_note_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created debit note {payload.get('debit_note_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _debit_note_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated debit note {payload.get('debit_note_id', '?')}"
+
+
+def _debit_note_issued(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} issued debit note {payload.get('debit_note_number', '?')} "
+        f"(je {payload.get('journal_entry_id', '?')})"
+    )
+
+
+def _debit_note_applied(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} applied debit note {payload.get('debit_note_number', '?')} "
+        f"to invoice {payload.get('invoice_id', '?')} "
+        f"(amount {payload.get('amount_applied', '?')})"
+    )
+
+
+def _debit_note_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled debit note {payload.get('debit_note_number', '?')}"
+
+
+register_summary(ar_events.TYPE_DEBIT_NOTE_CREATED, _debit_note_created)
+register_summary(ar_events.TYPE_DEBIT_NOTE_UPDATED, _debit_note_updated)
+register_summary(ar_events.TYPE_DEBIT_NOTE_ISSUED, _debit_note_issued)
+register_summary(ar_events.TYPE_DEBIT_NOTE_APPLIED, _debit_note_applied)
+register_summary(ar_events.TYPE_DEBIT_NOTE_CANCELLED, _debit_note_cancelled)
+
+
+def _customer_credit_accrued(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"customer {payload.get('customer_id', '?')} accrued "
+        f"{payload.get('amount', '?')} in credit"
+    )
+
+
+def _customer_credit_applied(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"customer {payload.get('customer_id', '?')} applied "
+        f"{payload.get('amount', '?')} of credit"
+    )
+
+
+register_summary(ar_events.TYPE_CUSTOMER_CREDIT_ACCRUED, _customer_credit_accrued)
+register_summary(ar_events.TYPE_CUSTOMER_CREDIT_APPLIED, _customer_credit_applied)

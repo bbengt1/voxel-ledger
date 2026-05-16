@@ -441,6 +441,43 @@ class InvoicesPdfStorageRoot(SettingSchema):
 
 
 @register
+class ArDefaultBankAccountId(SettingSchema):
+    """Default cash / bank asset account credited on payment posting
+    (Phase 7.4, #112).
+
+    Debited at ``apply_payment`` time for the payment amount when the
+    operator hasn't configured a per-method override in
+    ``ar.payment_method_to_account``. Required for any payment to post.
+    """
+
+    key: ClassVar[str] = "ar.default_bank_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ArPaymentMethodToAccount(SettingSchema):
+    """Per-payment-method override map for the bank-side account
+    (Phase 7.4, #112).
+
+    Maps ``payment.method`` value (``cash``, ``check``, ``ach``,
+    ``wire``, ``card``, ``marketplace``, ``other``) to an account UUID.
+    Resolution at posting time:
+
+    1. Look up the method in this map.
+    2. Fall through to ``ar.default_bank_account_id``.
+    3. Raise ``MissingArPostingAccountError`` if neither resolves.
+
+    UUIDs are stored as strings inside the JSON dict and coerced by the
+    payments service on read.
+    """
+
+    key: ClassVar[str] = "ar.payment_method_to_account"
+    default: ClassVar[dict[str, Any]] = {}
+    value: dict[str, Any]
+
+
+@register
 class RefundApprovalThreshold(SettingSchema):
     """USD threshold above which a refund routes to the approval queue
     (Phase 4.4, #67 — Phase 6 consumes this).

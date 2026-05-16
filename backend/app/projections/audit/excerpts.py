@@ -872,3 +872,92 @@ register_excerpt_fields(
         "original_journal_entry_id",
     ),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: payments + credit/debit notes + customer credit (Phase 7.4, #112)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``reference`` (card last-4, check number,
+# marketplace TX id) and ``notes`` MUST NEVER be whitelisted on payment
+# events. The whitelist stays narrow: payment_number, customer_id,
+# amount, method, journal_entry_id. A regression test in
+# ``tests/test_payments_role_matrix.py`` guards the invariant.
+
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_RECORDED,
+    ("payment_number", "customer_id", "amount", "method", "state"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_APPLIED,
+    ("payment_number", "customer_id", "total_applied", "excess_to_credit"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_POSTED,
+    ("payment_number", "customer_id", "amount", "method", "journal_entry_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_UNAPPLIED,
+    ("payment_number", "customer_id", "reversing_journal_entry_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_BOUNCED,
+    ("payment_number", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_PAYMENT_CANCELLED,
+    ("payment_number", "customer_id"),
+)
+
+# Credit / debit notes — keep PII out, surface number + ID refs.
+register_excerpt_fields(
+    ar_events.TYPE_CREDIT_NOTE_CREATED,
+    ("credit_note_number", "customer_id", "invoice_id", "reason", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CREDIT_NOTE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CREDIT_NOTE_ISSUED,
+    ("credit_note_number", "customer_id", "invoice_id", "total_amount", "journal_entry_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CREDIT_NOTE_APPLIED,
+    ("credit_note_number", "customer_id", "invoice_id", "amount_applied"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CREDIT_NOTE_CANCELLED,
+    ("credit_note_number", "customer_id", "reversing_journal_entry_id"),
+)
+
+register_excerpt_fields(
+    ar_events.TYPE_DEBIT_NOTE_CREATED,
+    ("debit_note_number", "customer_id", "invoice_id", "reason", "total_amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_DEBIT_NOTE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_DEBIT_NOTE_ISSUED,
+    ("debit_note_number", "customer_id", "invoice_id", "total_amount", "journal_entry_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_DEBIT_NOTE_APPLIED,
+    ("debit_note_number", "customer_id", "invoice_id", "amount_applied"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_DEBIT_NOTE_CANCELLED,
+    ("debit_note_number", "customer_id", "reversing_journal_entry_id"),
+)
+
+# Customer credit — keep notes out.
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CREDIT_ACCRUED,
+    ("customer_id", "transaction_id", "amount", "source_payment_id", "source_refund_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_CUSTOMER_CREDIT_APPLIED,
+    ("customer_id", "transaction_id", "amount", "applied_to_invoice_id"),
+)
