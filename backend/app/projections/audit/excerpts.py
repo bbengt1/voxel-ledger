@@ -1146,3 +1146,13 @@ register_excerpt_fields(
     ap_events.TYPE_BILL_PAYMENT_CANCELLED,
     ("payment_number", "vendor_id"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: overdue bills (Phase 8.4, #131)
+# ---------------------------------------------------------------------------
+
+register_excerpt_fields(
+    ap_events.TYPE_BILL_OVERDUE,
+    ("bill_number", "vendor_id", "days_overdue", "amount_outstanding"),
+)

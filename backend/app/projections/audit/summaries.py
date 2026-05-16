@@ -1630,3 +1630,16 @@ register_summary(ap_events.TYPE_BILL_PAYMENT_POSTED, _bill_payment_posted)
 register_summary(ap_events.TYPE_BILL_PAYMENT_UNAPPLIED, _bill_payment_unapplied)
 register_summary(ap_events.TYPE_BILL_PAYMENT_BOUNCED, _bill_payment_bounced)
 register_summary(ap_events.TYPE_BILL_PAYMENT_CANCELLED, _bill_payment_cancelled)
+
+
+# --- AP: overdue bills (Phase 8.4, #131) ---
+
+
+def _bill_overdue(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"bill {payload.get('bill_number', '?')} marked overdue "
+        f"({payload.get('days_overdue', '?')} day(s) past due)"
+    )
+
+
+register_summary(ap_events.TYPE_BILL_OVERDUE, _bill_overdue)
