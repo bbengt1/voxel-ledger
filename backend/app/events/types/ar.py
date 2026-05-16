@@ -30,6 +30,7 @@ AGGREGATE_TYPE_PAYMENT: str = "payment"
 AGGREGATE_TYPE_CREDIT_NOTE: str = "credit_note"
 AGGREGATE_TYPE_DEBIT_NOTE: str = "debit_note"
 AGGREGATE_TYPE_CUSTOMER_CREDIT: str = "customer_credit"
+AGGREGATE_TYPE_RECURRING_INVOICE_TEMPLATE: str = "recurring_invoice_template"
 
 
 class _ARPayloadBase(BaseModel):
@@ -367,6 +368,36 @@ class CreditNoteCreatedPayload(_ARPayloadBase):
 
 class CreditNoteUpdatedPayload(_ARPayloadBase):
     credit_note_id: uuid.UUID
+
+
+# --- Recurring invoice templates (Phase 7.5, #113) --------------------------
+#
+# PII RULE: line-level details (item descriptions, quantities, unit_price)
+# carry through the payload for replay but the audit-excerpt whitelist
+# strictly stays at template name + customer_id + cadence_kind. ``notes`` is
+# never whitelisted.
+
+
+class RecurringTemplateCreatedPayload(_ARPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    customer_id: uuid.UUID
+    cadence_kind: str
+    cadence_interval: int
+    start_at: str
+    end_at: str | None = None
+    next_issue_at: str
+    auto_issue: bool
+    state: str
+    notes: str | None = None
+    discount_amount: str
+    tax_amount: str
+    currency: str = "USD"
+    items: list[dict[str, Any]] = []
+
+
+class RecurringTemplateUpdatedPayload(_ARPayloadBase):
+    template_id: uuid.UUID
     before: dict[str, Any]
     after: dict[str, Any]
 
@@ -553,3 +584,53 @@ register_event(TYPE_EMAIL_QUEUED, EmailQueuedPayload)
 register_event(TYPE_EMAIL_SENT, EmailSentPayload)
 register_event(TYPE_EMAIL_FAILED, EmailFailedPayload)
 register_event(TYPE_EMAIL_CANCELLED, EmailCancelledPayload)
+
+
+class RecurringTemplatePausedPayload(_ARPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    customer_id: uuid.UUID
+    cadence_kind: str
+
+
+class RecurringTemplateResumedPayload(_ARPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    customer_id: uuid.UUID
+    cadence_kind: str
+    next_issue_at: str
+
+
+class RecurringTemplateCancelledPayload(_ARPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    customer_id: uuid.UUID
+    cadence_kind: str
+
+
+class RecurringInvoiceMaterializedPayload(_ARPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    customer_id: uuid.UUID
+    cadence_kind: str
+    invoice_id: uuid.UUID
+    invoice_number: str
+    materialized_at: str
+    auto_issued: bool
+    next_issue_at: str | None = None
+
+
+TYPE_RECURRING_TEMPLATE_CREATED = "ar.RecurringTemplateCreated"
+TYPE_RECURRING_TEMPLATE_UPDATED = "ar.RecurringTemplateUpdated"
+TYPE_RECURRING_TEMPLATE_PAUSED = "ar.RecurringTemplatePaused"
+TYPE_RECURRING_TEMPLATE_RESUMED = "ar.RecurringTemplateResumed"
+TYPE_RECURRING_TEMPLATE_CANCELLED = "ar.RecurringTemplateCancelled"
+TYPE_RECURRING_INVOICE_MATERIALIZED = "ar.RecurringInvoiceMaterialized"
+
+
+register_event(TYPE_RECURRING_TEMPLATE_CREATED, RecurringTemplateCreatedPayload)
+register_event(TYPE_RECURRING_TEMPLATE_UPDATED, RecurringTemplateUpdatedPayload)
+register_event(TYPE_RECURRING_TEMPLATE_PAUSED, RecurringTemplatePausedPayload)
+register_event(TYPE_RECURRING_TEMPLATE_RESUMED, RecurringTemplateResumedPayload)
+register_event(TYPE_RECURRING_TEMPLATE_CANCELLED, RecurringTemplateCancelledPayload)
+register_event(TYPE_RECURRING_INVOICE_MATERIALIZED, RecurringInvoiceMaterializedPayload)
