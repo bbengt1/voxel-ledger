@@ -5830,6 +5830,286 @@
         "title": "JournalLineResponse",
         "type": "object"
       },
+      "LateFeeApplyResponse": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "deferred": {
+            "title": "Deferred",
+            "type": "boolean"
+          },
+          "fees_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Fees Total",
+            "type": "string"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "skipped",
+          "deferred",
+          "fees_total"
+        ],
+        "title": "LateFeeApplyResponse",
+        "type": "object"
+      },
+      "LateFeePolicyCreate": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "apply_after_days": {
+            "default": 30,
+            "minimum": 0.0,
+            "title": "Apply After Days",
+            "type": "integer"
+          },
+          "compound_interval_days": {
+            "default": 30,
+            "exclusiveMinimum": 0.0,
+            "title": "Compound Interval Days",
+            "type": "integer"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "grace_period_days": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Grace Period Days",
+            "type": "integer"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "percent_of_outstanding",
+              "flat",
+              "compound_percent"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "amount"
+        ],
+        "title": "LateFeePolicyCreate",
+        "type": "object"
+      },
+      "LateFeePolicyListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LateFeePolicyResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "LateFeePolicyListResponse",
+        "type": "object"
+      },
+      "LateFeePolicyResponse": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "apply_after_days": {
+            "title": "Apply After Days",
+            "type": "integer"
+          },
+          "compound_interval_days": {
+            "title": "Compound Interval Days",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "grace_period_days": {
+            "title": "Grace Period Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "percent_of_outstanding",
+              "flat",
+              "compound_percent"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customer_id",
+          "kind",
+          "amount",
+          "grace_period_days",
+          "apply_after_days",
+          "compound_interval_days",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "LateFeePolicyResponse",
+        "type": "object"
+      },
+      "LateFeePolicyUpdate": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "apply_after_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apply After Days"
+          },
+          "compound_interval_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound Interval Days"
+          },
+          "customer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Id"
+          },
+          "grace_period_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grace Period Days"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "percent_of_outstanding",
+                  "flat",
+                  "compound_percent"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          }
+        },
+        "title": "LateFeePolicyUpdate",
+        "type": "object"
+      },
       "LineUpdateRequest": {
         "properties": {
           "discount_kind": {
@@ -20481,6 +20761,275 @@
         ]
       }
     },
+    "/api/v1/late-fee-policies": {
+      "get": {
+        "operationId": "list_policies_api_v1_late_fee_policies_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_inactive",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Inactive",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeePolicyListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Policies",
+        "tags": [
+          "late-fee-policies"
+        ]
+      },
+      "post": {
+        "operationId": "create_policy_api_v1_late_fee_policies_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LateFeePolicyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeePolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Policy",
+        "tags": [
+          "late-fee-policies"
+        ]
+      }
+    },
+    "/api/v1/late-fee-policies/apply-now": {
+      "post": {
+        "description": "Operator-triggered run of the late-fees worker.\n\nAlso runs the overdue marker first so a missed daily run can catch\nup in a single ops click.",
+        "operationId": "apply_now_api_v1_late_fee_policies_apply_now_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeeApplyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Apply Now",
+        "tags": [
+          "late-fee-policies"
+        ]
+      }
+    },
+    "/api/v1/late-fee-policies/{policy_id}": {
+      "delete": {
+        "operationId": "deactivate_policy_api_v1_late_fee_policies__policy_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Policy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeePolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Deactivate Policy",
+        "tags": [
+          "late-fee-policies"
+        ]
+      },
+      "get": {
+        "operationId": "get_policy_api_v1_late_fee_policies__policy_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Policy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeePolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Policy",
+        "tags": [
+          "late-fee-policies"
+        ]
+      },
+      "patch": {
+        "operationId": "update_policy_api_v1_late_fee_policies__policy_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Policy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LateFeePolicyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LateFeePolicyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Policy",
+        "tags": [
+          "late-fee-policies"
+        ]
+      }
+    },
     "/api/v1/materials": {
       "get": {
         "operationId": "list_materials_api_v1_materials_get",
@@ -25979,6 +26528,91 @@
         "summary": "Reject Refund",
         "tags": [
           "refunds"
+        ]
+      }
+    },
+    "/api/v1/reports/ar-aging": {
+      "get": {
+        "operationId": "ar_aging_api_v1_reports_ar_aging_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "buckets",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Buckets"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ar Aging",
+        "tags": [
+          "reports"
         ]
       }
     },

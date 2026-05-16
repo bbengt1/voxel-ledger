@@ -996,3 +996,29 @@ register_excerpt_fields(
     ar_events.TYPE_RECURRING_INVOICE_MATERIALIZED,
     ("name", "customer_id", "cadence_kind", "invoice_id", "invoice_number"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: overdue marker + late fees (Phase 7.6, #114)
+# ---------------------------------------------------------------------------
+
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_OVERDUE,
+    ("invoice_number", "customer_id", "days_overdue", "amount_outstanding"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_CREATED,
+    ("policy_id", "customer_id", "kind", "amount"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_DEACTIVATED,
+    ("policy_id",),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_APPLIED,
+    ("invoice_number", "customer_id", "policy_id", "amount"),
+)

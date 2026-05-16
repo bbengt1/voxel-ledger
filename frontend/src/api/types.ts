@@ -1772,6 +1772,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/late-fee-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Policies */
+        get: operations["list_policies_api_v1_late_fee_policies_get"];
+        put?: never;
+        /** Create Policy */
+        post: operations["create_policy_api_v1_late_fee_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/late-fee-policies/apply-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Now
+         * @description Operator-triggered run of the late-fees worker.
+         *
+         *     Also runs the overdue marker first so a missed daily run can catch
+         *     up in a single ops click.
+         */
+        post: operations["apply_now_api_v1_late_fee_policies_apply_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/late-fee-policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Policy */
+        get: operations["get_policy_api_v1_late_fee_policies__policy_id__get"];
+        put?: never;
+        post?: never;
+        /** Deactivate Policy */
+        delete: operations["deactivate_policy_api_v1_late_fee_policies__policy_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Policy */
+        patch: operations["update_policy_api_v1_late_fee_policies__policy_id__patch"];
+        trace?: never;
+    };
     "/api/v1/materials": {
         parameters: {
             query?: never;
@@ -2970,6 +3030,23 @@ export interface paths {
         put?: never;
         /** Reject Refund */
         post: operations["reject_refund_api_v1_refunds__refund_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/ar-aging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ar Aging */
+        get: operations["ar_aging_api_v1_reports_ar_aging_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5674,6 +5751,106 @@ export interface components {
             line_number: number;
             /** Memo */
             memo?: string | null;
+        };
+        /** LateFeeApplyResponse */
+        LateFeeApplyResponse: {
+            /** Applied */
+            applied: number;
+            /** Deferred */
+            deferred: boolean;
+            /** Fees Total */
+            fees_total: string;
+            /** Skipped */
+            skipped: number;
+        };
+        /** LateFeePolicyCreate */
+        LateFeePolicyCreate: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * Apply After Days
+             * @default 30
+             */
+            apply_after_days: number;
+            /**
+             * Compound Interval Days
+             * @default 30
+             */
+            compound_interval_days: number;
+            /** Customer Id */
+            customer_id?: string | null;
+            /**
+             * Grace Period Days
+             * @default 0
+             */
+            grace_period_days: number;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent_of_outstanding" | "flat" | "compound_percent";
+        };
+        /** LateFeePolicyListResponse */
+        LateFeePolicyListResponse: {
+            /** Items */
+            items: components["schemas"]["LateFeePolicyResponse"][];
+        };
+        /** LateFeePolicyResponse */
+        LateFeePolicyResponse: {
+            /** Amount */
+            amount: string;
+            /** Apply After Days */
+            apply_after_days: number;
+            /** Compound Interval Days */
+            compound_interval_days: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Customer Id */
+            customer_id: string | null;
+            /** Grace Period Days */
+            grace_period_days: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "percent_of_outstanding" | "flat" | "compound_percent";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** LateFeePolicyUpdate */
+        LateFeePolicyUpdate: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Apply After Days */
+            apply_after_days?: number | null;
+            /** Compound Interval Days */
+            compound_interval_days?: number | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Grace Period Days */
+            grace_period_days?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Kind */
+            kind?: ("percent_of_outstanding" | "flat" | "compound_percent") | null;
         };
         /** LineUpdateRequest */
         LineUpdateRequest: {
@@ -12292,6 +12469,187 @@ export interface operations {
             };
         };
     };
+    list_policies_api_v1_late_fee_policies_get: {
+        parameters: {
+            query?: {
+                include_inactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeePolicyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_policy_api_v1_late_fee_policies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LateFeePolicyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeePolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_now_api_v1_late_fee_policies_apply_now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeeApplyResponse"];
+                };
+            };
+        };
+    };
+    get_policy_api_v1_late_fee_policies__policy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeePolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_policy_api_v1_late_fee_policies__policy_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeePolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_policy_api_v1_late_fee_policies__policy_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LateFeePolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LateFeePolicyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_materials_api_v1_materials_get: {
         parameters: {
             query?: {
@@ -15396,6 +15754,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ar_aging_api_v1_reports_ar_aging_get: {
+        parameters: {
+            query?: {
+                buckets?: string | null;
+                as_of?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

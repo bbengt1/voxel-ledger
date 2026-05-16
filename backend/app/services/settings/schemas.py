@@ -426,6 +426,34 @@ class ArDefaultSalesTaxPayableAccountId(SettingSchema):
 
 
 @register
+class ArDefaultLateFeeIncomeAccountId(SettingSchema):
+    """Default Late-Fee Income account (Phase 7.6, #114).
+
+    Credit side of the late-fee debit-note JE. The debit side is the
+    customer's AR account (per ``ar.default_ar_account_id`` /
+    ``customer.default_ar_account_id``).
+    """
+
+    key: ClassVar[str] = "ar.default_late_fee_income_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ArAgingBucketDays(SettingSchema):
+    """Cut-points for the AR aging report buckets (Phase 7.6, #114).
+
+    Default ``[30, 60, 90]`` produces buckets ``[0-30, 31-60, 61-90, 91+]``.
+    The list MUST be strictly increasing positive integers. The report
+    endpoint also accepts a per-call ``?buckets=`` override.
+    """
+
+    key: ClassVar[str] = "ar.aging_bucket_days"
+    default: ClassVar[list[int]] = [30, 60, 90]
+    value: list[int] = Field(default_factory=lambda: [30, 60, 90])
+
+
+@register
 class InvoicesPdfStorageRoot(SettingSchema):
     """Filesystem root for rendered invoice PDFs (Phase 7.3, #111).
 

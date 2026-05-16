@@ -68,6 +68,11 @@ from app.models.invoice import (
 from app.models.job import JOB_STATE_VALUES, Job, JobState
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
+from app.models.late_fee_policy import (
+    LATE_FEE_KIND_VALUES,
+    LateFeeKind,
+    LateFeePolicy,
+)
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
@@ -212,6 +217,9 @@ __all__ = [
     "JobState",
     "JournalEntry",
     "JournalLine",
+    "LATE_FEE_KIND_VALUES",
+    "LateFeeKind",
+    "LateFeePolicy",
     "Material",
     "MaterialReceipt",
     "Note",
