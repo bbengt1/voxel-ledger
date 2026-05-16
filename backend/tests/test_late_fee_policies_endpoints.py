@@ -54,9 +54,10 @@ async def test_viewer_can_read_but_not_write(
 
 
 @pytest.mark.asyncio
-async def test_apply_now_returns_deferred_when_phase_74_absent(
+async def test_apply_now_returns_not_deferred_with_phase_74(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
+    """Phase 7.4 is merged on main, so ``deferred`` is always False."""
     owner = await token_for(Role.OWNER, client, app_session)
     resp = await client.post(
         "/api/v1/late-fee-policies/apply-now",
@@ -65,9 +66,9 @@ async def test_apply_now_returns_deferred_when_phase_74_absent(
     assert resp.status_code == 200
     body = resp.json()
     assert "applied" in body
-    assert "deferred" in body
     # No fees today since nothing's overdue.
-    assert body["deferred"] is True
+    assert body["applied"] == 0
+    assert body["deferred"] is False
 
 
 @pytest.mark.asyncio

@@ -1,10 +1,8 @@
 """Late-fee worker — percent_of_outstanding (Phase 7.6, #114).
 
-Phase 7.4 ``DebitNotesService`` is not on main yet, so the worker
-runs in 'deferred' mode: it logs/records the ``ar.LateFeeApplied``
-event for each invoice that would have received a fee but does not
-create a debit note. The idempotency guard still prevents double-apply
-on subsequent runs within the compound interval.
+Now that Phase 7.4 (``DebitNotesService``) has merged on main, the
+worker actually issues a ``debit_note`` per application; ``deferred``
+is always ``False``.
 """
 
 from __future__ import annotations
@@ -20,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests._late_fees_helpers import (
     schema,  # noqa: F401
+    seed_ar_posting_accounts,
     seed_customer_simple,
     seed_issued_invoice,
     seed_user_simple,
@@ -29,6 +28,7 @@ from tests._late_fees_helpers import (
 @pytest.mark.asyncio
 async def test_percent_fee_applied_once(schema, session: AsyncSession) -> None:  # noqa: F811
     user = await seed_user_simple(session)
+    await seed_ar_posting_accounts(session)
     customer = await seed_customer_simple(session)
     now = datetime.now(UTC)
 
@@ -65,15 +65,18 @@ async def test_percent_fee_applied_once(schema, session: AsyncSession) -> None: 
 
 
 @pytest.mark.asyncio
-async def test_phase_74_deferred_flag(schema, session: AsyncSession) -> None:  # noqa: F811
-    """Until Phase 7.4 (debit_notes service) lands, the worker reports
-    ``deferred=True`` so the operator knows the late-fee debit notes
-    aren't being created. The event trail still records the decision.
+async def test_flat_fee_emits_debit_note(schema, session: AsyncSession) -> None:  # noqa: F811
+    """With Phase 7.4 merged the worker creates a real ``debit_note``
+    per application and never reports ``deferred=True``.
     """
+    from app.models.credit_note import DebitNote
+    from sqlalchemy import select
+
     user = await seed_user_simple(session)
+    await seed_ar_posting_accounts(session)
     customer = await seed_customer_simple(session)
     now = datetime.now(UTC)
-    await seed_issued_invoice(
+    invoice = await seed_issued_invoice(
         session,
         customer_id=customer.id,
         actor_user_id=user.id,
@@ -91,6 +94,12 @@ async def test_phase_74_deferred_flag(schema, session: AsyncSession) -> None:  #
     )
     result = await service.apply_late_fees(session=session, now=now)
     assert result.applied == 1
-    # Phase 7.4 absence is reported via ``deferred`` so the operator UI
-    # can surface a banner.
-    assert result.deferred is True
+    assert result.deferred is False
+    notes = list(
+        (await session.execute(select(DebitNote).where(DebitNote.invoice_id == invoice.id)))
+        .scalars()
+        .all()
+    )
+    assert len(notes) == 1
+    assert notes[0].reason == "late_fee"
+    assert notes[0].total_amount == Decimal("25.00")

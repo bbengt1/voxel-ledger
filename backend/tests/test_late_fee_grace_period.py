@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests._late_fees_helpers import (
     schema,  # noqa: F401
+    seed_ar_posting_accounts,
     seed_customer_simple,
     seed_issued_invoice,
     seed_user_simple,
@@ -22,6 +23,7 @@ from tests._late_fees_helpers import (
 @pytest.mark.asyncio
 async def test_within_grace_period_no_fee(schema, session: AsyncSession) -> None:  # noqa: F811
     user = await seed_user_simple(session)
+    await seed_ar_posting_accounts(session)
     customer = await seed_customer_simple(session)
     now = datetime.now(UTC)
 
@@ -52,6 +54,7 @@ async def test_within_grace_period_no_fee(schema, session: AsyncSession) -> None
 @pytest.mark.asyncio
 async def test_past_grace_period_applies(schema, session: AsyncSession) -> None:  # noqa: F811
     user = await seed_user_simple(session)
+    await seed_ar_posting_accounts(session)
     customer = await seed_customer_simple(session)
     now = datetime.now(UTC)
     await seed_issued_invoice(

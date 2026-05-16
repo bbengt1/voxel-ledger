@@ -38,6 +38,54 @@ async def seed_customer_simple(session: AsyncSession, *, display_name: str = "Te
     return customer
 
 
+async def seed_ar_posting_accounts(session: AsyncSession) -> dict[str, uuid.UUID]:
+    """Seed the chart of accounts + AR settings the late-fee worker needs
+    so the Phase 7.4 ``debit_notes`` service can post a journal entry.
+
+    The Phase 7.6 worker tests use the SQLite in-memory ``session``
+    fixture (no real period / COA setup), so we do the minimum here:
+    an open accounting period, AR + revenue accounts, and the two
+    ``ar.default_*`` settings keys.
+    """
+    from app.models.account import Account
+    from app.models.accounting_period import AccountingPeriod, AccountingPeriodState
+    from app.services.settings.service import SettingsService
+    from sqlalchemy import select
+
+    today = datetime.now(UTC).date()
+    existing = (await session.execute(select(AccountingPeriod).limit(1))).scalar_one_or_none()
+    if existing is None:
+        session.add(
+            AccountingPeriod(
+                id=uuid.uuid4(),
+                name="late-fees-test-period",
+                start_date=today - timedelta(days=120),
+                end_date=today + timedelta(days=120),
+                state=AccountingPeriodState.OPEN.value,
+            )
+        )
+
+    ar_account = Account(id=uuid.uuid4(), code="1200", name="AR", type="asset")
+    revenue_account = Account(id=uuid.uuid4(), code="4000", name="Revenue", type="revenue")
+    session.add_all([ar_account, revenue_account])
+    await session.flush()
+
+    await SettingsService.set(
+        "ar.default_ar_account_id", ar_account.id, session=session, actor_user_id=None
+    )
+    await SettingsService.set(
+        "ar.default_revenue_account_id",
+        revenue_account.id,
+        session=session,
+        actor_user_id=None,
+    )
+    await session.flush()
+    return {
+        "ar_account_id": ar_account.id,
+        "revenue_account_id": revenue_account.id,
+    }
+
+
 async def seed_issued_invoice(
     session: AsyncSession,
     *,

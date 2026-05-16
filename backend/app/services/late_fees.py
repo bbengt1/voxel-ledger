@@ -13,23 +13,14 @@ Two worker entrypoints live here:
   the most-specific active policy, computes the fee, and issues a
   ``debit_note`` (Phase 7.4) with ``reason="late_fee"``.
 
-  **DEPENDENCY ON PHASE 7.4**: this worker creates ``debit_note`` rows
-  via ``DebitNotesService.create_draft`` + ``issue``. Phase 7.4 is
-  shipping in parallel; until it lands the worker logs a clear
-  "Phase 7.4 not yet merged; late fees deferred" message and exits
-  gracefully. The overdue marker, the policy CRUD, and the AR aging
-  report all ship cleanly without Phase 7.4.
-
-Idempotency for the late-fees worker is delegated to Phase 7.4's
-unique constraint ``(invoice_id, DATE(issued_at)) WHERE reason='late_fee'``
-on the ``debit_note`` table (chosen for audit cleanliness). Today the
-in-process worker also tracks per-(invoice, day) emission to keep
-the SQLite-driven test suite green.
+Idempotency is service-level: the worker scans prior
+``ar.LateFeeApplied`` events for the invoice and refuses to re-emit
+within ``compound_interval_days`` for ``compound_percent`` policies
+(and at all for one-shot kinds).
 """
 
 from __future__ import annotations
 
-import importlib
 import logging
 import uuid
 from dataclasses import dataclass
@@ -44,6 +35,7 @@ from app.events.types import ar as ar_events
 from app.models.invoice import Invoice, InvoiceState
 from app.models.late_fee_policy import LateFeeKind, LateFeePolicy
 from app.schemas.events import EventCreate
+from app.services import debit_notes as debit_notes_service
 from app.services import event_store
 from app.services import late_fee_policies as policy_service
 
@@ -70,7 +62,8 @@ class OverdueMarkResult:
 class LateFeeApplyResult:
     applied: int
     skipped: int
-    deferred: bool  # True when Phase 7.4 DebitNotesService is unavailable.
+    # Retained for response-schema compatibility; always False now that Phase 7.4 is merged.
+    deferred: bool
     fees_total: Decimal
 
 
@@ -134,14 +127,6 @@ async def mark_overdue_invoices(
 # ---------------------------------------------------------------------------
 # Late fee application
 # ---------------------------------------------------------------------------
-
-
-def _phase_74_available() -> Any | None:
-    """Return the DebitNotesService module if importable, else None."""
-    try:
-        return importlib.import_module("app.services.debit_notes")
-    except ImportError:
-        return None
 
 
 def _compute_fee(
@@ -213,14 +198,6 @@ async def apply_late_fees(
         now = now.replace(tzinfo=UTC)
     today = now.date()
 
-    debit_notes_module = _phase_74_available()
-    deferred = debit_notes_module is None
-    if deferred:
-        log.info(
-            "Phase 7.4 (debit notes) not yet merged; late fees deferred. "
-            "Overdue invoices will still be flagged via mark_overdue_invoices.",
-        )
-
     stmt = select(Invoice).where(
         Invoice.state.in_([InvoiceState.OVERDUE, InvoiceState.PARTIALLY_PAID, InvoiceState.ISSUED])
     )
@@ -251,9 +228,7 @@ async def apply_late_fees(
             skipped += 1
             continue
 
-        last_applied = await _last_late_fee_date(
-            session, invoice_id=invoice.id, debit_notes_module=debit_notes_module
-        )
+        last_applied = await _last_late_fee_date(session, invoice_id=invoice.id)
         if not _should_apply_today(
             policy=policy,
             days_overdue=days_overdue,
@@ -269,28 +244,22 @@ async def apply_late_fees(
             continue
 
         debit_note_id: uuid.UUID | None = None
-        if not deferred:
-            try:
-                debit_note_id = await _create_and_issue_debit_note(
-                    debit_notes_module,
-                    session=session,
-                    invoice=invoice,
-                    fee=fee,
-                    policy=policy,
-                    actor_user_id=actor_user_id,
-                )
-            except Exception as exc:  # pragma: no cover - defensive
-                log.warning(
-                    "late-fee debit note creation failed for invoice %s: %s",
-                    invoice.id,
-                    exc,
-                )
-                skipped += 1
-                continue
-        else:
-            # Phase 7.4 not yet on main — record the would-be application
-            # so the audit trail still reflects the policy decision.
-            pass
+        try:
+            debit_note_id = await _create_and_issue_debit_note(
+                session=session,
+                invoice=invoice,
+                fee=fee,
+                policy=policy,
+                actor_user_id=actor_user_id,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            log.warning(
+                "late-fee debit note creation failed for invoice %s: %s",
+                invoice.id,
+                exc,
+            )
+            skipped += 1
+            continue
 
         await _emit(
             session,
@@ -315,7 +284,7 @@ async def apply_late_fees(
     return LateFeeApplyResult(
         applied=applied,
         skipped=skipped,
-        deferred=deferred,
+        deferred=False,
         fees_total=fees_total,
     )
 
@@ -324,24 +293,13 @@ async def _last_late_fee_date(
     session: AsyncSession,
     *,
     invoice_id: uuid.UUID,
-    debit_notes_module: Any | None,
 ) -> date | None:
-    """Return the date of the most recent late-fee debit note for an invoice.
+    """Return the date of the most recent late-fee application for an invoice.
 
-    When Phase 7.4 is unmerged we fall back to scanning the event log
-    for ``ar.LateFeeApplied`` events — this is what powers the
-    in-process idempotency guard that the tests rely on.
+    Scans the ``ar.LateFeeApplied`` event log — the same source of
+    truth that powers the audit trail. Used to enforce the compound
+    interval and one-shot guards.
     """
-    if debit_notes_module is not None:
-        try:
-            return await debit_notes_module.last_late_fee_date(
-                session=session, invoice_id=invoice_id
-            )
-        except AttributeError:  # pragma: no cover - debit_notes API drift
-            pass
-
-    # Fallback: event-log scan. Phase 1.1's Event row carries
-    # ``occurred_at`` and ``payload`` JSON.
     from app.models.event import Event
 
     stmt = (
@@ -363,7 +321,6 @@ async def _last_late_fee_date(
 
 
 async def _create_and_issue_debit_note(
-    debit_notes_module: Any,
     *,
     session: AsyncSession,
     invoice: Invoice,
@@ -371,24 +328,25 @@ async def _create_and_issue_debit_note(
     policy: LateFeePolicy,
     actor_user_id: uuid.UUID | None,
 ) -> uuid.UUID:
-    """Thin shim over Phase 7.4's ``DebitNotesService``.
+    """Create + issue a Phase 7.4 ``debit_note`` for a late-fee application.
 
-    Kept private so when Phase 7.4 lands we only edit one call site.
-    The expected API is a service module exposing async ``create_draft``
-    and ``issue`` callables. If the actual surface differs at merge time,
-    update this function and the call site stays the same.
+    The ``debit_notes`` service requires a non-null actor for the
+    ``created_by_user_id`` FK. When the worker is triggered by the
+    daily cron (``actor_user_id=None``) we fall back to the invoice's
+    creator so the audit trail still has a sensible owner.
     """
-    draft = await debit_notes_module.create_draft(
-        session=session,
+    effective_actor = actor_user_id or invoice.created_by_user_id
+    draft = await debit_notes_service.create_draft(
+        session,
         invoice_id=invoice.id,
-        amount=fee,
+        total_amount=fee,
         reason="late_fee",
-        actor_user_id=actor_user_id,
+        actor_user_id=effective_actor,
     )
-    issued = await debit_notes_module.issue(
-        session=session,
+    issued = await debit_notes_service.issue(
+        session,
         debit_note_id=draft.id,
-        actor_user_id=actor_user_id,
+        actor_user_id=effective_actor,
     )
     return issued.id
 

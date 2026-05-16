@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests._late_fees_helpers import (
     schema,  # noqa: F401
+    seed_ar_posting_accounts,
     seed_customer_simple,
     seed_issued_invoice,
     seed_user_simple,
@@ -22,6 +23,7 @@ from tests._late_fees_helpers import (
 @pytest.mark.asyncio
 async def test_customer_policy_beats_global(schema, session: AsyncSession) -> None:  # noqa: F811
     user = await seed_user_simple(session)
+    await seed_ar_posting_accounts(session)
     customer = await seed_customer_simple(session, display_name="VIP Co")
     now = datetime.now(UTC)
     await seed_issued_invoice(

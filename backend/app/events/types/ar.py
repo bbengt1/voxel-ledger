@@ -398,6 +398,8 @@ class RecurringTemplateCreatedPayload(_ARPayloadBase):
 
 class RecurringTemplateUpdatedPayload(_ARPayloadBase):
     template_id: uuid.UUID
+
+
 # --- Overdue marker / late fees (Phase 7.6, #114) ---------------------------
 
 
@@ -662,6 +664,8 @@ register_event(TYPE_RECURRING_TEMPLATE_PAUSED, RecurringTemplatePausedPayload)
 register_event(TYPE_RECURRING_TEMPLATE_RESUMED, RecurringTemplateResumedPayload)
 register_event(TYPE_RECURRING_TEMPLATE_CANCELLED, RecurringTemplateCancelledPayload)
 register_event(TYPE_RECURRING_INVOICE_MATERIALIZED, RecurringInvoiceMaterializedPayload)
+
+
 class LateFeePolicyDeactivatedPayload(_ARPayloadBase):
     policy_id: uuid.UUID
 
