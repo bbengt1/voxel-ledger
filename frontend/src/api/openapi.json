@@ -6583,6 +6583,346 @@
         "title": "RefreshRequest",
         "type": "object"
       },
+      "RefundApprovalDecision": {
+        "description": "Body for approve / reject. ``note`` becomes the decision_note on\nthe linked ApprovalRequest if one was created.",
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "RefundApprovalDecision",
+        "type": "object"
+      },
+      "RefundCreate": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RefundItemCreate"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "full",
+              "partial",
+              "store_credit",
+              "marketplace_initiated"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "reason_code": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "restock_inventory": {
+            "default": true,
+            "title": "Restock Inventory",
+            "type": "boolean"
+          },
+          "sale_id": {
+            "format": "uuid",
+            "title": "Sale Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sale_id",
+          "kind",
+          "reason_code"
+        ],
+        "title": "RefundCreate",
+        "type": "object"
+      },
+      "RefundCreateResponse": {
+        "description": "Wraps the refund + an optional approval_request_id for the 202\npending-approval case. The router decides 201 vs 202 by inspecting\nstate == pending_approval.",
+        "properties": {
+          "approval_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Request Id"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/RefundResponse"
+          }
+        },
+        "required": [
+          "refund"
+        ],
+        "title": "RefundCreateResponse",
+        "type": "object"
+      },
+      "RefundItemCreate": {
+        "description": "One line on a draft refund.\n\n``unit_amount`` is the refund value per unit (typically the\noriginating ``sale_item.unit_price``; the service does not enforce\nthat — partial-price refunds are allowed). ``extended_amount`` is\ncomputed by the service as ``quantity * unit_amount``.",
+        "properties": {
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "sale_item_id": {
+            "format": "uuid",
+            "title": "Sale Item Id",
+            "type": "string"
+          },
+          "unit_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Unit Amount"
+          }
+        },
+        "required": [
+          "sale_item_id",
+          "quantity",
+          "unit_amount"
+        ],
+        "title": "RefundItemCreate",
+        "type": "object"
+      },
+      "RefundItemResponse": {
+        "properties": {
+          "extended_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Extended Amount",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "quantity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Quantity",
+            "type": "string"
+          },
+          "sale_item_id": {
+            "format": "uuid",
+            "title": "Sale Item Id",
+            "type": "string"
+          },
+          "unit_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Unit Amount",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sale_item_id",
+          "quantity",
+          "unit_amount",
+          "extended_amount"
+        ],
+        "title": "RefundItemResponse",
+        "type": "object"
+      },
+      "RefundListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RefundResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "RefundListResponse",
+        "type": "object"
+      },
+      "RefundResponse": {
+        "properties": {
+          "approval_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Request Id"
+          },
+          "approved_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By User Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RefundItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "full",
+              "partial",
+              "store_credit",
+              "marketplace_initiated"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "refund_number": {
+            "title": "Refund Number",
+            "type": "string"
+          },
+          "restock_inventory": {
+            "title": "Restock Inventory",
+            "type": "boolean"
+          },
+          "sale_id": {
+            "format": "uuid",
+            "title": "Sale Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending_approval",
+              "approved",
+              "posted",
+              "rejected",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "total_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "refund_number",
+          "sale_id",
+          "kind",
+          "state",
+          "total_amount",
+          "restock_inventory",
+          "reason_code",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RefundResponse",
+        "type": "object"
+      },
       "Role": {
         "description": "RBAC roles. Deny-by-default; presence in a `require_role` allowlist\nis the only thing that grants access.",
         "enum": [
@@ -16981,6 +17321,423 @@
         "summary": "Unarchive Rate",
         "tags": [
           "rates"
+        ]
+      }
+    },
+    "/api/v1/refunds": {
+      "get": {
+        "operationId": "list_refunds_api_v1_refunds_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sale_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sale Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Refunds",
+        "tags": [
+          "refunds"
+        ]
+      },
+      "post": {
+        "operationId": "create_refund_api_v1_refunds_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Refund",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/api/v1/refunds/{refund_id}": {
+      "get": {
+        "operationId": "get_refund_api_v1_refunds__refund_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "refund_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Refund Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Refund",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/api/v1/refunds/{refund_id}/approve": {
+      "post": {
+        "operationId": "approve_refund_api_v1_refunds__refund_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "refund_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Refund Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefundApprovalDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve Refund",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/api/v1/refunds/{refund_id}/cancel": {
+      "post": {
+        "operationId": "cancel_refund_api_v1_refunds__refund_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "refund_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Refund Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Refund",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/api/v1/refunds/{refund_id}/post": {
+      "post": {
+        "operationId": "post_refund_api_v1_refunds__refund_id__post_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "refund_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Refund Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Refund",
+        "tags": [
+          "refunds"
+        ]
+      }
+    },
+    "/api/v1/refunds/{refund_id}/reject": {
+      "post": {
+        "operationId": "reject_refund_api_v1_refunds__refund_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "refund_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Refund Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefundApprovalDecision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reject Refund",
+        "tags": [
+          "refunds"
         ]
       }
     },

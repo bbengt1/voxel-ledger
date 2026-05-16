@@ -329,5 +329,5 @@ class RefundApprovalThreshold(SettingSchema):
     """
 
     key: ClassVar[str] = "sales.refund.approval_threshold"
-    default: ClassVar[Decimal] = Decimal("50.00")
+    default: ClassVar[Decimal] = Decimal("500.00")
     value: Decimal = Field(ge=0)

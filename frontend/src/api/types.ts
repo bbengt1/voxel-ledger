@@ -1934,6 +1934,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Refunds */
+        get: operations["list_refunds_api_v1_refunds_get"];
+        put?: never;
+        /** Create Refund */
+        post: operations["create_refund_api_v1_refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Refund */
+        get: operations["get_refund_api_v1_refunds__refund_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Refund */
+        post: operations["approve_refund_api_v1_refunds__refund_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Refund */
+        post: operations["cancel_refund_api_v1_refunds__refund_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Refund */
+        post: operations["post_refund_api_v1_refunds__refund_id__post_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds/{refund_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Refund */
+        post: operations["reject_refund_api_v1_refunds__refund_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales": {
         parameters: {
             query?: never;
@@ -4833,6 +4936,152 @@ export interface components {
         RefreshRequest: {
             /** Refresh Token */
             refresh_token: string;
+        };
+        /**
+         * RefundApprovalDecision
+         * @description Body for approve / reject. ``note`` becomes the decision_note on
+         *     the linked ApprovalRequest if one was created.
+         */
+        RefundApprovalDecision: {
+            /** Note */
+            note?: string | null;
+        };
+        /** RefundCreate */
+        RefundCreate: {
+            /** Items */
+            items?: components["schemas"]["RefundItemCreate"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "full" | "partial" | "store_credit" | "marketplace_initiated";
+            /** Notes */
+            notes?: string | null;
+            /** Reason Code */
+            reason_code: string;
+            /**
+             * Restock Inventory
+             * @default true
+             */
+            restock_inventory: boolean;
+            /**
+             * Sale Id
+             * Format: uuid
+             */
+            sale_id: string;
+        };
+        /**
+         * RefundCreateResponse
+         * @description Wraps the refund + an optional approval_request_id for the 202
+         *     pending-approval case. The router decides 201 vs 202 by inspecting
+         *     state == pending_approval.
+         */
+        RefundCreateResponse: {
+            /** Approval Request Id */
+            approval_request_id?: string | null;
+            refund: components["schemas"]["RefundResponse"];
+        };
+        /**
+         * RefundItemCreate
+         * @description One line on a draft refund.
+         *
+         *     ``unit_amount`` is the refund value per unit (typically the
+         *     originating ``sale_item.unit_price``; the service does not enforce
+         *     that — partial-price refunds are allowed). ``extended_amount`` is
+         *     computed by the service as ``quantity * unit_amount``.
+         */
+        RefundItemCreate: {
+            /** Quantity */
+            quantity: number | string;
+            /**
+             * Sale Item Id
+             * Format: uuid
+             */
+            sale_item_id: string;
+            /** Unit Amount */
+            unit_amount: number | string;
+        };
+        /** RefundItemResponse */
+        RefundItemResponse: {
+            /** Extended Amount */
+            extended_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Quantity */
+            quantity: string;
+            /**
+             * Sale Item Id
+             * Format: uuid
+             */
+            sale_item_id: string;
+            /** Unit Amount */
+            unit_amount: string;
+        };
+        /** RefundListResponse */
+        RefundListResponse: {
+            /** Items */
+            items: components["schemas"]["RefundResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** RefundResponse */
+        RefundResponse: {
+            /** Approval Request Id */
+            approval_request_id?: string | null;
+            /** Approved By User Id */
+            approved_by_user_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["RefundItemResponse"][];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "full" | "partial" | "store_credit" | "marketplace_initiated";
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Reason Code */
+            reason_code: string;
+            /** Refund Number */
+            refund_number: string;
+            /** Restock Inventory */
+            restock_inventory: boolean;
+            /**
+             * Sale Id
+             * Format: uuid
+             */
+            sale_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending_approval" | "approved" | "posted" | "rejected" | "cancelled";
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /**
          * Role
@@ -10197,6 +10446,236 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_refunds_api_v1_refunds_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                sale_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_refund_api_v1_refunds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_refund_api_v1_refunds__refund_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_refund_api_v1_refunds__refund_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefundApprovalDecision"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_refund_api_v1_refunds__refund_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_refund_api_v1_refunds__refund_id__post_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_refund_api_v1_refunds__refund_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefundApprovalDecision"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundResponse"];
                 };
             };
             /** @description Validation Error */

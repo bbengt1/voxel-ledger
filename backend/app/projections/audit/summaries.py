@@ -994,3 +994,44 @@ register_summary(sales_events.TYPE_SALE_UPDATED, _sale_updated)
 register_summary(sales_events.TYPE_SALE_CONFIRMED, _sale_confirmed)
 register_summary(sales_events.TYPE_SALE_FULFILLED, _sale_fulfilled)
 register_summary(sales_events.TYPE_SALE_CANCELLED, _sale_cancelled)
+
+
+# --- Sales: refunds (Phase 6.5) ---
+
+
+def _refund_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created refund {payload.get('refund_number', '?')} "
+        f"for sale {payload.get('sale_id', '?')} "
+        f"(total {payload.get('total_amount', '?')}, "
+        f"state {payload.get('state', '?')})"
+    )
+
+
+def _refund_approved(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} approved refund {payload.get('refund_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _refund_rejected(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} rejected refund {payload.get('refund_number', '?')}"
+
+
+def _refund_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted refund {payload.get('refund_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _refund_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled refund {payload.get('refund_number', '?')}"
+
+
+register_summary(sales_events.TYPE_REFUND_CREATED, _refund_created)
+register_summary(sales_events.TYPE_REFUND_APPROVED, _refund_approved)
+register_summary(sales_events.TYPE_REFUND_REJECTED, _refund_rejected)
+register_summary(sales_events.TYPE_REFUND_POSTED, _refund_posted)
+register_summary(sales_events.TYPE_REFUND_CANCELLED, _refund_cancelled)
