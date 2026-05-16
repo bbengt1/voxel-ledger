@@ -19,7 +19,7 @@ jobs:
   backend:
     name: Backend (lint, type-check, test)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     # Ephemeral Postgres for integration tests that opt in via the
     # `integration` pytest marker. Unit tests use in-memory SQLite by
