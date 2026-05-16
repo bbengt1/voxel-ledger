@@ -996,3 +996,38 @@ register_excerpt_fields(
     ar_events.TYPE_RECURRING_INVOICE_MATERIALIZED,
     ("name", "customer_id", "cadence_kind", "invoice_id", "invoice_number"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AR: late fees + overdue (Phase 7.6, #114)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` on policy create/update MUST NEVER appear here.
+
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_OVERDUE,
+    ("invoice_number", "customer_id", "days_overdue", "amount_outstanding"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_CREATED,
+    ("policy_id", "customer_id", "kind", "amount", "apply_after_days"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_POLICY_DEACTIVATED,
+    ("policy_id", "customer_id"),
+)
+register_excerpt_fields(
+    ar_events.TYPE_LATE_FEE_APPLIED,
+    (
+        "invoice_number",
+        "customer_id",
+        "policy_id",
+        "debit_note_id",
+        "amount",
+        "days_overdue",
+    ),
+)

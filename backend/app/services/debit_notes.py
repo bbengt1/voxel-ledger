@@ -193,6 +193,7 @@ async def issue(
     *,
     debit_note_id: uuid.UUID,
     actor_user_id: uuid.UUID,
+    revenue_account_id_override: uuid.UUID | None = None,
 ) -> DebitNote:
     note = await _load(session, debit_note_id)
     if note.state != DebitNoteState.DRAFT:
@@ -204,7 +205,10 @@ async def issue(
         await session.execute(select(Customer).where(Customer.id == note.customer_id))
     ).scalar_one()
     ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-    revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
+    if revenue_account_id_override is not None:
+        revenue_account_id = revenue_account_id_override
+    else:
+        revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
     amt = _q(note.total_amount)
     lines = [
         journal_service.JournalLineInput(

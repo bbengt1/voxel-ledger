@@ -32,6 +32,7 @@ from app.api.v1.inventory_transactions import router as inventory_transactions_r
 from app.api.v1.invoices import router as invoices_router
 from app.api.v1.jobs import router as jobs_router
 from app.api.v1.journal_entries import router as journal_entries_router
+from app.api.v1.late_fee_policies import router as late_fee_policies_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
 from app.api.v1.payments import (
@@ -49,6 +50,7 @@ from app.api.v1.quotes import router as quotes_router
 from app.api.v1.rates import router as rates_router
 from app.api.v1.recurring_invoices import router as recurring_invoices_router
 from app.api.v1.refunds import router as refunds_router
+from app.api.v1.reports import router as reports_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
 from app.api.v1.settings import router as settings_router
@@ -112,6 +114,8 @@ api_router.include_router(debit_notes_router)
 # this file).
 api_router.include_router(customers_credit_router)
 api_router.include_router(recurring_invoices_router)
+api_router.include_router(late_fee_policies_router)
+api_router.include_router(reports_router)
 api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)
 # The statements router lives under /customers but is mounted last so

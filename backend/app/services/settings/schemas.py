@@ -571,3 +571,33 @@ class RefundApprovalThreshold(SettingSchema):
     key: ClassVar[str] = "sales.refund.approval_threshold"
     default: ClassVar[Decimal] = Decimal("500.00")
     value: Decimal = Field(ge=0)
+
+
+@register
+class ArDefaultLateFeeIncomeAccountId(SettingSchema):
+    """Default Late Fee Income account credited when a Phase 7.6 late fee
+    debit note is issued.
+
+    When unset the late-fee worker falls back to
+    ``ar.default_revenue_account_id`` (same credit side as a regular
+    invoice). Operators are encouraged to set a dedicated income account
+    so reporting can distinguish late-fee income from sale revenue.
+    """
+
+    key: ClassVar[str] = "ar.default_late_fee_income_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ArAgingBucketDays(SettingSchema):
+    """Cut points for the AR aging report's day buckets (Phase 7.6, #114).
+
+    Stored as a sorted list of positive integers. Default ``[30, 60, 90]``
+    yields buckets ``[0-30, 31-60, 61-90, 91+]``. The aging report endpoint
+    also accepts a ``?buckets=`` override per-request.
+    """
+
+    key: ClassVar[str] = "ar.aging_bucket_days"
+    default: ClassVar[list[int]] = [30, 60, 90]
+    value: list[int] = Field(default_factory=lambda: [30, 60, 90])
