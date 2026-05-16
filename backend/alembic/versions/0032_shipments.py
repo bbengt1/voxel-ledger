@@ -5,8 +5,8 @@ plus the ``shipment_state`` PG enum. Per agents.md PG strict-typing
 gotcha #1 the enum is NOT pre-created — ``op.create_table`` auto-creates
 it via the column's dialect hook.
 
-Revision ID: 0030_shipments
-Revises: 0029_sale_je_fk
+Revision ID: 0032_shipments
+Revises: 0031_pos_carts
 Create Date: 2026-05-15 00:00:00.000000
 """
 
@@ -17,8 +17,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0030_shipments"
-down_revision: str | None = "0029_sale_je_fk"
+revision: str = "0032_shipments"
+down_revision: str | None = "0031_pos_carts"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

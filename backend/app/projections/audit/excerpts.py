@@ -715,6 +715,9 @@ register_excerpt_fields(
 register_excerpt_fields(
     sales_events.TYPE_POS_CART_VOIDED,
     ("cart_id",),
+)
+
+
 # --- Sales: shipments (Phase 6.6, #98) ----------------------------------
 #
 # CRITICAL: ``ship_to``, ``ship_from``, and ``label_pdf_storage_key`` MUST
