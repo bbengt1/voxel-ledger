@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict
 from app.events.registry import register_event
 
 AGGREGATE_TYPE_CUSTOMER: str = "customer"
+AGGREGATE_TYPE_QUOTE: str = "quote"
 
 
 class _ARPayloadBase(BaseModel):
@@ -97,3 +98,94 @@ register_event(TYPE_CUSTOMER_UNARCHIVED, CustomerUnarchivedPayload)
 register_event(TYPE_CUSTOMER_CONTACT_ADDED, CustomerContactAddedPayload)
 register_event(TYPE_CUSTOMER_CONTACT_UPDATED, CustomerContactUpdatedPayload)
 register_event(TYPE_CUSTOMER_CONTACT_REMOVED, CustomerContactRemovedPayload)
+
+
+# --- Quotes (Phase 7.2, #110) ------------------------------------------------
+#
+# PII NOTE: ``notes`` and ``billing_address_snapshot`` are carried in
+# create/update payloads so replay can reconstruct the quote, but the
+# audit-excerpt whitelist NEVER surfaces them. See
+# ``app/projections/audit/excerpts.py``.
+
+
+class QuoteCreatedPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+    state: str
+    issued_at: str | None = None
+    valid_until: str | None = None
+    subtotal: str
+    discount_amount: str
+    tax_amount: str
+    total_amount: str
+    notes: str | None = None
+    billing_address_snapshot: dict[str, Any] | None = None
+    items: list[dict[str, Any]] = []
+
+
+class QuoteUpdatedPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class QuoteSentPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+    total_amount: str
+    issued_at: str
+
+
+class QuoteAcceptedPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+    total_amount: str
+
+
+class QuoteDeclinedPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+
+
+class QuoteExpiredPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+
+
+class QuoteCancelledPayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+
+
+class QuoteConvertedToInvoicePayload(_ARPayloadBase):
+    quote_id: uuid.UUID
+    quote_number: str
+    customer_id: uuid.UUID
+    invoice_id: uuid.UUID
+    total_amount: str
+
+
+TYPE_QUOTE_CREATED = "ar.QuoteCreated"
+TYPE_QUOTE_UPDATED = "ar.QuoteUpdated"
+TYPE_QUOTE_SENT = "ar.QuoteSent"
+TYPE_QUOTE_ACCEPTED = "ar.QuoteAccepted"
+TYPE_QUOTE_DECLINED = "ar.QuoteDeclined"
+TYPE_QUOTE_EXPIRED = "ar.QuoteExpired"
+TYPE_QUOTE_CANCELLED = "ar.QuoteCancelled"
+TYPE_QUOTE_CONVERTED_TO_INVOICE = "ar.QuoteConvertedToInvoice"
+
+
+register_event(TYPE_QUOTE_CREATED, QuoteCreatedPayload)
+register_event(TYPE_QUOTE_UPDATED, QuoteUpdatedPayload)
+register_event(TYPE_QUOTE_SENT, QuoteSentPayload)
+register_event(TYPE_QUOTE_ACCEPTED, QuoteAcceptedPayload)
+register_event(TYPE_QUOTE_DECLINED, QuoteDeclinedPayload)
+register_event(TYPE_QUOTE_EXPIRED, QuoteExpiredPayload)
+register_event(TYPE_QUOTE_CANCELLED, QuoteCancelledPayload)
+register_event(TYPE_QUOTE_CONVERTED_TO_INVOICE, QuoteConvertedToInvoicePayload)

@@ -1182,3 +1182,64 @@ register_summary(ar_events.TYPE_CUSTOMER_UNARCHIVED, _customer_unarchived)
 register_summary(ar_events.TYPE_CUSTOMER_CONTACT_ADDED, _customer_contact_added)
 register_summary(ar_events.TYPE_CUSTOMER_CONTACT_UPDATED, _customer_contact_updated)
 register_summary(ar_events.TYPE_CUSTOMER_CONTACT_REMOVED, _customer_contact_removed)
+
+
+# --- AR: quotes (Phase 7.2, #110) ---
+
+
+def _quote_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created quote {payload.get('quote_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _quote_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated quote {payload.get('quote_id', '?')}: {changes}"
+
+
+def _quote_sent(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} sent quote {payload.get('quote_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _quote_accepted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} accepted quote {payload.get('quote_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _quote_declined(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} declined quote {payload.get('quote_number', '?')}"
+
+
+def _quote_expired(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} expired quote {payload.get('quote_number', '?')}"
+
+
+def _quote_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled quote {payload.get('quote_number', '?')}"
+
+
+def _quote_converted_to_invoice(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} converted quote {payload.get('quote_number', '?')} "
+        f"to invoice {payload.get('invoice_id', '?')}"
+    )
+
+
+register_summary(ar_events.TYPE_QUOTE_CREATED, _quote_created)
+register_summary(ar_events.TYPE_QUOTE_UPDATED, _quote_updated)
+register_summary(ar_events.TYPE_QUOTE_SENT, _quote_sent)
+register_summary(ar_events.TYPE_QUOTE_ACCEPTED, _quote_accepted)
+register_summary(ar_events.TYPE_QUOTE_DECLINED, _quote_declined)
+register_summary(ar_events.TYPE_QUOTE_EXPIRED, _quote_expired)
+register_summary(ar_events.TYPE_QUOTE_CANCELLED, _quote_cancelled)
+register_summary(ar_events.TYPE_QUOTE_CONVERTED_TO_INVOICE, _quote_converted_to_invoice)
