@@ -533,7 +533,6 @@ TYPE_CUSTOMER_CREDIT_APPLIED = "ar.CustomerCreditApplied"
 
 register_event(TYPE_CUSTOMER_CREDIT_ACCRUED, CustomerCreditAccruedPayload)
 register_event(TYPE_CUSTOMER_CREDIT_APPLIED, CustomerCreditAppliedPayload)
-<<<<<<< HEAD
 # --- Email delivery (Phase 7.7, #115) ---------------------------------------
 #
 # PII NOTE: ``to_address`` is carried in payloads so the event log can
@@ -585,10 +584,8 @@ register_event(TYPE_EMAIL_QUEUED, EmailQueuedPayload)
 register_event(TYPE_EMAIL_SENT, EmailSentPayload)
 register_event(TYPE_EMAIL_FAILED, EmailFailedPayload)
 register_event(TYPE_EMAIL_CANCELLED, EmailCancelledPayload)
-=======
 
 
->>>>>>> 32c2f95 (chore: ruff format ar events after rebase)
 class RecurringTemplatePausedPayload(_ARPayloadBase):
     template_id: uuid.UUID
     name: str
