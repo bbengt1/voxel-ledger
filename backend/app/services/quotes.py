@@ -716,23 +716,55 @@ async def convert_to_invoice(
     session: AsyncSession,
     *,
     quote_id: uuid.UUID,
-    actor_user_id: uuid.UUID | None,
+    actor_user_id: uuid.UUID,
 ) -> uuid.UUID:
-    """Convert an ``accepted`` quote into an invoice.
+    """Convert an accepted quote into an invoice (Phase 7.3, #111).
 
-    Phase 7.2 ships the seam — the state column, ``accepted_invoice_id``
-    column, and the route — but the real implementation depends on the
-    Phase 7.3 invoice service. Until 7.3 lands, this raises
-    ``NotImplementedError``; the API translates it to HTTP 501.
+    Calls ``invoices.create_from_quote`` to allocate a fresh draft
+    invoice with the quote's lines copied. Stamps
+    ``quote.accepted_invoice_id`` and emits
+    ``ar.QuoteConvertedToInvoice``. Returns the new invoice ID.
+
+    The transition from ``sent -> accepted`` is a separate route; this
+    function only runs when the quote is already accepted (and has no
+    invoice yet).
     """
-    # Pre-flight: still load the quote so the caller gets a 404 first if
-    # the quote id doesn't exist, before the not-implemented stub fires.
-    await _load(session, quote_id, with_items=False)
-    raise NotImplementedError(
-        "convert_to_invoice requires Phase 7.3 (#111) invoice service; "
-        "the seam (column + state machine) is in place but the implementation "
-        "lands with Phase 7.3."
+    from app.services import invoices as invoices_service
+
+    quote = await _load(session, quote_id)
+    if quote.state != QuoteState.ACCEPTED:
+        raise InvalidQuoteStateError(
+            f"quote {quote_id} is in state {quote.state.value}; "
+            "must be 'accepted' to convert to invoice"
+        )
+    if quote.accepted_invoice_id is not None:
+        raise InvalidQuoteStateError(
+            f"quote {quote_id} already has an invoice ({quote.accepted_invoice_id})"
+        )
+
+    invoice = await invoices_service.create_from_quote(
+        session,
+        quote_id=quote.id,
+        actor_user_id=actor_user_id,  # type: ignore[arg-type]
     )
+
+    quote.accepted_invoice_id = invoice.id
+    await session.flush()
+
+    await _emit(
+        session,
+        event_type=ar_events.TYPE_QUOTE_CONVERTED_TO_INVOICE,
+        aggregate_id=quote.id,
+        payload={
+            "quote_id": str(quote.id),
+            "quote_number": quote.quote_number,
+            "customer_id": str(quote.customer_id),
+            "invoice_id": str(invoice.id),
+            "total_amount": str(invoice.total_amount),
+        },
+        actor_user_id=actor_user_id,
+    )
+    return invoice.id
 
 
 # ---------------------------------------------------------------------------

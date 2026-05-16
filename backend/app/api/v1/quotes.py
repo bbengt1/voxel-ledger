@@ -275,42 +275,27 @@ async def cancel_quote(
     )
 
 
-@router.post("/{quote_id}/convert-to-invoice")
+@router.post("/{quote_id}/convert-to-invoice", status_code=status.HTTP_201_CREATED)
 async def convert_quote_to_invoice(
     quote_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
     actor: Annotated[User, Depends(require_role(*_WRITE_ROLES))],
     _payload: QuoteStateTransitionRequest | None = None,
 ):
-    """Convert an accepted quote into an invoice.
+    """Convert an accepted quote into an invoice (Phase 7.3, #111).
 
-    This endpoint depends on the Phase 7.3 (#111) invoice service. Until
-    that lands, the underlying service raises ``NotImplementedError`` and
-    this route returns HTTP 501 with the documented body so callers can
-    feature-detect cleanly::
-
-        {"detail": "Requires Phase 7.3 invoices", "phase": "7.3"}
-
-    Once #111 ships, this route will return ``{"invoice_id": ...}`` and
-    the docstring above goes away.
+    Returns ``{"invoice_id": "..."}`` and a 201 status. The quote must
+    be in state ``accepted`` and not yet have an invoice attached.
     """
     try:
-        # Surface 404 for unknown quote ids first — the stub itself
-        # raises NotImplementedError, but only after the load.
-        await quotes_service.convert_to_invoice(session, quote_id=quote_id, actor_user_id=actor.id)
+        invoice_id = await quotes_service.convert_to_invoice(
+            session, quote_id=quote_id, actor_user_id=actor.id
+        )
     except quotes_service.QuoteNotFoundError:
         await session.rollback()
         raise HTTPException(status_code=404, detail="quote not found") from None
-    except NotImplementedError:
-        await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail={"detail": "Requires Phase 7.3 invoices", "phase": "7.3"},
-        ) from None
     except Exception as exc:
         await session.rollback()
         raise _map_error(exc) from None
-    # Phase 7.3 fall-through (unreachable today; here for future symmetry).
-    await session.commit()  # pragma: no cover
-    quote = await quotes_service.get(session, quote_id)  # pragma: no cover
-    return {"invoice_id": str(quote.accepted_invoice_id)}  # pragma: no cover
+    await session.commit()
+    return {"invoice_id": str(invoice_id)}

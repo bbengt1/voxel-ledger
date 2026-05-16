@@ -197,7 +197,12 @@ class ReferencePaddingWidth(SettingSchema):
     """
 
     key: ClassVar[str] = "reference.padding_width"
-    default: ClassVar[dict[str, int]] = {"S": 4, "INV": 4, "Q": 4, "BILL": 4}
+    default: ClassVar[dict[str, int]] = {
+        "S": 4,
+        "INV": 4,
+        "Q": 4,
+        "BILL": 4,
+    }
     value: dict[str, int]
 
 
@@ -373,6 +378,65 @@ class ShippingLabelsStorageRoot(SettingSchema):
 
     key: ClassVar[str] = "shipping.labels_storage_root"
     default: ClassVar[str] = "/srv/3d-print-sales/data/shipping-labels"
+    value: str = Field(min_length=1)
+
+
+@register
+class ArDefaultRevenueAccountId(SettingSchema):
+    """Default revenue account for invoice issuance (Phase 7.3, #111).
+
+    Credited per-line at invoice issue time when the line's
+    product/job revenue override (and customer default, and channel
+    default) are all unset. Separate from
+    ``sales_posting.default_revenue_account_id`` so the AR posting
+    pathway can be configured independently from the Phase 6.3
+    sale-confirm pathway.
+    """
+
+    key: ClassVar[str] = "ar.default_revenue_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ArDefaultArAccountId(SettingSchema):
+    """Default AR account for invoice issuance (Phase 7.3, #111).
+
+    Debited at invoice issue time for the gross invoice ``total_amount``
+    when the customer/channel chain is unset.
+    """
+
+    key: ClassVar[str] = "ar.default_ar_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ArDefaultSalesTaxPayableAccountId(SettingSchema):
+    """Default sales-tax-payable liability account for invoice issuance
+    (Phase 7.3, #111).
+
+    Credited at invoice issue time for the invoice's ``tax_amount`` when
+    > 0. Only required when an issuing invoice carries non-zero tax.
+    """
+
+    key: ClassVar[str] = "ar.default_sales_tax_payable_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class InvoicesPdfStorageRoot(SettingSchema):
+    """Filesystem root for rendered invoice PDFs (Phase 7.3, #111).
+
+    Mirrors ``shipping.labels_storage_root``. The invoices service joins
+    ``invoices/{invoice_id}.pdf`` underneath. The same local-FS backend
+    is used; the abstraction lives in :mod:`app.services.files` so
+    swapping to S3 later is a service-level concern.
+    """
+
+    key: ClassVar[str] = "invoices.pdf_storage_root"
+    default: ClassVar[str] = "/srv/3d-print-sales/data/invoices"
     value: str = Field(min_length=1)
 
 

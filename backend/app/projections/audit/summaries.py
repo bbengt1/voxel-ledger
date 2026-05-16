@@ -1243,3 +1243,55 @@ register_summary(ar_events.TYPE_QUOTE_DECLINED, _quote_declined)
 register_summary(ar_events.TYPE_QUOTE_EXPIRED, _quote_expired)
 register_summary(ar_events.TYPE_QUOTE_CANCELLED, _quote_cancelled)
 register_summary(ar_events.TYPE_QUOTE_CONVERTED_TO_INVOICE, _quote_converted_to_invoice)
+
+
+# --- AR: invoices (Phase 7.3, #111) ---
+
+
+def _invoice_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created invoice {payload.get('invoice_number', '?')} "
+        f"(total {payload.get('total_amount', '?')})"
+    )
+
+
+def _invoice_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated invoice {payload.get('invoice_id', '?')}: {changes}"
+
+
+def _invoice_issued(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} issued invoice {payload.get('invoice_number', '?')} "
+        f"(total {payload.get('total_amount', '?')}, "
+        f"je {payload.get('journal_entry_id', '?')})"
+    )
+
+
+def _invoice_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted invoice {payload.get('invoice_number', '?')} "
+        f"via journal entry {payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _invoice_voided(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} voided invoice {payload.get('invoice_number', '?')}"
+
+
+def _invoice_reversed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} reversed invoice {payload.get('invoice_number', '?')} "
+        f"(reversing je {payload.get('reversing_journal_entry_id', '?')})"
+    )
+
+
+register_summary(ar_events.TYPE_INVOICE_CREATED, _invoice_created)
+register_summary(ar_events.TYPE_INVOICE_UPDATED, _invoice_updated)
+register_summary(ar_events.TYPE_INVOICE_ISSUED, _invoice_issued)
+register_summary(ar_events.TYPE_INVOICE_POSTED, _invoice_posted)
+register_summary(ar_events.TYPE_INVOICE_VOIDED, _invoice_voided)
+register_summary(ar_events.TYPE_INVOICE_REVERSED, _invoice_reversed)
