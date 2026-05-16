@@ -3591,6 +3591,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vendors */
+        get: operations["list_vendors_api_v1_vendors_get"];
+        put?: never;
+        /** Create Vendor */
+        post: operations["create_vendor_api_v1_vendors_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vendor */
+        get: operations["get_vendor_api_v1_vendors__vendor_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Vendor */
+        patch: operations["update_vendor_api_v1_vendors__vendor_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Vendor */
+        post: operations["archive_vendor_api_v1_vendors__vendor_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Contact */
+        post: operations["add_contact_api_v1_vendors__vendor_id__contacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}/contacts/{contact_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Contact */
+        delete: operations["delete_contact_api_v1_vendors__vendor_id__contacts__contact_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Contact */
+        patch: operations["update_contact_api_v1_vendors__vendor_id__contacts__contact_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/vendors/{vendor_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Vendor */
+        post: operations["unarchive_vendor_api_v1_vendors__vendor_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -8372,6 +8477,196 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * VendorAddress
+         * @description Snapshot-friendly address shape for billing + shipping.
+         */
+        VendorAddress: {
+            /** City */
+            city?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Line1 */
+            line1?: string | null;
+            /** Line2 */
+            line2?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** Region */
+            region?: string | null;
+        };
+        /** VendorContactCreate */
+        VendorContactCreate: {
+            /** Email */
+            email?: string | null;
+            /**
+             * Is Primary
+             * @default false
+             */
+            is_primary: boolean;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Role Label */
+            role_label?: string | null;
+        };
+        /** VendorContactResponse */
+        VendorContactResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Primary */
+            is_primary: boolean;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Role Label */
+            role_label?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+        };
+        /** VendorContactUpdate */
+        VendorContactUpdate: {
+            /** Email */
+            email?: string | null;
+            /** Is Primary */
+            is_primary?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Role Label */
+            role_label?: string | null;
+        };
+        /** VendorCreate */
+        VendorCreate: {
+            billing_address?: components["schemas"]["VendorAddress"] | null;
+            /** Default Ap Account Id */
+            default_ap_account_id?: string | null;
+            /** Default Expense Account Id */
+            default_expense_account_id?: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Is 1099 Vendor
+             * @default false
+             */
+            is_1099_vendor: boolean;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Payment Terms Days
+             * @default 30
+             */
+            payment_terms_days: number;
+            /** Phone */
+            phone?: string | null;
+            /** Primary Email */
+            primary_email?: string | null;
+            shipping_address?: components["schemas"]["VendorAddress"] | null;
+            /** Tax Id */
+            tax_id?: string | null;
+        };
+        /** VendorListResponse */
+        VendorListResponse: {
+            /** Items */
+            items: components["schemas"]["VendorResponse"][];
+        };
+        /** VendorResponse */
+        VendorResponse: {
+            billing_address?: components["schemas"]["VendorAddress"] | null;
+            /** Contacts */
+            contacts?: components["schemas"]["VendorContactResponse"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Default Ap Account Id */
+            default_ap_account_id?: string | null;
+            /** Default Expense Account Id */
+            default_expense_account_id?: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is 1099 Vendor */
+            is_1099_vendor: boolean;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms Days */
+            payment_terms_days: number;
+            /** Phone */
+            phone?: string | null;
+            /** Primary Email */
+            primary_email?: string | null;
+            shipping_address?: components["schemas"]["VendorAddress"] | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "active" | "archived";
+            /** Tax Id */
+            tax_id?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Vendor Number */
+            vendor_number: string;
+        };
+        /** VendorUpdate */
+        VendorUpdate: {
+            billing_address?: components["schemas"]["VendorAddress"] | null;
+            /** Default Ap Account Id */
+            default_ap_account_id?: string | null;
+            /** Default Expense Account Id */
+            default_expense_account_id?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Is 1099 Vendor */
+            is_1099_vendor?: boolean | null;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Payment Terms Days */
+            payment_terms_days?: number | null;
+            /** Phone */
+            phone?: string | null;
+            /** Primary Email */
+            primary_email?: string | null;
+            shipping_address?: components["schemas"]["VendorAddress"] | null;
+            /** Tax Id */
+            tax_id?: string | null;
         };
         /**
          * VerifyChainResponse
@@ -17102,6 +17397,300 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PasswordResetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_vendors_api_v1_vendors_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_vendor_api_v1_vendors_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_vendor_api_v1_vendors__vendor_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_vendor_api_v1_vendors__vendor_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_vendor_api_v1_vendors__vendor_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_contact_api_v1_vendors__vendor_id__contacts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorContactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorContactResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_contact_api_v1_vendors__vendor_id__contacts__contact_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+                contact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_contact_api_v1_vendors__vendor_id__contacts__contact_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+                contact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VendorContactUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorContactResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_vendor_api_v1_vendors__vendor_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorResponse"];
                 };
             };
             /** @description Validation Error */

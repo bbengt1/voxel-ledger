@@ -13242,6 +13242,735 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VendorAddress": {
+        "description": "Snapshot-friendly address shape for billing + shipping.",
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "line1": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line1"
+          },
+          "line2": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line2"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          }
+        },
+        "title": "VendorAddress",
+        "type": "object"
+      },
+      "VendorContactCreate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_primary": {
+            "default": false,
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role_label": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Label"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "VendorContactCreate",
+        "type": "object"
+      },
+      "VendorContactResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_primary": {
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Label"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vendor_id": {
+            "format": "uuid",
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vendor_id",
+          "name",
+          "is_primary",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VendorContactResponse",
+        "type": "object"
+      },
+      "VendorContactUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_primary": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Primary"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role_label": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Label"
+          }
+        },
+        "title": "VendorContactUpdate",
+        "type": "object"
+      },
+      "VendorCreate": {
+        "properties": {
+          "billing_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default_ap_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Ap Account Id"
+          },
+          "default_expense_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Expense Account Id"
+          },
+          "display_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "is_1099_vendor": {
+            "default": false,
+            "title": "Is 1099 Vendor",
+            "type": "boolean"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms_days": {
+            "default": 30,
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Payment Terms Days",
+            "type": "integer"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "primary_email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Email"
+          },
+          "shipping_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "VendorCreate",
+        "type": "object"
+      },
+      "VendorListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VendorResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "VendorListResponse",
+        "type": "object"
+      },
+      "VendorResponse": {
+        "properties": {
+          "billing_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/VendorContactResponse"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "default_ap_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Ap Account Id"
+          },
+          "default_expense_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Expense Account Id"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_1099_vendor": {
+            "title": "Is 1099 Vendor",
+            "type": "boolean"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms_days": {
+            "title": "Payment Terms Days",
+            "type": "integer"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "primary_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Email"
+          },
+          "shipping_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "active",
+              "archived"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vendor_number": {
+            "title": "Vendor Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vendor_number",
+          "display_name",
+          "payment_terms_days",
+          "is_1099_vendor",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "VendorResponse",
+        "type": "object"
+      },
+      "VendorUpdate": {
+        "properties": {
+          "billing_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default_ap_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Ap Account Id"
+          },
+          "default_expense_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Expense Account Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "is_1099_vendor": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is 1099 Vendor"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "payment_terms_days": {
+            "anyOf": [
+              {
+                "maximum": 3650.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Terms Days"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "primary_email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Email"
+          },
+          "shipping_address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VendorAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tax_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Id"
+          }
+        },
+        "title": "VendorUpdate",
+        "type": "object"
+      },
       "VerifyChainResponse": {
         "description": "Result of ``GET /admin/events/verify-chain``.\n\n``ok=True`` means every event's recomputed hash matches what we stored\nand every ``prev_event_hash`` matches the previous row's\n``event_hash``. ``broken_at_position`` is the first position where\nthe chain fails.",
         "properties": {
@@ -28968,6 +29697,495 @@
         "summary": "Reset Password",
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/api/v1/vendors": {
+      "get": {
+        "operationId": "list_vendors_api_v1_vendors_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Vendors",
+        "tags": [
+          "vendors"
+        ]
+      },
+      "post": {
+        "operationId": "create_vendor_api_v1_vendors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Vendor",
+        "tags": [
+          "vendors"
+        ]
+      }
+    },
+    "/api/v1/vendors/{vendor_id}": {
+      "get": {
+        "operationId": "get_vendor_api_v1_vendors__vendor_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Vendor",
+        "tags": [
+          "vendors"
+        ]
+      },
+      "patch": {
+        "operationId": "update_vendor_api_v1_vendors__vendor_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Vendor",
+        "tags": [
+          "vendors"
+        ]
+      }
+    },
+    "/api/v1/vendors/{vendor_id}/archive": {
+      "post": {
+        "operationId": "archive_vendor_api_v1_vendors__vendor_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Vendor",
+        "tags": [
+          "vendors"
+        ]
+      }
+    },
+    "/api/v1/vendors/{vendor_id}/contacts": {
+      "post": {
+        "operationId": "add_contact_api_v1_vendors__vendor_id__contacts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorContactCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorContactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Contact",
+        "tags": [
+          "vendors"
+        ]
+      }
+    },
+    "/api/v1/vendors/{vendor_id}/contacts/{contact_id}": {
+      "delete": {
+        "operationId": "delete_contact_api_v1_vendors__vendor_id__contacts__contact_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Contact",
+        "tags": [
+          "vendors"
+        ]
+      },
+      "patch": {
+        "operationId": "update_contact_api_v1_vendors__vendor_id__contacts__contact_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contact_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendorContactUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorContactResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Contact",
+        "tags": [
+          "vendors"
+        ]
+      }
+    },
+    "/api/v1/vendors/{vendor_id}/unarchive": {
+      "post": {
+        "operationId": "unarchive_vendor_api_v1_vendors__vendor_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vendor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vendor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendorResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unarchive Vendor",
+        "tags": [
+          "vendors"
         ]
       }
     },

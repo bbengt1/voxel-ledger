@@ -590,6 +590,33 @@ class ArDefaultLateFeeIncomeAccountId(SettingSchema):
 
 
 @register
+class ApDefaultExpenseAccountId(SettingSchema):
+    """Default expense account debited at bill-issue time (Phase 8.1, #128).
+
+    Registered here so the registry is complete for Phase 8.2 bills.
+    Falls through ``vendor.default_expense_account_id`` first.
+    """
+
+    key: ClassVar[str] = "ap.default_expense_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ApDefaultApAccountId(SettingSchema):
+    """Default AP liability account credited at bill-issue time
+    (Phase 8.1, #128).
+
+    Registered here so the registry is complete for Phase 8.2 bills.
+    Falls through ``vendor.default_ap_account_id`` first.
+    """
+
+    key: ClassVar[str] = "ap.default_ap_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class ArAgingBucketDays(SettingSchema):
     """Cut points for the AR aging report's day buckets (Phase 7.6, #114).
 
