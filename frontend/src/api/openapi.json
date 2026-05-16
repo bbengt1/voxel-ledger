@@ -627,6 +627,108 @@
         "title": "AgingRowResponse",
         "type": "object"
       },
+      "ApAgingBucketResponse": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "amount"
+        ],
+        "title": "ApAgingBucketResponse",
+        "type": "object"
+      },
+      "ApAgingReportResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "bucket_labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Bucket Labels",
+            "type": "array"
+          },
+          "grand_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Grand Total",
+            "type": "string"
+          },
+          "grand_total_by_bucket": {
+            "items": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Grand Total By Bucket",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ApAgingRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "bucket_labels",
+          "rows",
+          "grand_total",
+          "grand_total_by_bucket"
+        ],
+        "title": "ApAgingReportResponse",
+        "type": "object"
+      },
+      "ApAgingRowResponse": {
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/ApAgingBucketResponse"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "total_outstanding": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Outstanding",
+            "type": "string"
+          },
+          "vendor_id": {
+            "format": "uuid",
+            "title": "Vendor Id",
+            "type": "string"
+          },
+          "vendor_number": {
+            "title": "Vendor Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vendor_id",
+          "vendor_number",
+          "display_name",
+          "total_outstanding",
+          "buckets"
+        ],
+        "title": "ApAgingRowResponse",
+        "type": "object"
+      },
       "ApprovalActionRequest": {
         "description": "Used for approve / reject. ``decision_note`` is optional free text.",
         "properties": {
@@ -29240,6 +29342,76 @@
         "summary": "Reject Refund",
         "tags": [
           "refunds"
+        ]
+      }
+    },
+    "/api/v1/reports/ap-aging": {
+      "get": {
+        "operationId": "ap_aging_report_api_v1_reports_ap_aging_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "buckets",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Buckets"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApAgingReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ap Aging Report",
+        "tags": [
+          "reports"
         ]
       }
     },

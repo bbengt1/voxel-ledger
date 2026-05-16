@@ -3222,6 +3222,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/ap-aging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ap Aging Report */
+        get: operations["ap_aging_report_api_v1_reports_ap_aging_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/ar-aging": {
         parameters: {
             query?: never;
@@ -4134,6 +4151,45 @@ export interface components {
             display_name: string;
             /** Total Outstanding */
             total_outstanding: string;
+        };
+        /** ApAgingBucketResponse */
+        ApAgingBucketResponse: {
+            /** Amount */
+            amount: string;
+            /** Label */
+            label: string;
+        };
+        /** ApAgingReportResponse */
+        ApAgingReportResponse: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Bucket Labels */
+            bucket_labels: string[];
+            /** Grand Total */
+            grand_total: string;
+            /** Grand Total By Bucket */
+            grand_total_by_bucket: string[];
+            /** Rows */
+            rows: components["schemas"]["ApAgingRowResponse"][];
+        };
+        /** ApAgingRowResponse */
+        ApAgingRowResponse: {
+            /** Buckets */
+            buckets: components["schemas"]["ApAgingBucketResponse"][];
+            /** Display Name */
+            display_name: string;
+            /** Total Outstanding */
+            total_outstanding: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+            /** Vendor Number */
+            vendor_number: string;
         };
         /**
          * ApprovalActionRequest
@@ -17051,6 +17107,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefundResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ap_aging_report_api_v1_reports_ap_aging_get: {
+        parameters: {
+            query?: {
+                buckets?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApAgingReportResponse"];
                 };
             };
             /** @description Validation Error */

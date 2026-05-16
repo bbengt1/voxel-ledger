@@ -701,3 +701,18 @@ class ArAgingBucketDays(SettingSchema):
     key: ClassVar[str] = "ar.aging_bucket_days"
     default: ClassVar[list[int]] = [30, 60, 90]
     value: list[int] = Field(default_factory=lambda: [30, 60, 90])
+
+
+@register
+class ApAgingBucketDays(SettingSchema):
+    """Cut points for the AP aging report's day buckets (Phase 8.4, #131).
+
+    Stored as a sorted list of positive integers. Default ``[30, 60, 90]``
+    yields buckets ``[0-30, 31-60, 61-90, 91+]``. The aging report endpoint
+    also accepts a ``?buckets=`` override per-request. Mirror of
+    ``ar.aging_bucket_days``.
+    """
+
+    key: ClassVar[str] = "ap.aging_bucket_days"
+    default: ClassVar[list[int]] = [30, 60, 90]
+    value: list[int] = Field(default_factory=lambda: [30, 60, 90])

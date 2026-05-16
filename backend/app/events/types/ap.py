@@ -256,3 +256,24 @@ register_event(TYPE_BILL_PAYMENT_POSTED, BillPaymentPostedPayload)
 register_event(TYPE_BILL_PAYMENT_UNAPPLIED, BillPaymentUnappliedPayload)
 register_event(TYPE_BILL_PAYMENT_BOUNCED, BillPaymentBouncedPayload)
 register_event(TYPE_BILL_PAYMENT_CANCELLED, BillPaymentCancelledPayload)
+
+
+# --- Bill overdue (Phase 8.4, #131) -----------------------------------------
+#
+# Mirrors ``ar.InvoiceOverdue``. Emitted by the overdue-bill marker worker
+# when a bill transitions from ``issued`` / ``partially_paid`` to
+# ``overdue`` because ``due_at`` has passed.
+
+
+class BillOverduePayload(_APPayloadBase):
+    bill_id: uuid.UUID
+    bill_number: str
+    vendor_id: uuid.UUID
+    due_at: str
+    days_overdue: int
+    amount_outstanding: str
+
+
+TYPE_BILL_OVERDUE = "ap.BillOverdue"
+
+register_event(TYPE_BILL_OVERDUE, BillOverduePayload)

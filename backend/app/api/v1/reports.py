@@ -15,11 +15,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_role
 from app.core.db import get_session
 from app.models.auth import User
+from app.schemas.ap_aging import (
+    ApAgingBucketResponse,
+    ApAgingReportResponse,
+    ApAgingRowResponse,
+)
 from app.schemas.late_fees import (
     AgingBucketResponse,
     AgingRowResponse,
     ArAgingReportResponse,
 )
+from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -71,6 +77,44 @@ async def ar_aging_report(
                 display_name=row.display_name,
                 total_outstanding=row.total_outstanding,
                 buckets=[AgingBucketResponse(label=b.label, amount=b.amount) for b in row.buckets],
+            )
+            for row in report.rows
+        ],
+        grand_total=report.grand_total,
+        grand_total_by_bucket=report.grand_total_by_bucket,
+    )  # type: ignore[return-value]
+
+
+@router.get("/ap-aging", response_model=ApAgingReportResponse)
+async def ap_aging_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    buckets: Annotated[str | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    cuts = _parse_buckets(buckets)
+    report = await ap_aging_service.build(session, buckets=cuts)
+
+    if format == "csv":
+        body = ap_aging_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="ap-aging.csv"'},
+        )
+
+    return ApAgingReportResponse(
+        as_of=report.as_of,
+        bucket_labels=report.bucket_labels,
+        rows=[
+            ApAgingRowResponse(
+                vendor_id=row.vendor_id,
+                vendor_number=row.vendor_number,
+                display_name=row.display_name,
+                total_outstanding=row.total_outstanding,
+                buckets=[
+                    ApAgingBucketResponse(label=b.label, amount=b.amount) for b in row.buckets
+                ],
             )
             for row in report.rows
         ],
