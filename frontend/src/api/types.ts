@@ -2317,6 +2317,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/{sale_id}/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Shipment */
+        post: operations["create_shipment_api_v1_sales__sale_id__shipments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -2375,6 +2392,116 @@ export interface paths {
          * @description Atomic batch update. One invalid value rolls back everything.
          */
         post: operations["bulk_update_settings_api_v1_settings_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Shipment */
+        get: operations["get_shipment_api_v1_shipments__shipment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Shipment */
+        post: operations["cancel_shipment_api_v1_shipments__shipment_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/label.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Label
+         * @description Stream the rendered label PDF.
+         *
+         *     Local-FS backend today returns the bytes directly. Once the S3
+         *     backend lands, this handler will issue a signed URL redirect
+         *     instead — the caller-facing contract stays a single GET that
+         *     delivers the PDF.
+         */
+        get: operations["download_label_api_v1_shipments__shipment_id__label_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/mark-delivered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Delivered */
+        post: operations["mark_delivered_api_v1_shipments__shipment_id__mark_delivered_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/mark-shipped": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Shipped */
+        post: operations["mark_shipped_api_v1_shipments__shipment_id__mark_shipped_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shipments/{shipment_id}/purchase-label": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Purchase Label */
+        post: operations["purchase_label_api_v1_shipments__shipment_id__purchase_label_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5753,6 +5880,81 @@ export interface components {
             /** Value */
             value: unknown;
         };
+        /** ShipmentCreate */
+        ShipmentCreate: {
+            /** Carrier Hint */
+            carrier_hint?: string | null;
+            /** Dimensions Cm */
+            dimensions_cm?: {
+                [key: string]: unknown;
+            } | null;
+            /** Service Level */
+            service_level?: string | null;
+            /** Ship To */
+            ship_to: {
+                [key: string]: unknown;
+            };
+            /** Weight Grams */
+            weight_grams?: number | null;
+        };
+        /** ShipmentResponse */
+        ShipmentResponse: {
+            /** Carrier */
+            carrier: string;
+            /** Cost Amount */
+            cost_amount: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dimensions Cm */
+            dimensions_cm?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label Pdf Storage Key */
+            label_pdf_storage_key?: string | null;
+            /**
+             * Sale Id
+             * Format: uuid
+             */
+            sale_id: string;
+            /** Service Level */
+            service_level?: string | null;
+            /** Ship From */
+            ship_from: {
+                [key: string]: unknown;
+            };
+            /** Ship To */
+            ship_to: {
+                [key: string]: unknown;
+            };
+            /** State */
+            state: string;
+            /** Tracking Number */
+            tracking_number?: string | null;
+            /** Tracking Url */
+            tracking_url?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weight Grams */
+            weight_grams?: number | null;
+        };
+        /**
+         * ShipmentTransitionRequest
+         * @description Body for the shipment state-transition endpoints — empty today,
+         *     declared so callers can attach future fields (notes, override flags)
+         *     without breaking the contract.
+         */
+        ShipmentTransitionRequest: Record<string, never>;
         /** SupplyCreateRequest */
         SupplyCreateRequest: {
             /** Custom Fields */
@@ -11623,6 +11825,41 @@ export interface operations {
             };
         };
     };
+    create_shipment_api_v1_sales__sale_id__shipments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sale_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShipmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_settings_api_v1_settings_get: {
         parameters: {
             query?: never;
@@ -11729,6 +11966,208 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkSettingUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shipment_api_v1_shipments__shipment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_shipment_api_v1_shipments__shipment_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_label_api_v1_shipments__shipment_id__label_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_delivered_api_v1_shipments__shipment_id__mark_delivered_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_shipped_api_v1_shipments__shipment_id__mark_shipped_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purchase_label_api_v1_shipments__shipment_id__purchase_label_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ShipmentTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponse"];
                 };
             };
             /** @description Validation Error */

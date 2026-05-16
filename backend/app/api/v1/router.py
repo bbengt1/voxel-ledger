@@ -40,6 +40,8 @@ from app.api.v1.refunds import router as refunds_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.shipments import router as shipments_router
+from app.api.v1.shipments import sales_shipments_router
 from app.api.v1.supplies import router as supplies_router
 from app.api.v1.users import router as users_router
 
@@ -76,7 +78,14 @@ api_router.include_router(production_orders_router)
 api_router.include_router(bom_router)
 api_router.include_router(rates_router)
 api_router.include_router(sales_channels_router)
+# sales_shipments_router shares the ``/sales`` prefix and must register
+# before ``sales_router`` swallowing ``/sales/{sale_id}/...``. The nested
+# POST ``/sales/{sale_id}/shipments`` is more specific than the
+# ``GET /sales/{sale_id}`` route, but the registration order keeps
+# FastAPI's route resolution unambiguous.
+api_router.include_router(sales_shipments_router)
 api_router.include_router(sales_router)
 api_router.include_router(refunds_router)
 api_router.include_router(pos_router)
+api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)

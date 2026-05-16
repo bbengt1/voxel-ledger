@@ -716,3 +716,35 @@ register_excerpt_fields(
     sales_events.TYPE_POS_CART_VOIDED,
     ("cart_id",),
 )
+
+
+# --- Sales: shipments (Phase 6.6, #98) ----------------------------------
+#
+# CRITICAL: ``ship_to``, ``ship_from``, and ``label_pdf_storage_key`` MUST
+# NEVER be whitelisted — the destination address is PII and the storage
+# key is a private internal handle. The whitelist intentionally stays
+# narrow: carrier, service_level, tracking_number, cost_amount + IDs.
+
+register_excerpt_fields(
+    sales_events.TYPE_SHIPPING_LABEL_PURCHASED,
+    (
+        "shipment_id",
+        "sale_id",
+        "carrier",
+        "service_level",
+        "tracking_number",
+        "cost_amount",
+    ),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SHIPMENT_SHIPPED,
+    ("shipment_id", "sale_id", "carrier", "tracking_number"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SHIPMENT_DELIVERED,
+    ("shipment_id", "sale_id", "carrier", "tracking_number"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_SHIPMENT_CANCELLED,
+    ("shipment_id", "sale_id", "carrier", "void_requested"),
+)
