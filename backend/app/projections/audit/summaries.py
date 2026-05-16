@@ -1585,3 +1585,48 @@ register_summary(ap_events.TYPE_BILL_ISSUED, _bill_issued)
 register_summary(ap_events.TYPE_BILL_POSTED, _bill_posted)
 register_summary(ap_events.TYPE_BILL_VOIDED, _bill_voided)
 register_summary(ap_events.TYPE_BILL_REVERSED, _bill_reversed)
+
+
+# --- AP: bill payments (Phase 8.3, #130) ---
+
+
+def _bill_payment_recorded(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recorded bill payment {payload.get('payment_number', '?')} "
+        f"({payload.get('method', '?')}, amount {payload.get('amount', '?')})"
+    )
+
+
+def _bill_payment_applied(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} applied bill payment {payload.get('payment_number', '?')} "
+        f"to {payload.get('bill_number', '?')} "
+        f"(amount {payload.get('amount_applied', '?')})"
+    )
+
+
+def _bill_payment_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted bill payment {payload.get('payment_number', '?')} "
+        f"via journal entry {payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _bill_payment_unapplied(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unapplied bill payment {payload.get('payment_number', '?')}"
+
+
+def _bill_payment_bounced(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} marked bill payment {payload.get('payment_number', '?')} bounced"
+
+
+def _bill_payment_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled bill payment {payload.get('payment_number', '?')}"
+
+
+register_summary(ap_events.TYPE_BILL_PAYMENT_RECORDED, _bill_payment_recorded)
+register_summary(ap_events.TYPE_BILL_PAYMENT_APPLIED, _bill_payment_applied)
+register_summary(ap_events.TYPE_BILL_PAYMENT_POSTED, _bill_payment_posted)
+register_summary(ap_events.TYPE_BILL_PAYMENT_UNAPPLIED, _bill_payment_unapplied)
+register_summary(ap_events.TYPE_BILL_PAYMENT_BOUNCED, _bill_payment_bounced)
+register_summary(ap_events.TYPE_BILL_PAYMENT_CANCELLED, _bill_payment_cancelled)

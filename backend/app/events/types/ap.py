@@ -27,6 +27,7 @@ from app.events.registry import register_event
 AGGREGATE_TYPE_VENDOR: str = "vendor"
 AGGREGATE_TYPE_VENDOR_CONTACT: str = "vendor_contact"
 AGGREGATE_TYPE_BILL: str = "bill"
+AGGREGATE_TYPE_BILL_PAYMENT: str = "bill_payment"
 
 
 class _APPayloadBase(BaseModel):
@@ -179,3 +180,79 @@ register_event(TYPE_BILL_ISSUED, BillIssuedPayload)
 register_event(TYPE_BILL_POSTED, BillPostedPayload)
 register_event(TYPE_BILL_VOIDED, BillVoidedPayload)
 register_event(TYPE_BILL_REVERSED, BillReversedPayload)
+
+
+# --- Bill payments (Phase 8.3, #130) ----------------------------------------
+#
+# PII / sensitive-field rule for the audit excerpt:
+# * ``reference_number`` (check #, wire id) and ``notes`` MUST NEVER be
+#   whitelisted. They're captured on the row so replay can reconstruct
+#   the payment, but the audit denormalization keeps strictly to
+#   ``payment_number``, ``vendor_id``, ``amount``, ``method``, and the
+#   JE id. See ``app/projections/audit/excerpts.py``.
+
+
+class BillPaymentRecordedPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+    method: str
+    reference_number: str | None = None
+    amount: str
+    occurred_at: str
+    state: str
+    notes: str | None = None
+
+
+class BillPaymentAppliedPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+    bill_id: uuid.UUID
+    bill_number: str
+    amount_applied: str
+
+
+class BillPaymentPostedPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+    amount: str
+    method: str
+    journal_entry_id: uuid.UUID
+
+
+class BillPaymentUnappliedPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+    reversing_journal_entry_id: uuid.UUID | None = None
+    original_journal_entry_id: uuid.UUID | None = None
+
+
+class BillPaymentBouncedPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+
+
+class BillPaymentCancelledPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    vendor_id: uuid.UUID
+
+
+TYPE_BILL_PAYMENT_RECORDED = "ap.BillPaymentRecorded"
+TYPE_BILL_PAYMENT_APPLIED = "ap.BillPaymentApplied"
+TYPE_BILL_PAYMENT_POSTED = "ap.BillPaymentPosted"
+TYPE_BILL_PAYMENT_UNAPPLIED = "ap.BillPaymentUnapplied"
+TYPE_BILL_PAYMENT_BOUNCED = "ap.BillPaymentBounced"
+TYPE_BILL_PAYMENT_CANCELLED = "ap.BillPaymentCancelled"
+
+
+register_event(TYPE_BILL_PAYMENT_RECORDED, BillPaymentRecordedPayload)
+register_event(TYPE_BILL_PAYMENT_APPLIED, BillPaymentAppliedPayload)
+register_event(TYPE_BILL_PAYMENT_POSTED, BillPaymentPostedPayload)
+register_event(TYPE_BILL_PAYMENT_UNAPPLIED, BillPaymentUnappliedPayload)
+register_event(TYPE_BILL_PAYMENT_BOUNCED, BillPaymentBouncedPayload)
+register_event(TYPE_BILL_PAYMENT_CANCELLED, BillPaymentCancelledPayload)

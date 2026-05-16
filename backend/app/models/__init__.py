@@ -24,6 +24,14 @@ from app.models.bill import (
     BillItemKind,
     BillState,
 )
+from app.models.bill_payment import (
+    BILL_PAYMENT_METHOD_VALUES,
+    BILL_PAYMENT_STATE_VALUES,
+    BillPayment,
+    BillPaymentApplication,
+    BillPaymentMethod,
+    BillPaymentState,
+)
 from app.models.budget import Budget
 from app.models.camera import CAMERA_KIND_VALUES, Camera, CameraKind
 from app.models.credit_note import (
@@ -180,11 +188,17 @@ __all__ = [
     "Attachment",
     "AuditLog",
     "BILL_ITEM_KIND_VALUES",
+    "BILL_PAYMENT_METHOD_VALUES",
+    "BILL_PAYMENT_STATE_VALUES",
     "BILL_STATE_VALUES",
     "Base",
     "Bill",
     "BillItem",
     "BillItemKind",
+    "BillPayment",
+    "BillPaymentApplication",
+    "BillPaymentMethod",
+    "BillPaymentState",
     "BillState",
     "Budget",
     "CAMERA_KIND_VALUES",

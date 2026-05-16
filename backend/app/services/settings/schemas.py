@@ -651,6 +651,45 @@ class BillsPdfStorageRoot(SettingSchema):
 
 
 @register
+class ApDefaultBankAccountId(SettingSchema):
+    """Default bank / cash asset account credited on bill-payment posting
+    (Phase 8.3, #130).
+
+    Credited at bill-payment posting time for the payment amount when the
+    operator hasn't configured a per-method override in
+    ``ap.payment_method_to_account``. Required for any bill payment to
+    post. Mirrors the AR-side ``ar.default_bank_account_id`` (Phase 7.4).
+    """
+
+    key: ClassVar[str] = "ap.default_bank_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
+class ApPaymentMethodToAccount(SettingSchema):
+    """Per-payment-method override map for the bank-side account on bill
+    payments (Phase 8.3, #130).
+
+    Maps ``bill_payment.method`` value (``cash``, ``check``, ``ach``,
+    ``wire``, ``card``, ``other``) to an account UUID. Resolution at
+    posting time:
+
+    1. Look up the method in this map.
+    2. Fall through to ``ap.default_bank_account_id``.
+    3. Raise ``MissingApPostingAccountError`` if neither resolves.
+
+    UUIDs are stored as strings inside the JSON dict and coerced by the
+    bill-payments service on read. Mirrors AR-side
+    ``ar.payment_method_to_account``.
+    """
+
+    key: ClassVar[str] = "ap.payment_method_to_account"
+    default: ClassVar[dict[str, Any]] = {}
+    value: dict[str, Any]
+
+
+@register
 class ArAgingBucketDays(SettingSchema):
     """Cut points for the AR aging report's day buckets (Phase 7.6, #114).
 

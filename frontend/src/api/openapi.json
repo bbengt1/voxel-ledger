@@ -1409,6 +1409,317 @@
         "title": "BillListResponse",
         "type": "object"
       },
+      "BillPaymentApplicationInput": {
+        "properties": {
+          "amount_applied": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount Applied"
+          },
+          "bill_id": {
+            "format": "uuid",
+            "title": "Bill Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bill_id",
+          "amount_applied"
+        ],
+        "title": "BillPaymentApplicationInput",
+        "type": "object"
+      },
+      "BillPaymentApplicationResponse": {
+        "properties": {
+          "amount_applied": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Applied",
+            "type": "string"
+          },
+          "bill_id": {
+            "format": "uuid",
+            "title": "Bill Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "bill_id",
+          "amount_applied",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BillPaymentApplicationResponse",
+        "type": "object"
+      },
+      "BillPaymentCreate": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/BillPaymentApplicationInput"
+            },
+            "title": "Applications",
+            "type": "array"
+          },
+          "method": {
+            "enum": [
+              "cash",
+              "check",
+              "ach",
+              "wire",
+              "card",
+              "other"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "reference_number": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Number"
+          },
+          "vendor_id": {
+            "format": "uuid",
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vendor_id",
+          "method",
+          "amount"
+        ],
+        "title": "BillPaymentCreate",
+        "type": "object"
+      },
+      "BillPaymentListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BillPaymentResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "BillPaymentListResponse",
+        "type": "object"
+      },
+      "BillPaymentResponse": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/BillPaymentApplicationResponse"
+            },
+            "title": "Applications",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "cash",
+              "check",
+              "ach",
+              "wire",
+              "card",
+              "other"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payment_number": {
+            "title": "Payment Number",
+            "type": "string"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "reference_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Number"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "posted",
+              "bounced",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "vendor_id": {
+            "format": "uuid",
+            "title": "Vendor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "payment_number",
+          "vendor_id",
+          "method",
+          "amount",
+          "occurred_at",
+          "state",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BillPaymentResponse",
+        "type": "object"
+      },
+      "BillPaymentTransitionRequest": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "title": "BillPaymentTransitionRequest",
+        "type": "object"
+      },
       "BillResponse": {
         "properties": {
           "amount_outstanding": {
@@ -17542,6 +17853,426 @@
         "summary": "Refresh",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/bill-payments": {
+      "get": {
+        "operationId": "list_bill_payments_api_v1_bill_payments_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "vendor_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendor Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Bill Payments",
+        "tags": [
+          "bill-payments"
+        ]
+      },
+      "post": {
+        "operationId": "record_bill_payment_api_v1_bill_payments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillPaymentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Record Bill Payment",
+        "tags": [
+          "bill-payments"
+        ]
+      }
+    },
+    "/api/v1/bill-payments/{bill_payment_id}": {
+      "get": {
+        "operationId": "get_bill_payment_api_v1_bill_payments__bill_payment_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bill_payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bill Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Bill Payment",
+        "tags": [
+          "bill-payments"
+        ]
+      }
+    },
+    "/api/v1/bill-payments/{bill_payment_id}/bounce": {
+      "post": {
+        "operationId": "bounce_bill_payment_api_v1_bill_payments__bill_payment_id__bounce_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bill_payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bill Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/BillPaymentTransitionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": " Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bounce Bill Payment",
+        "tags": [
+          "bill-payments"
+        ]
+      }
+    },
+    "/api/v1/bill-payments/{bill_payment_id}/cancel": {
+      "post": {
+        "operationId": "cancel_bill_payment_api_v1_bill_payments__bill_payment_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bill_payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bill Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/BillPaymentTransitionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": " Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Bill Payment",
+        "tags": [
+          "bill-payments"
+        ]
+      }
+    },
+    "/api/v1/bill-payments/{bill_payment_id}/unapply": {
+      "post": {
+        "operationId": "unapply_bill_payment_api_v1_bill_payments__bill_payment_id__unapply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bill_payment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Bill Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/BillPaymentTransitionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": " Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillPaymentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unapply Bill Payment",
+        "tags": [
+          "bill-payments"
         ]
       }
     },

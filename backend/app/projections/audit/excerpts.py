@@ -1111,3 +1111,38 @@ register_excerpt_fields(
         "original_journal_entry_id",
     ),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: bill payments (Phase 8.3, #130)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``reference_number`` (check #, wire id) and
+# ``notes`` MUST NEVER be whitelisted on bill-payment events. The
+# whitelist stays narrow: payment_number, vendor_id, amount, method,
+# journal_entry_id.
+
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_RECORDED,
+    ("payment_number", "vendor_id", "amount", "method", "state"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_APPLIED,
+    ("payment_number", "vendor_id", "bill_id", "bill_number", "amount_applied"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_POSTED,
+    ("payment_number", "vendor_id", "amount", "method", "journal_entry_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_UNAPPLIED,
+    ("payment_number", "vendor_id", "reversing_journal_entry_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_BOUNCED,
+    ("payment_number", "vendor_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_CANCELLED,
+    ("payment_number", "vendor_id"),
+)
