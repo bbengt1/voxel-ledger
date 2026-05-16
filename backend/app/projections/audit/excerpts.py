@@ -682,3 +682,37 @@ register_excerpt_fields(
     sales_events.TYPE_REFUND_CANCELLED,
     ("refund_number", "sale_id"),
 )
+
+
+# ---------------------------------------------------------------------------
+# Sales: POS carts (Phase 6.4)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL: ``customer_email`` MUST NEVER be whitelisted — POS receipts may
+# capture an email at checkout but it never reaches the audit denorm. Only
+# structural identifiers + totals surface here.
+
+register_excerpt_fields(
+    sales_events.TYPE_POS_CART_OPENED,
+    ("cart_id", "channel_id"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_POS_LINE_ADDED,
+    ("cart_id", "line_number"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_POS_LINE_UPDATED,
+    ("cart_id", "line_number"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_POS_LINE_REMOVED,
+    ("cart_id", "line_number"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_POS_CART_CHECKED_OUT,
+    ("cart_id", "channel_id", "total"),
+)
+register_excerpt_fields(
+    sales_events.TYPE_POS_CART_VOIDED,
+    ("cart_id",),
+)
