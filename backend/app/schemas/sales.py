@@ -60,6 +60,10 @@ class SaleItemResponse(BaseModel):
 class SaleCreate(BaseModel):
     channel_id: uuid.UUID
     external_order_id: str | None = None
+    # Phase 7.1 (#109): optional FK to a real customer. The
+    # ``customer_name`` / ``customer_email`` snapshot fields below remain
+    # required for receipt/list display even when ``customer_id`` is set.
+    customer_id: uuid.UUID | None = None
     customer_name: str = Field(min_length=1, max_length=255)
     customer_email: str | None = Field(default=None, max_length=255)
     occurred_at: datetime
@@ -79,6 +83,7 @@ class SaleUpdate(BaseModel):
 
     channel_id: uuid.UUID | None = None
     external_order_id: str | None = None
+    customer_id: uuid.UUID | None = None
     customer_name: str | None = Field(default=None, min_length=1, max_length=255)
     customer_email: str | None = Field(default=None, max_length=255)
     occurred_at: datetime | None = None
@@ -96,6 +101,7 @@ class SaleResponse(BaseModel):
     sale_number: str
     channel_id: uuid.UUID
     external_order_id: str | None = None
+    customer_id: uuid.UUID | None = None
     customer_name: str
     customer_email: str | None = None
     occurred_at: datetime

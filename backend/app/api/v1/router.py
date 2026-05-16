@@ -20,6 +20,7 @@ from app.api.v1.budgets import router as budgets_router
 from app.api.v1.cameras import router as cameras_router
 from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
+from app.api.v1.customers import router as customers_router
 from app.api.v1.divisions import router as divisions_router
 from app.api.v1.form_templates import router as form_templates_router
 from app.api.v1.inventory_alerts import router as inventory_alerts_router
@@ -57,6 +58,7 @@ api_router.include_router(divisions_router)
 api_router.include_router(settings_router)
 api_router.include_router(users_router)
 api_router.include_router(custom_fields_router)
+api_router.include_router(customers_router)
 api_router.include_router(form_templates_router)
 api_router.include_router(inventory_alerts_router)
 api_router.include_router(inventory_locations_router)

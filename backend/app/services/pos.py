@@ -197,6 +197,7 @@ async def open_cart(
     channel_id: uuid.UUID,
     cashier: User,
     session: AsyncSession,
+    customer_id: uuid.UUID | None = None,
     customer_name: str | None = None,
     customer_email: str | None = None,
 ) -> PosCart:
@@ -210,6 +211,7 @@ async def open_cart(
         cashier_user_id=cashier.id,
         channel_id=channel_id,
         state=PosCartState.OPEN,
+        customer_id=customer_id,
         customer_name=customer_name,
         customer_email=customer_email,
     )
@@ -467,6 +469,7 @@ async def checkout(
     tendered_amount: Decimal | str | int | float,
     session: AsyncSession,
     actor: User,
+    customer_id: uuid.UUID | None = None,
     customer_name: str | None = None,
     customer_email: str | None = None,
     tax_amount: Decimal | str | int | float = Decimal("0"),
@@ -484,6 +487,8 @@ async def checkout(
     if not cart.items:
         raise PosServiceError("cart has no items")
 
+    if customer_id is not None:
+        cart.customer_id = customer_id
     if customer_name is not None:
         cart.customer_name = customer_name
     if customer_email is not None:
@@ -534,6 +539,7 @@ async def checkout(
         session,
         channel_id=cart.channel_id,
         external_order_id=None,
+        customer_id=cart.customer_id,
         customer_name=customer_name_for_sale,
         customer_email=cart.customer_email,
         occurred_at=datetime.now(UTC),
