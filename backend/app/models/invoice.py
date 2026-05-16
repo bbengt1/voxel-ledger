@@ -90,6 +90,7 @@ class Invoice(Base):
         Index("ix_invoice_created_at_id", "created_at", "id"),
         Index("ix_invoice_issued_at", "issued_at"),
         Index("ix_invoice_due_at", "due_at"),
+        Index("ix_invoice_state_due_at", "state", "due_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -152,6 +153,13 @@ class Invoice(Base):
 
     posting_journal_entry_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("journal_entry.id", ondelete="RESTRICT"), nullable=True
+    )
+
+    # Phase 7.6: last wall-clock time the late-fee worker emitted a debit
+    # note against this invoice. Compared to ``now - compound_interval_days``
+    # to gate re-application; ``None`` means no late fee has been applied.
+    last_late_fee_applied_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(

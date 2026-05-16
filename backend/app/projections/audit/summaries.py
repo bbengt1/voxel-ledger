@@ -1432,3 +1432,43 @@ def _customer_credit_applied(payload: dict[str, Any], _actor: str) -> str:
 
 register_summary(ar_events.TYPE_CUSTOMER_CREDIT_ACCRUED, _customer_credit_accrued)
 register_summary(ar_events.TYPE_CUSTOMER_CREDIT_APPLIED, _customer_credit_applied)
+
+
+def _invoice_overdue(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"invoice {payload.get('invoice_number', '?')} marked overdue "
+        f"({payload.get('days_overdue', '?')} day(s) past due)"
+    )
+
+
+def _late_fee_policy_created(payload: dict[str, Any], actor: str) -> str:
+    scope = (
+        f"customer {payload.get('customer_id')}" if payload.get("customer_id") else "global"
+    )
+    return (
+        f"{actor} created {scope} late-fee policy "
+        f"(kind={payload.get('kind', '?')} amount={payload.get('amount', '?')})"
+    )
+
+
+def _late_fee_policy_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated late-fee policy {payload.get('policy_id', '?')}"
+
+
+def _late_fee_policy_deactivated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} deactivated late-fee policy {payload.get('policy_id', '?')}"
+
+
+def _late_fee_applied(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"late fee {payload.get('amount', '?')} applied to invoice "
+        f"{payload.get('invoice_number', '?')} via debit note "
+        f"{payload.get('debit_note_id', '?')}"
+    )
+
+
+register_summary(ar_events.TYPE_INVOICE_OVERDUE, _invoice_overdue)
+register_summary(ar_events.TYPE_LATE_FEE_POLICY_CREATED, _late_fee_policy_created)
+register_summary(ar_events.TYPE_LATE_FEE_POLICY_UPDATED, _late_fee_policy_updated)
+register_summary(ar_events.TYPE_LATE_FEE_POLICY_DEACTIVATED, _late_fee_policy_deactivated)
+register_summary(ar_events.TYPE_LATE_FEE_APPLIED, _late_fee_applied)

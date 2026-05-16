@@ -634,3 +634,70 @@ register_event(TYPE_RECURRING_TEMPLATE_PAUSED, RecurringTemplatePausedPayload)
 register_event(TYPE_RECURRING_TEMPLATE_RESUMED, RecurringTemplateResumedPayload)
 register_event(TYPE_RECURRING_TEMPLATE_CANCELLED, RecurringTemplateCancelledPayload)
 register_event(TYPE_RECURRING_INVOICE_MATERIALIZED, RecurringInvoiceMaterializedPayload)
+
+
+# --- Late fees + overdue (Phase 7.6, #114) ----------------------------------
+#
+# Late-fee policies are operator-configured (per customer, or global). The
+# worker stamps overdue invoices and emits debit notes via the policy.
+#
+# PII RULE: ``notes`` MUST NEVER be whitelisted into the audit excerpt.
+
+
+AGGREGATE_TYPE_LATE_FEE_POLICY: str = "late_fee_policy"
+
+
+class InvoiceOverduePayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+    due_at: str
+    days_overdue: int
+    amount_outstanding: str
+
+
+class LateFeePolicyCreatedPayload(_ARPayloadBase):
+    policy_id: uuid.UUID
+    customer_id: uuid.UUID | None = None
+    kind: str
+    amount: str
+    grace_period_days: int
+    apply_after_days: int
+    compound_interval_days: int
+    is_active: bool
+    notes: str | None = None
+
+
+class LateFeePolicyUpdatedPayload(_ARPayloadBase):
+    policy_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class LateFeePolicyDeactivatedPayload(_ARPayloadBase):
+    policy_id: uuid.UUID
+    customer_id: uuid.UUID | None = None
+
+
+class LateFeeAppliedPayload(_ARPayloadBase):
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+    policy_id: uuid.UUID
+    debit_note_id: uuid.UUID
+    amount: str
+    days_overdue: int
+
+
+TYPE_INVOICE_OVERDUE = "ar.InvoiceOverdue"
+TYPE_LATE_FEE_POLICY_CREATED = "ar.LateFeePolicyCreated"
+TYPE_LATE_FEE_POLICY_UPDATED = "ar.LateFeePolicyUpdated"
+TYPE_LATE_FEE_POLICY_DEACTIVATED = "ar.LateFeePolicyDeactivated"
+TYPE_LATE_FEE_APPLIED = "ar.LateFeeApplied"
+
+
+register_event(TYPE_INVOICE_OVERDUE, InvoiceOverduePayload)
+register_event(TYPE_LATE_FEE_POLICY_CREATED, LateFeePolicyCreatedPayload)
+register_event(TYPE_LATE_FEE_POLICY_UPDATED, LateFeePolicyUpdatedPayload)
+register_event(TYPE_LATE_FEE_POLICY_DEACTIVATED, LateFeePolicyDeactivatedPayload)
+register_event(TYPE_LATE_FEE_APPLIED, LateFeeAppliedPayload)

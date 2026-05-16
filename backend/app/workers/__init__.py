@@ -15,12 +15,16 @@ so a bad row does not block the rest.
 
 from __future__ import annotations
 
+from app.workers.late_fee_applicator import JOB_NAME as LATE_FEE_APPLICATOR_JOB
+from app.workers.overdue_marker import JOB_NAME as OVERDUE_MARKER_JOB
 from app.workers.recurring_invoice_materializer import (
     JOB_NAME as RECURRING_INVOICE_MATERIALIZER_JOB,
 )
 from app.workers.registry import WorkerJob, list_jobs, register_job, run_job
 
 __all__ = [
+    "LATE_FEE_APPLICATOR_JOB",
+    "OVERDUE_MARKER_JOB",
     "RECURRING_INVOICE_MATERIALIZER_JOB",
     "WorkerJob",
     "list_jobs",
