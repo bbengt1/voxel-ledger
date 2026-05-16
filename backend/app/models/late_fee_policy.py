@@ -57,9 +57,7 @@ class LateFeePolicy(Base):
     __table_args__ = (
         CheckConstraint("amount >= 0", name="ck_late_fee_policy_amount_nonneg"),
         CheckConstraint("grace_period_days >= 0", name="ck_late_fee_policy_grace_nonneg"),
-        CheckConstraint(
-            "apply_after_days >= 0", name="ck_late_fee_policy_apply_after_nonneg"
-        ),
+        CheckConstraint("apply_after_days >= 0", name="ck_late_fee_policy_apply_after_nonneg"),
         CheckConstraint(
             "compound_interval_days >= 1",
             name="ck_late_fee_policy_compound_interval_positive",

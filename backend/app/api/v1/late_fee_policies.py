@@ -55,9 +55,7 @@ def _map_error(exc: Exception) -> HTTPException:
     raise exc
 
 
-@router.post(
-    "", response_model=LateFeePolicyResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=LateFeePolicyResponse, status_code=status.HTTP_201_CREATED)
 async def create_policy(
     payload: LateFeePolicyCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -141,9 +139,7 @@ async def deactivate_policy(
     actor: Annotated[User, Depends(require_role(*_WRITE_ROLES))],
 ) -> LateFeePolicyResponse:
     try:
-        await service.deactivate_policy(
-            session, policy_id=policy_id, actor_user_id=actor.id
-        )
+        await service.deactivate_policy(session, policy_id=policy_id, actor_user_id=actor.id)
     except Exception as exc:
         await session.rollback()
         raise _map_error(exc) from None

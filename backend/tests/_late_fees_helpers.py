@@ -29,9 +29,7 @@ async def seed_overdue_invoice(
     invoice = await seed_issued_invoice(
         session, customer=customer, actor_user_id=actor_user_id, unit_price=unit_price
     )
-    invoice = (
-        await session.execute(select(Invoice).where(Invoice.id == invoice.id))
-    ).scalar_one()
+    invoice = (await session.execute(select(Invoice).where(Invoice.id == invoice.id))).scalar_one()
     invoice.due_at = datetime.now(UTC) - timedelta(days=days_past_due)
     await session.commit()
     return invoice
@@ -43,14 +41,10 @@ async def force_state(
     invoice_id: uuid.UUID,
     state: InvoiceState,
 ) -> None:
-    inv = (
-        await session.execute(select(Invoice).where(Invoice.id == invoice_id))
-    ).scalar_one()
+    inv = (await session.execute(select(Invoice).where(Invoice.id == invoice_id))).scalar_one()
     inv.state = state
     await session.commit()
 
 
 async def get_invoice(session: AsyncSession, invoice_id: uuid.UUID) -> Invoice:
-    return (
-        await session.execute(select(Invoice).where(Invoice.id == invoice_id))
-    ).scalar_one()
+    return (await session.execute(select(Invoice).where(Invoice.id == invoice_id))).scalar_one()

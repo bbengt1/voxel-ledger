@@ -1442,9 +1442,7 @@ def _invoice_overdue(payload: dict[str, Any], _actor: str) -> str:
 
 
 def _late_fee_policy_created(payload: dict[str, Any], actor: str) -> str:
-    scope = (
-        f"customer {payload.get('customer_id')}" if payload.get("customer_id") else "global"
-    )
+    scope = f"customer {payload.get('customer_id')}" if payload.get("customer_id") else "global"
     return (
         f"{actor} created {scope} late-fee policy "
         f"(kind={payload.get('kind', '?')} amount={payload.get('amount', '?')})"

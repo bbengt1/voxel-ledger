@@ -140,9 +140,7 @@ async def create_policy(
     if is_active:
         existing = await _find_active_for_customer(session, customer_id=customer_id)
         if existing is not None:
-            scope = (
-                f"customer {customer_id}" if customer_id is not None else "the global scope"
-            )
+            scope = f"customer {customer_id}" if customer_id is not None else "the global scope"
             raise InvalidLateFeePolicyError(
                 f"an active late-fee policy already exists for {scope} "
                 f"(policy {existing.id}); deactivate it first"
@@ -221,13 +219,17 @@ async def update_policy(
         if current == new:
             continue
         before[field] = (
-            current.value if isinstance(current, LateFeeKind)
-            else str(current) if isinstance(current, Decimal)
+            current.value
+            if isinstance(current, LateFeeKind)
+            else str(current)
+            if isinstance(current, Decimal)
             else current
         )
         after[field] = (
-            new.value if isinstance(new, LateFeeKind)
-            else str(new) if isinstance(new, Decimal)
+            new.value
+            if isinstance(new, LateFeeKind)
+            else str(new)
+            if isinstance(new, Decimal)
             else new
         )
         setattr(policy, field, new)
@@ -351,9 +353,7 @@ async def mark_overdue(
     rows = list((await session.execute(stmt)).scalars().all())
     marked: list[uuid.UUID] = []
     for invoice in rows:
-        days_overdue = (
-            max((now - _as_utc(invoice.due_at)).days, 0) if invoice.due_at else 0
-        )
+        days_overdue = max((now - _as_utc(invoice.due_at)).days, 0) if invoice.due_at else 0
         invoice.state = InvoiceState.OVERDUE
         await session.flush()
         await _emit(
@@ -430,9 +430,7 @@ def _gate_passes(
 
 
 async def _resolve_late_fee_income_account(session: AsyncSession) -> uuid.UUID | None:
-    raw = await SettingsService.get(
-        "ar.default_late_fee_income_account_id", session=session
-    )
+    raw = await SettingsService.get("ar.default_late_fee_income_account_id", session=session)
     if raw is None:
         return None
     if isinstance(raw, uuid.UUID):
@@ -460,9 +458,7 @@ async def apply_late_fees(
 
     results: list[LateFeeApplicationResult] = []
     for invoice in invoices:
-        policy = await _resolve_policy_for_customer(
-            session, customer_id=invoice.customer_id
-        )
+        policy = await _resolve_policy_for_customer(session, customer_id=invoice.customer_id)
         if policy is None:
             continue
         # Grace period: a "warning" window after due_at where we never fee.
@@ -515,9 +511,7 @@ async def apply_late_fees(
             continue
 
         invoice.last_late_fee_applied_at = now
-        days_overdue = (
-            max((now - _as_utc(invoice.due_at)).days, 0) if invoice.due_at else 0
-        )
+        days_overdue = max((now - _as_utc(invoice.due_at)).days, 0) if invoice.due_at else 0
         await session.flush()
         await _emit(
             session,

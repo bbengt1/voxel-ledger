@@ -39,9 +39,7 @@ def _parse_buckets(raw: str | None) -> list[int] | None:
             detail="buckets must be a comma-separated list of integers (e.g. 30,60,90)",
         ) from exc
     if any(c <= 0 for c in cuts):
-        raise HTTPException(
-            status_code=400, detail="bucket cut points must be > 0"
-        )
+        raise HTTPException(status_code=400, detail="bucket cut points must be > 0")
     return cuts
 
 
@@ -72,9 +70,7 @@ async def ar_aging_report(
                 customer_number=row.customer_number,
                 display_name=row.display_name,
                 total_outstanding=row.total_outstanding,
-                buckets=[
-                    AgingBucketResponse(label=b.label, amount=b.amount) for b in row.buckets
-                ],
+                buckets=[AgingBucketResponse(label=b.label, amount=b.amount) for b in row.buckets],
             )
             for row in report.rows
         ],

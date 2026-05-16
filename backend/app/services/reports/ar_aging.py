@@ -84,9 +84,7 @@ def _bucket_index(days_past_due: int, cuts: list[int]) -> int:
     return len(cuts)
 
 
-async def _resolve_bucket_days(
-    session: AsyncSession, override: Sequence[int] | None
-) -> list[int]:
+async def _resolve_bucket_days(session: AsyncSession, override: Sequence[int] | None) -> list[int]:
     if override is not None:
         return _normalize_cut_points(override)
     raw = await SettingsService.get("ar.aging_bucket_days", session=session)
@@ -156,8 +154,7 @@ async def build(
                 display_name=str(entry["display_name"]),
                 total_outstanding=total,
                 buckets=[
-                    AgingBucket(label=labels[i], amount=val)
-                    for i, val in enumerate(buckets_list)
+                    AgingBucket(label=labels[i], amount=val) for i, val in enumerate(buckets_list)
                 ],
             )
         )
@@ -180,9 +177,7 @@ def to_csv(report: AgingReport) -> str:
     """
     buf = io.StringIO()
     w = csv_writer(buf)
-    w.writerow(
-        ["customer_number", "display_name", *report.bucket_labels, "total_outstanding"]
-    )
+    w.writerow(["customer_number", "display_name", *report.bucket_labels, "total_outstanding"])
     for row in report.rows:
         w.writerow(
             [

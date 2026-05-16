@@ -71,9 +71,7 @@ async def test_not_yet_due_invoice_stays_issued(
 
 
 @pytest.mark.asyncio
-async def test_overdue_marker_idempotent(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_overdue_marker_idempotent(client: AsyncClient, app_session: AsyncSession) -> None:
     await token_for(Role.OWNER, client, app_session)
     await seed_full_ar_stack(app_session)
     customer = await seed_customer(app_session)

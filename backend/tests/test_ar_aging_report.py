@@ -123,9 +123,7 @@ async def test_aging_endpoint_returns_buckets(
 
 
 @pytest.mark.asyncio
-async def test_aging_endpoint_csv_format(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_aging_endpoint_csv_format(client: AsyncClient, app_session: AsyncSession) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
     await seed_full_ar_stack(app_session)
     customer = await seed_customer(app_session)
@@ -136,9 +134,7 @@ async def test_aging_endpoint_csv_format(
         app_session, customer=customer, user=user, price="50.00", days_past_due=10
     )
 
-    r = await client.get(
-        "/api/v1/reports/ar-aging?format=csv", headers=auth_header(owner)
-    )
+    r = await client.get("/api/v1/reports/ar-aging?format=csv", headers=auth_header(owner))
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/csv")
     assert "GRAND TOTAL" in r.text
