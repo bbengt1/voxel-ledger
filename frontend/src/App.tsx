@@ -54,6 +54,20 @@ import { SalesListPage } from "@/pages/sales/SalesList";
 import { ShipmentDetailPage } from "@/pages/sales/ShipmentDetail";
 import { ShipmentNewPage } from "@/pages/sales/ShipmentNew";
 // --- end 6.7a sales routes ---
+// --- 7.8a AR routes ---
+import { CustomerComposerPage } from "@/pages/ar/CustomerComposer";
+import { CustomerDetailPage } from "@/pages/ar/CustomerDetail";
+import { CustomersListPage } from "@/pages/ar/CustomersList";
+import { InvoiceComposerPage } from "@/pages/ar/InvoiceComposer";
+import { InvoiceDetailPage } from "@/pages/ar/InvoiceDetail";
+import { InvoicesListPage } from "@/pages/ar/InvoicesList";
+import { PaymentDetailPage } from "@/pages/ar/PaymentDetail";
+import { PaymentsListPage } from "@/pages/ar/PaymentsList";
+import { QuoteComposerPage } from "@/pages/ar/QuoteComposer";
+import { QuoteDetailPage } from "@/pages/ar/QuoteDetail";
+import { QuotesListPage } from "@/pages/ar/QuotesList";
+import { RecordPaymentPage } from "@/pages/ar/RecordPayment";
+// --- end 7.8a AR routes ---
 
 export function App() {
   return (
@@ -532,6 +546,158 @@ export function App() {
         }
       />
       {/* --- end sales routes --- */}
+      {/* --- 7.8a AR routes (specific first) --- */}
+      <Route
+        path="/customers"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CustomersListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/customers/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CustomerComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/customers/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CustomerComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/customers/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CustomerDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/quotes"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <QuotesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/quotes/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <QuoteComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/quotes/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <QuoteComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/quotes/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <QuoteDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/invoices"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InvoicesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/invoices/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InvoiceComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/invoices/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InvoiceComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/invoices/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InvoiceDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/payments"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <PaymentsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/payments/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecordPaymentPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/payments/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <PaymentDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 7.8a AR routes --- */}
       <Route
         path="/approvals"
         element={
