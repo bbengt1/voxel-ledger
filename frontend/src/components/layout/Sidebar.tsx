@@ -61,6 +61,9 @@ const SECTIONS: NavSection[] = [
       { label: "Quotes", href: "/quotes" },
       { label: "Invoices", href: "/invoices" },
       { label: "Payments", href: "/payments" },
+      { label: "Recurring", href: "/recurring-invoices" },
+      { label: "Late-fee policies", href: "/late-fee-policies" },
+      { label: "AR aging", href: "/reports/ar-aging" },
     ],
   },
   {
@@ -104,6 +107,7 @@ const SECTIONS: NavSection[] = [
         href: "/admin/custom-fields",
         visibleTo: OWNER_ONLY,
       },
+      { label: "Email log", href: "/admin/email-log", visibleTo: ADMIN_ROLES },
       { label: "Settings", href: "#admin/settings", visibleTo: ADMIN_ROLES },
     ],
   },

@@ -9,6 +9,7 @@ import { Link, useParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { SendStatementModal } from "@/components/ar/SendStatementModal";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -35,6 +36,10 @@ export function CustomerDetailPage() {
   const [credit, setCredit] = useState<CreditBalanceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
+  const [statementSentNotice, setStatementSentNotice] = useState<string | null>(
+    null,
+  );
 
   const refetchCustomer = useCallback(async () => {
     if (!id) return;
@@ -119,6 +124,13 @@ export function CustomerDetailPage() {
               </Button>
               <Button
                 variant="outline"
+                onClick={() => setStatementOpen(true)}
+                data-testid="send-statement-btn"
+              >
+                Send statement
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => void toggleArchive()}
                 disabled={busy}
                 data-testid="toggle-archive"
@@ -136,6 +148,15 @@ export function CustomerDetailPage() {
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
+        </p>
+      ) : null}
+      {statementSentNotice ? (
+        <p
+          role="status"
+          className="rounded border border-border bg-muted/30 p-3 text-sm"
+          data-testid="statement-sent-notice"
+        >
+          {statementSentNotice}
         </p>
       ) : null}
 
@@ -249,6 +270,13 @@ export function CustomerDetailPage() {
           )}
         </ul>
       ) : null}
+
+      <SendStatementModal
+        open={statementOpen}
+        onOpenChange={setStatementOpen}
+        customerId={customer.id}
+        onSent={() => setStatementSentNotice("Statement queued for delivery.")}
+      />
 
       {tab === "credit" ? (
         <div className="rounded-lg border border-border p-4 text-sm" data-testid="tab-content-credit">
