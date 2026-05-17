@@ -28,6 +28,7 @@ AGGREGATE_TYPE_VENDOR: str = "vendor"
 AGGREGATE_TYPE_VENDOR_CONTACT: str = "vendor_contact"
 AGGREGATE_TYPE_BILL: str = "bill"
 AGGREGATE_TYPE_BILL_PAYMENT: str = "bill_payment"
+AGGREGATE_TYPE_RECURRING_BILL_TEMPLATE: str = "recurring_bill_template"
 
 
 class _APPayloadBase(BaseModel):
@@ -277,3 +278,85 @@ class BillOverduePayload(_APPayloadBase):
 TYPE_BILL_OVERDUE = "ap.BillOverdue"
 
 register_event(TYPE_BILL_OVERDUE, BillOverduePayload)
+
+
+# --- Recurring bill templates (Phase 8.5, #132) -----------------------------
+#
+# PII RULE: line-level details (item descriptions, quantities, unit_price)
+# carry through the payload for replay but the audit-excerpt whitelist
+# strictly stays at template name + vendor_id + cadence_kind. ``notes`` is
+# never whitelisted.
+
+
+class RecurringBillTemplateCreatedPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    vendor_id: uuid.UUID
+    cadence_kind: str
+    cadence_interval: int
+    start_at: str
+    end_at: str | None = None
+    next_issue_at: str
+    auto_issue: bool
+    state: str
+    notes: str | None = None
+    discount_amount: str
+    tax_amount: str
+    currency: str = "USD"
+    items: list[dict[str, Any]] = []
+
+
+class RecurringBillTemplateUpdatedPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class RecurringBillTemplatePausedPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    vendor_id: uuid.UUID
+    cadence_kind: str
+
+
+class RecurringBillTemplateResumedPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    vendor_id: uuid.UUID
+    cadence_kind: str
+    next_issue_at: str
+
+
+class RecurringBillTemplateCancelledPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    vendor_id: uuid.UUID
+    cadence_kind: str
+
+
+class RecurringBillMaterializedPayload(_APPayloadBase):
+    template_id: uuid.UUID
+    name: str
+    vendor_id: uuid.UUID
+    cadence_kind: str
+    bill_id: uuid.UUID
+    bill_number: str
+    materialized_at: str
+    auto_issued: bool
+    next_issue_at: str | None = None
+
+
+TYPE_RECURRING_BILL_TEMPLATE_CREATED = "ap.RecurringBillTemplateCreated"
+TYPE_RECURRING_BILL_TEMPLATE_UPDATED = "ap.RecurringBillTemplateUpdated"
+TYPE_RECURRING_BILL_TEMPLATE_PAUSED = "ap.RecurringBillTemplatePaused"
+TYPE_RECURRING_BILL_TEMPLATE_RESUMED = "ap.RecurringBillTemplateResumed"
+TYPE_RECURRING_BILL_TEMPLATE_CANCELLED = "ap.RecurringBillTemplateCancelled"
+TYPE_RECURRING_BILL_MATERIALIZED = "ap.RecurringBillMaterialized"
+
+
+register_event(TYPE_RECURRING_BILL_TEMPLATE_CREATED, RecurringBillTemplateCreatedPayload)
+register_event(TYPE_RECURRING_BILL_TEMPLATE_UPDATED, RecurringBillTemplateUpdatedPayload)
+register_event(TYPE_RECURRING_BILL_TEMPLATE_PAUSED, RecurringBillTemplatePausedPayload)
+register_event(TYPE_RECURRING_BILL_TEMPLATE_RESUMED, RecurringBillTemplateResumedPayload)
+register_event(TYPE_RECURRING_BILL_TEMPLATE_CANCELLED, RecurringBillTemplateCancelledPayload)
+register_event(TYPE_RECURRING_BILL_MATERIALIZED, RecurringBillMaterializedPayload)

@@ -50,6 +50,7 @@ from app.api.v1.production_orders import router as production_orders_router
 from app.api.v1.products import router as products_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.rates import router as rates_router
+from app.api.v1.recurring_bills import router as recurring_bills_router
 from app.api.v1.recurring_invoices import router as recurring_invoices_router
 from app.api.v1.refunds import router as refunds_router
 from app.api.v1.reports import router as reports_router
@@ -119,6 +120,7 @@ api_router.include_router(debit_notes_router)
 # this file).
 api_router.include_router(customers_credit_router)
 api_router.include_router(recurring_invoices_router)
+api_router.include_router(recurring_bills_router)
 api_router.include_router(late_fee_policies_router)
 api_router.include_router(reports_router)
 api_router.include_router(shipments_router)

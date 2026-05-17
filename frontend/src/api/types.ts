@@ -3015,6 +3015,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recurring-bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_v1_recurring_bills_get"];
+        put?: never;
+        /** Create Template */
+        post: operations["create_template_api_v1_recurring_bills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-bills/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Template */
+        get: operations["get_template_api_v1_recurring_bills__template_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Template */
+        patch: operations["update_template_api_v1_recurring_bills__template_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/recurring-bills/{template_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Template */
+        post: operations["cancel_template_api_v1_recurring_bills__template_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-bills/{template_id}/materialize-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Materialize Now */
+        post: operations["materialize_now_api_v1_recurring_bills__template_id__materialize_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-bills/{template_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause Template */
+        post: operations["pause_template_api_v1_recurring_bills__template_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-bills/{template_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume Template */
+        post: operations["resume_template_api_v1_recurring_bills__template_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recurring-invoices": {
         parameters: {
             query?: never;
@@ -7914,6 +8018,232 @@ export interface components {
             name?: string | null;
             /** Value */
             value?: number | string | null;
+        };
+        /** RecurringBillMaterializeResponse */
+        RecurringBillMaterializeResponse: {
+            /** Auto Issued */
+            auto_issued: boolean;
+            /**
+             * Bill Id
+             * Format: uuid
+             */
+            bill_id: string;
+            /** Bill Number */
+            bill_number: string;
+            /**
+             * Materialized At
+             * Format: date-time
+             */
+            materialized_at: string;
+            /** Next Issue At */
+            next_issue_at?: string | null;
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+        };
+        /** RecurringBillTemplateCreate */
+        RecurringBillTemplateCreate: {
+            /**
+             * Auto Issue
+             * @default false
+             */
+            auto_issue: boolean;
+            /**
+             * Cadence Interval
+             * @default 1
+             */
+            cadence_interval: number;
+            /**
+             * Cadence Kind
+             * @enum {string}
+             */
+            cadence_kind: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /**
+             * Discount Amount
+             * @default 0
+             */
+            discount_amount: number | string;
+            /** End At */
+            end_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["RecurringBillTemplateItemCreate"][];
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: number | string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+        };
+        /** RecurringBillTemplateItemCreate */
+        RecurringBillTemplateItemCreate: {
+            /** Description */
+            description: string;
+            /** Expense Category Id */
+            expense_category_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "expense_category" | "manual";
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+            /** Unit Price */
+            unit_price: number | string;
+            /** Vendor Sku */
+            vendor_sku?: string | null;
+        };
+        /** RecurringBillTemplateItemResponse */
+        RecurringBillTemplateItemResponse: {
+            /** Description */
+            description: string;
+            /** Expense Category Id */
+            expense_category_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "expense_category" | "manual";
+            /** Line Number */
+            line_number: number;
+            /** Quantity */
+            quantity: string;
+            /** Unit Price */
+            unit_price: string;
+            /** Vendor Sku */
+            vendor_sku?: string | null;
+        };
+        /** RecurringBillTemplateListResponse */
+        RecurringBillTemplateListResponse: {
+            /** Items */
+            items: components["schemas"]["RecurringBillTemplateResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** RecurringBillTemplateResponse */
+        RecurringBillTemplateResponse: {
+            /** Auto Issue */
+            auto_issue: boolean;
+            /** Cadence Interval */
+            cadence_interval: number;
+            /**
+             * Cadence Kind
+             * @enum {string}
+             */
+            cadence_kind: "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Currency */
+            currency: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** End At */
+            end_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["RecurringBillTemplateItemResponse"][];
+            /** Last Issued At */
+            last_issued_at?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Next Issue At
+             * Format: date-time
+             */
+            next_issue_at: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "active" | "paused" | "cancelled";
+            /** Tax Amount */
+            tax_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+        };
+        /** RecurringBillTemplateStateTransitionRequest */
+        RecurringBillTemplateStateTransitionRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /** RecurringBillTemplateUpdate */
+        RecurringBillTemplateUpdate: {
+            /** Auto Issue */
+            auto_issue?: boolean | null;
+            /** Cadence Interval */
+            cadence_interval?: number | null;
+            /** Cadence Kind */
+            cadence_kind?: ("daily" | "weekly" | "monthly" | "quarterly" | "yearly") | null;
+            /** Currency */
+            currency?: string | null;
+            /** Discount Amount */
+            discount_amount?: number | string | null;
+            /** End At */
+            end_at?: string | null;
+            /** Items */
+            items?: components["schemas"]["RecurringBillTemplateItemCreate"][] | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Start At */
+            start_at?: string | null;
+            /** Tax Amount */
+            tax_amount?: number | string | null;
         };
         /** RecurringInvoiceMaterializeResponse */
         RecurringInvoiceMaterializeResponse: {
@@ -16608,6 +16938,275 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_v1_recurring_bills_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                vendor_id?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_template_api_v1_recurring_bills_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringBillTemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_template_api_v1_recurring_bills__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_template_api_v1_recurring_bills__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringBillTemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_template_api_v1_recurring_bills__template_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringBillTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    materialize_now_api_v1_recurring_bills__template_id__materialize_now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillMaterializeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_template_api_v1_recurring_bills__template_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringBillTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_template_api_v1_recurring_bills__template_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecurringBillTemplateStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringBillTemplateResponse"];
                 };
             };
             /** @description Validation Error */
