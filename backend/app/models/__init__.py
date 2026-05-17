@@ -131,6 +131,15 @@ from app.models.quote import (
     QuoteState,
 )
 from app.models.rate import Rate, RateKind
+from app.models.recurring_bill import (
+    RECURRING_BILL_CADENCE_KIND_VALUES,
+    RECURRING_BILL_TEMPLATE_STATE_VALUES,
+    RecurringBillCadenceKind,
+    RecurringBillItemKind,
+    RecurringBillTemplate,
+    RecurringBillTemplateItem,
+    RecurringBillTemplateState,
+)
 from app.models.recurring_invoice import (
     RECURRING_CADENCE_KIND_VALUES,
     RECURRING_TEMPLATE_STATE_VALUES,
@@ -282,8 +291,15 @@ __all__ = [
     "QuoteItem",
     "QuoteItemKind",
     "QuoteState",
+    "RECURRING_BILL_CADENCE_KIND_VALUES",
+    "RECURRING_BILL_TEMPLATE_STATE_VALUES",
     "RECURRING_CADENCE_KIND_VALUES",
     "RECURRING_TEMPLATE_STATE_VALUES",
+    "RecurringBillCadenceKind",
+    "RecurringBillItemKind",
+    "RecurringBillTemplate",
+    "RecurringBillTemplateItem",
+    "RecurringBillTemplateState",
     "RecurringCadenceKind",
     "RecurringInvoiceItemKind",
     "RecurringInvoiceTemplate",

@@ -1156,3 +1156,38 @@ register_excerpt_fields(
     ap_events.TYPE_BILL_OVERDUE,
     ("bill_number", "vendor_id", "days_overdue", "amount_outstanding"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: recurring bill templates (Phase 8.5, #132)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` and line-level data (``items``) MUST NEVER be
+# whitelisted here. The payload carries them so replay can reconstruct the
+# template, but the audit denormalization strictly limits itself to ``name``,
+# ``vendor_id``, and ``cadence_kind``.
+
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_TEMPLATE_CREATED,
+    ("name", "vendor_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_TEMPLATE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_TEMPLATE_PAUSED,
+    ("name", "vendor_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_TEMPLATE_RESUMED,
+    ("name", "vendor_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_TEMPLATE_CANCELLED,
+    ("name", "vendor_id", "cadence_kind"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_RECURRING_BILL_MATERIALIZED,
+    ("name", "vendor_id", "cadence_kind", "bill_id", "bill_number"),
+)
