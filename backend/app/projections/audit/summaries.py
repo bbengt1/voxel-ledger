@@ -1826,3 +1826,24 @@ register_summary(accounting_assets_events.TYPE_ASSET_UPDATED, _asset_updated)
 register_summary(accounting_assets_events.TYPE_ASSET_ACQUIRED, _asset_acquired)
 register_summary(accounting_assets_events.TYPE_ASSET_DISPOSED, _asset_disposed)
 register_summary(accounting_assets_events.TYPE_ASSET_WRITTEN_OFF, _asset_written_off)
+
+
+# --- Settlements: marketplace settlement imports (Phase 9.8, #160) ----------
+
+from app.events.types import settlements as settlements_events  # noqa: E402
+
+
+def _settlement_imported(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} imported settlement {payload.get('settlement_number', '?')} "
+        f"({payload.get('line_count', '?')} lines, "
+        f"payout {payload.get('payout_amount', '?')})"
+    )
+
+
+def _settlement_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled settlement {payload.get('settlement_id', '?')}"
+
+
+register_summary(settlements_events.TYPE_SETTLEMENT_IMPORTED, _settlement_imported)
+register_summary(settlements_events.TYPE_SETTLEMENT_CANCELLED, _settlement_cancelled)

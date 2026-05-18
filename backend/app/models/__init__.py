@@ -217,6 +217,16 @@ from app.models.sales_channel import (
     SalesChannelFeeModel,
     SalesChannelKind,
 )
+from app.models.settlement import (
+    SETTLEMENT_LINE_KIND_VALUES,
+    SETTLEMENT_LINE_STATE_VALUES,
+    SETTLEMENT_STATE_VALUES,
+    Settlement,
+    SettlementLine,
+    SettlementLineKind,
+    SettlementLineState,
+    SettlementState,
+)
 from app.models.setting import Setting
 from app.models.shipment import SHIPMENT_STATE_VALUES, Shipment, ShipmentState
 from app.models.supply import Supply
@@ -405,6 +415,14 @@ __all__ = [
     "SalesChannel",
     "SalesChannelFeeModel",
     "SalesChannelKind",
+    "SETTLEMENT_LINE_KIND_VALUES",
+    "SETTLEMENT_LINE_STATE_VALUES",
+    "SETTLEMENT_STATE_VALUES",
+    "Settlement",
+    "SettlementLine",
+    "SettlementLineKind",
+    "SettlementLineState",
+    "SettlementState",
     "SHIPMENT_STATE_VALUES",
     "Setting",
     "Shipment",
