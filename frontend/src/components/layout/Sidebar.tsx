@@ -77,6 +77,17 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "AP",
+    items: [
+      { label: "Vendors", href: "/vendors" },
+      { label: "Bills", href: "/bills" },
+      { label: "Bill payments", href: "/bill-payments" },
+      { label: "Recurring bills", href: "/recurring-bills" },
+      { label: "Expense categories", href: "/expense-categories" },
+      { label: "Expense claims", href: "/expense-claims" },
+    ],
+  },
+  {
     label: "Accounting",
     items: [
       { label: "Chart of accounts", href: "/accounting/accounts" },

@@ -77,6 +77,25 @@ import { RecurringDetailPage } from "@/pages/ar/RecurringDetail";
 import { RecurringListPage } from "@/pages/ar/RecurringList";
 import { EmailLogPage } from "@/pages/admin/EmailLog";
 // --- end 7.8b AR routes ---
+// --- 8.12a AP routes ---
+import { VendorsListPage } from "@/pages/ap/VendorsList";
+import { VendorComposerPage } from "@/pages/ap/VendorComposer";
+import { VendorDetailPage } from "@/pages/ap/VendorDetail";
+import { BillsListPage } from "@/pages/ap/BillsList";
+import { BillComposerPage } from "@/pages/ap/BillComposer";
+import { BillDetailPage } from "@/pages/ap/BillDetail";
+import { BillPaymentsListPage } from "@/pages/ap/BillPaymentsList";
+import { RecordBillPaymentPage } from "@/pages/ap/RecordBillPayment";
+import { BillPaymentDetailPage } from "@/pages/ap/BillPaymentDetail";
+import { RecurringBillsListPage } from "@/pages/ap/RecurringBillsList";
+import { RecurringBillComposerPage } from "@/pages/ap/RecurringBillComposer";
+import { RecurringBillDetailPage } from "@/pages/ap/RecurringBillDetail";
+import { ExpenseCategoriesListPage } from "@/pages/ap/ExpenseCategoriesList";
+import { ExpenseCategoryComposerPage } from "@/pages/ap/ExpenseCategoryComposer";
+import { ExpenseClaimsListPage } from "@/pages/ap/ExpenseClaimsList";
+import { ExpenseClaimComposerPage } from "@/pages/ap/ExpenseClaimComposer";
+import { ExpenseClaimDetailPage } from "@/pages/ap/ExpenseClaimDetail";
+// --- end 8.12a AP routes ---
 
 export function App() {
   return (
@@ -799,6 +818,218 @@ export function App() {
         }
       />
       {/* --- end 7.8b AR routes --- */}
+      {/* --- 8.12a AP routes (specific first) --- */}
+      <Route
+        path="/vendors"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VendorsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/vendors/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VendorComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/vendors/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VendorComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/vendors/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VendorDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bills"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bills/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bills/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bills/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bill-payments"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillPaymentsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bill-payments/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecordBillPaymentPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bill-payments/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BillPaymentDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-bills"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringBillsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-bills/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringBillComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-bills/:id/edit"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringBillComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/recurring-bills/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RecurringBillDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-categories"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseCategoriesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-categories/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseCategoryComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-categories/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseCategoryComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-claims"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseClaimsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-claims/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseClaimComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/expense-claims/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ExpenseClaimDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 8.12a AP routes --- */}
       <Route
         path="/approvals"
         element={
