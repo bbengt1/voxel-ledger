@@ -238,6 +238,13 @@ class InvoiceIssuedPayload(_ARPayloadBase):
     issued_at: str
     due_at: str | None = None
     journal_entry_id: uuid.UUID
+    # Phase 9.5 (#157): when the resolved tax profile is reverse-charge,
+    # no Cr to a sales-tax-payable account is posted but the would-be
+    # tax amounts (per rate_id) are carried in the payload so replay /
+    # downstream tax reports can compute the buyer's reverse-charge
+    # obligation. Empty when the invoice didn't use a reverse-charge
+    # profile. Map of stringified rate UUID -> stringified Decimal.
+    reverse_charge_tax: dict[str, str] = {}
 
 
 class InvoicePostedPayload(_ARPayloadBase):

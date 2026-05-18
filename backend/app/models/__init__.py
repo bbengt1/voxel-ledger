@@ -87,6 +87,11 @@ from app.models.customer_credit import (
     CustomerCreditKind,
     CustomerCreditTransaction,
 )
+from app.models.depreciation_schedule import (
+    DEPRECIATION_ENTRY_STATE_VALUES,
+    DepreciationEntryState,
+    DepreciationScheduleEntry,
+)
 from app.models.division import Division
 from app.models.email_message import (
     EMAIL_KIND_VALUES,
@@ -97,6 +102,12 @@ from app.models.email_message import (
 )
 from app.models.event import Event
 from app.models.expense_category import ExpenseCategory
+from app.models.expense_claim import (
+    EXPENSE_CLAIM_STATE_VALUES,
+    ExpenseClaim,
+    ExpenseClaimLine,
+    ExpenseClaimState,
+)
 from app.models.fixed_asset import (
     DEPRECIATION_METHOD_VALUES,
     FIXED_ASSET_CLASS_VALUES,
@@ -107,12 +118,6 @@ from app.models.fixed_asset import (
     FixedAssetClass,
     FixedAssetKind,
     FixedAssetState,
-)
-from app.models.expense_claim import (
-    EXPENSE_CLAIM_STATE_VALUES,
-    ExpenseClaim,
-    ExpenseClaimLine,
-    ExpenseClaimState,
 )
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
@@ -217,6 +222,7 @@ from app.models.sales_channel import (
     SalesChannelFeeModel,
     SalesChannelKind,
 )
+from app.models.setting import Setting
 from app.models.settlement import (
     SETTLEMENT_LINE_KIND_VALUES,
     SETTLEMENT_LINE_STATE_VALUES,
@@ -227,9 +233,9 @@ from app.models.settlement import (
     SettlementLineState,
     SettlementState,
 )
-from app.models.setting import Setting
 from app.models.shipment import SHIPMENT_STATE_VALUES, Shipment, ShipmentState
 from app.models.supply import Supply
+from app.models.tax_profile import TaxProfile, TaxRate
 from app.models.vendor import (
     VENDOR_STATE_VALUES,
     Vendor,
@@ -306,8 +312,11 @@ __all__ = [
     "ExpenseClaim",
     "ExpenseClaimLine",
     "ExpenseClaimState",
+    "DEPRECIATION_ENTRY_STATE_VALUES",
     "DEPRECIATION_METHOD_VALUES",
+    "DepreciationEntryState",
     "DepreciationMethod",
+    "DepreciationScheduleEntry",
     "FIXED_ASSET_CLASS_VALUES",
     "FIXED_ASSET_KIND_VALUES",
     "FIXED_ASSET_STATE_VALUES",
@@ -428,6 +437,8 @@ __all__ = [
     "Shipment",
     "ShipmentState",
     "Supply",
+    "TaxProfile",
+    "TaxRate",
     "User",
     "VENDOR_STATE_VALUES",
     "Vendor",

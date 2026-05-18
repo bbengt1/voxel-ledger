@@ -1828,6 +1828,95 @@ register_summary(accounting_assets_events.TYPE_ASSET_DISPOSED, _asset_disposed)
 register_summary(accounting_assets_events.TYPE_ASSET_WRITTEN_OFF, _asset_written_off)
 
 
+# --- Depreciation schedules (Phase 9.2, #154) -------------------------------
+
+
+def _depreciation_schedule_generated(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"generated {payload.get('total_entries', 0)} depreciation entries "
+        f"for asset {payload.get('asset_id', '?')} "
+        f"(method {payload.get('method', '?')}, total "
+        f"{payload.get('total_depreciation', '?')})"
+    )
+
+
+def _depreciation_schedule_recomputed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recomputed depreciation schedule for asset "
+        f"{payload.get('asset_id', '?')} from period "
+        f"{payload.get('from_period_index', '?')} "
+        f"({payload.get('total_recomputed', 0)} entries)"
+    )
+
+
+register_summary(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_GENERATED,
+    _depreciation_schedule_generated,
+)
+register_summary(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED,
+    _depreciation_schedule_recomputed,
+)
+
+
+# --- Tax profiles (Phase 9.5, #157) -----------------------------------------
+
+from app.events.types import tax as tax_events  # noqa: E402
+
+
+def _tax_profile_created(payload: dict[str, Any], actor: str) -> str:
+    rc = " (reverse-charge)" if payload.get("is_reverse_charge") else ""
+    return (
+        f"{actor} created tax profile {payload.get('code', '?')} "
+        f"({payload.get('name', '?')}, {payload.get('jurisdiction', '?')}){rc}"
+    )
+
+
+def _tax_profile_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated tax profile {payload.get('tax_profile_id', '?')}: {changes}"
+
+
+def _tax_profile_archived(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} archived tax profile {payload.get('code', '?')} " f"({payload.get('name', '?')})"
+    )
+
+
+def _tax_rate_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} added tax rate {payload.get('name', '?')} "
+        f"({payload.get('rate', '?')}) to profile {payload.get('profile_id', '?')} "
+        f"at ordinal {payload.get('ordinal', '?')}"
+    )
+
+
+def _tax_rate_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated tax rate {payload.get('tax_rate_id', '?')}: {changes}"
+
+
+def _tax_rate_removed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} removed tax rate at ordinal {payload.get('ordinal', '?')} "
+        f"from profile {payload.get('profile_id', '?')}"
+    )
+
+
+register_summary(tax_events.TYPE_TAX_PROFILE_CREATED, _tax_profile_created)
+register_summary(tax_events.TYPE_TAX_PROFILE_UPDATED, _tax_profile_updated)
+register_summary(tax_events.TYPE_TAX_PROFILE_ARCHIVED, _tax_profile_archived)
+register_summary(tax_events.TYPE_TAX_RATE_CREATED, _tax_rate_created)
+register_summary(tax_events.TYPE_TAX_RATE_UPDATED, _tax_rate_updated)
+register_summary(tax_events.TYPE_TAX_RATE_REMOVED, _tax_rate_removed)
+
+
 # --- Settlements: marketplace settlement imports (Phase 9.8, #160) ----------
 
 from app.events.types import settlements as settlements_events  # noqa: E402

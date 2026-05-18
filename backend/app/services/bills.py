@@ -85,6 +85,7 @@ from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services import expense_categories as expense_categories_service
 from app.services import journal_entries as journal_service
+from app.services import tax as tax_service
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
 
@@ -280,6 +281,13 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
     if unit_price < 0:
         raise InvalidBillItemError("unit_price must be non-negative")
 
+    tax_profile_id = item.get("tax_profile_id")
+    if isinstance(tax_profile_id, str):
+        try:
+            tax_profile_id = uuid.UUID(tax_profile_id)
+        except ValueError as exc:
+            raise InvalidBillItemError(f"invalid tax_profile_id: {tax_profile_id!r}") from exc
+
     return {
         "kind": kind,
         "expense_category_id": expense_category_id,
@@ -288,6 +296,7 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
         "quantity": quantity,
         "unit_price": unit_price,
         "expense_account_id_override": override,
+        "tax_profile_id": tax_profile_id,
     }
 
 
@@ -475,6 +484,7 @@ async def create_draft(
                 unit_price=item["unit_price"],
                 extended_amount=item["extended_amount"],
                 expense_account_id_override=item["expense_account_id_override"],
+                tax_profile_id=item.get("tax_profile_id"),
             )
         )
     try:
@@ -761,6 +771,23 @@ async def issue(
         per_line_expense_ids.append(
             await _resolve_expense_account(session, line=line, vendor=vendor)
         )
+
+    # Phase 9.5 (#157): narrow scope on the bill side.
+    # If any bill line carries a reverse-charge tax_profile (resolved via
+    # ``line.tax_profile_id -> vendor.tax_profile_id``), zero out the
+    # line.tax_amount so the issue path treats it as a memo only. The
+    # event payload (legacy bill-issued shape) doesn't surface the
+    # reverse-charge amount on the AP side in this PR; downstream
+    # reverse-charge reporting is a future phase. Non-reverse-charge
+    # bills keep the legacy flat-tax behavior on ``bill.tax_amount``.
+    for line in bill.items:
+        line_profile_id = line.tax_profile_id or vendor.tax_profile_id
+        if line_profile_id is None:
+            continue
+        profile = await tax_service.get_profile(session, line_profile_id)
+        if profile.is_reverse_charge:
+            line.tax_amount = _ZERO
+    await session.flush()
 
     tax_amount = _q(bill.tax_amount)
     tax_expense_account_id: uuid.UUID | None = None

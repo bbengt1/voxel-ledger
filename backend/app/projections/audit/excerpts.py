@@ -32,6 +32,7 @@ from app.events.types import notes_attachments as notes_events
 from app.events.types import production as production_events
 from app.events.types import sales as sales_events
 from app.events.types import settlements as settlements_events
+from app.events.types import tax as tax_events
 from app.events.types import users as users_events
 
 # Event type → tuple of allowed payload field names. Empty/absent = no
@@ -1457,6 +1458,65 @@ register_excerpt_fields(
 register_excerpt_fields(
     accounting_assets_events.TYPE_ASSET_WRITTEN_OFF,
     ("written_off_on",),
+)
+
+
+# ---------------------------------------------------------------------------
+# Accounting: depreciation schedules (Phase 9.2, #154)
+# ---------------------------------------------------------------------------
+#
+# Schedule rows contain only IDs and numeric counts — no PII.
+
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_GENERATED,
+    ("asset_id", "total_entries", "method"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED,
+    ("asset_id", "from_period_index", "total_recomputed"),
+)
+
+
+# ---------------------------------------------------------------------------
+# Tax profiles (Phase 9.5, #157)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``notes`` MUST NEVER be whitelisted. Payloads carry
+# it for replay but the audit denormalization stays strictly to
+# ``(code, name, jurisdiction, is_reverse_charge)`` for profiles and
+# ``(profile_id, ordinal, name, rate, compound_on_previous,
+# liability_account_id)`` for rates.
+
+register_excerpt_fields(
+    tax_events.TYPE_TAX_PROFILE_CREATED,
+    ("code", "name", "jurisdiction", "is_reverse_charge"),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_PROFILE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_PROFILE_ARCHIVED,
+    ("code", "name"),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_RATE_CREATED,
+    (
+        "profile_id",
+        "ordinal",
+        "name",
+        "rate",
+        "compound_on_previous",
+        "liability_account_id",
+    ),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_RATE_UPDATED,
+    ("profile_id", "before", "after"),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_RATE_REMOVED,
+    ("profile_id", "ordinal"),
 )
 
 

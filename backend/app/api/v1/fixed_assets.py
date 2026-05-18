@@ -21,12 +21,17 @@ from app.api.deps import require_role
 from app.core.db import get_session
 from app.models.auth import User
 from app.models.fixed_asset import FixedAsset
+from app.schemas.depreciation_schedule import (
+    DepreciationScheduleEntryResponse,
+    DepreciationScheduleResponse,
+)
 from app.schemas.fixed_assets import (
     FixedAssetAcquireRequest,
     FixedAssetListResponse,
     FixedAssetResponse,
     FixedAssetUpdate,
 )
+from app.services import depreciation_schedule as schedule_service
 from app.services import fixed_assets as fa_service
 
 router = APIRouter(prefix="/fixed-assets", tags=["fixed-assets"])
@@ -181,6 +186,31 @@ async def update_asset(
     await session.commit()
     asset = await fa_service.get(session, asset_id)
     return _to_response(asset)
+
+
+@router.get(
+    "/{asset_id}/depreciation-schedule",
+    response_model=DepreciationScheduleResponse,
+)
+async def get_depreciation_schedule(
+    asset_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+) -> DepreciationScheduleResponse:
+    try:
+        entries = await schedule_service.get_schedule(session=session, asset_id=asset_id)
+    except schedule_service.AssetNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"fixed asset not found: {exc}") from None
+    except Exception as exc:
+        raise _map_error(exc) from None
+    from decimal import Decimal as _D
+
+    total = sum((e.depreciation_amount for e in entries), _D("0"))
+    return DepreciationScheduleResponse(
+        asset_id=asset_id,
+        entries=[DepreciationScheduleEntryResponse.model_validate(e) for e in entries],
+        total_depreciation=total,
+    )
 
 
 @router.post("/{asset_id}/dispose")

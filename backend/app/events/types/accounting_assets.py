@@ -79,11 +79,32 @@ class AssetWrittenOffPayload(_AssetsPayloadBase):
     reason: str | None = None
 
 
+# --- Depreciation schedule (Phase 9.2, #154) -------------------------------
+
+
+AGGREGATE_TYPE_DEPRECIATION_SCHEDULE: str = "depreciation_schedule"
+
+
+class DepreciationScheduleGeneratedPayload(_AssetsPayloadBase):
+    asset_id: uuid.UUID
+    total_entries: int
+    total_depreciation: str
+    method: str
+
+
+class DepreciationScheduleRecomputedPayload(_AssetsPayloadBase):
+    asset_id: uuid.UUID
+    from_period_index: int
+    total_recomputed: int
+
+
 TYPE_ASSET_CREATED = "acc.AssetCreated"
 TYPE_ASSET_UPDATED = "acc.AssetUpdated"
 TYPE_ASSET_ACQUIRED = "acc.AssetAcquired"
 TYPE_ASSET_DISPOSED = "acc.AssetDisposed"
 TYPE_ASSET_WRITTEN_OFF = "acc.AssetWrittenOff"
+TYPE_DEPRECIATION_SCHEDULE_GENERATED = "acc.DepreciationScheduleGenerated"
+TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED = "acc.DepreciationScheduleRecomputed"
 
 
 register_event(TYPE_ASSET_CREATED, AssetCreatedPayload)
@@ -91,3 +112,5 @@ register_event(TYPE_ASSET_UPDATED, AssetUpdatedPayload)
 register_event(TYPE_ASSET_ACQUIRED, AssetAcquiredPayload)
 register_event(TYPE_ASSET_DISPOSED, AssetDisposedPayload)
 register_event(TYPE_ASSET_WRITTEN_OFF, AssetWrittenOffPayload)
+register_event(TYPE_DEPRECIATION_SCHEDULE_GENERATED, DepreciationScheduleGeneratedPayload)
+register_event(TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED, DepreciationScheduleRecomputedPayload)

@@ -84,6 +84,12 @@ class Vendor(Base):
         Boolean, nullable=False, default=False, server_default="0"
     )
 
+    # Phase 9.5 (#157): the tax profile to default for bills under this
+    # vendor. Bare nullable FK; resolution falls through to line override.
+    tax_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tax_profile.id", ondelete="SET NULL"), nullable=True
+    )
+
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     state: Mapped[VendorState] = mapped_column(

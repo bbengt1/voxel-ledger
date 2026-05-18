@@ -28,7 +28,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0053_settlements"
-down_revision: str | None = "0050_fixed_assets"
+down_revision: str | None = "0052_tax_profiles"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

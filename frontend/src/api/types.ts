@@ -1963,6 +1963,23 @@ export interface paths {
         patch: operations["update_asset_api_v1_fixed_assets__asset_id__patch"];
         trace?: never;
     };
+    "/api/v1/fixed-assets/{asset_id}/depreciation-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Depreciation Schedule */
+        get: operations["get_depreciation_schedule_api_v1_fixed_assets__asset_id__depreciation_schedule_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fixed-assets/{asset_id}/dispose": {
         parameters: {
             query?: never;
@@ -4509,6 +4526,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tax-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Profiles Endpoint */
+        get: operations["list_profiles_endpoint_api_v1_tax_profiles_get"];
+        put?: never;
+        /** Create Profile Endpoint */
+        post: operations["create_profile_endpoint_api_v1_tax_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax-profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile Endpoint */
+        get: operations["get_profile_endpoint_api_v1_tax_profiles__profile_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Profile Endpoint */
+        patch: operations["update_profile_endpoint_api_v1_tax_profiles__profile_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tax-profiles/{profile_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Profile Endpoint */
+        post: operations["archive_profile_endpoint_api_v1_tax_profiles__profile_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax-profiles/{profile_id}/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Rate Endpoint */
+        post: operations["add_rate_endpoint_api_v1_tax_profiles__profile_id__rates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax-profiles/{profile_id}/rates/{rate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Rate Endpoint */
+        delete: operations["delete_rate_endpoint_api_v1_tax_profiles__profile_id__rates__rate_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Rate Endpoint */
+        patch: operations["update_rate_endpoint_api_v1_tax_profiles__profile_id__rates__rate_id__patch"];
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -6957,6 +7062,61 @@ export interface components {
             reason?: string | null;
             /** Total Amount */
             total_amount?: number | string | null;
+        };
+        /** DepreciationScheduleEntryResponse */
+        DepreciationScheduleEntryResponse: {
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Closing Book Value */
+            closing_book_value: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Depreciation Amount */
+            depreciation_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Journal Entry Id */
+            journal_entry_id?: string | null;
+            /** Opening Book Value */
+            opening_book_value: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Period Index */
+            period_index: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "planned" | "posted" | "adjusted";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** DepreciationScheduleResponse */
+        DepreciationScheduleResponse: {
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Entries */
+            entries: components["schemas"]["DepreciationScheduleEntryResponse"][];
+            /** Total Depreciation */
+            total_depreciation: string;
         };
         /**
          * DiscoveredPlateResponse
@@ -11132,6 +11292,147 @@ export interface components {
             unit_cost?: number | string | null;
             /** Vendor */
             vendor?: string | null;
+        };
+        /** TaxProfileCreate */
+        TaxProfileCreate: {
+            /** Code */
+            code: string;
+            /**
+             * Is Reverse Charge
+             * @default false
+             */
+            is_reverse_charge: boolean;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** TaxProfileListResponse */
+        TaxProfileListResponse: {
+            /** Items */
+            items: components["schemas"]["TaxProfileResponse"][];
+        };
+        /** TaxProfileResponse */
+        TaxProfileResponse: {
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Reverse Charge */
+            is_reverse_charge: boolean;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Rates
+             * @default []
+             */
+            rates: components["schemas"]["TaxRateResponse"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TaxProfileUpdate */
+        TaxProfileUpdate: {
+            /** Code */
+            code?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Is Reverse Charge */
+            is_reverse_charge?: boolean | null;
+            /** Jurisdiction */
+            jurisdiction?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** TaxRateCreate */
+        TaxRateCreate: {
+            /**
+             * Compound On Previous
+             * @default false
+             */
+            compound_on_previous: boolean;
+            /**
+             * Liability Account Id
+             * Format: uuid
+             */
+            liability_account_id: string;
+            /** Name */
+            name: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Rate */
+            rate: number | string;
+        };
+        /** TaxRateResponse */
+        TaxRateResponse: {
+            /** Compound On Previous */
+            compound_on_previous: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Liability Account Id
+             * Format: uuid
+             */
+            liability_account_id: string;
+            /** Name */
+            name: string;
+            /** Ordinal */
+            ordinal: number;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TaxRateUpdate */
+        TaxRateUpdate: {
+            /** Compound On Previous */
+            compound_on_previous?: boolean | null;
+            /** Liability Account Id */
+            liability_account_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Ordinal */
+            ordinal?: number | null;
+            /** Rate */
+            rate?: number | string | null;
         };
         /** TokenPair */
         TokenPair: {
@@ -16188,6 +16489,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixedAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_depreciation_schedule_api_v1_fixed_assets__asset_id__depreciation_schedule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepreciationScheduleResponse"];
                 };
             };
             /** @description Validation Error */
@@ -22493,6 +22825,270 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SupplyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_profiles_endpoint_api_v1_tax_profiles_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+                search?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_profile_endpoint_api_v1_tax_profiles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_endpoint_api_v1_tax_profiles__profile_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_endpoint_api_v1_tax_profiles__profile_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_profile_endpoint_api_v1_tax_profiles__profile_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_rate_endpoint_api_v1_tax_profiles__profile_id__rates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxRateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rate_endpoint_api_v1_tax_profiles__profile_id__rates__rate_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+                rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_rate_endpoint_api_v1_tax_profiles__profile_id__rates__rate_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+                rate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxRateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRateResponse"];
                 };
             };
             /** @description Validation Error */
