@@ -67,6 +67,7 @@ from app.api.v1.reports import router as reports_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.settlements import router as settlements_router
 from app.api.v1.shipments import router as shipments_router
 from app.api.v1.shipments import sales_shipments_router
 from app.api.v1.supplies import router as supplies_router
@@ -151,4 +152,5 @@ api_router.include_router(bank_match_rules_router)
 api_router.include_router(bank_reconciliations_router)
 api_router.include_router(inter_account_transfers_router)
 api_router.include_router(fixed_assets_router)
+api_router.include_router(settlements_router)
 api_router.include_router(tax_profiles_router)

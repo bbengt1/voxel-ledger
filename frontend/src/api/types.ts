@@ -4277,6 +4277,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Settlements */
+        get: operations["list_settlements_api_v1_settlements_get"];
+        put?: never;
+        /** Import Settlement */
+        post: operations["import_settlement_api_v1_settlements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settlements/{settlement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settlement */
+        get: operations["get_settlement_api_v1_settlements__settlement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settlements/{settlement_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Settlement */
+        post: operations["cancel_settlement_api_v1_settlements__settlement_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settlements/{settlement_id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Settlement Lines */
+        get: operations["list_settlement_lines_api_v1_settlements__settlement_id__lines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shipments/{shipment_id}": {
         parameters: {
             query?: never;
@@ -6096,6 +6165,35 @@ export interface components {
             file: string;
             /** Mapping Id */
             mapping_id?: string | null;
+        };
+        /** Body_import_settlement_api_v1_settlements_post */
+        Body_import_settlement_api_v1_settlements_post: {
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Column Map */
+            column_map?: string | null;
+            /** File */
+            file: string;
+            /** Format Kind */
+            format_kind: string;
+            /**
+             * Payout Account Id
+             * Format: uuid
+             */
+            payout_account_id: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
         };
         /** Body_upload_attachment_api_v1_attachments_post */
         Body_upload_attachment_api_v1_attachments_post: {
@@ -10898,6 +10996,140 @@ export interface components {
         SettingUpdateRequest: {
             /** Value */
             value: unknown;
+        };
+        /** SettlementLineListResponse */
+        SettlementLineListResponse: {
+            /** Items */
+            items: components["schemas"]["SettlementLineResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** SettlementLineResponse */
+        SettlementLineResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** External Order Id */
+            external_order_id?: string | null;
+            /** External Txn Id */
+            external_txn_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Line Kind */
+            line_kind: string;
+            /** Line Number */
+            line_number: number;
+            /** Matched Refund Id */
+            matched_refund_id?: string | null;
+            /** Matched Sale Id */
+            matched_sale_id?: string | null;
+            /**
+             * Occurred On
+             * Format: date
+             */
+            occurred_on: string;
+            /**
+             * Settlement Id
+             * Format: uuid
+             */
+            settlement_id: string;
+            /** State */
+            state: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SettlementListResponse */
+        SettlementListResponse: {
+            /** Items */
+            items: components["schemas"]["SettlementResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** SettlementResponse */
+        SettlementResponse: {
+            /** Adjustment Amount */
+            adjustment_amount: string;
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fee Amount */
+            fee_amount: string;
+            /** Filename */
+            filename: string;
+            /** Gross Amount */
+            gross_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Imported At
+             * Format: date-time
+             */
+            imported_at: string;
+            /**
+             * Imported By User Id
+             * Format: uuid
+             */
+            imported_by_user_id: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Payout Account Id
+             * Format: uuid
+             */
+            payout_account_id: string;
+            /** Payout Amount */
+            payout_amount: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Refund Amount */
+            refund_amount: string;
+            /** Settlement Number */
+            settlement_number: string;
+            /** State */
+            state: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SettlementWithLinesResponse */
+        SettlementWithLinesResponse: {
+            /** Lines */
+            lines: components["schemas"]["SettlementLineResponse"][];
+            settlement: components["schemas"]["SettlementResponse"];
         };
         /** ShipmentCreate */
         ShipmentCreate: {
@@ -22030,6 +22262,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkSettingUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_settlements_api_v1_settlements_get: {
+        parameters: {
+            query?: {
+                channel_id?: string | null;
+                state?: string | null;
+                period_start?: string | null;
+                period_end?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_settlement_api_v1_settlements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_settlement_api_v1_settlements_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settlement_api_v1_settlements__settlement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementWithLinesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_settlement_api_v1_settlements__settlement_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_settlement_lines_api_v1_settlements__settlement_id__lines_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementLineListResponse"];
                 };
             };
             /** @description Validation Error */

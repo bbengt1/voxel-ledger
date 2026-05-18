@@ -17,6 +17,7 @@ from app.events.types import (
     production,  # noqa: F401
     sales,  # noqa: F401
     settings,  # noqa: F401
+    settlements,  # noqa: F401
     tax,  # noqa: F401
     users,  # noqa: F401
 )

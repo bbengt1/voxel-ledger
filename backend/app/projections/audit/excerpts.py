@@ -31,6 +31,7 @@ from app.events.types import inventory as inventory_events
 from app.events.types import notes_attachments as notes_events
 from app.events.types import production as production_events
 from app.events.types import sales as sales_events
+from app.events.types import settlements as settlements_events
 from app.events.types import tax as tax_events
 from app.events.types import users as users_events
 
@@ -1517,3 +1518,20 @@ register_excerpt_fields(
     tax_events.TYPE_TAX_RATE_REMOVED,
     ("profile_id", "ordinal"),
 )
+
+
+# ---------------------------------------------------------------------------
+# Settlements: marketplace settlement imports (Phase 9.8, #160)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``notes``, ``description``, ``external_order_id``,
+# and ``external_txn_id`` MUST NEVER be whitelisted here. They may carry
+# buyer order ids, product names, or operator free text. The audit
+# denormalization is strictly limited to ``settlement_number``,
+# ``channel_id``, ``period_end``, ``payout_amount``, and ``line_count``.
+
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_IMPORTED,
+    ("settlement_number", "channel_id", "period_end", "payout_amount", "line_count"),
+)
+# SettlementCancelled carries only the settlement_id — no excerpt is useful.

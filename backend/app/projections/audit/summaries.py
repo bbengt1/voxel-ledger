@@ -1915,3 +1915,24 @@ register_summary(tax_events.TYPE_TAX_PROFILE_ARCHIVED, _tax_profile_archived)
 register_summary(tax_events.TYPE_TAX_RATE_CREATED, _tax_rate_created)
 register_summary(tax_events.TYPE_TAX_RATE_UPDATED, _tax_rate_updated)
 register_summary(tax_events.TYPE_TAX_RATE_REMOVED, _tax_rate_removed)
+
+
+# --- Settlements: marketplace settlement imports (Phase 9.8, #160) ----------
+
+from app.events.types import settlements as settlements_events  # noqa: E402
+
+
+def _settlement_imported(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} imported settlement {payload.get('settlement_number', '?')} "
+        f"({payload.get('line_count', '?')} lines, "
+        f"payout {payload.get('payout_amount', '?')})"
+    )
+
+
+def _settlement_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} cancelled settlement {payload.get('settlement_id', '?')}"
+
+
+register_summary(settlements_events.TYPE_SETTLEMENT_IMPORTED, _settlement_imported)
+register_summary(settlements_events.TYPE_SETTLEMENT_CANCELLED, _settlement_cancelled)
