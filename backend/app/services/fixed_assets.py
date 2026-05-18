@@ -64,6 +64,7 @@ from app.models.fixed_asset import (
 from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor
 from app.schemas.events import EventCreate
+from app.services import depreciation_schedule as schedule_service
 from app.services import event_store
 from app.services import journal_entries as journal_service
 from app.services.reference_number import ReferenceNumberService
@@ -450,6 +451,10 @@ async def acquire(
         contra_for_payload = contra_account_id
 
     await session.flush()
+
+    # Generate the depreciation schedule in the SAME TX (Phase 9.2, #154).
+    # Any failure here rolls back the asset row + JE too.
+    await schedule_service.generate(session=session, asset_id=asset.id, actor_user_id=actor_user_id)
 
     await _emit(
         session,

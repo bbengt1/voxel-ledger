@@ -6048,6 +6048,117 @@
         "title": "DebitNoteUpdate",
         "type": "object"
       },
+      "DepreciationScheduleEntryResponse": {
+        "properties": {
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "closing_book_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Closing Book Value",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "depreciation_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Depreciation Amount",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Entry Id"
+          },
+          "opening_book_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Opening Book Value",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_index": {
+            "title": "Period Index",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "planned",
+              "posted",
+              "adjusted"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "period_index",
+          "period_end",
+          "opening_book_value",
+          "depreciation_amount",
+          "closing_book_value",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DepreciationScheduleEntryResponse",
+        "type": "object"
+      },
+      "DepreciationScheduleResponse": {
+        "properties": {
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/DepreciationScheduleEntryResponse"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "total_depreciation": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Depreciation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_id",
+          "entries",
+          "total_depreciation"
+        ],
+        "title": "DepreciationScheduleResponse",
+        "type": "object"
+      },
       "DiscoveredPlateResponse": {
         "description": "Parser output. No DB writes — the UI uses this to pre-fill a plate form.",
         "properties": {
@@ -27209,6 +27320,54 @@
           }
         ],
         "summary": "Update Asset",
+        "tags": [
+          "fixed-assets"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/{asset_id}/depreciation-schedule": {
+      "get": {
+        "operationId": "get_depreciation_schedule_api_v1_fixed_assets__asset_id__depreciation_schedule_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepreciationScheduleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Depreciation Schedule",
         "tags": [
           "fixed-assets"
         ]

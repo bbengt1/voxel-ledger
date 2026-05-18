@@ -1963,6 +1963,23 @@ export interface paths {
         patch: operations["update_asset_api_v1_fixed_assets__asset_id__patch"];
         trace?: never;
     };
+    "/api/v1/fixed-assets/{asset_id}/depreciation-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Depreciation Schedule */
+        get: operations["get_depreciation_schedule_api_v1_fixed_assets__asset_id__depreciation_schedule_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fixed-assets/{asset_id}/dispose": {
         parameters: {
             query?: never;
@@ -6859,6 +6876,61 @@ export interface components {
             reason?: string | null;
             /** Total Amount */
             total_amount?: number | string | null;
+        };
+        /** DepreciationScheduleEntryResponse */
+        DepreciationScheduleEntryResponse: {
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Closing Book Value */
+            closing_book_value: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Depreciation Amount */
+            depreciation_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Journal Entry Id */
+            journal_entry_id?: string | null;
+            /** Opening Book Value */
+            opening_book_value: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Period Index */
+            period_index: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "planned" | "posted" | "adjusted";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** DepreciationScheduleResponse */
+        DepreciationScheduleResponse: {
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Entries */
+            entries: components["schemas"]["DepreciationScheduleEntryResponse"][];
+            /** Total Depreciation */
+            total_depreciation: string;
         };
         /**
          * DiscoveredPlateResponse
@@ -15956,6 +16028,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FixedAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_depreciation_schedule_api_v1_fixed_assets__asset_id__depreciation_schedule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepreciationScheduleResponse"];
                 };
             };
             /** @description Validation Error */
