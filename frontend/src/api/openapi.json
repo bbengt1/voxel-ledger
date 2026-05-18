@@ -7232,6 +7232,451 @@
         "title": "ExpenseClaimUpdate",
         "type": "object"
       },
+      "FixedAssetAcquireRequest": {
+        "properties": {
+          "accumulated_depreciation_account_id": {
+            "format": "uuid",
+            "title": "Accumulated Depreciation Account Id",
+            "type": "string"
+          },
+          "acquired_on": {
+            "format": "date",
+            "title": "Acquired On",
+            "type": "string"
+          },
+          "acquisition_bill_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisition Bill Id"
+          },
+          "acquisition_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Acquisition Cost"
+          },
+          "asset_account_id": {
+            "format": "uuid",
+            "title": "Asset Account Id",
+            "type": "string"
+          },
+          "asset_class": {
+            "enum": [
+              "machine",
+              "printer",
+              "computer",
+              "furniture",
+              "vehicle",
+              "software",
+              "intellectual_property",
+              "other"
+            ],
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "contra_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contra Account Id"
+          },
+          "depreciation_expense_account_id": {
+            "format": "uuid",
+            "title": "Depreciation Expense Account Id",
+            "type": "string"
+          },
+          "depreciation_method": {
+            "enum": [
+              "straight_line",
+              "declining_balance_200",
+              "declining_balance_150",
+              "none"
+            ],
+            "title": "Depreciation Method",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "tangible",
+              "intangible"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "salvage_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Salvage Value"
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number"
+          },
+          "useful_life_months": {
+            "minimum": 1.0,
+            "title": "Useful Life Months",
+            "type": "integer"
+          },
+          "vendor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Id"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "asset_class",
+          "acquired_on",
+          "acquisition_cost",
+          "useful_life_months",
+          "depreciation_method",
+          "asset_account_id",
+          "accumulated_depreciation_account_id",
+          "depreciation_expense_account_id"
+        ],
+        "title": "FixedAssetAcquireRequest",
+        "type": "object"
+      },
+      "FixedAssetListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FixedAssetResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "FixedAssetListResponse",
+        "type": "object"
+      },
+      "FixedAssetResponse": {
+        "properties": {
+          "accumulated_depreciation_account_id": {
+            "format": "uuid",
+            "title": "Accumulated Depreciation Account Id",
+            "type": "string"
+          },
+          "acquired_on": {
+            "format": "date",
+            "title": "Acquired On",
+            "type": "string"
+          },
+          "acquisition_bill_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acquisition Bill Id"
+          },
+          "acquisition_cost": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Acquisition Cost",
+            "type": "string"
+          },
+          "asset_account_id": {
+            "format": "uuid",
+            "title": "Asset Account Id",
+            "type": "string"
+          },
+          "asset_class": {
+            "enum": [
+              "machine",
+              "printer",
+              "computer",
+              "furniture",
+              "vehicle",
+              "software",
+              "intellectual_property",
+              "other"
+            ],
+            "title": "Asset Class",
+            "type": "string"
+          },
+          "asset_number": {
+            "title": "Asset Number",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "depreciation_expense_account_id": {
+            "format": "uuid",
+            "title": "Depreciation Expense Account Id",
+            "type": "string"
+          },
+          "depreciation_method": {
+            "enum": [
+              "straight_line",
+              "declining_balance_200",
+              "declining_balance_150",
+              "none"
+            ],
+            "title": "Depreciation Method",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "tangible",
+              "intangible"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_depreciated_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Depreciated On"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "salvage_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Salvage Value",
+            "type": "string"
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number"
+          },
+          "state": {
+            "enum": [
+              "active",
+              "disposed",
+              "written_off"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "useful_life_months": {
+            "title": "Useful Life Months",
+            "type": "integer"
+          },
+          "vendor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Id"
+          }
+        },
+        "required": [
+          "id",
+          "asset_number",
+          "name",
+          "kind",
+          "asset_class",
+          "acquired_on",
+          "acquisition_cost",
+          "salvage_value",
+          "useful_life_months",
+          "depreciation_method",
+          "asset_account_id",
+          "accumulated_depreciation_account_id",
+          "depreciation_expense_account_id",
+          "state",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FixedAssetResponse",
+        "type": "object"
+      },
+      "FixedAssetUpdate": {
+        "description": "Metadata-only patch.\n\nCost/life/depreciation method changes are blocked at the service\nlayer once any depreciation has been posted (relevant once Phase\n9.3 lands).",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number"
+          },
+          "vendor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Id"
+          }
+        },
+        "title": "FixedAssetUpdate",
+        "type": "object"
+      },
       "FormTemplateCreateRequest": {
         "properties": {
           "description": {
@@ -26488,6 +26933,330 @@
         "summary": "Submit Expense Claim",
         "tags": [
           "expense-claims"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets": {
+      "get": {
+        "operationId": "list_assets_api_v1_fixed_assets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "asset_class",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Asset Class"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedAssetListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Assets",
+        "tags": [
+          "fixed-assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_asset_api_v1_fixed_assets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixedAssetAcquireRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedAssetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Asset",
+        "tags": [
+          "fixed-assets"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/{asset_id}": {
+      "get": {
+        "operationId": "get_asset_api_v1_fixed_assets__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedAssetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Asset",
+        "tags": [
+          "fixed-assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_asset_api_v1_fixed_assets__asset_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixedAssetUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixedAssetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Asset",
+        "tags": [
+          "fixed-assets"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/{asset_id}/dispose": {
+      "post": {
+        "operationId": "dispose_asset_api_v1_fixed_assets__asset_id__dispose_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dispose Asset",
+        "tags": [
+          "fixed-assets"
         ]
       }
     },

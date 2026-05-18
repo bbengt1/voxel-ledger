@@ -4,6 +4,7 @@ each type into the registry."""
 from app.events.types import (
     _test_event,  # noqa: F401
     accounting,  # noqa: F401
+    accounting_assets,  # noqa: F401
     ap,  # noqa: F401
     approvals,  # noqa: F401
     ar,  # noqa: F401

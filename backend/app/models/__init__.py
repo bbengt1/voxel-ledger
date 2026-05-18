@@ -97,6 +97,17 @@ from app.models.email_message import (
 )
 from app.models.event import Event
 from app.models.expense_category import ExpenseCategory
+from app.models.fixed_asset import (
+    DEPRECIATION_METHOD_VALUES,
+    FIXED_ASSET_CLASS_VALUES,
+    FIXED_ASSET_KIND_VALUES,
+    FIXED_ASSET_STATE_VALUES,
+    DepreciationMethod,
+    FixedAsset,
+    FixedAssetClass,
+    FixedAssetKind,
+    FixedAssetState,
+)
 from app.models.expense_claim import (
     EXPENSE_CLAIM_STATE_VALUES,
     ExpenseClaim,
@@ -285,6 +296,15 @@ __all__ = [
     "ExpenseClaim",
     "ExpenseClaimLine",
     "ExpenseClaimState",
+    "DEPRECIATION_METHOD_VALUES",
+    "DepreciationMethod",
+    "FIXED_ASSET_CLASS_VALUES",
+    "FIXED_ASSET_KIND_VALUES",
+    "FIXED_ASSET_STATE_VALUES",
+    "FixedAsset",
+    "FixedAssetClass",
+    "FixedAssetKind",
+    "FixedAssetState",
     "FormTemplate",
     "FormTemplateField",
     "InventoryLocation",

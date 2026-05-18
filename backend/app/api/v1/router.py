@@ -35,6 +35,7 @@ from app.api.v1.email_messages import router as email_messages_router
 from app.api.v1.email_messages import statements_router as statements_router
 from app.api.v1.expense_categories import router as expense_categories_router
 from app.api.v1.expense_claims import router as expense_claims_router
+from app.api.v1.fixed_assets import router as fixed_assets_router
 from app.api.v1.form_templates import router as form_templates_router
 from app.api.v1.inventory_alerts import router as inventory_alerts_router
 from app.api.v1.inventory_locations import router as inventory_locations_router
@@ -148,3 +149,4 @@ api_router.include_router(bank_transactions_router)
 api_router.include_router(bank_match_rules_router)
 api_router.include_router(bank_reconciliations_router)
 api_router.include_router(inter_account_transfers_router)
+api_router.include_router(fixed_assets_router)
