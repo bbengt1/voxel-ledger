@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 
 from app.models.account import Account
 from app.models.auth import Role
+from app.models.bank import BankTransaction, BankTransactionState
+from app.services.accounting_periods import create as create_period
 from app.services.auth import create_user
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,6 +83,86 @@ def sample_csv_inflow_outflow() -> bytes:
         "2026-04-03,RESTAURANT,,28.75",
     ]
     return ("\n".join(rows) + "\n").encode("utf-8")
+
+
+async def seed_user(
+    session: AsyncSession,
+    *,
+    email: str = "owner-bank@example.com",
+    role: Role = Role.OWNER,
+):
+    user = await create_user(
+        session,
+        email=email,
+        password="pw-correct",
+        full_name="Owner",
+        role=role,
+        bcrypt_rounds=4,
+    )
+    await session.commit()
+    return user
+
+
+async def seed_expense_account(
+    session: AsyncSession,
+    *,
+    code: str = "6000",
+    name: str = "Office Expense",
+) -> Account:
+    acct = Account(id=uuid.uuid4(), code=code, name=name, type="expense")
+    session.add(acct)
+    await session.commit()
+    return acct
+
+
+async def seed_income_account(
+    session: AsyncSession,
+    *,
+    code: str = "4000",
+    name: str = "Sales Revenue",
+) -> Account:
+    acct = Account(id=uuid.uuid4(), code=code, name=name, type="revenue")
+    session.add(acct)
+    await session.commit()
+    return acct
+
+
+async def seed_open_period(session: AsyncSession) -> None:
+    today = datetime.now(UTC).date()
+    await create_period(
+        name="test-period",
+        start_date=today - timedelta(days=60),
+        end_date=today + timedelta(days=30),
+        session=session,
+        actor_user_id=None,
+    )
+    await session.commit()
+
+
+async def seed_bank_transaction(
+    session: AsyncSession,
+    *,
+    account_id: uuid.UUID,
+    description: str,
+    amount: Decimal,
+    occurred_on: date | None = None,
+    memo: str | None = None,
+) -> BankTransaction:
+    if occurred_on is None:
+        occurred_on = datetime.now(UTC).date()
+    tx = BankTransaction(
+        account_id=account_id,
+        occurred_on=occurred_on,
+        description=description,
+        memo=memo,
+        amount=amount,
+        external_hash=uuid.uuid4().hex,
+        state=BankTransactionState.UNMATCHED,
+    )
+    session.add(tx)
+    await session.commit()
+    await session.refresh(tx)
+    return tx
 
 
 def sample_ofx_bytes() -> bytes:

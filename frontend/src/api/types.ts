@@ -801,6 +801,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bank-match-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Match Rules */
+        get: operations["list_match_rules_api_v1_bank_match_rules_get"];
+        put?: never;
+        /** Create Match Rule */
+        post: operations["create_match_rule_api_v1_bank_match_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-match-rules/run-now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Match Rules Now */
+        post: operations["run_match_rules_now_api_v1_bank_match_rules_run_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-match-rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Match Rule */
+        get: operations["get_match_rule_api_v1_bank_match_rules__rule_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Match Rule */
+        patch: operations["update_match_rule_api_v1_bank_match_rules__rule_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/bank-match-rules/{rule_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate Match Rule */
+        post: operations["deactivate_match_rule_api_v1_bank_match_rules__rule_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bank-transactions": {
         parameters: {
             query?: never;
@@ -812,6 +882,74 @@ export interface paths {
         get: operations["list_transactions_api_v1_bank_transactions_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-transactions/{tx_id}/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ignore Transaction */
+        post: operations["ignore_transaction_api_v1_bank_transactions__tx_id__ignore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-transactions/{tx_id}/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Match Transaction */
+        post: operations["match_transaction_api_v1_bank_transactions__tx_id__match_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-transactions/{tx_id}/post-journal-entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Je And Match Transaction */
+        post: operations["post_je_and_match_transaction_api_v1_bank_transactions__tx_id__post_journal_entry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-transactions/{tx_id}/unmatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unmatch Transaction */
+        post: operations["unmatch_transaction_api_v1_bank_transactions__tx_id__unmatch_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4829,6 +4967,27 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** BankAutoMatchResultItem */
+        BankAutoMatchResultItem: {
+            /** Action Kind */
+            action_kind: string;
+            /** Journal Entry Id */
+            journal_entry_id?: string | null;
+            /** Rule Id */
+            rule_id?: string | null;
+            /**
+             * Transaction Id
+             * Format: uuid
+             */
+            transaction_id: string;
+        };
+        /** BankAutoMatchRunResponse */
+        BankAutoMatchRunResponse: {
+            /** Count */
+            count: number;
+            /** Items */
+            items: components["schemas"]["BankAutoMatchResultItem"][];
+        };
         /** BankImportMappingCreate */
         BankImportMappingCreate: {
             /**
@@ -4981,12 +5140,165 @@ export interface components {
             /** Row Count */
             row_count: number;
         };
+        /** BankJournalEntryLineInput */
+        BankJournalEntryLineInput: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Credit
+             * @default 0
+             */
+            credit: number | string;
+            /**
+             * Debit
+             * @default 0
+             */
+            debit: number | string;
+            /** Line Number */
+            line_number: number;
+            /** Memo */
+            memo?: string | null;
+        };
+        /** BankMatchRuleCreate */
+        BankMatchRuleCreate: {
+            /** Account Id */
+            account_id?: string | null;
+            /** Action Kind */
+            action_kind: string;
+            /** Credit Account Id */
+            credit_account_id?: string | null;
+            /** Debit Account Id */
+            debit_account_id?: string | null;
+            /** Description Template */
+            description_template?: string | null;
+            /** Match Field */
+            match_field: string;
+            /** Match Kind */
+            match_kind: string;
+            /** Match Value */
+            match_value: string;
+            /** Max Amount */
+            max_amount?: number | string | null;
+            /** Min Amount */
+            min_amount?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Priority
+             * @default 100
+             */
+            priority: number;
+        };
+        /** BankMatchRuleListResponse */
+        BankMatchRuleListResponse: {
+            /** Items */
+            items: components["schemas"]["BankMatchRuleResponse"][];
+        };
+        /** BankMatchRuleResponse */
+        BankMatchRuleResponse: {
+            /** Account Id */
+            account_id?: string | null;
+            /** Action Kind */
+            action_kind: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Credit Account Id */
+            credit_account_id?: string | null;
+            /** Debit Account Id */
+            debit_account_id?: string | null;
+            /** Description Template */
+            description_template?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Match Field */
+            match_field: string;
+            /** Match Kind */
+            match_kind: string;
+            /** Match Value */
+            match_value: string;
+            /** Max Amount */
+            max_amount?: string | null;
+            /** Min Amount */
+            min_amount?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Priority */
+            priority: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BankMatchRuleUpdate */
+        BankMatchRuleUpdate: {
+            /** Action Kind */
+            action_kind?: string | null;
+            /** Credit Account Id */
+            credit_account_id?: string | null;
+            /** Debit Account Id */
+            debit_account_id?: string | null;
+            /** Description Template */
+            description_template?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Match Field */
+            match_field?: string | null;
+            /** Match Kind */
+            match_kind?: string | null;
+            /** Match Value */
+            match_value?: string | null;
+            /** Max Amount */
+            max_amount?: number | string | null;
+            /** Min Amount */
+            min_amount?: number | string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Priority */
+            priority?: number | null;
+        };
+        /** BankPostJournalEntryRequest */
+        BankPostJournalEntryRequest: {
+            /** Description */
+            description: string;
+            /** Lines */
+            lines: components["schemas"]["BankJournalEntryLineInput"][];
+            /**
+             * Posted At
+             * Format: date-time
+             */
+            posted_at: string;
+        };
         /** BankTransactionListResponse */
         BankTransactionListResponse: {
             /** Items */
             items: components["schemas"]["BankTransactionResponse"][];
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** BankTransactionMatchRequest */
+        BankTransactionMatchRequest: {
+            /**
+             * Journal Entry Id
+             * Format: uuid
+             */
+            journal_entry_id: string;
         };
         /** BankTransactionResponse */
         BankTransactionResponse: {
@@ -12228,6 +12540,190 @@ export interface operations {
             };
         };
     };
+    list_match_rules_api_v1_bank_match_rules_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                include_inactive?: boolean;
+                only_account_id?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankMatchRuleListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_match_rule_api_v1_bank_match_rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankMatchRuleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankMatchRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_match_rules_now_api_v1_bank_match_rules_run_now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAutoMatchRunResponse"];
+                };
+            };
+        };
+    };
+    get_match_rule_api_v1_bank_match_rules__rule_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankMatchRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_match_rule_api_v1_bank_match_rules__rule_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankMatchRuleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankMatchRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_match_rule_api_v1_bank_match_rules__rule_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankMatchRuleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_transactions_api_v1_bank_transactions_get: {
         parameters: {
             query?: {
@@ -12252,6 +12748,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BankTransactionListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ignore_transaction_api_v1_bank_transactions__tx_id__ignore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tx_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    match_transaction_api_v1_bank_transactions__tx_id__match_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tx_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankTransactionMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_je_and_match_transaction_api_v1_bank_transactions__tx_id__post_journal_entry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tx_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankPostJournalEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unmatch_transaction_api_v1_bank_transactions__tx_id__unmatch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tx_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransactionResponse"];
                 };
             };
             /** @description Validation Error */

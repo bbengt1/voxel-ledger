@@ -1318,3 +1318,54 @@ register_excerpt_fields(
     banking_events.TYPE_IMPORT_RUN_FAILED,
     ("run_id", "account_id", "filename", "reason"),
 )
+
+# ---------------------------------------------------------------------------
+# Banking: match rules + transaction match state (Phase 8.10, #137)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``match_value`` is operator-defined and may include free text,
+# but is not customer PII; it's a matcher pattern. We surface it for the
+# audit trail because the audit excerpt is the only way an operator can
+# later answer "what rule did this row hit?". ``notes`` and bank
+# ``description`` / ``memo`` stay out.
+
+register_excerpt_fields(
+    banking_events.TYPE_MATCH_RULE_CREATED,
+    (
+        "rule_id",
+        "account_id",
+        "match_kind",
+        "match_field",
+        "match_value",
+        "action_kind",
+        "priority",
+    ),
+)
+register_excerpt_fields(
+    banking_events.TYPE_MATCH_RULE_UPDATED,
+    ("rule_id",),
+)
+register_excerpt_fields(
+    banking_events.TYPE_MATCH_RULE_DEACTIVATED,
+    ("rule_id",),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_TRANSACTION_AUTO_MATCHED,
+    ("transaction_id", "rule_id", "journal_entry_id", "amount"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_TRANSACTION_MANUALLY_MATCHED,
+    ("transaction_id", "journal_entry_id", "journal_line_id"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_TRANSACTION_UNMATCHED,
+    ("transaction_id", "previous_journal_line_id"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_TRANSACTION_IGNORED,
+    ("transaction_id", "rule_id"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_TRANSACTION_FLAGGED_FOR_REVIEW,
+    ("transaction_id", "rule_id"),
+)

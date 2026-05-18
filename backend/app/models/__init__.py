@@ -27,6 +27,15 @@ from app.models.bank import (
     BankTransaction,
     BankTransactionState,
 )
+from app.models.bank_match_rule import (
+    BANK_MATCH_ACTION_VALUES,
+    BANK_MATCH_FIELD_VALUES,
+    BANK_MATCH_RULE_KIND_VALUES,
+    BankMatchAction,
+    BankMatchField,
+    BankMatchRule,
+    BankMatchRuleKind,
+)
 from app.models.bill import (
     BILL_ITEM_KIND_VALUES,
     BILL_STATE_VALUES,
@@ -219,8 +228,15 @@ __all__ = [
     "BANK_TRANSACTION_STATE_VALUES",
     "BankAmountSign",
     "BankImportFileKind",
+    "BANK_MATCH_ACTION_VALUES",
+    "BANK_MATCH_FIELD_VALUES",
+    "BANK_MATCH_RULE_KIND_VALUES",
     "BankImportMapping",
     "BankImportRun",
+    "BankMatchAction",
+    "BankMatchField",
+    "BankMatchRule",
+    "BankMatchRuleKind",
     "BankTransaction",
     "BankTransactionState",
     "BILL_ITEM_KIND_VALUES",

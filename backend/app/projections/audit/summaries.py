@@ -1718,3 +1718,62 @@ register_summary(banking_events.TYPE_MAPPING_DEACTIVATED, _mapping_deactivated)
 register_summary(banking_events.TYPE_IMPORT_RUN_STARTED, _import_run_started)
 register_summary(banking_events.TYPE_IMPORT_RUN_COMPLETED, _import_run_completed)
 register_summary(banking_events.TYPE_IMPORT_RUN_FAILED, _import_run_failed)
+
+
+# Phase 8.10 (#137): match rules + auto/manual matches
+
+
+def _match_rule_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created bank match rule "
+        f"({payload.get('match_kind', '?')}, action={payload.get('action_kind', '?')})"
+    )
+
+
+def _match_rule_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated bank match rule {payload.get('rule_id', '?')}"
+
+
+def _match_rule_deactivated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} deactivated bank match rule {payload.get('rule_id', '?')}"
+
+
+def _bank_tx_auto_matched(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"bank transaction {payload.get('transaction_id', '?')} auto-matched "
+        f"via rule {payload.get('rule_id', '?')} → JE "
+        f"{payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _bank_tx_manually_matched(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} manually matched bank transaction "
+        f"{payload.get('transaction_id', '?')} to JE "
+        f"{payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _bank_tx_unmatched(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unmatched bank transaction {payload.get('transaction_id', '?')}"
+
+
+def _bank_tx_ignored(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} ignored bank transaction {payload.get('transaction_id', '?')}"
+
+
+def _bank_tx_flagged(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"bank transaction {payload.get('transaction_id', '?')} flagged for review "
+        f"by rule {payload.get('rule_id', '?')}"
+    )
+
+
+register_summary(banking_events.TYPE_MATCH_RULE_CREATED, _match_rule_created)
+register_summary(banking_events.TYPE_MATCH_RULE_UPDATED, _match_rule_updated)
+register_summary(banking_events.TYPE_MATCH_RULE_DEACTIVATED, _match_rule_deactivated)
+register_summary(banking_events.TYPE_BANK_TRANSACTION_AUTO_MATCHED, _bank_tx_auto_matched)
+register_summary(banking_events.TYPE_BANK_TRANSACTION_MANUALLY_MATCHED, _bank_tx_manually_matched)
+register_summary(banking_events.TYPE_BANK_TRANSACTION_UNMATCHED, _bank_tx_unmatched)
+register_summary(banking_events.TYPE_BANK_TRANSACTION_IGNORED, _bank_tx_ignored)
+register_summary(banking_events.TYPE_BANK_TRANSACTION_FLAGGED_FOR_REVIEW, _bank_tx_flagged)
