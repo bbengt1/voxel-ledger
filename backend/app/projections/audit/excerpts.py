@@ -19,6 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.events.types import accounting as accounting_events
+from app.events.types import accounting_assets as accounting_assets_events
 from app.events.types import ap as ap_events
 from app.events.types import approvals as approvals_events
 from app.events.types import ar as ar_events
@@ -1416,4 +1417,43 @@ register_excerpt_fields(
         "amount",
         "occurred_at",
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Accounting: fixed assets (Phase 9.1, #153)
+# ---------------------------------------------------------------------------
+#
+# CRITICAL PII RULE: ``notes`` MUST NEVER be whitelisted. Payloads carry
+# it for replay but the audit denormalization stays strictly to
+# ``asset_number``, ``name``, ``kind``, ``asset_class``, and
+# ``acquisition_cost``. A regression test in
+# ``tests/test_fixed_asset_audit_pii_redacted.py`` guards the invariant.
+
+register_excerpt_fields(
+    accounting_assets_events.TYPE_ASSET_CREATED,
+    ("asset_number", "name", "kind", "asset_class", "acquisition_cost"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_ASSET_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_ASSET_ACQUIRED,
+    (
+        "asset_number",
+        "acquisition_cost",
+        "journal_entry_id",
+        "vendor_id",
+        "acquisition_bill_id",
+        "acquired_on",
+    ),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_ASSET_DISPOSED,
+    ("disposed_on", "kind"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_ASSET_WRITTEN_OFF,
+    ("written_off_on",),
 )

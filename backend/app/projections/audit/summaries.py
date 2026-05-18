@@ -1777,3 +1777,52 @@ register_summary(banking_events.TYPE_BANK_TRANSACTION_MANUALLY_MATCHED, _bank_tx
 register_summary(banking_events.TYPE_BANK_TRANSACTION_UNMATCHED, _bank_tx_unmatched)
 register_summary(banking_events.TYPE_BANK_TRANSACTION_IGNORED, _bank_tx_ignored)
 register_summary(banking_events.TYPE_BANK_TRANSACTION_FLAGGED_FOR_REVIEW, _bank_tx_flagged)
+
+
+# --- Accounting: fixed assets (Phase 9.1, #153) -----------------------------
+
+from app.events.types import accounting_assets as accounting_assets_events  # noqa: E402
+
+
+def _asset_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created fixed asset {payload.get('asset_number', '?')} "
+        f"({payload.get('name', '?')}, cost {payload.get('acquisition_cost', '?')})"
+    )
+
+
+def _asset_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return f"{actor} updated fixed asset {payload.get('asset_id', '?')}: {changes}"
+
+
+def _asset_acquired(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} acquired asset {payload.get('asset_number', '?')} "
+        f"(cost {payload.get('acquisition_cost', '?')}, "
+        f"je {payload.get('journal_entry_id', '?')})"
+    )
+
+
+def _asset_disposed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} disposed fixed asset {payload.get('asset_id', '?')} "
+        f"on {payload.get('disposed_on', '?')}"
+    )
+
+
+def _asset_written_off(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} wrote off fixed asset {payload.get('asset_id', '?')} "
+        f"on {payload.get('written_off_on', '?')}"
+    )
+
+
+register_summary(accounting_assets_events.TYPE_ASSET_CREATED, _asset_created)
+register_summary(accounting_assets_events.TYPE_ASSET_UPDATED, _asset_updated)
+register_summary(accounting_assets_events.TYPE_ASSET_ACQUIRED, _asset_acquired)
+register_summary(accounting_assets_events.TYPE_ASSET_DISPOSED, _asset_disposed)
+register_summary(accounting_assets_events.TYPE_ASSET_WRITTEN_OFF, _asset_written_off)

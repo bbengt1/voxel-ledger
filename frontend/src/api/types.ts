@@ -1927,6 +1927,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fixed-assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assets */
+        get: operations["list_assets_api_v1_fixed_assets_get"];
+        put?: never;
+        /** Create Asset */
+        post: operations["create_asset_api_v1_fixed_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fixed-assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Asset */
+        get: operations["get_asset_api_v1_fixed_assets__asset_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Asset */
+        patch: operations["update_asset_api_v1_fixed_assets__asset_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/fixed-assets/{asset_id}/dispose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dispose Asset */
+        post: operations["dispose_asset_api_v1_fixed_assets__asset_id__dispose_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/form-templates": {
         parameters: {
             query?: never;
@@ -7208,6 +7261,175 @@ export interface components {
             lines?: components["schemas"]["ExpenseClaimLineCreate"][] | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** FixedAssetAcquireRequest */
+        FixedAssetAcquireRequest: {
+            /**
+             * Accumulated Depreciation Account Id
+             * Format: uuid
+             */
+            accumulated_depreciation_account_id: string;
+            /**
+             * Acquired On
+             * Format: date
+             */
+            acquired_on: string;
+            /** Acquisition Bill Id */
+            acquisition_bill_id?: string | null;
+            /** Acquisition Cost */
+            acquisition_cost: number | string;
+            /**
+             * Asset Account Id
+             * Format: uuid
+             */
+            asset_account_id: string;
+            /**
+             * Asset Class
+             * @enum {string}
+             */
+            asset_class: "machine" | "printer" | "computer" | "furniture" | "vehicle" | "software" | "intellectual_property" | "other";
+            /** Contra Account Id */
+            contra_account_id?: string | null;
+            /**
+             * Depreciation Expense Account Id
+             * Format: uuid
+             */
+            depreciation_expense_account_id: string;
+            /**
+             * Depreciation Method
+             * @enum {string}
+             */
+            depreciation_method: "straight_line" | "declining_balance_200" | "declining_balance_150" | "none";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "tangible" | "intangible";
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Salvage Value
+             * @default 0
+             */
+            salvage_value: number | string;
+            /** Serial Number */
+            serial_number?: string | null;
+            /** Useful Life Months */
+            useful_life_months: number;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
+        /** FixedAssetListResponse */
+        FixedAssetListResponse: {
+            /** Items */
+            items: components["schemas"]["FixedAssetResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** FixedAssetResponse */
+        FixedAssetResponse: {
+            /**
+             * Accumulated Depreciation Account Id
+             * Format: uuid
+             */
+            accumulated_depreciation_account_id: string;
+            /**
+             * Acquired On
+             * Format: date
+             */
+            acquired_on: string;
+            /** Acquisition Bill Id */
+            acquisition_bill_id?: string | null;
+            /** Acquisition Cost */
+            acquisition_cost: string;
+            /**
+             * Asset Account Id
+             * Format: uuid
+             */
+            asset_account_id: string;
+            /**
+             * Asset Class
+             * @enum {string}
+             */
+            asset_class: "machine" | "printer" | "computer" | "furniture" | "vehicle" | "software" | "intellectual_property" | "other";
+            /** Asset Number */
+            asset_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Depreciation Expense Account Id
+             * Format: uuid
+             */
+            depreciation_expense_account_id: string;
+            /**
+             * Depreciation Method
+             * @enum {string}
+             */
+            depreciation_method: "straight_line" | "declining_balance_200" | "declining_balance_150" | "none";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "tangible" | "intangible";
+            /** Last Depreciated On */
+            last_depreciated_on?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Salvage Value */
+            salvage_value: string;
+            /** Serial Number */
+            serial_number?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "active" | "disposed" | "written_off";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Useful Life Months */
+            useful_life_months: number;
+            /** Vendor Id */
+            vendor_id?: string | null;
+        };
+        /**
+         * FixedAssetUpdate
+         * @description Metadata-only patch.
+         *
+         *     Cost/life/depreciation method changes are blocked at the service
+         *     layer once any depreciation has been posted (relevant once Phase
+         *     9.3 lands).
+         */
+        FixedAssetUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Serial Number */
+            serial_number?: string | null;
+            /** Vendor Id */
+            vendor_id?: string | null;
         };
         /** FormTemplateCreateRequest */
         FormTemplateCreateRequest: {
@@ -15599,6 +15821,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExpenseClaimSubmitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assets_api_v1_fixed_assets_get: {
+        parameters: {
+            query?: {
+                kind?: string | null;
+                asset_class?: string | null;
+                state?: string | null;
+                search?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixedAssetListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_asset_api_v1_fixed_assets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixedAssetAcquireRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixedAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_asset_api_v1_fixed_assets__asset_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixedAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_asset_api_v1_fixed_assets__asset_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixedAssetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FixedAssetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dispose_asset_api_v1_fixed_assets__asset_id__dispose_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                asset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
