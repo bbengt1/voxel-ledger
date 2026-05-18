@@ -112,7 +112,11 @@ describe("<ImportWizardPage />", () => {
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByTestId("wizard-account")).toBeInTheDocument(),
+      expect(
+        screen
+          .getByTestId("wizard-account")
+          .querySelector(`option[value="${ACCOUNT_ID}"]`),
+      ).not.toBeNull(),
     );
     await user.selectOptions(screen.getByTestId("wizard-account"), ACCOUNT_ID);
 

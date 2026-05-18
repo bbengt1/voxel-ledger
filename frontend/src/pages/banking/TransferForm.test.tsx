@@ -81,7 +81,11 @@ describe("<TransferFormPage />", () => {
     const user = userEvent.setup();
     renderPage();
     await waitFor(() =>
-      expect(screen.getByTestId("transfer-from")).toBeInTheDocument(),
+      expect(
+        screen
+          .getByTestId("transfer-from")
+          .querySelector(`option[value="${A_ID}"]`),
+      ).not.toBeNull(),
     );
     await user.selectOptions(screen.getByTestId("transfer-from"), A_ID);
     await user.selectOptions(screen.getByTestId("transfer-to"), A_ID);
@@ -102,7 +106,11 @@ describe("<TransferFormPage />", () => {
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByTestId("transfer-from")).toBeInTheDocument(),
+      expect(
+        screen
+          .getByTestId("transfer-from")
+          .querySelector(`option[value="${A_ID}"]`),
+      ).not.toBeNull(),
     );
     await user.selectOptions(screen.getByTestId("transfer-from"), A_ID);
     await user.selectOptions(screen.getByTestId("transfer-to"), B_ID);

@@ -100,7 +100,11 @@ describe("<MappingComposerPage />", () => {
 
     await user.type(screen.getByTestId("mapping-name"), "Chase CSV");
     await waitFor(() =>
-      expect(screen.getByTestId("mapping-account")).toBeInTheDocument(),
+      expect(
+        screen
+          .getByTestId("mapping-account")
+          .querySelector(`option[value="${ACCOUNT_ID}"]`),
+      ).not.toBeNull(),
     );
     await user.selectOptions(screen.getByTestId("mapping-account"), ACCOUNT_ID);
 

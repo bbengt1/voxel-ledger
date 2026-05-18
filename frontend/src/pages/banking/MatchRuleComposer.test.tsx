@@ -111,7 +111,11 @@ describe("<MatchRuleComposerPage />", () => {
     await user.type(screen.getByTestId("rule-match-value"), "STARBUCKS");
     await user.click(screen.getByTestId("action-kind-post_to_account"));
     await waitFor(() =>
-      expect(screen.getByTestId("rule-debit-account")).toBeInTheDocument(),
+      expect(
+        screen
+          .getByTestId("rule-debit-account")
+          .querySelector(`option[value="${DEBIT_ID}"]`),
+      ).not.toBeNull(),
     );
     await user.selectOptions(screen.getByTestId("rule-debit-account"), DEBIT_ID);
     await user.selectOptions(
