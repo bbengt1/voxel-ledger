@@ -88,6 +88,17 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: "Banking",
+    items: [
+      { label: "Imports", href: "/banking/imports" },
+      { label: "Mappings", href: "/banking/mappings" },
+      { label: "Transactions", href: "/banking/transactions" },
+      { label: "Match rules", href: "/banking/match-rules" },
+      { label: "Reconciliation", href: "/banking/reconciliation" },
+      { label: "Transfer", href: "/banking/transfer" },
+    ],
+  },
+  {
     label: "Accounting",
     items: [
       { label: "Chart of accounts", href: "/accounting/accounts" },

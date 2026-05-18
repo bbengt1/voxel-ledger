@@ -96,6 +96,18 @@ import { ExpenseClaimsListPage } from "@/pages/ap/ExpenseClaimsList";
 import { ExpenseClaimComposerPage } from "@/pages/ap/ExpenseClaimComposer";
 import { ExpenseClaimDetailPage } from "@/pages/ap/ExpenseClaimDetail";
 // --- end 8.12a AP routes ---
+// --- 8.12b banking routes ---
+import { MappingsListPage } from "@/pages/banking/MappingsList";
+import { MappingComposerPage } from "@/pages/banking/MappingComposer";
+import { ImportsListPage } from "@/pages/banking/ImportsList";
+import { ImportWizardPage } from "@/pages/banking/ImportWizard";
+import { TransactionsListPage as BankingTransactionsListPage } from "@/pages/banking/TransactionsList";
+import { MatchRulesListPage } from "@/pages/banking/MatchRulesList";
+import { MatchRuleComposerPage } from "@/pages/banking/MatchRuleComposer";
+import { ReconciliationsListPage } from "@/pages/banking/ReconciliationsList";
+import { ReconciliationBoardPage } from "@/pages/banking/ReconciliationBoard";
+import { TransferFormPage } from "@/pages/banking/TransferForm";
+// --- end 8.12b banking routes ---
 
 export function App() {
   return (
@@ -1030,6 +1042,108 @@ export function App() {
         }
       />
       {/* --- end 8.12a AP routes --- */}
+      {/* --- 8.12b banking routes (specific first) --- */}
+      <Route
+        path="/banking/imports"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ImportsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/imports/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ImportWizardPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/mappings"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MappingsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/mappings/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MappingComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/transactions"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BankingTransactionsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/match-rules"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MatchRulesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/match-rules/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <MatchRuleComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/reconciliation"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ReconciliationsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/reconciliation/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ReconciliationBoardPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/banking/transfer"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TransferFormPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 8.12b banking routes --- */}
       <Route
         path="/approvals"
         element={
