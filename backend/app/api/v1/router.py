@@ -18,7 +18,9 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.banking import imports_router as bank_imports_router
 from app.api.v1.banking import mappings_router as bank_mappings_router
 from app.api.v1.banking import match_rules_router as bank_match_rules_router
+from app.api.v1.banking import reconciliations_router as bank_reconciliations_router
 from app.api.v1.banking import transactions_router as bank_transactions_router
+from app.api.v1.banking import transfers_router as inter_account_transfers_router
 from app.api.v1.bill_payments import bill_payments_router
 from app.api.v1.billable_expenses import router as billable_expenses_router
 from app.api.v1.bills import router as bills_router
@@ -144,3 +146,5 @@ api_router.include_router(bank_mappings_router)
 api_router.include_router(bank_imports_router)
 api_router.include_router(bank_transactions_router)
 api_router.include_router(bank_match_rules_router)
+api_router.include_router(bank_reconciliations_router)
+api_router.include_router(inter_account_transfers_router)

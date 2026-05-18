@@ -213,3 +213,75 @@ class BankAutoMatchResultItem(BaseModel):
 class BankAutoMatchRunResponse(BaseModel):
     count: int
     items: list[BankAutoMatchResultItem]
+
+
+# --- Bank reconciliation (Phase 8.11, #138) --------------------------------
+
+
+_RECON_STATE_RE = r"^(in_progress|balanced|finalized)$"
+
+
+class BankReconciliationCreate(BaseModel):
+    account_id: uuid.UUID
+    period_start: date
+    period_end: date
+    statement_ending_balance: Decimal
+    notes: str | None = Field(default=None, max_length=10_000)
+
+
+class BankReconciliationUpdate(BaseModel):
+    notes: str | None = Field(default=None, max_length=10_000)
+
+
+class BankReconciliationToggleClearedRequest(BaseModel):
+    is_cleared: bool
+
+
+class BankReconciliationItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    reconciliation_id: uuid.UUID
+    bank_transaction_id: uuid.UUID
+    is_cleared: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class BankReconciliationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    account_id: uuid.UUID
+    period_start: date
+    period_end: date
+    statement_ending_balance: Decimal
+    book_ending_balance: Decimal | None = None
+    difference: Decimal | None = None
+    state: str
+    finalized_at: datetime | None = None
+    finalized_by_user_id: uuid.UUID | None = None
+    notes: str | None = None
+    created_by_user_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    items: list[BankReconciliationItemResponse] = Field(default_factory=list)
+
+
+class BankReconciliationListResponse(BaseModel):
+    items: list[BankReconciliationResponse]
+
+
+# --- Inter-account transfers (Phase 8.11, #138) ----------------------------
+
+
+class InterAccountTransferRequest(BaseModel):
+    from_account_id: uuid.UUID
+    to_account_id: uuid.UUID
+    amount: Decimal
+    occurred_at: datetime
+    memo: str | None = Field(default=None, max_length=2000)
+
+
+class InterAccountTransferResponse(BaseModel):
+    journal_entry_id: uuid.UUID

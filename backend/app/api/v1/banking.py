@@ -34,6 +34,10 @@ from app.events.types import banking as banking_events
 from app.models.auth import User
 from app.models.bank import BankImportMapping, BankImportRun, BankTransaction, BankTransactionState
 from app.models.bank_match_rule import BankMatchRule
+from app.models.bank_reconciliation import (
+    BankReconciliation,
+    BankReconciliationItem,
+)
 from app.models.journal_entry import JournalEntry
 from app.models.journal_line import JournalLine
 from app.schemas.banking import (
@@ -49,21 +53,31 @@ from app.schemas.banking import (
     BankMatchRuleResponse,
     BankMatchRuleUpdate,
     BankPostJournalEntryRequest,
+    BankReconciliationCreate,
+    BankReconciliationItemResponse,
+    BankReconciliationListResponse,
+    BankReconciliationResponse,
     BankTransactionListResponse,
     BankTransactionMatchRequest,
     BankTransactionResponse,
+    InterAccountTransferRequest,
+    InterAccountTransferResponse,
 )
 from app.schemas.events import EventCreate
 from app.services import bank_auto_matcher as auto_matcher_service
 from app.services import bank_imports as service
 from app.services import bank_match_rules as rules_service
+from app.services import bank_reconciliation as recon_service
 from app.services import event_store
+from app.services import inter_account_transfers as transfers_service
 from app.services import journal_entries as journal_service
 
 mappings_router = APIRouter(prefix="/bank-import-mappings", tags=["banking"])
 imports_router = APIRouter(prefix="/bank-imports", tags=["banking"])
 transactions_router = APIRouter(prefix="/bank-transactions", tags=["banking"])
 match_rules_router = APIRouter(prefix="/bank-match-rules", tags=["banking"])
+reconciliations_router = APIRouter(prefix="/bank-reconciliations", tags=["banking"])
+transfers_router = APIRouter(prefix="/inter-account-transfers", tags=["banking"])
 
 
 def _map_error(exc: Exception) -> HTTPException:
@@ -90,6 +104,25 @@ def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, rules_service.InvalidBankMatchRuleError):
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, rules_service.BankMatchRulesServiceError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, recon_service.BankReconciliationNotFoundError):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="bank reconciliation not found"
+        )
+    if isinstance(exc, recon_service.BankReconciliationItemNotFoundError):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="bank reconciliation item not found",
+        )
+    if isinstance(exc, recon_service.BankReconciliationFinalizedError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, recon_service.InvalidBankReconciliationError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, recon_service.BankReconciliationServiceError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, transfers_service.InvalidInterAccountTransferError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, transfers_service.InterAccountTransfersServiceError):
         return HTTPException(status_code=400, detail=str(exc))
     raise exc
 
@@ -689,3 +722,215 @@ async def post_je_and_match_transaction(
     await session.refresh(tx, ["created_at", "updated_at"])
     await session.commit()
     return _txn_to_response(tx)
+
+
+# --- Bank reconciliation (Phase 8.11, #138) --------------------------------
+
+
+def _item_to_response(row: BankReconciliationItem) -> BankReconciliationItemResponse:
+    return BankReconciliationItemResponse(
+        id=row.id,
+        reconciliation_id=row.reconciliation_id,
+        bank_transaction_id=row.bank_transaction_id,
+        is_cleared=row.is_cleared,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _recon_to_response(
+    row: BankReconciliation,
+    items: list[BankReconciliationItem] | None = None,
+) -> BankReconciliationResponse:
+    return BankReconciliationResponse(
+        id=row.id,
+        account_id=row.account_id,
+        period_start=row.period_start,
+        period_end=row.period_end,
+        statement_ending_balance=row.statement_ending_balance,
+        book_ending_balance=row.book_ending_balance,
+        difference=row.difference,
+        state=row.state.value if hasattr(row.state, "value") else str(row.state),
+        finalized_at=row.finalized_at,
+        finalized_by_user_id=row.finalized_by_user_id,
+        notes=row.notes,
+        created_by_user_id=row.created_by_user_id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        items=[_item_to_response(i) for i in (items or [])],
+    )
+
+
+@reconciliations_router.post(
+    "", response_model=BankReconciliationResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_reconciliation(
+    payload: BankReconciliationCreate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> BankReconciliationResponse:
+    try:
+        row = await recon_service.create(
+            session=session,
+            account_id=payload.account_id,
+            period_start=payload.period_start,
+            period_end=payload.period_end,
+            statement_ending_balance=payload.statement_ending_balance,
+            notes=payload.notes,
+            actor_user_id=actor.id,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    items = await recon_service.list_items(session, row.id)
+    await session.refresh(row, ["created_at", "updated_at"])
+    await session.commit()
+    return _recon_to_response(row, items)
+
+
+@reconciliations_router.get("", response_model=BankReconciliationListResponse)
+async def list_reconciliations(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "bookkeeper", "sales", "viewer"))],
+    account_id: Annotated[uuid.UUID | None, Query()] = None,
+    state: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> BankReconciliationListResponse:
+    try:
+        rows = await recon_service.list_reconciliations(
+            session=session, account_id=account_id, state=state, limit=limit
+        )
+    except Exception as exc:
+        raise _map_error(exc) from None
+    return BankReconciliationListResponse(items=[_recon_to_response(r) for r in rows])
+
+
+@reconciliations_router.get("/{recon_id}", response_model=BankReconciliationResponse)
+async def get_reconciliation(
+    recon_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "bookkeeper", "sales", "viewer"))],
+) -> BankReconciliationResponse:
+    try:
+        row = await recon_service.get(session, recon_id)
+        items = await recon_service.list_items(session, row.id)
+    except Exception as exc:
+        raise _map_error(exc) from None
+    return _recon_to_response(row, items)
+
+
+@reconciliations_router.post(
+    "/{recon_id}/items/{item_id}/clear", response_model=BankReconciliationItemResponse
+)
+async def clear_item(
+    recon_id: uuid.UUID,
+    item_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> BankReconciliationItemResponse:
+    try:
+        item = await recon_service.toggle_cleared(
+            session=session, item_id=item_id, is_cleared=True, actor_user_id=actor.id
+        )
+        if item.reconciliation_id != recon_id:
+            raise HTTPException(status_code=404, detail="bank reconciliation item not found")
+    except HTTPException:
+        await session.rollback()
+        raise
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.refresh(item, ["created_at", "updated_at"])
+    await session.commit()
+    return _item_to_response(item)
+
+
+@reconciliations_router.post(
+    "/{recon_id}/items/{item_id}/unclear", response_model=BankReconciliationItemResponse
+)
+async def unclear_item(
+    recon_id: uuid.UUID,
+    item_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> BankReconciliationItemResponse:
+    try:
+        item = await recon_service.toggle_cleared(
+            session=session, item_id=item_id, is_cleared=False, actor_user_id=actor.id
+        )
+        if item.reconciliation_id != recon_id:
+            raise HTTPException(status_code=404, detail="bank reconciliation item not found")
+    except HTTPException:
+        await session.rollback()
+        raise
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.refresh(item, ["created_at", "updated_at"])
+    await session.commit()
+    return _item_to_response(item)
+
+
+@reconciliations_router.post("/{recon_id}/recompute", response_model=BankReconciliationResponse)
+async def recompute_reconciliation(
+    recon_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> BankReconciliationResponse:
+    _ = actor
+    try:
+        row = await recon_service.recompute_balance(session=session, reconciliation_id=recon_id)
+        items = await recon_service.list_items(session, row.id)
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.refresh(row, ["created_at", "updated_at"])
+    await session.commit()
+    return _recon_to_response(row, items)
+
+
+@reconciliations_router.post("/{recon_id}/finalize", response_model=BankReconciliationResponse)
+async def finalize_reconciliation(
+    recon_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> BankReconciliationResponse:
+    try:
+        row = await recon_service.finalize(
+            session=session, reconciliation_id=recon_id, actor_user_id=actor.id
+        )
+        items = await recon_service.list_items(session, row.id)
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.refresh(row, ["created_at", "updated_at"])
+    await session.commit()
+    return _recon_to_response(row, items)
+
+
+# --- Inter-account transfers (Phase 8.11, #138) ----------------------------
+
+
+@transfers_router.post(
+    "", response_model=InterAccountTransferResponse, status_code=status.HTTP_201_CREATED
+)
+async def post_inter_account_transfer(
+    payload: InterAccountTransferRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> InterAccountTransferResponse:
+    try:
+        entry = await transfers_service.post_transfer(
+            session=session,
+            from_account_id=payload.from_account_id,
+            to_account_id=payload.to_account_id,
+            amount=Decimal(payload.amount),
+            occurred_at=payload.occurred_at,
+            memo=payload.memo,
+            actor_user_id=actor.id,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    return InterAccountTransferResponse(journal_entry_id=entry.id)

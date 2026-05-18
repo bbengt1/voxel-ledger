@@ -871,6 +871,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bank-reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reconciliations */
+        get: operations["list_reconciliations_api_v1_bank_reconciliations_get"];
+        put?: never;
+        /** Create Reconciliation */
+        post: operations["create_reconciliation_api_v1_bank_reconciliations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-reconciliations/{recon_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reconciliation */
+        get: operations["get_reconciliation_api_v1_bank_reconciliations__recon_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-reconciliations/{recon_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize Reconciliation */
+        post: operations["finalize_reconciliation_api_v1_bank_reconciliations__recon_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-reconciliations/{recon_id}/items/{item_id}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Item */
+        post: operations["clear_item_api_v1_bank_reconciliations__recon_id__items__item_id__clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-reconciliations/{recon_id}/items/{item_id}/unclear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unclear Item */
+        post: operations["unclear_item_api_v1_bank_reconciliations__recon_id__items__item_id__unclear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank-reconciliations/{recon_id}/recompute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recompute Reconciliation */
+        post: operations["recompute_reconciliation_api_v1_bank_reconciliations__recon_id__recompute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bank-transactions": {
         parameters: {
             query?: never;
@@ -1922,6 +2025,23 @@ export interface paths {
         put?: never;
         /** Set Default Template */
         post: operations["set_default_template_api_v1_form_templates__template_id__set_default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/inter-account-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Inter Account Transfer */
+        post: operations["post_inter_account_transfer_api_v1_inter_account_transfers_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5285,6 +5405,117 @@ export interface components {
              */
             posted_at: string;
         };
+        /** BankReconciliationCreate */
+        BankReconciliationCreate: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Statement Ending Balance */
+            statement_ending_balance: number | string;
+        };
+        /** BankReconciliationItemResponse */
+        BankReconciliationItemResponse: {
+            /**
+             * Bank Transaction Id
+             * Format: uuid
+             */
+            bank_transaction_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Cleared */
+            is_cleared: boolean;
+            /**
+             * Reconciliation Id
+             * Format: uuid
+             */
+            reconciliation_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BankReconciliationListResponse */
+        BankReconciliationListResponse: {
+            /** Items */
+            items: components["schemas"]["BankReconciliationResponse"][];
+        };
+        /** BankReconciliationResponse */
+        BankReconciliationResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Book Ending Balance */
+            book_ending_balance?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /** Difference */
+            difference?: string | null;
+            /** Finalized At */
+            finalized_at?: string | null;
+            /** Finalized By User Id */
+            finalized_by_user_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items?: components["schemas"]["BankReconciliationItemResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** State */
+            state: string;
+            /** Statement Ending Balance */
+            statement_ending_balance: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** BankTransactionListResponse */
         BankTransactionListResponse: {
             /** Items */
@@ -7064,6 +7295,36 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InterAccountTransferRequest */
+        InterAccountTransferRequest: {
+            /** Amount */
+            amount: number | string;
+            /**
+             * From Account Id
+             * Format: uuid
+             */
+            from_account_id: string;
+            /** Memo */
+            memo?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * To Account Id
+             * Format: uuid
+             */
+            to_account_id: string;
+        };
+        /** InterAccountTransferResponse */
+        InterAccountTransferResponse: {
+            /**
+             * Journal Entry Id
+             * Format: uuid
+             */
+            journal_entry_id: string;
         };
         /** InventoryLocationCreateRequest */
         InventoryLocationCreateRequest: {
@@ -12724,6 +12985,229 @@ export interface operations {
             };
         };
     };
+    list_reconciliations_api_v1_bank_reconciliations_get: {
+        parameters: {
+            query?: {
+                account_id?: string | null;
+                state?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_reconciliation_api_v1_bank_reconciliations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankReconciliationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_reconciliation_api_v1_bank_reconciliations__recon_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_reconciliation_api_v1_bank_reconciliations__recon_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_item_api_v1_bank_reconciliations__recon_id__items__item_id__clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recon_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unclear_item_api_v1_bank_reconciliations__recon_id__items__item_id__unclear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recon_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recompute_reconciliation_api_v1_bank_reconciliations__recon_id__recompute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recon_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankReconciliationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_transactions_api_v1_bank_transactions_get: {
         parameters: {
             query?: {
@@ -15376,6 +15860,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FormTemplateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_inter_account_transfer_api_v1_inter_account_transfers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterAccountTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterAccountTransferResponse"];
                 };
             };
             /** @description Validation Error */
