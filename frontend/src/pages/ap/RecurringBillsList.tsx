@@ -1,0 +1,168 @@
+/**
+ * `/recurring-bills` — list of recurring bill templates. URL-state-
+ * backed. Mirrors RecurringList (AR side).
+ */
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+
+import { api } from "@/api/typed";
+import type { components } from "@/api/types";
+import { Button } from "@/components/ui/Button";
+import { useAuthStore } from "@/store/useAuthStore";
+
+type RecurringBillTemplateResponse =
+  components["schemas"]["RecurringBillTemplateResponse"];
+
+const STATES = ["active", "paused", "cancelled"] as const;
+const CAN_CREATE: readonly string[] = ["owner", "bookkeeper"];
+
+export function RecurringBillsListPage() {
+  const role = useAuthStore((s) => s.user?.role);
+  const canCreate = role ? CAN_CREATE.includes(role) : false;
+
+  const [params, setParams] = useSearchParams();
+  const stateFilter = params.get("state") ?? "";
+  const vendorId = params.get("vendor_id") ?? "";
+
+  function updateParam(key: string, value: string) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setParams(next, { replace: true });
+  }
+
+  const [items, setItems] = useState<RecurringBillTemplateResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const query = useMemo(() => {
+    const q: Record<string, string> = {};
+    if (stateFilter) q["state"] = stateFilter;
+    if (vendorId) q["vendor_id"] = vendorId;
+    return q;
+  }, [stateFilter, vendorId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api
+      .get("/api/v1/recurring-bills", { params: query })
+      .then((res) => {
+        if (!cancelled) setItems(res.data.items);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const detail = (err as { response?: { data?: { detail?: string } } })
+          .response?.data?.detail;
+        setError(
+          typeof detail === "string"
+            ? detail
+            : "Failed to load recurring bills.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
+  return (
+    <section className="flex flex-col gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Recurring bills</h1>
+        {canCreate ? (
+          <Button asChild>
+            <Link to="/recurring-bills/new">New recurring</Link>
+          </Button>
+        ) : null}
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <label className="block text-xs">
+          State
+          <select
+            className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            value={stateFilter}
+            onChange={(e) => updateParam("state", e.target.value)}
+            data-testid="filter-state"
+          >
+            <option value="">All</option>
+            {STATES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {error ? (
+        <div
+          role="alert"
+          className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      <table className="w-full table-fixed border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+            <th className="py-2 pr-2">Name</th>
+            <th className="py-2 pr-2">Vendor</th>
+            <th className="py-2 pr-2">Cadence</th>
+            <th className="py-2 pr-2">Next issue</th>
+            <th className="py-2 pr-2">Auto-issue</th>
+            <th className="py-2 pr-2">State</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && items.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                Loading…
+              </td>
+            </tr>
+          ) : items.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                No recurring bills match.
+              </td>
+            </tr>
+          ) : (
+            items.map((t) => (
+              <tr
+                key={t.id}
+                className="border-b border-border/50 hover:bg-accent/30"
+                data-testid={`recurring-bill-row-${t.id}`}
+              >
+                <td className="py-2 pr-2">
+                  <Link
+                    to={`/recurring-bills/${t.id}`}
+                    className="hover:underline"
+                  >
+                    {t.name}
+                  </Link>
+                </td>
+                <td className="py-2 pr-2 font-mono text-xs">
+                  {t.vendor_id.slice(0, 8)}
+                </td>
+                <td className="py-2 pr-2">
+                  every {t.cadence_interval} {t.cadence_kind}
+                </td>
+                <td className="py-2 pr-2">
+                  {new Date(t.next_issue_at).toLocaleDateString()}
+                </td>
+                <td className="py-2 pr-2">{t.auto_issue ? "yes" : "no"}</td>
+                <td className="py-2 pr-2">{t.state}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </section>
+  );
+}

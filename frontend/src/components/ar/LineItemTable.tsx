@@ -27,6 +27,12 @@ export interface LineDraft {
   quantity: string;
   unitPrice: string;
   skuOrJobNumber: string;
+  /** Optional billable-source tag stamped when a line was pulled from a
+   *  bill item or expense-claim line (Phase 8.12a). */
+  billableSource?: {
+    kind: "bill_item" | "expense_claim_line";
+    id: string;
+  } | null;
 }
 
 let _key = 0;

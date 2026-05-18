@@ -9,6 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PullBillableExpensesModal } from "@/components/ap/PullBillableExpensesModal";
 import {
   CustomerPicker,
   type CustomerOption,
@@ -42,6 +43,7 @@ export function InvoiceComposerPage() {
   const [lines, setLines] = useState<LineDraft[]>(() => [emptyLine()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pullOpen, setPullOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -121,6 +123,12 @@ export function InvoiceComposerPage() {
       if (l.skuOrJobNumber) item.sku_or_job_number = l.skuOrJobNumber;
       if (l.kind === "product" && l.product) item.product_id = l.product.id;
       if (l.kind === "job" && l.jobId) item.job_id = l.jobId;
+      if (l.billableSource) {
+        item.billable_source = {
+          kind: l.billableSource.kind,
+          id: l.billableSource.id,
+        };
+      }
       out.push(item);
     }
     return out;
@@ -239,6 +247,20 @@ export function InvoiceComposerPage() {
           </label>
         </div>
 
+        {customer ? (
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPullOpen(true)}
+              data-testid="pull-billable-btn"
+            >
+              Pull billable expenses
+            </Button>
+          </div>
+        ) : null}
+
         <LineItemTable
           lines={lines}
           setLines={setLines}
@@ -270,6 +292,34 @@ export function InvoiceComposerPage() {
       </div>
 
       <InvoiceTotalsPanel totals={totals} />
+
+      {customer ? (
+        <PullBillableExpensesModal
+          open={pullOpen}
+          onOpenChange={setPullOpen}
+          customerId={customer.id}
+          onConfirm={(rows) => {
+            if (rows.length === 0) return;
+            setLines((prev) => {
+              const next = prev.filter((l) => l.description.trim().length > 0);
+              for (const r of rows) {
+                next.push({
+                  key: `bill-${r.source_kind}-${r.source_id}`,
+                  kind: "manual",
+                  product: null,
+                  jobId: "",
+                  description: r.description,
+                  quantity: "1",
+                  unitPrice: r.amount,
+                  skuOrJobNumber: "",
+                  billableSource: { kind: r.source_kind, id: r.source_id },
+                });
+              }
+              return next.length === 0 ? prev : next;
+            });
+          }}
+        />
+      ) : null}
     </section>
   );
 }
