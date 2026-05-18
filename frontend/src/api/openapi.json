@@ -2109,6 +2109,58 @@
         "title": "BillUpdate",
         "type": "object"
       },
+      "BillableExpenseListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UnbilledRow"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "BillableExpenseListResponse",
+        "type": "object"
+      },
+      "BillableSourceRef": {
+        "description": "Per-line ``billable_source`` reference on an invoice line.\n\nWhen set on an ``InvoiceItemCreate``, the invoice composer loads the\nreferenced source, validates customer + billable + not-yet-billed,\napplies the markup, and stamps ``billed_invoice_item_id`` on the\nsource row in the same transaction.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "bill_item",
+              "expense_claim_line"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "markup_percent_override": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markup Percent Override"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "title": "BillableSourceRef",
+        "type": "object"
+      },
       "Body_discover_from_sidecar_api_v1_jobs_discover_post": {
         "properties": {
           "file": {
@@ -6658,6 +6710,16 @@
       "InvoiceItemCreate": {
         "description": "One line on a draft invoice. The service computes\n``extended_amount`` from ``quantity * unit_price``.",
         "properties": {
+          "billable_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BillableSourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description": {
             "minLength": 1,
             "title": "Description",
@@ -6731,13 +6793,13 @@
                 "type": "string"
               }
             ],
+            "default": "0",
             "title": "Unit Price"
           }
         },
         "required": [
           "kind",
-          "description",
-          "unit_price"
+          "description"
         ],
         "title": "InvoiceItemCreate",
         "type": "object"
@@ -15496,6 +15558,103 @@
         "title": "TokenPair",
         "type": "object"
       },
+      "UnbilledRow": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "bill_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bill Id"
+          },
+          "bill_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bill Number"
+          },
+          "claim_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "claim_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "line_number": {
+            "title": "Line Number",
+            "type": "integer"
+          },
+          "markup_percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Markup Percent",
+            "type": "string"
+          },
+          "occurred_on": {
+            "format": "date",
+            "title": "Occurred On",
+            "type": "string"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "bill_item",
+              "expense_claim_line"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_id",
+          "line_number",
+          "description",
+          "amount",
+          "markup_percent",
+          "occurred_on"
+        ],
+        "title": "UnbilledRow",
+        "type": "object"
+      },
       "UserCreateRequest": {
         "properties": {
           "email": {
@@ -19849,6 +20008,54 @@
         "summary": "Unapply Bill Payment",
         "tags": [
           "bill-payments"
+        ]
+      }
+    },
+    "/api/v1/billable-expenses": {
+      "get": {
+        "operationId": "list_billable_expenses_api_v1_billable_expenses_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Customer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillableExpenseListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Billable Expenses",
+        "tags": [
+          "billable-expenses"
         ]
       }
     },

@@ -71,6 +71,7 @@ from app.models.journal_entry import JournalEntry
 from app.models.product import Product
 from app.models.quote import Quote, QuoteItemKind
 from app.schemas.events import EventCreate
+from app.services import billable_expenses as billable_expenses_service
 from app.services import customers as customers_service
 from app.services import event_store
 from app.services import journal_entries as journal_service
@@ -227,7 +228,36 @@ def _coerce_kind(value: str | InvoiceItemKind) -> InvoiceItemKind:
         raise InvalidInvoiceItemError(f"invalid item kind: {value!r}") from exc
 
 
+def _normalize_billable_source(raw: Any) -> dict[str, Any] | None:
+    if raw is None:
+        return None
+    if hasattr(raw, "model_dump"):
+        raw = raw.model_dump()
+    if not isinstance(raw, dict):
+        raise InvalidInvoiceItemError(f"invalid billable_source: {raw!r}")
+    kind = raw.get("kind")
+    source_id = raw.get("id")
+    if kind not in billable_expenses_service.ALLOWED_SOURCE_KINDS:
+        raise InvalidInvoiceItemError(f"invalid billable_source kind: {kind!r}")
+    if isinstance(source_id, str):
+        try:
+            source_id = uuid.UUID(source_id)
+        except ValueError as exc:
+            raise InvalidInvoiceItemError(f"invalid billable_source id: {source_id!r}") from exc
+    if not isinstance(source_id, uuid.UUID):
+        raise InvalidInvoiceItemError("billable_source.id is required")
+    override = raw.get("markup_percent_override")
+    if override is not None:
+        try:
+            override = _q(override)
+        except (ArithmeticError, ValueError) as exc:
+            raise InvalidInvoiceItemError(f"invalid markup_percent_override: {override!r}") from exc
+    return {"kind": kind, "id": source_id, "markup_percent_override": override}
+
+
 def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
+    billable_source = _normalize_billable_source(item.get("billable_source"))
+
     kind = _coerce_kind(item.get("kind"))
     product_id = item.get("product_id")
     job_id = item.get("job_id")
@@ -244,7 +274,7 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
     description = (item.get("description") or "").strip()
     sku_or_job_number = item.get("sku_or_job_number")
 
-    if not description:
+    if not description and billable_source is None:
         raise InvalidInvoiceItemError("item description is required")
 
     if kind == InvoiceItemKind.PRODUCT:
@@ -263,10 +293,16 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
     except (ArithmeticError, ValueError) as exc:
         raise InvalidInvoiceItemError(f"invalid numeric value on item: {exc}") from exc
 
-    if quantity <= 0:
-        raise InvalidInvoiceItemError("quantity must be positive")
-    if unit_price < 0:
-        raise InvalidInvoiceItemError("unit_price must be non-negative")
+    # Lines backed by a billable source defer their amount math to the
+    # source row; the composer applies the markup and overwrites
+    # ``unit_price`` after loading the source. Skip the per-line numeric
+    # invariants here (quantity > 0 and unit_price >= 0) — they're
+    # guaranteed downstream by the markup math.
+    if billable_source is None:
+        if quantity <= 0:
+            raise InvalidInvoiceItemError("quantity must be positive")
+        if unit_price < 0:
+            raise InvalidInvoiceItemError("unit_price must be non-negative")
 
     return {
         "kind": kind,
@@ -276,7 +312,62 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
         "sku_or_job_number": sku_or_job_number,
         "quantity": quantity,
         "unit_price": unit_price,
+        "billable_source": billable_source,
     }
+
+
+async def _apply_billable_source(
+    session: AsyncSession,
+    *,
+    invoice_customer_id: uuid.UUID,
+    item: dict[str, Any],
+) -> billable_expenses_service.SourceRow | None:
+    """If the line carries a ``billable_source``, load + validate the
+    source row, then mutate ``item`` in place to set the description,
+    quantity (1), and unit_price (= billed amount). Returns the resolved
+    source so the caller can call ``mark_billed`` after the invoice item
+    flushes."""
+    ref = item.get("billable_source")
+    if ref is None:
+        return None
+
+    source = await billable_expenses_service.load_source(
+        session, source_kind=ref["kind"], source_id=ref["id"]
+    )
+    if not source.is_billable:
+        raise InvalidInvoiceItemError(
+            f"{source.source_kind} {source.source_id} is not flagged is_billable"
+        )
+    if source.billed_invoice_item_id is not None:
+        raise InvalidInvoiceItemError(
+            f"{source.source_kind} {source.source_id} is already billed to "
+            f"invoice_item {source.billed_invoice_item_id}"
+        )
+    if source.customer_id != invoice_customer_id:
+        raise InvalidInvoiceItemError(
+            f"{source.source_kind} {source.source_id} is flagged for a "
+            f"different customer ({source.customer_id}) than this invoice "
+            f"({invoice_customer_id})"
+        )
+
+    override = ref.get("markup_percent_override")
+    effective_markup = override if override is not None else source.markup_percent
+    billed_amount = billable_expenses_service.compute_billed_amount(
+        source_amount=source.amount, markup_percent=effective_markup
+    )
+
+    if not item.get("description"):
+        item["description"] = billable_expenses_service.describe_source(source)
+    item["quantity"] = _q(Decimal("1"))
+    item["unit_price"] = billed_amount
+    item["_billable_resolved"] = {
+        "source_kind": source.source_kind,
+        "source_id": source.source_id,
+        "source_amount": source.amount,
+        "billed_amount": billed_amount,
+        "markup_percent": effective_markup,
+    }
+    return source
 
 
 async def _verify_item_refs(session: AsyncSession, items: list[dict[str, Any]]) -> None:
@@ -430,6 +521,8 @@ async def create_draft(
     for raw in items or []:
         normalized_items.append(_validate_item(raw))
     await _verify_item_refs(session, normalized_items)
+    for item in normalized_items:
+        await _apply_billable_source(session, invoice_customer_id=customer_id, item=item)
 
     totals = _compute_totals(
         items=normalized_items,
@@ -470,25 +563,42 @@ async def create_draft(
     session.add(invoice)
     await session.flush()
 
+    billable_pending: list[tuple[InvoiceItem, dict[str, Any]]] = []
     for idx, item in enumerate(normalized_items, start=1):
-        session.add(
-            InvoiceItem(
-                invoice_id=invoice.id,
-                line_number=idx,
-                kind=item["kind"],
-                product_id=item["product_id"],
-                job_id=item["job_id"],
-                description=item["description"],
-                sku_or_job_number=item["sku_or_job_number"],
-                quantity=item["quantity"],
-                unit_price=item["unit_price"],
-                extended_amount=item["extended_amount"],
-            )
+        new_row = InvoiceItem(
+            invoice_id=invoice.id,
+            line_number=idx,
+            kind=item["kind"],
+            product_id=item["product_id"],
+            job_id=item["job_id"],
+            description=item["description"],
+            sku_or_job_number=item["sku_or_job_number"],
+            quantity=item["quantity"],
+            unit_price=item["unit_price"],
+            extended_amount=item["extended_amount"],
         )
+        session.add(new_row)
+        resolved = item.get("_billable_resolved")
+        if resolved is not None:
+            billable_pending.append((new_row, resolved))
     try:
         await session.flush()
     except IntegrityError as exc:
         raise InvalidInvoiceItemError(f"invoice item integrity violation: {exc.orig}") from exc
+
+    for new_row, resolved in billable_pending:
+        await billable_expenses_service.mark_billed(
+            session,
+            source_kind=resolved["source_kind"],
+            source_id=resolved["source_id"],
+            invoice_id=invoice.id,
+            invoice_item_id=new_row.id,
+            customer_id=customer_id,
+            source_amount=resolved["source_amount"],
+            billed_amount=resolved["billed_amount"],
+            markup_percent=resolved["markup_percent"],
+            actor_user_id=actor_user_id,
+        )
 
     invoice = await _load(session, invoice.id)
 
@@ -564,11 +674,15 @@ async def update_draft(
         setattr(invoice, field, new_value)
 
     items_changed = False
+    billable_pending: list[tuple[InvoiceItem, dict[str, Any]]] = []
     if "items" in patch and patch["items"] is not None:
         items_changed = True
         normalized_items = [_validate_item(raw) for raw in patch["items"]]
         await _verify_item_refs(session, normalized_items)
         for item in normalized_items:
+            await _apply_billable_source(
+                session, invoice_customer_id=invoice.customer_id, item=item
+            )
             item["extended_amount"] = _q(item["quantity"] * item["unit_price"])
         before["items"] = _payload_items(invoice.items)
         for existing in list(invoice.items):
@@ -576,24 +690,40 @@ async def update_draft(
         await session.flush()
         invoice.items.clear()
         for idx, item in enumerate(normalized_items, start=1):
-            session.add(
-                InvoiceItem(
-                    invoice_id=invoice.id,
-                    line_number=idx,
-                    kind=item["kind"],
-                    product_id=item["product_id"],
-                    job_id=item["job_id"],
-                    description=item["description"],
-                    sku_or_job_number=item["sku_or_job_number"],
-                    quantity=item["quantity"],
-                    unit_price=item["unit_price"],
-                    extended_amount=item["extended_amount"],
-                )
+            new_row = InvoiceItem(
+                invoice_id=invoice.id,
+                line_number=idx,
+                kind=item["kind"],
+                product_id=item["product_id"],
+                job_id=item["job_id"],
+                description=item["description"],
+                sku_or_job_number=item["sku_or_job_number"],
+                quantity=item["quantity"],
+                unit_price=item["unit_price"],
+                extended_amount=item["extended_amount"],
             )
+            session.add(new_row)
+            resolved = item.get("_billable_resolved")
+            if resolved is not None:
+                billable_pending.append((new_row, resolved))
         try:
             await session.flush()
         except IntegrityError as exc:
             raise InvalidInvoiceItemError(f"invoice item integrity violation: {exc.orig}") from exc
+
+        for new_row, resolved in billable_pending:
+            await billable_expenses_service.mark_billed(
+                session,
+                source_kind=resolved["source_kind"],
+                source_id=resolved["source_id"],
+                invoice_id=invoice.id,
+                invoice_item_id=new_row.id,
+                customer_id=invoice.customer_id,
+                source_amount=resolved["source_amount"],
+                billed_amount=resolved["billed_amount"],
+                markup_percent=resolved["markup_percent"],
+                actor_user_id=actor_user_id,
+            )
 
     if not before and not items_changed:
         return invoice

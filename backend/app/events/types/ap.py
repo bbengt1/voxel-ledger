@@ -482,3 +482,30 @@ register_event(TYPE_EXPENSE_CLAIM_APPROVED, ExpenseClaimApprovedPayload)
 register_event(TYPE_EXPENSE_CLAIM_REJECTED, ExpenseClaimRejectedPayload)
 register_event(TYPE_EXPENSE_CLAIM_REIMBURSED, ExpenseClaimReimbursedPayload)
 register_event(TYPE_EXPENSE_CLAIM_CANCELLED, ExpenseClaimCancelledPayload)
+
+
+# --- Billable expenses (Phase 8.8, #135) ------------------------------------
+#
+# Operator flags a ``bill_item`` or ``expense_claim_line`` as
+# ``is_billable`` with a target ``customer_id``; later the invoice composer
+# pulls those unbilled rows + appends them as invoice lines with a markup.
+# Once linked, the source's ``billed_invoice_item_id`` is stamped so it
+# can't be re-billed. The link is emitted with ``aggregate_type=invoice``
+# because the invoice composer is the actor — replay rebuilding the
+# invoice naturally sees the link event in the invoice aggregate stream.
+
+
+class BillableExpenseLinkedPayload(_APPayloadBase):
+    source_kind: str  # "bill_item" | "expense_claim_line"
+    source_id: uuid.UUID
+    invoice_id: uuid.UUID
+    invoice_item_id: uuid.UUID
+    customer_id: uuid.UUID
+    amount: str  # billed (after markup)
+    source_amount: str  # before markup
+    markup_percent: str
+
+
+TYPE_BILLABLE_EXPENSE_LINKED = "ap.BillableExpenseLinked"
+
+register_event(TYPE_BILLABLE_EXPENSE_LINKED, BillableExpenseLinkedPayload)

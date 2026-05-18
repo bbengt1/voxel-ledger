@@ -1252,3 +1252,23 @@ register_excerpt_fields(
     ap_events.TYPE_EXPENSE_CLAIM_CANCELLED,
     ("claim_number", "submitter_user_id"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: billable expenses (Phase 8.8, #135)
+# ---------------------------------------------------------------------------
+#
+# The link payload is small and contains no PII — just IDs and decimal
+# amounts. All fields are safe to surface.
+
+register_excerpt_fields(
+    ap_events.TYPE_BILLABLE_EXPENSE_LINKED,
+    (
+        "source_kind",
+        "source_id",
+        "invoice_id",
+        "invoice_item_id",
+        "amount",
+        "markup_percent",
+    ),
+)

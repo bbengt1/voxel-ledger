@@ -16,6 +16,7 @@ from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bill_payments import bill_payments_router
+from app.api.v1.billable_expenses import router as billable_expenses_router
 from app.api.v1.bills import router as bills_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.budgets import router as budgets_router
@@ -134,3 +135,4 @@ api_router.include_router(email_messages_router)
 api_router.include_router(vendors_router)
 api_router.include_router(expense_categories_router)
 api_router.include_router(expense_claims_router)
+api_router.include_router(billable_expenses_router)
