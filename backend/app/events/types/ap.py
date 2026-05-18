@@ -30,6 +30,7 @@ AGGREGATE_TYPE_BILL: str = "bill"
 AGGREGATE_TYPE_BILL_PAYMENT: str = "bill_payment"
 AGGREGATE_TYPE_RECURRING_BILL_TEMPLATE: str = "recurring_bill_template"
 AGGREGATE_TYPE_EXPENSE_CATEGORY: str = "expense_category"
+AGGREGATE_TYPE_EXPENSE_CLAIM: str = "expense_claim"
 
 
 class _APPayloadBase(BaseModel):
@@ -400,3 +401,84 @@ TYPE_EXPENSE_CATEGORY_ARCHIVED = "ap.ExpenseCategoryArchived"
 register_event(TYPE_EXPENSE_CATEGORY_CREATED, ExpenseCategoryCreatedPayload)
 register_event(TYPE_EXPENSE_CATEGORY_UPDATED, ExpenseCategoryUpdatedPayload)
 register_event(TYPE_EXPENSE_CATEGORY_ARCHIVED, ExpenseCategoryArchivedPayload)
+
+
+# --- Expense claims (Phase 8.7, #134) ---------------------------------------
+#
+# PII RULE: line ``description``, ``notes``, and ``rejection_reason`` are
+# carried in the payload so the event log can reconstruct the row but the
+# audit-excerpt whitelist NEVER surfaces them. Audit excerpts are limited
+# to claim_number, submitter_user_id, state, and total_amount.
+
+
+class ExpenseClaimCreatedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+    state: str
+    total_amount: str
+    currency: str = "USD"
+    notes: str | None = None
+    lines: list[dict[str, Any]] = []
+
+
+class ExpenseClaimUpdatedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class ExpenseClaimSubmittedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+    total_amount: str
+    approval_request_id: uuid.UUID | None = None
+
+
+class ExpenseClaimApprovedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+    approver_user_id: uuid.UUID
+    total_amount: str
+    journal_entry_id: uuid.UUID
+
+
+class ExpenseClaimRejectedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+    approver_user_id: uuid.UUID
+    rejection_reason: str | None = None
+
+
+class ExpenseClaimReimbursedPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+    bill_payment_id: uuid.UUID
+
+
+class ExpenseClaimCancelledPayload(_APPayloadBase):
+    expense_claim_id: uuid.UUID
+    claim_number: str
+    submitter_user_id: uuid.UUID
+
+
+TYPE_EXPENSE_CLAIM_CREATED = "ap.ExpenseClaimCreated"
+TYPE_EXPENSE_CLAIM_UPDATED = "ap.ExpenseClaimUpdated"
+TYPE_EXPENSE_CLAIM_SUBMITTED = "ap.ExpenseClaimSubmitted"
+TYPE_EXPENSE_CLAIM_APPROVED = "ap.ExpenseClaimApproved"
+TYPE_EXPENSE_CLAIM_REJECTED = "ap.ExpenseClaimRejected"
+TYPE_EXPENSE_CLAIM_REIMBURSED = "ap.ExpenseClaimReimbursed"
+TYPE_EXPENSE_CLAIM_CANCELLED = "ap.ExpenseClaimCancelled"
+
+
+register_event(TYPE_EXPENSE_CLAIM_CREATED, ExpenseClaimCreatedPayload)
+register_event(TYPE_EXPENSE_CLAIM_UPDATED, ExpenseClaimUpdatedPayload)
+register_event(TYPE_EXPENSE_CLAIM_SUBMITTED, ExpenseClaimSubmittedPayload)
+register_event(TYPE_EXPENSE_CLAIM_APPROVED, ExpenseClaimApprovedPayload)
+register_event(TYPE_EXPENSE_CLAIM_REJECTED, ExpenseClaimRejectedPayload)
+register_event(TYPE_EXPENSE_CLAIM_REIMBURSED, ExpenseClaimReimbursedPayload)
+register_event(TYPE_EXPENSE_CLAIM_CANCELLED, ExpenseClaimCancelledPayload)
