@@ -193,8 +193,11 @@ class BillItem(Base):
 
     kind: Mapped[BillItemKind] = mapped_column(BILL_ITEM_KIND_ENUM, nullable=False)
 
-    # Bare UUID column (no FK yet) — Phase 8.6 adds expense_category.
-    expense_category_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # FK to ``expense_category`` added by Phase 8.6 (0044) — the column
+    # itself was introduced by Phase 8.2 as a bare UUID.
+    expense_category_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("expense_category.id", ondelete="RESTRICT"), nullable=True
+    )
 
     description: Mapped[str] = mapped_column(Text(), nullable=False)
     vendor_sku: Mapped[str | None] = mapped_column(String(64), nullable=True)

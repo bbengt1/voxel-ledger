@@ -1191,3 +1191,25 @@ register_excerpt_fields(
     ap_events.TYPE_RECURRING_BILL_MATERIALIZED,
     ("name", "vendor_id", "cadence_kind", "bill_id", "bill_number"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: expense categories (Phase 8.6, #133)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``notes`` MUST NEVER be whitelisted. The payload carries it
+# so replay can reconstruct the row, but the audit denormalization is
+# strictly limited to ``code`` + ``name``.
+
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CATEGORY_CREATED,
+    ("code", "name"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CATEGORY_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CATEGORY_ARCHIVED,
+    ("code", "name"),
+)

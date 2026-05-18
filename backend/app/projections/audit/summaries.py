@@ -1643,3 +1643,29 @@ def _bill_overdue(payload: dict[str, Any], _actor: str) -> str:
 
 
 register_summary(ap_events.TYPE_BILL_OVERDUE, _bill_overdue)
+
+
+# --- AP: expense categories (Phase 8.6, #133) ---
+
+
+def _expense_category_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created expense category {payload.get('code', '?')} "
+        f"({payload.get('name', '?')})"
+    )
+
+
+def _expense_category_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated expense category {payload.get('expense_category_id', '?')}"
+
+
+def _expense_category_archived(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} archived expense category {payload.get('code', '?')} "
+        f"({payload.get('name', '?')})"
+    )
+
+
+register_summary(ap_events.TYPE_EXPENSE_CATEGORY_CREATED, _expense_category_created)
+register_summary(ap_events.TYPE_EXPENSE_CATEGORY_UPDATED, _expense_category_updated)
+register_summary(ap_events.TYPE_EXPENSE_CATEGORY_ARCHIVED, _expense_category_archived)

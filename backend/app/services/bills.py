@@ -83,6 +83,7 @@ from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor
 from app.schemas.events import EventCreate
 from app.services import event_store
+from app.services import expense_categories as expense_categories_service
 from app.services import journal_entries as journal_service
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
@@ -654,14 +655,18 @@ async def _resolve_expense_account(
 ) -> uuid.UUID:
     """Resolve the per-line Dr expense account.
 
-    Chain: line.expense_account_id_override -> (Phase 8.6: expense_category
-    default; skipped today) -> vendor.default_expense_account_id ->
+    Chain: line.expense_account_id_override ->
+    ``expense_category.default_expense_account_id`` (when the line
+    references a category) -> vendor.default_expense_account_id ->
     setting ``ap.default_expense_account_id`` -> raise.
     """
     if line.expense_account_id_override is not None:
         return line.expense_account_id_override
-    # Phase 8.6: expense_category.default_expense_account_id lookup goes
-    # here once the table lands.
+    category_account = await expense_categories_service.get_default_account_for_category(
+        session, line.expense_category_id
+    )
+    if category_account is not None:
+        return category_account
     if vendor.default_expense_account_id is not None:
         return vendor.default_expense_account_id
     return await _resolve_setting_account(

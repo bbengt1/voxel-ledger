@@ -194,8 +194,11 @@ class RecurringBillTemplateItem(Base):
         RECURRING_BILL_ITEM_KIND_ENUM, nullable=False
     )
 
-    # Bare UUID — Phase 8.6 will add ``expense_category`` table + FK.
-    expense_category_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # FK to ``expense_category`` added by Phase 8.6 (0044). The column
+    # was introduced by Phase 8.5 as a bare UUID.
+    expense_category_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("expense_category.id", ondelete="RESTRICT"), nullable=True
+    )
 
     description: Mapped[str] = mapped_column(Text(), nullable=False)
     vendor_sku: Mapped[str | None] = mapped_column(String(64), nullable=True)
