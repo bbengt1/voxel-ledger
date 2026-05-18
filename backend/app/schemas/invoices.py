@@ -14,6 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.billable_expenses import BillableSourceRef
 from app.schemas.customers import CustomerAddress
 
 InvoiceStateLiteral = Literal["draft", "issued", "partially_paid", "paid", "overdue", "void"]
@@ -33,7 +34,13 @@ class InvoiceItemCreate(BaseModel):
     description: str = Field(min_length=1)
     sku_or_job_number: str | None = Field(default=None, max_length=64)
     quantity: Decimal = Field(default=Decimal("1"))
-    unit_price: Decimal
+    unit_price: Decimal = Field(default=Decimal("0"))
+    # Phase 8.8 (#135). When set, the invoice composer pulls the line's
+    # amount/description from the referenced source, applies the markup,
+    # and stamps the source's ``billed_invoice_item_id`` in the same TX.
+    # ``quantity`` / ``unit_price`` may be left at defaults when this is
+    # set; the composer overrides them.
+    billable_source: BillableSourceRef | None = None
 
 
 class InvoiceItemResponse(BaseModel):

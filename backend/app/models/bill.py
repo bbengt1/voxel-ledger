@@ -31,6 +31,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -40,6 +41,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy import Enum as SAEnum
@@ -182,6 +184,9 @@ class BillItem(Base):
         ),
         Index("ix_bill_item_bill_id", "bill_id"),
         Index("ix_bill_item_expense_category_id", "expense_category_id"),
+        Index("ix_bill_item_customer_id", "customer_id"),
+        Index("ix_bill_item_is_billable", "is_billable"),
+        Index("ix_bill_item_billed_invoice_item_id", "billed_invoice_item_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -210,6 +215,23 @@ class BillItem(Base):
 
     expense_account_id_override: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("account.id", ondelete="RESTRICT"), nullable=True
+    )
+
+    # Phase 8.8 (#135) rebill-to-customer columns. When ``is_billable`` is
+    # true and ``customer_id`` matches a draft invoice's customer, the
+    # invoice composer can pull this line in and stamp
+    # ``billed_invoice_item_id`` to mark it as billed.
+    is_billable: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("customer.id", ondelete="SET NULL"), nullable=True
+    )
+    billed_invoice_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invoice_item.id", ondelete="SET NULL"), nullable=True
+    )
+    markup_percent: Mapped[Decimal] = mapped_column(
+        Numeric(7, 4), nullable=False, default=Decimal("0"), server_default="0"
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -800,6 +800,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billable-expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Billable Expenses */
+        get: operations["list_billable_expenses_api_v1_billable_expenses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bills": {
         parameters: {
             query?: never;
@@ -5020,6 +5037,34 @@ export interface components {
             /** Vendor Invoice Number */
             vendor_invoice_number?: string | null;
         };
+        /** BillableExpenseListResponse */
+        BillableExpenseListResponse: {
+            /** Items */
+            items?: components["schemas"]["UnbilledRow"][];
+        };
+        /**
+         * BillableSourceRef
+         * @description Per-line ``billable_source`` reference on an invoice line.
+         *
+         *     When set on an ``InvoiceItemCreate``, the invoice composer loads the
+         *     referenced source, validates customer + billable + not-yet-billed,
+         *     applies the markup, and stamps ``billed_invoice_item_id`` on the
+         *     source row in the same transaction.
+         */
+        BillableSourceRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "bill_item" | "expense_claim_line";
+            /** Markup Percent Override */
+            markup_percent_override?: number | string | null;
+        };
         /** Body_discover_from_sidecar_api_v1_jobs_discover_post */
         Body_discover_from_sidecar_api_v1_jobs_discover_post: {
             /** File */
@@ -6630,6 +6675,7 @@ export interface components {
          *     ``extended_amount`` from ``quantity * unit_price``.
          */
         InvoiceItemCreate: {
+            billable_source?: components["schemas"]["BillableSourceRef"] | null;
             /** Description */
             description: string;
             /** Job Id */
@@ -6648,7 +6694,10 @@ export interface components {
             quantity: number | string;
             /** Sku Or Job Number */
             sku_or_job_number?: string | null;
-            /** Unit Price */
+            /**
+             * Unit Price
+             * @default 0
+             */
             unit_price: number | string;
         };
         /** InvoiceItemResponse */
@@ -9745,6 +9794,40 @@ export interface components {
              */
             token_type: string;
         };
+        /** UnbilledRow */
+        UnbilledRow: {
+            /** Amount */
+            amount: string;
+            /** Bill Id */
+            bill_id?: string | null;
+            /** Bill Number */
+            bill_number?: string | null;
+            /** Claim Id */
+            claim_id?: string | null;
+            /** Claim Number */
+            claim_number?: string | null;
+            /** Description */
+            description: string;
+            /** Line Number */
+            line_number: number;
+            /** Markup Percent */
+            markup_percent: string;
+            /**
+             * Occurred On
+             * Format: date
+             */
+            occurred_on: string;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "bill_item" | "expense_claim_line";
+        };
         /** UserCreateRequest */
         UserCreateRequest: {
             /**
@@ -11784,6 +11867,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BillPaymentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_billable_expenses_api_v1_billable_expenses_get: {
+        parameters: {
+            query: {
+                customer_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillableExpenseListResponse"];
                 };
             };
             /** @description Validation Error */

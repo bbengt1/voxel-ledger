@@ -142,6 +142,10 @@ class ExpenseClaimLine(Base):
         UniqueConstraint("claim_id", "line_number", name="uq_expense_claim_line_claim_line"),
         Index("ix_expense_claim_line_claim_id", "claim_id"),
         Index("ix_expense_claim_line_expense_category_id", "expense_category_id"),
+        # Phase 8.8 (#135) indexes for the rebill-to-customer flow.
+        Index("ix_expense_claim_line_customer_id", "customer_id"),
+        Index("ix_expense_claim_line_is_billable", "is_billable"),
+        Index("ix_expense_claim_line_billed_invoice_item_id", "billed_invoice_item_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
