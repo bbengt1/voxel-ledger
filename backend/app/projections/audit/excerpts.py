@@ -23,6 +23,7 @@ from app.events.types import ap as ap_events
 from app.events.types import approvals as approvals_events
 from app.events.types import ar as ar_events
 from app.events.types import auth as auth_events
+from app.events.types import banking as banking_events
 from app.events.types import catalog as catalog_events
 from app.events.types import custom_fields as cf_events
 from app.events.types import inventory as inventory_events
@@ -1271,4 +1272,49 @@ register_excerpt_fields(
         "amount",
         "markup_percent",
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Banking: bank imports (Phase 8.9, #136)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: ``column_map`` carries operator-named column headers (which
+# may include free text) and ``notes`` is a free-form operator field —
+# both stay out of audit excerpts. ``description`` / ``memo`` on
+# bank_transaction events are not whitelisted either; we only emit
+# run-level summary events here, never per-row.
+
+register_excerpt_fields(
+    banking_events.TYPE_MAPPING_CREATED,
+    ("mapping_id", "account_id", "name", "file_kind", "amount_sign"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_MAPPING_UPDATED,
+    ("mapping_id",),
+)
+register_excerpt_fields(
+    banking_events.TYPE_MAPPING_DEACTIVATED,
+    ("mapping_id", "account_id", "name"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_IMPORT_RUN_STARTED,
+    ("run_id", "account_id", "mapping_id", "filename", "file_kind"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_IMPORT_RUN_COMPLETED,
+    (
+        "run_id",
+        "account_id",
+        "mapping_id",
+        "filename",
+        "row_count",
+        "inserted_count",
+        "duplicate_count",
+        "error_count",
+    ),
+)
+register_excerpt_fields(
+    banking_events.TYPE_IMPORT_RUN_FAILED,
+    ("run_id", "account_id", "filename", "reason"),
 )

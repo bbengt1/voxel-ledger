@@ -1669,3 +1669,52 @@ def _expense_category_archived(payload: dict[str, Any], actor: str) -> str:
 register_summary(ap_events.TYPE_EXPENSE_CATEGORY_CREATED, _expense_category_created)
 register_summary(ap_events.TYPE_EXPENSE_CATEGORY_UPDATED, _expense_category_updated)
 register_summary(ap_events.TYPE_EXPENSE_CATEGORY_ARCHIVED, _expense_category_archived)
+
+
+# --- Banking: bank imports (Phase 8.9, #136) ---
+
+
+from app.events.types import banking as banking_events  # noqa: E402
+
+
+def _mapping_created(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} created bank import mapping {payload.get('name', '?')} "
+        f"({payload.get('file_kind', '?')})"
+    )
+
+
+def _mapping_updated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} updated bank import mapping {payload.get('mapping_id', '?')}"
+
+
+def _mapping_deactivated(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} deactivated bank import mapping {payload.get('name', '?')}"
+
+
+def _import_run_started(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} started bank import {payload.get('filename', '?')} "
+        f"({payload.get('file_kind', '?')})"
+    )
+
+
+def _import_run_completed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"bank import {payload.get('filename', '?')} completed: "
+        f"{payload.get('inserted_count', 0)} inserted, "
+        f"{payload.get('duplicate_count', 0)} duplicate, "
+        f"{payload.get('error_count', 0)} error"
+    )
+
+
+def _import_run_failed(payload: dict[str, Any], _actor: str) -> str:
+    return f"bank import {payload.get('filename', '?')} failed: " f"{payload.get('reason', '?')}"
+
+
+register_summary(banking_events.TYPE_MAPPING_CREATED, _mapping_created)
+register_summary(banking_events.TYPE_MAPPING_UPDATED, _mapping_updated)
+register_summary(banking_events.TYPE_MAPPING_DEACTIVATED, _mapping_deactivated)
+register_summary(banking_events.TYPE_IMPORT_RUN_STARTED, _import_run_started)
+register_summary(banking_events.TYPE_IMPORT_RUN_COMPLETED, _import_run_completed)
+register_summary(banking_events.TYPE_IMPORT_RUN_FAILED, _import_run_failed)

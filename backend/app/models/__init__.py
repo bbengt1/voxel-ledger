@@ -16,6 +16,17 @@ from app.models.approval_request import (
 from app.models.attachment import Attachment
 from app.models.audit import AuditLog
 from app.models.auth import RefreshToken, Role, User
+from app.models.bank import (
+    BANK_AMOUNT_SIGN_VALUES,
+    BANK_IMPORT_FILE_KIND_VALUES,
+    BANK_TRANSACTION_STATE_VALUES,
+    BankAmountSign,
+    BankImportFileKind,
+    BankImportMapping,
+    BankImportRun,
+    BankTransaction,
+    BankTransactionState,
+)
 from app.models.bill import (
     BILL_ITEM_KIND_VALUES,
     BILL_STATE_VALUES,
@@ -203,6 +214,15 @@ __all__ = [
     "ApprovalState",
     "Attachment",
     "AuditLog",
+    "BANK_AMOUNT_SIGN_VALUES",
+    "BANK_IMPORT_FILE_KIND_VALUES",
+    "BANK_TRANSACTION_STATE_VALUES",
+    "BankAmountSign",
+    "BankImportFileKind",
+    "BankImportMapping",
+    "BankImportRun",
+    "BankTransaction",
+    "BankTransactionState",
     "BILL_ITEM_KIND_VALUES",
     "BILL_PAYMENT_METHOD_VALUES",
     "BILL_PAYMENT_STATE_VALUES",

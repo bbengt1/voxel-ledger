@@ -8,6 +8,7 @@ from app.events.types import (
     approvals,  # noqa: F401
     ar,  # noqa: F401
     auth,  # noqa: F401
+    banking,  # noqa: F401
     catalog,  # noqa: F401
     custom_fields,  # noqa: F401
     inventory,  # noqa: F401
