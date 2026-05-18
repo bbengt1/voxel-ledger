@@ -87,6 +87,11 @@ from app.models.customer_credit import (
     CustomerCreditKind,
     CustomerCreditTransaction,
 )
+from app.models.depreciation_schedule import (
+    DEPRECIATION_ENTRY_STATE_VALUES,
+    DepreciationEntryState,
+    DepreciationScheduleEntry,
+)
 from app.models.division import Division
 from app.models.email_message import (
     EMAIL_KIND_VALUES,
@@ -297,8 +302,11 @@ __all__ = [
     "ExpenseClaim",
     "ExpenseClaimLine",
     "ExpenseClaimState",
+    "DEPRECIATION_ENTRY_STATE_VALUES",
     "DEPRECIATION_METHOD_VALUES",
+    "DepreciationEntryState",
     "DepreciationMethod",
+    "DepreciationScheduleEntry",
     "FIXED_ASSET_CLASS_VALUES",
     "FIXED_ASSET_KIND_VALUES",
     "FIXED_ASSET_STATE_VALUES",

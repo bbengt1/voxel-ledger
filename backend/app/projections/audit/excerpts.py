@@ -1461,6 +1461,22 @@ register_excerpt_fields(
 
 
 # ---------------------------------------------------------------------------
+# Accounting: depreciation schedules (Phase 9.2, #154)
+# ---------------------------------------------------------------------------
+#
+# Schedule rows contain only IDs and numeric counts — no PII.
+
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_GENERATED,
+    ("asset_id", "total_entries", "method"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED,
+    ("asset_id", "from_period_index", "total_recomputed"),
+)
+
+
+# ---------------------------------------------------------------------------
 # Tax profiles (Phase 9.5, #157)
 # ---------------------------------------------------------------------------
 #

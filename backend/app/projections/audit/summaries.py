@@ -1828,6 +1828,37 @@ register_summary(accounting_assets_events.TYPE_ASSET_DISPOSED, _asset_disposed)
 register_summary(accounting_assets_events.TYPE_ASSET_WRITTEN_OFF, _asset_written_off)
 
 
+# --- Depreciation schedules (Phase 9.2, #154) -------------------------------
+
+
+def _depreciation_schedule_generated(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"generated {payload.get('total_entries', 0)} depreciation entries "
+        f"for asset {payload.get('asset_id', '?')} "
+        f"(method {payload.get('method', '?')}, total "
+        f"{payload.get('total_depreciation', '?')})"
+    )
+
+
+def _depreciation_schedule_recomputed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recomputed depreciation schedule for asset "
+        f"{payload.get('asset_id', '?')} from period "
+        f"{payload.get('from_period_index', '?')} "
+        f"({payload.get('total_recomputed', 0)} entries)"
+    )
+
+
+register_summary(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_GENERATED,
+    _depreciation_schedule_generated,
+)
+register_summary(
+    accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED,
+    _depreciation_schedule_recomputed,
+)
+
+
 # --- Tax profiles (Phase 9.5, #157) -----------------------------------------
 
 from app.events.types import tax as tax_events  # noqa: E402
