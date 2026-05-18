@@ -71,6 +71,12 @@ from app.models.email_message import (
 )
 from app.models.event import Event
 from app.models.expense_category import ExpenseCategory
+from app.models.expense_claim import (
+    EXPENSE_CLAIM_STATE_VALUES,
+    ExpenseClaim,
+    ExpenseClaimLine,
+    ExpenseClaimState,
+)
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
@@ -228,7 +234,11 @@ __all__ = [
     "EmailMessage",
     "EmailState",
     "Event",
+    "EXPENSE_CLAIM_STATE_VALUES",
     "ExpenseCategory",
+    "ExpenseClaim",
+    "ExpenseClaimLine",
+    "ExpenseClaimState",
     "FormTemplate",
     "FormTemplateField",
     "InventoryLocation",

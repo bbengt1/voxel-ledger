@@ -27,6 +27,7 @@ from app.api.v1.divisions import router as divisions_router
 from app.api.v1.email_messages import router as email_messages_router
 from app.api.v1.email_messages import statements_router as statements_router
 from app.api.v1.expense_categories import router as expense_categories_router
+from app.api.v1.expense_claims import router as expense_claims_router
 from app.api.v1.form_templates import router as form_templates_router
 from app.api.v1.inventory_alerts import router as inventory_alerts_router
 from app.api.v1.inventory_locations import router as inventory_locations_router
@@ -132,3 +133,4 @@ api_router.include_router(statements_router)
 api_router.include_router(email_messages_router)
 api_router.include_router(vendors_router)
 api_router.include_router(expense_categories_router)
+api_router.include_router(expense_claims_router)

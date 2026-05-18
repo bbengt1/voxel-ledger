@@ -1409,6 +1409,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/expense-claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Expense Claims */
+        get: operations["list_expense_claims_api_v1_expense_claims_get"];
+        put?: never;
+        /** Create Expense Claim */
+        post: operations["create_expense_claim_api_v1_expense_claims_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Expense Claim */
+        get: operations["get_expense_claim_api_v1_expense_claims__claim_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Expense Claim */
+        patch: operations["update_expense_claim_api_v1_expense_claims__claim_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Expense Claim */
+        post: operations["approve_expense_claim_api_v1_expense_claims__claim_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Expense Claim */
+        post: operations["cancel_expense_claim_api_v1_expense_claims__claim_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Expense Claim Line */
+        post: operations["add_expense_claim_line_api_v1_expense_claims__claim_id__lines_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/lines/{line_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Expense Claim Line */
+        delete: operations["delete_expense_claim_line_api_v1_expense_claims__claim_id__lines__line_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Expense Claim Line */
+        patch: operations["update_expense_claim_line_api_v1_expense_claims__claim_id__lines__line_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/mark-reimbursed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Reimbursed Expense Claim */
+        post: operations["mark_reimbursed_expense_claim_api_v1_expense_claims__claim_id__mark_reimbursed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Expense Claim */
+        post: operations["reject_expense_claim_api_v1_expense_claims__claim_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/expense-claims/{claim_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Expense Claim */
+        post: operations["submit_expense_claim_api_v1_expense_claims__claim_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/form-templates": {
         parameters: {
             query?: never;
@@ -5940,6 +6096,204 @@ export interface components {
             notes?: string | null;
             /** Parent Id */
             parent_id?: string | null;
+        };
+        /** ExpenseClaimApproveRequest */
+        ExpenseClaimApproveRequest: {
+            /** Note */
+            note?: string | null;
+        };
+        /** ExpenseClaimCreate */
+        ExpenseClaimCreate: {
+            /**
+             * Currency
+             * @default USD
+             */
+            currency: string;
+            /** Lines */
+            lines?: components["schemas"]["ExpenseClaimLineCreate"][];
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * ExpenseClaimLineCreate
+         * @description One line on a draft expense claim.
+         */
+        ExpenseClaimLineCreate: {
+            /** Amount */
+            amount: number | string;
+            /** Attachment Id */
+            attachment_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Expense Category Id
+             * Format: uuid
+             */
+            expense_category_id: string;
+            /**
+             * Is Billable
+             * @default false
+             */
+            is_billable: boolean;
+            /**
+             * Markup Percent
+             * @default 0
+             */
+            markup_percent: number | string;
+            /**
+             * Occurred On
+             * Format: date
+             */
+            occurred_on: string;
+        };
+        /** ExpenseClaimLineResponse */
+        ExpenseClaimLineResponse: {
+            /** Amount */
+            amount: string;
+            /** Attachment Id */
+            attachment_id?: string | null;
+            /** Billed Invoice Item Id */
+            billed_invoice_item_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Expense Category Id
+             * Format: uuid
+             */
+            expense_category_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Billable */
+            is_billable: boolean;
+            /** Line Number */
+            line_number: number;
+            /** Markup Percent */
+            markup_percent: string;
+            /**
+             * Occurred On
+             * Format: date
+             */
+            occurred_on: string;
+        };
+        /**
+         * ExpenseClaimLineUpdate
+         * @description PATCH-style — only fields the caller wants to change on a single line.
+         */
+        ExpenseClaimLineUpdate: {
+            /** Amount */
+            amount?: number | string | null;
+            /** Attachment Id */
+            attachment_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Expense Category Id */
+            expense_category_id?: string | null;
+            /** Is Billable */
+            is_billable?: boolean | null;
+            /** Markup Percent */
+            markup_percent?: number | string | null;
+            /** Occurred On */
+            occurred_on?: string | null;
+        };
+        /** ExpenseClaimListResponse */
+        ExpenseClaimListResponse: {
+            /** Items */
+            items: components["schemas"]["ExpenseClaimResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** ExpenseClaimReimburseRequest */
+        ExpenseClaimReimburseRequest: {
+            /**
+             * Bill Payment Id
+             * Format: uuid
+             */
+            bill_payment_id: string;
+        };
+        /** ExpenseClaimRejectRequest */
+        ExpenseClaimRejectRequest: {
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+        };
+        /** ExpenseClaimResponse */
+        ExpenseClaimResponse: {
+            /** Approval Request Id */
+            approval_request_id?: string | null;
+            /** Approved At */
+            approved_at?: string | null;
+            /** Approver User Id */
+            approver_user_id?: string | null;
+            /** Claim Number */
+            claim_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lines */
+            lines?: components["schemas"]["ExpenseClaimLineResponse"][];
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Reimbursement Payment Id */
+            reimbursement_payment_id?: string | null;
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "submitted" | "approved" | "rejected" | "reimbursed" | "cancelled";
+            /** Submitted At */
+            submitted_at?: string | null;
+            /**
+             * Submitter User Id
+             * Format: uuid
+             */
+            submitter_user_id: string;
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ExpenseClaimSubmitResponse
+         * @description Wraps the claim + an optional approval_request_id when the
+         *     threshold gating attached one.
+         */
+        ExpenseClaimSubmitResponse: {
+            /** Approval Request Id */
+            approval_request_id?: string | null;
+            claim: components["schemas"]["ExpenseClaimResponse"];
+        };
+        /** ExpenseClaimUpdate */
+        ExpenseClaimUpdate: {
+            /** Currency */
+            currency?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["ExpenseClaimLineCreate"][] | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** FormTemplateCreateRequest */
         FormTemplateCreateRequest: {
@@ -13026,6 +13380,409 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExpenseCategoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_expense_claims_api_v1_expense_claims_get: {
+        parameters: {
+            query?: {
+                submitter_user_id?: string | null;
+                state?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_expense_claim_api_v1_expense_claims_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_expense_claim_api_v1_expense_claims__claim_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_expense_claim_api_v1_expense_claims__claim_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_expense_claim_api_v1_expense_claims__claim_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimApproveRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_expense_claim_api_v1_expense_claims__claim_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_expense_claim_line_api_v1_expense_claims__claim_id__lines_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimLineCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_expense_claim_line_api_v1_expense_claims__claim_id__lines__line_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_expense_claim_line_api_v1_expense_claims__claim_id__lines__line_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimLineUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_reimbursed_expense_claim_api_v1_expense_claims__claim_id__mark_reimbursed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimReimburseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_expense_claim_api_v1_expense_claims__claim_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExpenseClaimRejectRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_expense_claim_api_v1_expense_claims__claim_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseClaimSubmitResponse"];
                 };
             };
             /** @description Validation Error */

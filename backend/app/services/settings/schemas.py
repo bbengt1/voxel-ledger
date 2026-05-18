@@ -704,6 +704,42 @@ class ArAgingBucketDays(SettingSchema):
 
 
 @register
+class ApExpenseClaimApprovalThreshold(SettingSchema):
+    """USD threshold at or above which an expense claim routes through
+    the Phase 4.4 approval queue when submitted (Phase 8.7, #134).
+
+    Compared against the claim's rolled-up ``total_amount`` at submit
+    time. ``>=`` semantics — a claim whose total exactly equals the
+    threshold creates an ApprovalRequest. Below the threshold the claim
+    still goes to ``submitted`` for owner/bookkeeper review, but no
+    ApprovalRequest is created.
+    """
+
+    key: ClassVar[str] = "ap.expense_claim_approval_threshold"
+    default: ClassVar[Decimal] = Decimal("200.00")
+    value: Decimal = Field(ge=0)
+
+
+@register
+class ApEmployeeReimbursableAccountId(SettingSchema):
+    """Default Employee Reimbursable liability account credited on
+    expense-claim approval (Phase 8.7, #134).
+
+    Credited at claim-approve time for the claim's total. A subsequent
+    Phase 8.3 ``bill_payment`` against this same account completes the
+    reimbursement (the operator stamps it onto the claim via
+    ``POST /expense-claims/{id}/mark-reimbursed``).
+
+    Required to approve any expense claim — if unset the approve flow
+    raises a clear "configure ap.employee_reimbursable_account_id" error.
+    """
+
+    key: ClassVar[str] = "ap.employee_reimbursable_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class ApAgingBucketDays(SettingSchema):
     """Cut points for the AP aging report's day buckets (Phase 8.4, #131).
 

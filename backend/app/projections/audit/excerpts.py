@@ -1213,3 +1213,42 @@ register_excerpt_fields(
     ap_events.TYPE_EXPENSE_CATEGORY_ARCHIVED,
     ("code", "name"),
 )
+
+
+# ---------------------------------------------------------------------------
+# AP: expense claims (Phase 8.7, #134)
+# ---------------------------------------------------------------------------
+#
+# PII RULE: line ``description``, claim ``notes``, and ``rejection_reason``
+# MUST NEVER be whitelisted. Payloads carry them for replay, but the audit
+# denormalization is strictly limited to claim_number, submitter_user_id,
+# state, total_amount, and related IDs.
+
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_CREATED,
+    ("claim_number", "submitter_user_id", "state", "total_amount"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_SUBMITTED,
+    ("claim_number", "submitter_user_id", "total_amount", "approval_request_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_APPROVED,
+    ("claim_number", "submitter_user_id", "approver_user_id", "total_amount"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_REJECTED,
+    ("claim_number", "submitter_user_id", "approver_user_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_REIMBURSED,
+    ("claim_number", "submitter_user_id", "bill_payment_id"),
+)
+register_excerpt_fields(
+    ap_events.TYPE_EXPENSE_CLAIM_CANCELLED,
+    ("claim_number", "submitter_user_id"),
+)
