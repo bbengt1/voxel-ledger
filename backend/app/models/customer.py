@@ -86,10 +86,13 @@ class Customer(Base):
         ForeignKey("account.id", ondelete="RESTRICT"), nullable=True
     )
 
-    # Phase 9 will land the tax_profile table; nullable today, no FK
-    # target yet so the column is a bare UUID column without a real
-    # constraint. When Phase 9 lands, an ALTER will add the FK.
-    tax_profile_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # Phase 9.5 added the FK constraint. The column existed since 7.1
+    # as a bare UUID; the 0052 migration adds the FK (Postgres only —
+    # SQLite ALTER doesn't support ADD CONSTRAINT for FKs, but the ORM
+    # relationship still works in tests).
+    tax_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tax_profile.id", ondelete="SET NULL"), nullable=True
+    )
 
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
 

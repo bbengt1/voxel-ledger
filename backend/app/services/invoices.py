@@ -75,6 +75,7 @@ from app.services import billable_expenses as billable_expenses_service
 from app.services import customers as customers_service
 from app.services import event_store
 from app.services import journal_entries as journal_service
+from app.services import tax as tax_service
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
 
@@ -304,6 +305,13 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
         if unit_price < 0:
             raise InvalidInvoiceItemError("unit_price must be non-negative")
 
+    tax_profile_id = item.get("tax_profile_id")
+    if isinstance(tax_profile_id, str):
+        try:
+            tax_profile_id = uuid.UUID(tax_profile_id)
+        except ValueError as exc:
+            raise InvalidInvoiceItemError(f"invalid tax_profile_id: {tax_profile_id!r}") from exc
+
     return {
         "kind": kind,
         "product_id": product_id,
@@ -313,6 +321,7 @@ def _validate_item(item: dict[str, Any]) -> dict[str, Any]:
         "quantity": quantity,
         "unit_price": unit_price,
         "billable_source": billable_source,
+        "tax_profile_id": tax_profile_id,
     }
 
 
@@ -418,6 +427,58 @@ def _compute_totals(
         tax_amount=tax,
         total_amount=total,
     )
+
+
+# ---------------------------------------------------------------------------
+# Tax-profile recompute (Phase 9.5, #157)
+# ---------------------------------------------------------------------------
+
+
+async def _recompute_line_taxes(
+    session: AsyncSession,
+    *,
+    invoice: Invoice,
+    customer: Customer,
+) -> Decimal:
+    """Resolve each line's tax profile, recompute ``line.tax_amount``,
+    and return the aggregated invoice-level tax amount.
+
+    For reverse-charge profiles the line ``tax_amount`` is stored as
+    zero (the rates produce no Cr to a liability at issue time; the
+    event payload carries the would-be amount). For flat or compound
+    profiles the per-rate amounts are summed and stored on the line.
+
+    Lines without a resolvable profile contribute zero — preserving
+    backwards compatibility with the legacy ``tax_amount`` flow on
+    invoices that pre-date 9.5 (handled by ``issue`` falling through to
+    the setting-based tax-payable account).
+    """
+    total = _ZERO
+    for line in invoice.items:
+        profile = await tax_service.resolve_profile_for_invoice_line(
+            session, line=line, customer=customer
+        )
+        if profile is None:
+            # Preserve whatever line.tax_amount the caller set (legacy
+            # path); zero if unset.
+            import contextlib
+
+            with contextlib.suppress(ArithmeticError, ValueError):
+                total += _q(line.tax_amount or _ZERO)
+            line._resolved_tax_profile = None  # type: ignore[attr-defined]
+            continue
+        line._resolved_tax_profile = profile  # type: ignore[attr-defined]
+        if profile.is_reverse_charge:
+            line.tax_amount = _ZERO
+            continue
+        per_rate = tax_service.compute_line_tax(
+            line_subtotal=_q(line.extended_amount),
+            rates=list(profile.rates),
+        )
+        line_total = _q(sum((amt for _, amt in per_rate), _ZERO))
+        line.tax_amount = line_total
+        total += line_total
+    return _q(total)
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +637,7 @@ async def create_draft(
             quantity=item["quantity"],
             unit_price=item["unit_price"],
             extended_amount=item["extended_amount"],
+            tax_profile_id=item.get("tax_profile_id"),
         )
         session.add(new_row)
         resolved = item.get("_billable_resolved")
@@ -601,6 +663,19 @@ async def create_draft(
         )
 
     invoice = await _load(session, invoice.id)
+
+    # Phase 9.5 (#157): recompute per-line tax via profile resolution.
+    # If any line resolves a profile, the invoice tax_amount becomes the
+    # aggregate of per-line tax_amount. Legacy callers passing a flat
+    # ``tax_amount`` see it preserved when no line resolves a profile.
+    profile_tax = await _recompute_line_taxes(session, invoice=invoice, customer=customer)
+    if any(line.tax_profile_id is not None for line in invoice.items) or (
+        customer.tax_profile_id is not None and any(True for _ in invoice.items)
+    ):
+        invoice.tax_amount = profile_tax
+        invoice.total_amount = _q(invoice.subtotal - invoice.discount_amount + invoice.tax_amount)
+        invoice.amount_outstanding = _q(invoice.total_amount - invoice.amount_paid)
+    await session.flush()
 
     await _emit(
         session,
@@ -742,6 +817,18 @@ async def update_draft(
     invoice.tax_amount = totals.tax_amount
     invoice.total_amount = totals.total_amount
     invoice.amount_outstanding = _q(totals.total_amount - _q(invoice.amount_paid))
+
+    # Phase 9.5 (#157): if any line / customer carries a tax profile,
+    # override the patch-supplied tax_amount with the recomputed per-
+    # line aggregate.
+    customer_for_tax = await _load_customer(session, invoice.customer_id)
+    profile_tax = await _recompute_line_taxes(session, invoice=invoice, customer=customer_for_tax)
+    if any(line.tax_profile_id is not None for line in invoice.items) or (
+        customer_for_tax.tax_profile_id is not None and len(invoice.items) > 0
+    ):
+        invoice.tax_amount = profile_tax
+        invoice.total_amount = _q(invoice.subtotal - invoice.discount_amount + invoice.tax_amount)
+        invoice.amount_outstanding = _q(invoice.total_amount - _q(invoice.amount_paid))
     after["totals"] = {
         "subtotal": str(totals.subtotal),
         "discount_amount": str(totals.discount_amount),
@@ -951,9 +1038,48 @@ async def issue(
     ar_account_id = await _resolve_ar_account(session, customer=customer)
     revenue_account_id = await _resolve_revenue_account(session, customer=customer)
 
+    # Phase 9.5 (#157): recompute per-line tax via profile resolution one
+    # more time before issuance. This catches any post-draft changes to
+    # the customer's or line's profile_id assignments.
+    await _recompute_line_taxes(session, invoice=invoice, customer=customer)
+    has_profile = any(line.tax_profile_id is not None for line in invoice.items) or (
+        customer.tax_profile_id is not None and len(invoice.items) > 0
+    )
+    per_rate_totals: dict[uuid.UUID, Decimal] = {}
+    rate_account_map: dict[uuid.UUID, uuid.UUID] = {}
+    reverse_charge_memo: dict[str, str] = {}
+    if has_profile:
+        for line in invoice.items:
+            profile = getattr(line, "_resolved_tax_profile", None)
+            if profile is None:
+                continue
+            per_rate = tax_service.compute_line_tax(
+                line_subtotal=_q(line.extended_amount),
+                rates=list(profile.rates),
+            )
+            for rate in profile.rates:
+                rate_account_map[rate.id] = rate.liability_account_id
+            if profile.is_reverse_charge:
+                for rate_id, amt in per_rate:
+                    reverse_charge_memo[str(rate_id)] = str(
+                        _q(Decimal(reverse_charge_memo.get(str(rate_id), "0")) + amt)
+                    )
+                continue
+            for rate_id, amt in per_rate:
+                per_rate_totals[rate_id] = per_rate_totals.get(rate_id, _ZERO) + amt
+        per_rate_totals = {k: _q(v) for k, v in per_rate_totals.items()}
+        # Sync invoice.tax_amount to the aggregated postable tax (excludes
+        # reverse-charge lines).
+        agg = _q(sum(per_rate_totals.values(), _ZERO))
+        invoice.tax_amount = agg
+        invoice.total_amount = _q(invoice.subtotal - invoice.discount_amount + agg)
+        invoice.amount_outstanding = _q(invoice.total_amount - _q(invoice.amount_paid))
+
     tax_amount = _q(invoice.tax_amount)
     sales_tax_payable_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO:
+    if tax_amount > _ZERO and not has_profile:
+        # Legacy fallback: no profile resolved but there's a flat tax
+        # amount — fall through to the setting-based account.
         sales_tax_payable_account_id = await _resolve_tax_payable_account(session)
 
     subtotal = _q(invoice.subtotal)
@@ -991,7 +1117,20 @@ async def issue(
                 memo=f"Revenue for invoice {invoice.invoice_number}",
             )
         )
-    if tax_amount > _ZERO and sales_tax_payable_account_id is not None:
+    if has_profile:
+        for rate_id, rate_total in per_rate_totals.items():
+            if rate_total <= _ZERO:
+                continue
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=rate_account_map[rate_id],
+                    debit=_ZERO,
+                    credit=rate_total,
+                    line_number=_next_line_no(),
+                    memo=(f"Tax for invoice {invoice.invoice_number} " f"(rate {rate_id})"),
+                )
+            )
+    elif tax_amount > _ZERO and sales_tax_payable_account_id is not None:
         lines_in.append(
             journal_service.JournalLineInput(
                 account_id=sales_tax_payable_account_id,
@@ -1029,10 +1168,11 @@ async def issue(
             "invoice_id": str(invoice.id),
             "invoice_number": invoice.invoice_number,
             "customer_id": str(invoice.customer_id),
-            "total_amount": str(total_amount),
+            "total_amount": str(invoice.total_amount),
             "issued_at": issued_at.isoformat(),
             "due_at": invoice.due_at.isoformat() if invoice.due_at else None,
             "journal_entry_id": str(entry.id),
+            "reverse_charge_tax": reverse_charge_memo,
         },
         actor_user_id=actor_user_id,
     )
