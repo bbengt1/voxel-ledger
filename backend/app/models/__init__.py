@@ -70,6 +70,7 @@ from app.models.email_message import (
     EmailState,
 )
 from app.models.event import Event
+from app.models.expense_category import ExpenseCategory
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
@@ -227,6 +228,7 @@ __all__ = [
     "EmailMessage",
     "EmailState",
     "Event",
+    "ExpenseCategory",
     "FormTemplate",
     "FormTemplateField",
     "InventoryLocation",

@@ -29,6 +29,7 @@ AGGREGATE_TYPE_VENDOR_CONTACT: str = "vendor_contact"
 AGGREGATE_TYPE_BILL: str = "bill"
 AGGREGATE_TYPE_BILL_PAYMENT: str = "bill_payment"
 AGGREGATE_TYPE_RECURRING_BILL_TEMPLATE: str = "recurring_bill_template"
+AGGREGATE_TYPE_EXPENSE_CATEGORY: str = "expense_category"
 
 
 class _APPayloadBase(BaseModel):
@@ -360,3 +361,42 @@ register_event(TYPE_RECURRING_BILL_TEMPLATE_PAUSED, RecurringBillTemplatePausedP
 register_event(TYPE_RECURRING_BILL_TEMPLATE_RESUMED, RecurringBillTemplateResumedPayload)
 register_event(TYPE_RECURRING_BILL_TEMPLATE_CANCELLED, RecurringBillTemplateCancelledPayload)
 register_event(TYPE_RECURRING_BILL_MATERIALIZED, RecurringBillMaterializedPayload)
+
+
+# --- Expense categories (Phase 8.6, #133) -----------------------------------
+#
+# PII RULE: ``notes`` is a free-form operator field and MUST NEVER be
+# whitelisted into audit excerpts. The payload carries it for replay; the
+# audit denormalization strictly limits itself to ``code`` + ``name``.
+
+
+class ExpenseCategoryCreatedPayload(_APPayloadBase):
+    expense_category_id: uuid.UUID
+    code: str
+    name: str
+    default_expense_account_id: uuid.UUID
+    parent_id: uuid.UUID | None = None
+    is_active: bool
+    notes: str | None = None
+
+
+class ExpenseCategoryUpdatedPayload(_APPayloadBase):
+    expense_category_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class ExpenseCategoryArchivedPayload(_APPayloadBase):
+    expense_category_id: uuid.UUID
+    code: str
+    name: str
+
+
+TYPE_EXPENSE_CATEGORY_CREATED = "ap.ExpenseCategoryCreated"
+TYPE_EXPENSE_CATEGORY_UPDATED = "ap.ExpenseCategoryUpdated"
+TYPE_EXPENSE_CATEGORY_ARCHIVED = "ap.ExpenseCategoryArchived"
+
+
+register_event(TYPE_EXPENSE_CATEGORY_CREATED, ExpenseCategoryCreatedPayload)
+register_event(TYPE_EXPENSE_CATEGORY_UPDATED, ExpenseCategoryUpdatedPayload)
+register_event(TYPE_EXPENSE_CATEGORY_ARCHIVED, ExpenseCategoryArchivedPayload)
