@@ -740,6 +740,22 @@ class ApEmployeeReimbursableAccountId(SettingSchema):
 
 
 @register
+class BankingReconciliationRoundingTolerance(SettingSchema):
+    """Rounding tolerance applied when comparing the statement vs book
+    ending balance during a bank reconciliation (Phase 8.11, #138).
+
+    A reconciliation may be finalized when
+    ``|statement_ending_balance - book_ending_balance| <= tolerance``.
+    Default is exact zero — set to e.g. ``0.01`` to tolerate one-cent
+    rounding noise that occasionally creeps in from third-party feeds.
+    """
+
+    key: ClassVar[str] = "banking.reconciliation_rounding_tolerance"
+    default: ClassVar[Decimal] = Decimal("0.00")
+    value: Decimal = Field(ge=0)
+
+
+@register
 class ApAgingBucketDays(SettingSchema):
     """Cut points for the AP aging report's day buckets (Phase 8.4, #131).
 

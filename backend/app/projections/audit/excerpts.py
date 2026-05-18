@@ -1369,3 +1369,51 @@ register_excerpt_fields(
     banking_events.TYPE_BANK_TRANSACTION_FLAGGED_FOR_REVIEW,
     ("transaction_id", "rule_id"),
 )
+
+# ---------------------------------------------------------------------------
+# Banking: reconciliation + inter-account transfers (Phase 8.11, #138)
+# ---------------------------------------------------------------------------
+#
+# Reconciliation payloads carry only accounting plumbing (account IDs,
+# balances, dates) — no PII. ``notes`` stays out, mirroring the rest of
+# the banking context.
+
+register_excerpt_fields(
+    banking_events.TYPE_BANK_RECONCILIATION_OPENED,
+    (
+        "recon_id",
+        "account_id",
+        "period_start",
+        "period_end",
+        "statement_ending_balance",
+    ),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_RECONCILIATION_ITEM_CLEARED,
+    ("recon_id", "item_id", "transaction_id"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_RECONCILIATION_ITEM_UNCLEARED,
+    ("recon_id", "item_id", "transaction_id"),
+)
+register_excerpt_fields(
+    banking_events.TYPE_BANK_RECONCILIATION_FINALIZED,
+    (
+        "recon_id",
+        "account_id",
+        "period_end",
+        "book_ending_balance",
+        "statement_ending_balance",
+        "difference",
+    ),
+)
+register_excerpt_fields(
+    banking_events.TYPE_INTER_ACCOUNT_TRANSFER_POSTED,
+    (
+        "journal_entry_id",
+        "from_account_id",
+        "to_account_id",
+        "amount",
+        "occurred_at",
+    ),
+)

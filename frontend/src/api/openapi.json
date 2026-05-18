@@ -2210,6 +2210,243 @@
         "title": "BankPostJournalEntryRequest",
         "type": "object"
       },
+      "BankReconciliationCreate": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "statement_ending_balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Statement Ending Balance"
+          }
+        },
+        "required": [
+          "account_id",
+          "period_start",
+          "period_end",
+          "statement_ending_balance"
+        ],
+        "title": "BankReconciliationCreate",
+        "type": "object"
+      },
+      "BankReconciliationItemResponse": {
+        "properties": {
+          "bank_transaction_id": {
+            "format": "uuid",
+            "title": "Bank Transaction Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_cleared": {
+            "title": "Is Cleared",
+            "type": "boolean"
+          },
+          "reconciliation_id": {
+            "format": "uuid",
+            "title": "Reconciliation Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reconciliation_id",
+          "bank_transaction_id",
+          "is_cleared",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BankReconciliationItemResponse",
+        "type": "object"
+      },
+      "BankReconciliationListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BankReconciliationResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "BankReconciliationListResponse",
+        "type": "object"
+      },
+      "BankReconciliationResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "book_ending_balance": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Book Ending Balance"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
+          "finalized_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized By User Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BankReconciliationItemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "statement_ending_balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Statement Ending Balance",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account_id",
+          "period_start",
+          "period_end",
+          "statement_ending_balance",
+          "state",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "BankReconciliationResponse",
+        "type": "object"
+      },
       "BankTransactionListResponse": {
         "properties": {
           "items": {
@@ -7209,6 +7446,71 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "InterAccountTransferRequest": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "from_account_id": {
+            "format": "uuid",
+            "title": "From Account Id",
+            "type": "string"
+          },
+          "memo": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memo"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "to_account_id": {
+            "format": "uuid",
+            "title": "To Account Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_account_id",
+          "to_account_id",
+          "amount",
+          "occurred_at"
+        ],
+        "title": "InterAccountTransferRequest",
+        "type": "object"
+      },
+      "InterAccountTransferResponse": {
+        "properties": {
+          "journal_entry_id": {
+            "format": "uuid",
+            "title": "Journal Entry Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "journal_entry_id"
+        ],
+        "title": "InterAccountTransferResponse",
         "type": "object"
       },
       "InventoryLocationCreateRequest": {
@@ -21450,6 +21752,393 @@
         ]
       }
     },
+    "/api/v1/bank-reconciliations": {
+      "get": {
+        "operationId": "list_reconciliations_api_v1_bank_reconciliations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "account_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Reconciliations",
+        "tags": [
+          "banking"
+        ]
+      },
+      "post": {
+        "operationId": "create_reconciliation_api_v1_bank_reconciliations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankReconciliationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Reconciliation",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
+    "/api/v1/bank-reconciliations/{recon_id}": {
+      "get": {
+        "operationId": "get_reconciliation_api_v1_bank_reconciliations__recon_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recon Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Reconciliation",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
+    "/api/v1/bank-reconciliations/{recon_id}/finalize": {
+      "post": {
+        "operationId": "finalize_reconciliation_api_v1_bank_reconciliations__recon_id__finalize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recon Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Finalize Reconciliation",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
+    "/api/v1/bank-reconciliations/{recon_id}/items/{item_id}/clear": {
+      "post": {
+        "operationId": "clear_item_api_v1_bank_reconciliations__recon_id__items__item_id__clear_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recon Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Clear Item",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
+    "/api/v1/bank-reconciliations/{recon_id}/items/{item_id}/unclear": {
+      "post": {
+        "operationId": "unclear_item_api_v1_bank_reconciliations__recon_id__items__item_id__unclear_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recon Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationItemResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unclear Item",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
+    "/api/v1/bank-reconciliations/{recon_id}/recompute": {
+      "post": {
+        "operationId": "recompute_reconciliation_api_v1_bank_reconciliations__recon_id__recompute_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Recon Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Recompute Reconciliation",
+        "tags": [
+          "banking"
+        ]
+      }
+    },
     "/api/v1/bank-transactions": {
       "get": {
         "operationId": "list_transactions_api_v1_bank_transactions_get",
@@ -26233,6 +26922,52 @@
         "summary": "Set Default Template",
         "tags": [
           "form-templates"
+        ]
+      }
+    },
+    "/api/v1/inter-account-transfers": {
+      "post": {
+        "operationId": "post_inter_account_transfer_api_v1_inter_account_transfers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterAccountTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterAccountTransferResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Inter Account Transfer",
+        "tags": [
+          "banking"
         ]
       }
     },

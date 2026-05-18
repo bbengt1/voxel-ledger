@@ -28,6 +28,11 @@ AGGREGATE_TYPE_BANK_IMPORT_MAPPING: str = "bank_import_mapping"
 AGGREGATE_TYPE_BANK_IMPORT_RUN: str = "bank_import_run"
 AGGREGATE_TYPE_BANK_TRANSACTION: str = "bank_transaction"
 AGGREGATE_TYPE_BANK_MATCH_RULE: str = "bank_match_rule"
+AGGREGATE_TYPE_BANK_RECONCILIATION: str = "bank_reconciliation"
+# Inter-account transfers are recorded as plain journal entries; the
+# transfer event uses the JE's aggregate id, so we reuse the
+# accounting-context aggregate type for the event payload.
+AGGREGATE_TYPE_JOURNAL_ENTRY: str = "journal_entry"
 
 
 class _BankingPayloadBase(BaseModel):
@@ -194,3 +199,65 @@ register_event(TYPE_BANK_TRANSACTION_MANUALLY_MATCHED, BankTransactionManuallyMa
 register_event(TYPE_BANK_TRANSACTION_UNMATCHED, BankTransactionUnmatchedPayload)
 register_event(TYPE_BANK_TRANSACTION_IGNORED, BankTransactionIgnoredPayload)
 register_event(TYPE_BANK_TRANSACTION_FLAGGED_FOR_REVIEW, BankTransactionFlaggedForReviewPayload)
+
+
+# --- Bank reconciliation (Phase 8.11, #138) --------------------------------
+
+
+class BankReconciliationOpenedPayload(_BankingPayloadBase):
+    recon_id: uuid.UUID
+    account_id: uuid.UUID
+    period_start: str
+    period_end: str
+    statement_ending_balance: str
+
+
+class BankReconciliationItemClearedPayload(_BankingPayloadBase):
+    recon_id: uuid.UUID
+    item_id: uuid.UUID
+    transaction_id: uuid.UUID
+
+
+class BankReconciliationItemUnclearedPayload(_BankingPayloadBase):
+    recon_id: uuid.UUID
+    item_id: uuid.UUID
+    transaction_id: uuid.UUID
+
+
+class BankReconciliationFinalizedPayload(_BankingPayloadBase):
+    recon_id: uuid.UUID
+    account_id: uuid.UUID
+    period_end: str
+    book_ending_balance: str
+    statement_ending_balance: str
+    difference: str
+
+
+TYPE_BANK_RECONCILIATION_OPENED = "banking.BankReconciliationOpened"
+TYPE_BANK_RECONCILIATION_ITEM_CLEARED = "banking.BankReconciliationItemCleared"
+TYPE_BANK_RECONCILIATION_ITEM_UNCLEARED = "banking.BankReconciliationItemUncleared"
+TYPE_BANK_RECONCILIATION_FINALIZED = "banking.BankReconciliationFinalized"
+
+
+register_event(TYPE_BANK_RECONCILIATION_OPENED, BankReconciliationOpenedPayload)
+register_event(TYPE_BANK_RECONCILIATION_ITEM_CLEARED, BankReconciliationItemClearedPayload)
+register_event(TYPE_BANK_RECONCILIATION_ITEM_UNCLEARED, BankReconciliationItemUnclearedPayload)
+register_event(TYPE_BANK_RECONCILIATION_FINALIZED, BankReconciliationFinalizedPayload)
+
+
+# --- Inter-account transfers (Phase 8.11, #138) ----------------------------
+
+
+class InterAccountTransferPostedPayload(_BankingPayloadBase):
+    journal_entry_id: uuid.UUID
+    from_account_id: uuid.UUID
+    to_account_id: uuid.UUID
+    amount: str
+    occurred_at: str
+    memo: str | None = None
+
+
+TYPE_INTER_ACCOUNT_TRANSFER_POSTED = "banking.InterAccountTransferPosted"
+
+
+register_event(TYPE_INTER_ACCOUNT_TRANSFER_POSTED, InterAccountTransferPostedPayload)

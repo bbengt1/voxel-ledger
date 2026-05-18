@@ -36,6 +36,12 @@ from app.models.bank_match_rule import (
     BankMatchRule,
     BankMatchRuleKind,
 )
+from app.models.bank_reconciliation import (
+    BANK_RECONCILIATION_STATE_VALUES,
+    BankReconciliation,
+    BankReconciliationItem,
+    BankReconciliationState,
+)
 from app.models.bill import (
     BILL_ITEM_KIND_VALUES,
     BILL_STATE_VALUES,
@@ -237,6 +243,10 @@ __all__ = [
     "BankMatchField",
     "BankMatchRule",
     "BankMatchRuleKind",
+    "BANK_RECONCILIATION_STATE_VALUES",
+    "BankReconciliation",
+    "BankReconciliationItem",
+    "BankReconciliationState",
     "BankTransaction",
     "BankTransactionState",
     "BILL_ITEM_KIND_VALUES",
