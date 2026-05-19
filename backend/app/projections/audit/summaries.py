@@ -2043,3 +2043,48 @@ def _settlement_cancelled(payload: dict[str, Any], actor: str) -> str:
 
 register_summary(settlements_events.TYPE_SETTLEMENT_IMPORTED, _settlement_imported)
 register_summary(settlements_events.TYPE_SETTLEMENT_CANCELLED, _settlement_cancelled)
+
+
+# --- Phase 9.9 (#161) settlement match + post ------------------------------
+
+
+def _settlement_matched(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} ran auto-match for settlement "
+        f"{payload.get('settlement_number', '?')}: "
+        f"{payload.get('matched_count', 0)} matched, "
+        f"{payload.get('unmatched_count', 0)} unmatched, "
+        f"{payload.get('ignored_count', 0)} ignored"
+    )
+
+
+def _settlement_line_matched(payload: dict[str, Any], actor: str) -> str:
+    target = payload.get("matched_sale_id") or payload.get("matched_refund_id") or "?"
+    return (
+        f"{actor} matched settlement line {payload.get('line_id', '?')} "
+        f"({payload.get('line_kind', '?')}) to {target} via "
+        f"{payload.get('match_strategy', '?')}"
+    )
+
+
+def _settlement_line_unmatched(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} unmatched settlement line {payload.get('line_id', '?')}"
+
+
+def _settlement_line_ignored(payload: dict[str, Any], actor: str) -> str:
+    return f"{actor} ignored settlement line {payload.get('line_id', '?')}"
+
+
+def _settlement_posted(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} posted settlement {payload.get('settlement_number', '?')} "
+        f"(JE {payload.get('journal_entry_id', '?')}, payout "
+        f"{payload.get('payout_amount', '?')})"
+    )
+
+
+register_summary(settlements_events.TYPE_SETTLEMENT_MATCHED, _settlement_matched)
+register_summary(settlements_events.TYPE_SETTLEMENT_LINE_MATCHED, _settlement_line_matched)
+register_summary(settlements_events.TYPE_SETTLEMENT_LINE_UNMATCHED, _settlement_line_unmatched)
+register_summary(settlements_events.TYPE_SETTLEMENT_LINE_IGNORED, _settlement_line_ignored)
+register_summary(settlements_events.TYPE_SETTLEMENT_POSTED, _settlement_posted)

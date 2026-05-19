@@ -782,3 +782,21 @@ class ApAgingBucketDays(SettingSchema):
     key: ClassVar[str] = "ap.aging_bucket_days"
     default: ClassVar[list[int]] = [30, 60, 90]
     value: list[int] = Field(default_factory=lambda: [30, 60, 90])
+
+
+@register
+class SettlementsDefaultAdjustmentAccountId(SettingSchema):
+    """Default account used for the adjustment leg of a settlement
+    payout JE (Phase 9.9, #161).
+
+    Marketplaces occasionally include a positive or negative adjustment
+    on the payout (gift-card top-ups, dispute reversals, promo credits).
+    The settlement post service routes those to this account: positive
+    adjustments Cr it (income / contra-expense), negative ones Dr it
+    (expense / shortfall). Unset means a settlement with a non-zero
+    adjustment cannot be posted.
+    """
+
+    key: ClassVar[str] = "settlements.default_adjustment_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
