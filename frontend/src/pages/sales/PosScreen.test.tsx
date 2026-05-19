@@ -75,7 +75,7 @@ describe("<PosScreenPage />", () => {
     useAuthStore.getState().clearSession();
     setSession();
     mock = new MockAdapter(apiClient);
-    mock.onGet("/api/v1/sales/channels").reply(200, {
+    mock.onGet("/api/v1/sales-channels").reply(200, {
       items: [
         {
           id: CHANNEL_ID,
