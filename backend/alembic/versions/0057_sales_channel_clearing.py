@@ -6,7 +6,7 @@ account. Phase 6.1 added ``default_revenue_account_id`` and
 nullable so existing channels migrate cleanly; the settlement post
 flow raises if it's unset at the time of posting.
 
-Revision ID: 0057_sales_channel_clearing_account
+Revision ID: 0057_sales_channel_clearing
 Revises: 0056_withholding
 Create Date: 2026-05-19 00:00:00.000000
 """
@@ -18,7 +18,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0057_sales_channel_clearing_account"
+revision: str = "0057_sales_channel_clearing"
 down_revision: str | None = "0056_withholding"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
