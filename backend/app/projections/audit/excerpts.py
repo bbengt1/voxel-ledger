@@ -1563,6 +1563,49 @@ register_excerpt_fields(
 )
 
 
+# --- Withholding profile (Phase 9.7, #159) ---------------------------------
+#
+# CRITICAL PII RULE: ``notes`` is operator free-text and MUST NEVER be
+# whitelisted.
+
+register_excerpt_fields(
+    tax_events.TYPE_WITHHOLDING_PROFILE_CREATED,
+    (
+        "code",
+        "name",
+        "jurisdiction",
+        "rate",
+        "threshold_per_year",
+        "form_kind",
+        "is_active",
+    ),
+)
+register_excerpt_fields(
+    tax_events.TYPE_WITHHOLDING_PROFILE_UPDATED,
+    ("before", "after"),
+)
+register_excerpt_fields(
+    tax_events.TYPE_WITHHOLDING_PROFILE_ARCHIVED,
+    ("code", "name"),
+)
+
+# --- ap.BillPaymentWithheld (Phase 9.7, #159) ------------------------------
+
+register_excerpt_fields(
+    ap_events.TYPE_BILL_PAYMENT_WITHHELD,
+    (
+        "payment_number",
+        "application_id",
+        "bill_id",
+        "vendor_id",
+        "profile_id",
+        "profile_code",
+        "rate",
+        "withheld_amount",
+    ),
+)
+
+
 # ---------------------------------------------------------------------------
 # Settlements: marketplace settlement imports (Phase 9.8, #160)
 # ---------------------------------------------------------------------------

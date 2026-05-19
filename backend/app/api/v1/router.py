@@ -76,6 +76,8 @@ from app.api.v1.tax_profiles import router as tax_profiles_router
 from app.api.v1.tax_remittances import router as tax_remittances_router
 from app.api.v1.users import router as users_router
 from app.api.v1.vendors import router as vendors_router
+from app.api.v1.withholding_profiles import router as withholding_profiles_router
+from app.api.v1.withholding_profiles import vendor_ytd_router as vendor_ytd_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -158,3 +160,9 @@ api_router.include_router(depreciation_runs_router)
 api_router.include_router(settlements_router)
 api_router.include_router(tax_profiles_router)
 api_router.include_router(tax_remittances_router)
+# Withholding-profile router + the vendor YTD-payments helper. The vendor
+# YTD router shares the ``/vendors`` prefix with ``vendors_router`` but
+# only registers a specific ``/vendors/{id}/ytd-payments`` route, so it
+# does not collide with the bulk vendor CRUD.
+api_router.include_router(withholding_profiles_router)
+api_router.include_router(vendor_ytd_router)

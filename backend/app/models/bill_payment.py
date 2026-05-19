@@ -165,6 +165,17 @@ class BillPaymentApplication(Base):
     )
     amount_applied: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
 
+    # Phase 9.7 (#159) — per-application withholding stamps. ``withholding_amount``
+    # is the portion of ``amount_applied`` that was Cr'd to the
+    # withholding-liability account instead of bank. Zero means "no
+    # withholding applied".
+    withholding_amount: Mapped[Decimal] = mapped_column(
+        Numeric(18, 6), nullable=False, default=Decimal("0"), server_default=text("0")
+    )
+    withholding_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("withholding_profile.id", ondelete="SET NULL"), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

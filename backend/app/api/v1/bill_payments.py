@@ -57,6 +57,8 @@ def _to_response(payment: BillPayment) -> BillPaymentResponse:
                 id=app_row.id,
                 bill_id=app_row.bill_id,
                 amount_applied=app_row.amount_applied,
+                withholding_amount=app_row.withholding_amount,
+                withholding_profile_id=app_row.withholding_profile_id,
                 created_at=app_row.created_at,
                 updated_at=app_row.updated_at,
             )
@@ -107,6 +109,7 @@ async def record_bill_payment(
             reference_number=payload.reference_number,
             notes=payload.notes,
             applications=[(a.bill_id, a.amount_applied) for a in payload.applications],
+            withhold=payload.withhold,
             actor_user_id=actor.id,
         )
     except Exception as exc:

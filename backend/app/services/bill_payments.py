@@ -54,9 +54,11 @@ from app.models.bill_payment import (
 )
 from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor, VendorState
+from app.models.withholding_profile import WithholdingProfile
 from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services import journal_entries as journal_service
+from app.services import withholding as withholding_service
 from app.services.bills import MissingApPostingAccountError
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
@@ -282,6 +284,7 @@ async def record_payment(
     reference_number: str | None = None,
     notes: str | None = None,
     applications: list[tuple[uuid.UUID, Decimal | str]] | None = None,
+    withhold: bool | None = None,
     actor_user_id: uuid.UUID,
 ) -> BillPayment:
     """Record a bill payment and (when applications cover the full amount)
@@ -386,18 +389,50 @@ async def record_payment(
     if not normalized:
         return await _load_payment(session, payment.id)
 
+    # --- Phase 9.7 (#159): resolve withholding profile + threshold ---
+    # ``withhold=False`` short-circuits regardless of vendor/setting.
+    # ``withhold=True`` forces a profile to be resolved.
+    # ``withhold=None`` (default) lets profile resolution decide.
+    withholding_profile: WithholdingProfile | None = None
+    if withhold is not False:
+        withholding_profile = await withholding_service.resolve_for_vendor(session, vendor=vendor)
+        if withhold is True and withholding_profile is None:
+            raise BillPaymentsServiceError(
+                f"withhold=true was requested but vendor {vendor.vendor_number} "
+                "has no withholding profile and no default is configured"
+            )
+        # Threshold gate. Use YTD BEFORE this payment (occurred_at as the cap).
+        if withholding_profile is not None and withholding_profile.threshold_per_year is not None:
+            ytd = await withholding_service.vendor_ytd_payment_total(
+                session,
+                vendor_id=vendor.id,
+                as_of=occurred,
+            )
+            if ytd < Decimal(withholding_profile.threshold_per_year):
+                withholding_profile = None
+
     # Apply rows + bill updates (no JE yet)
+    application_rows: list[tuple[Bill, Decimal, BillPaymentApplication, Decimal]] = []
+    total_withheld = _ZERO
     for bill, app_amt in normalized:
         bill.amount_paid = _q(bill.amount_paid + app_amt)
         bill.amount_outstanding = _q(bill.amount_outstanding - app_amt)
         _cascade_state(bill)
-        session.add(
-            BillPaymentApplication(
-                bill_payment_id=payment.id,
-                bill_id=bill.id,
-                amount_applied=app_amt,
-            )
+        withheld_for_app = _ZERO
+        if withholding_profile is not None:
+            withheld_for_app = _q(app_amt * Decimal(withholding_profile.rate))
+            total_withheld += withheld_for_app
+        app_row = BillPaymentApplication(
+            bill_payment_id=payment.id,
+            bill_id=bill.id,
+            amount_applied=app_amt,
+            withholding_amount=withheld_for_app,
+            withholding_profile_id=(
+                withholding_profile.id if withholding_profile is not None else None
+            ),
         )
+        session.add(app_row)
+        application_rows.append((bill, app_amt, app_row, withheld_for_app))
         await _emit(
             session,
             event_type=ap_events.TYPE_BILL_PAYMENT_APPLIED,
@@ -412,6 +447,7 @@ async def record_payment(
             },
             actor_user_id=actor_user_id,
         )
+    await session.flush()
 
     # Only auto-post when applications fully cover the payment amount.
     if running_total != amt:
@@ -437,16 +473,31 @@ async def record_payment(
             )
         )
 
+    bank_credit = _q(amt - total_withheld)
     line_no += 1
     lines_in.append(
         journal_service.JournalLineInput(
             account_id=bank_account_id,
             debit=_ZERO,
-            credit=amt,
+            credit=bank_credit,
             line_number=line_no,
             memo=f"Bill payment {payment_number} ({method_enum.value})",
         )
     )
+    if total_withheld > _ZERO and withholding_profile is not None:
+        line_no += 1
+        lines_in.append(
+            journal_service.JournalLineInput(
+                account_id=withholding_profile.liability_account_id,
+                debit=_ZERO,
+                credit=total_withheld,
+                line_number=line_no,
+                memo=(
+                    f"Withholding {withholding_profile.code} on {payment_number} "
+                    f"(rate {withholding_profile.rate})"
+                ),
+            )
+        )
 
     entry = await journal_service.post(
         journal_service.JournalEntryInput(
@@ -477,6 +528,30 @@ async def record_payment(
         },
         actor_user_id=actor_user_id,
     )
+
+    # Phase 9.7 (#159) — per-application withholding events fire AFTER
+    # the JE posts so each event can reference the live application_id.
+    if withholding_profile is not None and total_withheld > _ZERO:
+        for bill, _app_amt, app_row, withheld_for_app in application_rows:
+            if withheld_for_app <= _ZERO:
+                continue
+            await _emit(
+                session,
+                event_type=ap_events.TYPE_BILL_PAYMENT_WITHHELD,
+                aggregate_id=payment.id,
+                payload={
+                    "payment_id": str(payment.id),
+                    "payment_number": payment_number,
+                    "application_id": str(app_row.id),
+                    "bill_id": str(bill.id),
+                    "vendor_id": str(vendor.id),
+                    "profile_id": str(withholding_profile.id),
+                    "profile_code": withholding_profile.code,
+                    "rate": str(withholding_profile.rate),
+                    "withheld_amount": str(withheld_for_app),
+                },
+                actor_user_id=actor_user_id,
+            )
 
     return await _load_payment(session, payment.id)
 

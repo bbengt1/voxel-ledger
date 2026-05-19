@@ -1972,6 +1972,58 @@ register_summary(tax_events.TYPE_TAX_REMITTANCE_RECORDED, _tax_remittance_record
 register_summary(tax_events.TYPE_TAX_REMITTANCE_CANCELLED, _tax_remittance_cancelled)
 
 
+# --- Withholding profile (Phase 9.7, #159) ---------------------------------
+
+
+def _withholding_profile_created(payload: dict[str, Any], actor: str) -> str:
+    form = payload.get("form_kind") or ""
+    suffix = f" [{form}]" if form else ""
+    return (
+        f"{actor} created withholding profile {payload.get('code', '?')} "
+        f"({payload.get('name', '?')}, {payload.get('jurisdiction', '?')}, "
+        f"rate {payload.get('rate', '?')}){suffix}"
+    )
+
+
+def _withholding_profile_updated(payload: dict[str, Any], actor: str) -> str:
+    before = payload.get("before") or {}
+    after = payload.get("after") or {}
+    fields = sorted(set(before) | set(after))
+    changes = ", ".join(f"{f}: {before.get(f)!r} -> {after.get(f)!r}" for f in fields)
+    return (
+        f"{actor} updated withholding profile "
+        f"{payload.get('withholding_profile_id', '?')}: {changes}"
+    )
+
+
+def _withholding_profile_archived(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} archived withholding profile {payload.get('code', '?')} "
+        f"({payload.get('name', '?')})"
+    )
+
+
+register_summary(tax_events.TYPE_WITHHOLDING_PROFILE_CREATED, _withholding_profile_created)
+register_summary(tax_events.TYPE_WITHHOLDING_PROFILE_UPDATED, _withholding_profile_updated)
+register_summary(tax_events.TYPE_WITHHOLDING_PROFILE_ARCHIVED, _withholding_profile_archived)
+
+
+# --- ap.BillPaymentWithheld (Phase 9.7, #159) ------------------------------
+
+
+def _bill_payment_withheld(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"withheld {payload.get('withheld_amount', '?')} on bill payment "
+        f"{payload.get('payment_number', '?')} application "
+        f"{payload.get('application_id', '?')} via profile "
+        f"{payload.get('profile_code', '?')} "
+        f"(rate {payload.get('rate', '?')})"
+    )
+
+
+register_summary(ap_events.TYPE_BILL_PAYMENT_WITHHELD, _bill_payment_withheld)
+
+
 # --- Settlements: marketplace settlement imports (Phase 9.8, #160) ----------
 
 from app.events.types import settlements as settlements_events  # noqa: E402

@@ -245,12 +245,28 @@ class BillPaymentCancelledPayload(_APPayloadBase):
     vendor_id: uuid.UUID
 
 
+# --- Bill-payment withholding (Phase 9.7, #159) -----------------------------
+
+
+class BillPaymentWithheldPayload(_APPayloadBase):
+    payment_id: uuid.UUID
+    payment_number: str
+    application_id: uuid.UUID
+    bill_id: uuid.UUID
+    vendor_id: uuid.UUID
+    profile_id: uuid.UUID
+    profile_code: str
+    rate: str
+    withheld_amount: str
+
+
 TYPE_BILL_PAYMENT_RECORDED = "ap.BillPaymentRecorded"
 TYPE_BILL_PAYMENT_APPLIED = "ap.BillPaymentApplied"
 TYPE_BILL_PAYMENT_POSTED = "ap.BillPaymentPosted"
 TYPE_BILL_PAYMENT_UNAPPLIED = "ap.BillPaymentUnapplied"
 TYPE_BILL_PAYMENT_BOUNCED = "ap.BillPaymentBounced"
 TYPE_BILL_PAYMENT_CANCELLED = "ap.BillPaymentCancelled"
+TYPE_BILL_PAYMENT_WITHHELD = "ap.BillPaymentWithheld"
 
 
 register_event(TYPE_BILL_PAYMENT_RECORDED, BillPaymentRecordedPayload)
@@ -259,6 +275,7 @@ register_event(TYPE_BILL_PAYMENT_POSTED, BillPaymentPostedPayload)
 register_event(TYPE_BILL_PAYMENT_UNAPPLIED, BillPaymentUnappliedPayload)
 register_event(TYPE_BILL_PAYMENT_BOUNCED, BillPaymentBouncedPayload)
 register_event(TYPE_BILL_PAYMENT_CANCELLED, BillPaymentCancelledPayload)
+register_event(TYPE_BILL_PAYMENT_WITHHELD, BillPaymentWithheldPayload)
 
 
 # --- Bill overdue (Phase 8.4, #131) -----------------------------------------
