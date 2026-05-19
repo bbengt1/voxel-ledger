@@ -106,6 +106,10 @@ const SECTIONS: NavSection[] = [
       { label: "Periods", href: "/accounting/periods" },
       { label: "Divisions", href: "/accounting/divisions" },
       { label: "Budgets", href: "/accounting/budgets" },
+      // --- 9.10a additions ---
+      { label: "Fixed assets", href: "/assets" },
+      { label: "Depreciation", href: "/depreciation" },
+      { label: "Withholding profiles", href: "/withholding-profiles" },
     ],
   },
   {

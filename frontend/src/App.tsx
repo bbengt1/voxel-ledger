@@ -30,6 +30,13 @@ import { JournalEntryDetailPage } from "@/pages/accounting/JournalEntryDetail";
 import { PeriodsListPage } from "@/pages/accounting/PeriodsList";
 import { ApprovalDetailPage } from "@/pages/approvals/ApprovalDetail";
 import { ApprovalsListPage } from "@/pages/approvals/ApprovalsList";
+// --- 9.10a imports (specialized accounting UI) ---
+import { AssetComposerPage } from "@/pages/assets/AssetComposer";
+import { AssetDetailPage } from "@/pages/assets/AssetDetail";
+import { AssetsListPage } from "@/pages/assets/AssetsList";
+import { DepreciationRunsPage } from "@/pages/assets/DepreciationRuns";
+import { WithholdingProfileComposerPage } from "@/pages/withholding/WithholdingProfileComposer";
+import { WithholdingProfilesListPage } from "@/pages/withholding/WithholdingProfilesList";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -1164,6 +1171,68 @@ export function App() {
           </RequireAuth>
         }
       />
+      {/* --- 9.10a routes (assets + depreciation + withholding) --- */}
+      <Route
+        path="/assets"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AssetsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assets/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AssetComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assets/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AssetDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/depreciation"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <DepreciationRunsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/withholding-profiles"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <WithholdingProfilesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/withholding-profiles/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <WithholdingProfileComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 9.10a routes --- */}
     </Routes>
   );
 }
