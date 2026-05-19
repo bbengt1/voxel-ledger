@@ -22,6 +22,7 @@ from app.events.registry import register_event
 
 AGGREGATE_TYPE_TAX_PROFILE: str = "tax_profile"
 AGGREGATE_TYPE_TAX_RATE: str = "tax_rate"
+AGGREGATE_TYPE_TAX_REMITTANCE: str = "tax_remittance"
 
 
 class _TaxPayloadBase(BaseModel):
@@ -79,12 +80,39 @@ class TaxRateRemovedPayload(_TaxPayloadBase):
     ordinal: int
 
 
+# --- Tax remittance (Phase 9.6, #158) -------------------------------------
+
+
+class TaxRemittanceRecordedPayload(_TaxPayloadBase):
+    remittance_id: uuid.UUID
+    remittance_number: str
+    profile_id: uuid.UUID
+    period_start: str
+    period_end: str
+    amount_paid: str
+    paid_on: str
+    method: str
+    reference_number: str | None = None
+    bank_account_id: uuid.UUID
+    journal_entry_id: uuid.UUID
+    per_rate_allocations: list[dict[str, Any]]
+
+
+class TaxRemittanceCancelledPayload(_TaxPayloadBase):
+    remittance_id: uuid.UUID
+    remittance_number: str
+    original_journal_entry_id: uuid.UUID
+    reversal_journal_entry_id: uuid.UUID
+
+
 TYPE_TAX_PROFILE_CREATED = "tax.TaxProfileCreated"
 TYPE_TAX_PROFILE_UPDATED = "tax.TaxProfileUpdated"
 TYPE_TAX_PROFILE_ARCHIVED = "tax.TaxProfileArchived"
 TYPE_TAX_RATE_CREATED = "tax.TaxRateCreated"
 TYPE_TAX_RATE_UPDATED = "tax.TaxRateUpdated"
 TYPE_TAX_RATE_REMOVED = "tax.TaxRateRemoved"
+TYPE_TAX_REMITTANCE_RECORDED = "tax.TaxRemittanceRecorded"
+TYPE_TAX_REMITTANCE_CANCELLED = "tax.TaxRemittanceCancelled"
 
 
 register_event(TYPE_TAX_PROFILE_CREATED, TaxProfileCreatedPayload)
@@ -93,3 +121,5 @@ register_event(TYPE_TAX_PROFILE_ARCHIVED, TaxProfileArchivedPayload)
 register_event(TYPE_TAX_RATE_CREATED, TaxRateCreatedPayload)
 register_event(TYPE_TAX_RATE_UPDATED, TaxRateUpdatedPayload)
 register_event(TYPE_TAX_RATE_REMOVED, TaxRateRemovedPayload)
+register_event(TYPE_TAX_REMITTANCE_RECORDED, TaxRemittanceRecordedPayload)
+register_event(TYPE_TAX_REMITTANCE_CANCELLED, TaxRemittanceCancelledPayload)

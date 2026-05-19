@@ -4036,6 +4036,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/tax-liability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tax Liability Report */
+        get: operations["tax_liability_report_api_v1_reports_tax_liability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales": {
         parameters: {
             query?: never;
@@ -4629,6 +4646,58 @@ export interface paths {
         head?: never;
         /** Update Rate Endpoint */
         patch: operations["update_rate_endpoint_api_v1_tax_profiles__profile_id__rates__rate_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tax-remittances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Remittances */
+        get: operations["list_remittances_api_v1_tax_remittances_get"];
+        put?: never;
+        /** Create Remittance */
+        post: operations["create_remittance_api_v1_tax_remittances_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax-remittances/{remittance_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Remittance */
+        get: operations["get_remittance_api_v1_tax_remittances__remittance_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax-remittances/{remittance_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Remittance */
+        post: operations["cancel_remittance_api_v1_tax_remittances__remittance_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users": {
@@ -11414,6 +11483,60 @@ export interface components {
             /** Vendor */
             vendor?: string | null;
         };
+        /** TaxLiabilityReportResponse */
+        TaxLiabilityReportResponse: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Grand Total Collected */
+            grand_total_collected: string;
+            /** Grand Total Net */
+            grand_total_net: string;
+            /** Grand Total Remitted */
+            grand_total_remitted: string;
+            /** Rows */
+            rows: components["schemas"]["TaxLiabilityRowResponse"][];
+        };
+        /** TaxLiabilityRowResponse */
+        TaxLiabilityRowResponse: {
+            /** Compound On Previous */
+            compound_on_previous: boolean;
+            /** Gross Taxable Sales */
+            gross_taxable_sales: string;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Net Liability */
+            net_liability: string;
+            /** Profile Code */
+            profile_code: string;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Profile Name */
+            profile_name: string;
+            /** Rate */
+            rate: string;
+            /**
+             * Rate Id
+             * Format: uuid
+             */
+            rate_id: string;
+            /** Rate Name */
+            rate_name: string;
+            /** Tax Collected */
+            tax_collected: string;
+            /** Tax Remitted */
+            tax_remitted: string;
+        };
         /** TaxProfileCreate */
         TaxProfileCreate: {
             /** Code */
@@ -11554,6 +11677,125 @@ export interface components {
             ordinal?: number | null;
             /** Rate */
             rate?: number | string | null;
+        };
+        /** TaxRemittanceCreate */
+        TaxRemittanceCreate: {
+            /**
+             * Allow Partial
+             * @default false
+             */
+            allow_partial: boolean;
+            /** Amount Paid */
+            amount_paid: number | string;
+            /**
+             * Bank Account Id
+             * Format: uuid
+             */
+            bank_account_id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "ach" | "check" | "wire" | "other";
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Reference Number */
+            reference_number?: string | null;
+        };
+        /** TaxRemittanceListResponse */
+        TaxRemittanceListResponse: {
+            /** Items */
+            items: components["schemas"]["TaxRemittanceResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** TaxRemittanceResponse */
+        TaxRemittanceResponse: {
+            /** Amount Paid */
+            amount_paid: string;
+            /**
+             * Bank Account Id
+             * Format: uuid
+             */
+            bank_account_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "ach" | "check" | "wire" | "other";
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /** Reference Number */
+            reference_number?: string | null;
+            /** Remittance Number */
+            remittance_number: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "recorded" | "cancelled";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** TokenPair */
         TokenPair: {
@@ -21815,6 +22057,40 @@ export interface operations {
             };
         };
     };
+    tax_liability_report_api_v1_reports_tax_liability_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                profile_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxLiabilityReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sales_api_v1_sales_get: {
         parameters: {
             query?: {
@@ -23247,6 +23523,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaxRateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_remittances_api_v1_tax_remittances_get: {
+        parameters: {
+            query?: {
+                profile_id?: string | null;
+                state?: string | null;
+                paid_from?: string | null;
+                paid_to?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRemittanceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_remittance_api_v1_tax_remittances_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxRemittanceCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRemittanceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_remittance_api_v1_tax_remittances__remittance_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                remittance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRemittanceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_remittance_api_v1_tax_remittances__remittance_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                remittance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxRemittanceResponse"];
                 };
             };
             /** @description Validation Error */

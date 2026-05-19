@@ -18164,6 +18164,127 @@
         "title": "SupplyUpdateRequest",
         "type": "object"
       },
+      "TaxLiabilityReportResponse": {
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "grand_total_collected": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Grand Total Collected",
+            "type": "string"
+          },
+          "grand_total_net": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Grand Total Net",
+            "type": "string"
+          },
+          "grand_total_remitted": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Grand Total Remitted",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TaxLiabilityRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "rows",
+          "grand_total_collected",
+          "grand_total_remitted",
+          "grand_total_net"
+        ],
+        "title": "TaxLiabilityReportResponse",
+        "type": "object"
+      },
+      "TaxLiabilityRowResponse": {
+        "properties": {
+          "compound_on_previous": {
+            "title": "Compound On Previous",
+            "type": "boolean"
+          },
+          "gross_taxable_sales": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Gross Taxable Sales",
+            "type": "string"
+          },
+          "jurisdiction": {
+            "title": "Jurisdiction",
+            "type": "string"
+          },
+          "net_liability": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Liability",
+            "type": "string"
+          },
+          "profile_code": {
+            "title": "Profile Code",
+            "type": "string"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "profile_name": {
+            "title": "Profile Name",
+            "type": "string"
+          },
+          "rate": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate",
+            "type": "string"
+          },
+          "rate_id": {
+            "format": "uuid",
+            "title": "Rate Id",
+            "type": "string"
+          },
+          "rate_name": {
+            "title": "Rate Name",
+            "type": "string"
+          },
+          "tax_collected": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tax Collected",
+            "type": "string"
+          },
+          "tax_remitted": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tax Remitted",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id",
+          "profile_code",
+          "profile_name",
+          "jurisdiction",
+          "rate_id",
+          "rate_name",
+          "rate",
+          "compound_on_previous",
+          "tax_collected",
+          "tax_remitted",
+          "net_liability",
+          "gross_taxable_sales"
+        ],
+        "title": "TaxLiabilityRowResponse",
+        "type": "object"
+      },
       "TaxProfileCreate": {
         "properties": {
           "code": {
@@ -18556,6 +18677,249 @@
           }
         },
         "title": "TaxRateUpdate",
+        "type": "object"
+      },
+      "TaxRemittanceCreate": {
+        "properties": {
+          "allow_partial": {
+            "default": false,
+            "title": "Allow Partial",
+            "type": "boolean"
+          },
+          "amount_paid": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount Paid"
+          },
+          "bank_account_id": {
+            "format": "uuid",
+            "title": "Bank Account Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "ach",
+              "check",
+              "wire",
+              "other"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "paid_on": {
+            "format": "date",
+            "title": "Paid On",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reference_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Number"
+          }
+        },
+        "required": [
+          "profile_id",
+          "period_start",
+          "period_end",
+          "amount_paid",
+          "paid_on",
+          "method",
+          "bank_account_id"
+        ],
+        "title": "TaxRemittanceCreate",
+        "type": "object"
+      },
+      "TaxRemittanceListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaxRemittanceResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaxRemittanceListResponse",
+        "type": "object"
+      },
+      "TaxRemittanceResponse": {
+        "properties": {
+          "amount_paid": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Paid",
+            "type": "string"
+          },
+          "bank_account_id": {
+            "format": "uuid",
+            "title": "Bank Account Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "ach",
+              "check",
+              "wire",
+              "other"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "paid_on": {
+            "format": "date",
+            "title": "Paid On",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "profile_id": {
+            "format": "uuid",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reference_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Number"
+          },
+          "remittance_number": {
+            "title": "Remittance Number",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "recorded",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "remittance_number",
+          "profile_id",
+          "period_start",
+          "period_end",
+          "amount_paid",
+          "paid_on",
+          "method",
+          "bank_account_id",
+          "state",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaxRemittanceResponse",
         "type": "object"
       },
       "TokenPair": {
@@ -37631,6 +37995,97 @@
         ]
       }
     },
+    "/api/v1/reports/tax-liability": {
+      "get": {
+        "operationId": "tax_liability_report_api_v1_reports_tax_liability_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxLiabilityReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tax Liability Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/v1/sales": {
       "get": {
         "operationId": "list_sales_api_v1_sales_get",
@@ -40222,6 +40677,279 @@
         "summary": "Update Rate Endpoint",
         "tags": [
           "tax-profiles"
+        ]
+      }
+    },
+    "/api/v1/tax-remittances": {
+      "get": {
+        "operationId": "list_remittances_api_v1_tax_remittances_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "profile_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "paid_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Paid From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "paid_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Paid To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxRemittanceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Remittances",
+        "tags": [
+          "tax-remittances"
+        ]
+      },
+      "post": {
+        "operationId": "create_remittance_api_v1_tax_remittances_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxRemittanceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxRemittanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Remittance",
+        "tags": [
+          "tax-remittances"
+        ]
+      }
+    },
+    "/api/v1/tax-remittances/{remittance_id}": {
+      "get": {
+        "operationId": "get_remittance_api_v1_tax_remittances__remittance_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "remittance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Remittance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxRemittanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Remittance",
+        "tags": [
+          "tax-remittances"
+        ]
+      }
+    },
+    "/api/v1/tax-remittances/{remittance_id}/cancel": {
+      "post": {
+        "operationId": "cancel_remittance_api_v1_tax_remittances__remittance_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "remittance_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Remittance Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxRemittanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Remittance",
+        "tags": [
+          "tax-remittances"
         ]
       }
     },

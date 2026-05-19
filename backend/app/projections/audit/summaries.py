@@ -1949,6 +1949,29 @@ register_summary(tax_events.TYPE_TAX_RATE_UPDATED, _tax_rate_updated)
 register_summary(tax_events.TYPE_TAX_RATE_REMOVED, _tax_rate_removed)
 
 
+# --- Tax remittance (Phase 9.6, #158) -----------------------------------
+
+
+def _tax_remittance_recorded(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} recorded tax remittance {payload.get('remittance_number', '?')} "
+        f"({payload.get('amount_paid', '?')} via {payload.get('method', '?')}) "
+        f"for profile {payload.get('profile_id', '?')} "
+        f"covering {payload.get('period_start', '?')}..{payload.get('period_end', '?')}"
+    )
+
+
+def _tax_remittance_cancelled(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} cancelled tax remittance {payload.get('remittance_number', '?')} "
+        f"(reversal JE {payload.get('reversal_journal_entry_id', '?')})"
+    )
+
+
+register_summary(tax_events.TYPE_TAX_REMITTANCE_RECORDED, _tax_remittance_recorded)
+register_summary(tax_events.TYPE_TAX_REMITTANCE_CANCELLED, _tax_remittance_cancelled)
+
+
 # --- Settlements: marketplace settlement imports (Phase 9.8, #160) ----------
 
 from app.events.types import settlements as settlements_events  # noqa: E402

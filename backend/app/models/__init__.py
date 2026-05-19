@@ -241,6 +241,13 @@ from app.models.settlement import (
 from app.models.shipment import SHIPMENT_STATE_VALUES, Shipment, ShipmentState
 from app.models.supply import Supply
 from app.models.tax_profile import TaxProfile, TaxRate
+from app.models.tax_remittance import (
+    TAX_REMITTANCE_METHOD_VALUES,
+    TAX_REMITTANCE_STATE_VALUES,
+    TaxRemittance,
+    TaxRemittanceMethod,
+    TaxRemittanceState,
+)
 from app.models.vendor import (
     VENDOR_STATE_VALUES,
     Vendor,
@@ -445,8 +452,13 @@ __all__ = [
     "Shipment",
     "ShipmentState",
     "Supply",
+    "TAX_REMITTANCE_METHOD_VALUES",
+    "TAX_REMITTANCE_STATE_VALUES",
     "TaxProfile",
     "TaxRate",
+    "TaxRemittance",
+    "TaxRemittanceMethod",
+    "TaxRemittanceState",
     "User",
     "VENDOR_STATE_VALUES",
     "Vendor",

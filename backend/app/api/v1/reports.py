@@ -6,6 +6,8 @@ Currently exposes the AR aging report. JSON by default, CSV via
 
 from __future__ import annotations
 
+import uuid
+from datetime import date as date_type
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -25,8 +27,13 @@ from app.schemas.late_fees import (
     AgingRowResponse,
     ArAgingReportResponse,
 )
+from app.schemas.tax_remittances import (
+    TaxLiabilityReportResponse,
+    TaxLiabilityRowResponse,
+)
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
+from app.services.reports import tax_liability as tax_liability_service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -120,4 +127,57 @@ async def ap_aging_report(
         ],
         grand_total=report.grand_total,
         grand_total_by_bucket=report.grand_total_by_bucket,
+    )  # type: ignore[return-value]
+
+
+@router.get("/tax-liability", response_model=TaxLiabilityReportResponse)
+async def tax_liability_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    profile_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    try:
+        report = await tax_liability_service.build(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            profile_id=str(profile_id) if profile_id else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = tax_liability_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="tax-liability.csv"'},
+        )
+
+    return TaxLiabilityReportResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        rows=[
+            TaxLiabilityRowResponse(
+                profile_id=uuid.UUID(row.profile_id),
+                profile_code=row.profile_code,
+                profile_name=row.profile_name,
+                jurisdiction=row.jurisdiction,
+                rate_id=uuid.UUID(row.rate_id),
+                rate_name=row.rate_name,
+                rate=row.rate,
+                compound_on_previous=row.compound_on_previous,
+                tax_collected=row.tax_collected,
+                tax_remitted=row.tax_remitted,
+                net_liability=row.net_liability,
+                gross_taxable_sales=row.gross_taxable_sales,
+            )
+            for row in report.rows
+        ],
+        grand_total_collected=report.grand_total_collected,
+        grand_total_remitted=report.grand_total_remitted,
+        grand_total_net=report.grand_total_net,
     )  # type: ignore[return-value]
