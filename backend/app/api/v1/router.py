@@ -73,6 +73,7 @@ from app.api.v1.shipments import router as shipments_router
 from app.api.v1.shipments import sales_shipments_router
 from app.api.v1.supplies import router as supplies_router
 from app.api.v1.tax_profiles import router as tax_profiles_router
+from app.api.v1.tax_remittances import router as tax_remittances_router
 from app.api.v1.users import router as users_router
 from app.api.v1.vendors import router as vendors_router
 
@@ -156,3 +157,4 @@ api_router.include_router(fixed_assets_router)
 api_router.include_router(depreciation_runs_router)
 api_router.include_router(settlements_router)
 api_router.include_router(tax_profiles_router)
+api_router.include_router(tax_remittances_router)

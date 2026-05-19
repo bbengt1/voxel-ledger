@@ -1538,6 +1538,31 @@ register_excerpt_fields(
 )
 
 
+# --- Tax remittance (Phase 9.6, #158) -------------------------------------
+#
+# CRITICAL PII RULE: ``notes`` and ``reference_number`` are operator
+# free-text and MUST NEVER be whitelisted. The audit denormalization
+# stays strictly to non-PII fields.
+
+register_excerpt_fields(
+    tax_events.TYPE_TAX_REMITTANCE_RECORDED,
+    (
+        "remittance_number",
+        "profile_id",
+        "period_start",
+        "period_end",
+        "amount_paid",
+        "paid_on",
+        "method",
+        "journal_entry_id",
+    ),
+)
+register_excerpt_fields(
+    tax_events.TYPE_TAX_REMITTANCE_CANCELLED,
+    ("remittance_number", "original_journal_entry_id", "reversal_journal_entry_id"),
+)
+
+
 # ---------------------------------------------------------------------------
 # Settlements: marketplace settlement imports (Phase 9.8, #160)
 # ---------------------------------------------------------------------------
