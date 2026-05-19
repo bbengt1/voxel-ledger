@@ -1859,6 +1859,34 @@ register_summary(
 )
 
 
+# --- Depreciation run worker (Phase 9.3, #155) ------------------------------
+
+
+def _depreciation_posted(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"posted depreciation entry {payload.get('period_index', '?')} "
+        f"({payload.get('amount', '?')}) for asset {payload.get('asset_id', '?')} "
+        f"period_end {payload.get('period_end', '?')} "
+        f"via JE {payload.get('journal_entry_id', '?')}"
+    )
+
+
+def _depreciation_run_completed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} ran depreciation for period_end "
+        f"{payload.get('period_end', '?')}: "
+        f"{payload.get('posted_count', 0)} posted, "
+        f"{payload.get('failed_count', 0)} failed"
+    )
+
+
+register_summary(accounting_assets_events.TYPE_DEPRECIATION_POSTED, _depreciation_posted)
+register_summary(
+    accounting_assets_events.TYPE_DEPRECIATION_RUN_COMPLETED,
+    _depreciation_run_completed,
+)
+
+
 # --- Tax profiles (Phase 9.5, #157) -----------------------------------------
 
 from app.events.types import tax as tax_events  # noqa: E402
