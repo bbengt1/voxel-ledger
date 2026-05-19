@@ -1453,7 +1453,17 @@ register_excerpt_fields(
 )
 register_excerpt_fields(
     accounting_assets_events.TYPE_ASSET_DISPOSED,
-    ("disposed_on", "kind"),
+    (
+        "asset_id",
+        "disposal_id",
+        "disposed_on",
+        "disposal_kind",
+        "proceeds_amount",
+        "accumulated_depreciation",
+        "book_value",
+        "gain_loss_amount",
+        "journal_entry_id",
+    ),
 )
 register_excerpt_fields(
     accounting_assets_events.TYPE_ASSET_WRITTEN_OFF,

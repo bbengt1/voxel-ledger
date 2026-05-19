@@ -1810,7 +1810,11 @@ def _asset_acquired(payload: dict[str, Any], actor: str) -> str:
 def _asset_disposed(payload: dict[str, Any], actor: str) -> str:
     return (
         f"{actor} disposed fixed asset {payload.get('asset_id', '?')} "
-        f"on {payload.get('disposed_on', '?')}"
+        f"({payload.get('disposal_kind', payload.get('kind', '?'))}) "
+        f"on {payload.get('disposed_on', '?')} — "
+        f"proceeds {payload.get('proceeds_amount', '?')}, "
+        f"book value {payload.get('book_value', '?')}, "
+        f"gain/loss {payload.get('gain_loss_amount', '?')}"
     )
 
 

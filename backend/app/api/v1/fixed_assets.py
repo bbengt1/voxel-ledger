@@ -25,6 +25,10 @@ from app.schemas.depreciation_schedule import (
     DepreciationScheduleEntryResponse,
     DepreciationScheduleResponse,
 )
+from app.schemas.fixed_asset_disposals import (
+    FixedAssetDisposalRequest,
+    FixedAssetDisposalResponse,
+)
 from app.schemas.fixed_assets import (
     FixedAssetAcquireRequest,
     FixedAssetListResponse,
@@ -32,6 +36,7 @@ from app.schemas.fixed_assets import (
     FixedAssetUpdate,
 )
 from app.services import depreciation_schedule as schedule_service
+from app.services import fixed_asset_disposals as disposal_service
 from app.services import fixed_assets as fa_service
 
 router = APIRouter(prefix="/fixed-assets", tags=["fixed-assets"])
@@ -213,17 +218,44 @@ async def get_depreciation_schedule(
     )
 
 
-@router.post("/{asset_id}/dispose")
+@router.post(
+    "/{asset_id}/dispose",
+    response_model=FixedAssetDisposalResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def dispose_asset(
     asset_id: uuid.UUID,
-    _session: Annotated[AsyncSession, Depends(get_session)],
-    _actor: Annotated[User, Depends(require_role(*_WRITE_ROLES))],
-) -> None:
-    # Phase 9.1 stubs the dispose endpoint. Implementation lands in 9.4 (#155).
-    raise HTTPException(
-        status_code=501,
-        detail=(
-            f"dispose for asset {asset_id} is stubbed in Phase 9.1; "
-            "implementation lands in Phase 9.4 (#155)"
-        ),
-    )
+    payload: FixedAssetDisposalRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role(*_WRITE_ROLES))],
+) -> FixedAssetDisposalResponse:
+    try:
+        disposal = await disposal_service.dispose(
+            session=session,
+            asset_id=asset_id,
+            disposed_on=payload.disposed_on,
+            kind=payload.kind,
+            proceeds_amount=payload.proceeds_amount,
+            proceeds_account_id=payload.proceeds_account_id,
+            gain_loss_account_id=payload.gain_loss_account_id,
+            notes=payload.notes,
+            actor_user_id=actor.id,
+        )
+    except disposal_service.AssetNotFoundError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=404, detail=f"fixed asset not found: {exc}") from None
+    except disposal_service.AssetAlreadyDisposedError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    except disposal_service.InvalidAccountTypeError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except disposal_service.InvalidDisposalInputError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    except disposal_service.FixedAssetDisposalError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+    await session.commit()
+    fresh = await disposal_service.get(session, disposal.id)
+    return FixedAssetDisposalResponse.model_validate(fresh)
