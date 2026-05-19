@@ -98,6 +98,24 @@ class DepreciationScheduleRecomputedPayload(_AssetsPayloadBase):
     total_recomputed: int
 
 
+# --- Depreciation run worker (Phase 9.3, #155) ------------------------------
+
+
+class DepreciationPostedPayload(_AssetsPayloadBase):
+    asset_id: uuid.UUID
+    entry_id: uuid.UUID
+    journal_entry_id: uuid.UUID
+    period_end: str
+    period_index: int
+    amount: str
+
+
+class DepreciationRunCompletedPayload(_AssetsPayloadBase):
+    period_end: str
+    posted_count: int
+    failed_count: int
+
+
 TYPE_ASSET_CREATED = "acc.AssetCreated"
 TYPE_ASSET_UPDATED = "acc.AssetUpdated"
 TYPE_ASSET_ACQUIRED = "acc.AssetAcquired"
@@ -105,6 +123,8 @@ TYPE_ASSET_DISPOSED = "acc.AssetDisposed"
 TYPE_ASSET_WRITTEN_OFF = "acc.AssetWrittenOff"
 TYPE_DEPRECIATION_SCHEDULE_GENERATED = "acc.DepreciationScheduleGenerated"
 TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED = "acc.DepreciationScheduleRecomputed"
+TYPE_DEPRECIATION_POSTED = "acc.DepreciationPosted"
+TYPE_DEPRECIATION_RUN_COMPLETED = "acc.DepreciationRunCompleted"
 
 
 register_event(TYPE_ASSET_CREATED, AssetCreatedPayload)
@@ -114,3 +134,5 @@ register_event(TYPE_ASSET_DISPOSED, AssetDisposedPayload)
 register_event(TYPE_ASSET_WRITTEN_OFF, AssetWrittenOffPayload)
 register_event(TYPE_DEPRECIATION_SCHEDULE_GENERATED, DepreciationScheduleGeneratedPayload)
 register_event(TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED, DepreciationScheduleRecomputedPayload)
+register_event(TYPE_DEPRECIATION_POSTED, DepreciationPostedPayload)
+register_event(TYPE_DEPRECIATION_RUN_COMPLETED, DepreciationRunCompletedPayload)

@@ -1632,6 +1632,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/depreciation-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Depreciation Run */
+        post: operations["create_depreciation_run_api_v1_depreciation_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/email-messages": {
         parameters: {
             query?: never;
@@ -7062,6 +7079,26 @@ export interface components {
             reason?: string | null;
             /** Total Amount */
             total_amount?: number | string | null;
+        };
+        /** DepreciationRunRequest */
+        DepreciationRunRequest: {
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+        };
+        /** DepreciationRunResponse */
+        DepreciationRunResponse: {
+            /** Failed Count */
+            failed_count: number;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Posted Count */
+            posted_count: number;
         };
         /** DepreciationScheduleEntryResponse */
         DepreciationScheduleEntryResponse: {
@@ -15600,6 +15637,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebitNoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_depreciation_run_api_v1_depreciation_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepreciationRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepreciationRunResponse"];
                 };
             };
             /** @description Validation Error */

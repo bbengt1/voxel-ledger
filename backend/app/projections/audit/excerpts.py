@@ -1475,6 +1475,14 @@ register_excerpt_fields(
     accounting_assets_events.TYPE_DEPRECIATION_SCHEDULE_RECOMPUTED,
     ("asset_id", "from_period_index", "total_recomputed"),
 )
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_POSTED,
+    ("asset_id", "entry_id", "journal_entry_id", "period_end", "period_index", "amount"),
+)
+register_excerpt_fields(
+    accounting_assets_events.TYPE_DEPRECIATION_RUN_COMPLETED,
+    ("period_end", "posted_count", "failed_count"),
+)
 
 
 # ---------------------------------------------------------------------------

@@ -30,6 +30,7 @@ from app.api.v1.cameras import router as cameras_router
 from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.customers import router as customers_router
+from app.api.v1.depreciation_runs import router as depreciation_runs_router
 from app.api.v1.divisions import router as divisions_router
 from app.api.v1.email_messages import router as email_messages_router
 from app.api.v1.email_messages import statements_router as statements_router
@@ -152,5 +153,6 @@ api_router.include_router(bank_match_rules_router)
 api_router.include_router(bank_reconciliations_router)
 api_router.include_router(inter_account_transfers_router)
 api_router.include_router(fixed_assets_router)
+api_router.include_router(depreciation_runs_router)
 api_router.include_router(settlements_router)
 api_router.include_router(tax_profiles_router)

@@ -6102,6 +6102,44 @@
         "title": "DebitNoteUpdate",
         "type": "object"
       },
+      "DepreciationRunRequest": {
+        "properties": {
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_end"
+        ],
+        "title": "DepreciationRunRequest",
+        "type": "object"
+      },
+      "DepreciationRunResponse": {
+        "properties": {
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "posted_count": {
+            "title": "Posted Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period_end",
+          "posted_count",
+          "failed_count"
+        ],
+        "title": "DepreciationRunResponse",
+        "type": "object"
+      },
       "DepreciationScheduleEntryResponse": {
         "properties": {
           "asset_id": {
@@ -26470,6 +26508,52 @@
         "summary": "Issue Debit Note",
         "tags": [
           "debit-notes"
+        ]
+      }
+    },
+    "/api/v1/depreciation-runs": {
+      "post": {
+        "operationId": "create_depreciation_run_api_v1_depreciation_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepreciationRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepreciationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Depreciation Run",
+        "tags": [
+          "fixed-assets"
         ]
       }
     },
