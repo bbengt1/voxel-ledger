@@ -119,6 +119,11 @@ from app.models.fixed_asset import (
     FixedAssetKind,
     FixedAssetState,
 )
+from app.models.fixed_asset_disposal import (
+    ASSET_DISPOSAL_KIND_VALUES,
+    AssetDisposalKind,
+    FixedAssetDisposal,
+)
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
@@ -320,8 +325,11 @@ __all__ = [
     "FIXED_ASSET_CLASS_VALUES",
     "FIXED_ASSET_KIND_VALUES",
     "FIXED_ASSET_STATE_VALUES",
+    "ASSET_DISPOSAL_KIND_VALUES",
+    "AssetDisposalKind",
     "FixedAsset",
     "FixedAssetClass",
+    "FixedAssetDisposal",
     "FixedAssetKind",
     "FixedAssetState",
     "FormTemplate",

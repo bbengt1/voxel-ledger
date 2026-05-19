@@ -7600,6 +7600,193 @@
         "title": "FixedAssetAcquireRequest",
         "type": "object"
       },
+      "FixedAssetDisposalRequest": {
+        "properties": {
+          "disposed_on": {
+            "format": "date",
+            "title": "Disposed On",
+            "type": "string"
+          },
+          "gain_loss_account_id": {
+            "format": "uuid",
+            "title": "Gain Loss Account Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "sale",
+              "scrap",
+              "writeoff",
+              "donation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "proceeds_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proceeds Account Id"
+          },
+          "proceeds_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Proceeds Amount"
+          }
+        },
+        "required": [
+          "disposed_on",
+          "kind",
+          "gain_loss_account_id"
+        ],
+        "title": "FixedAssetDisposalRequest",
+        "type": "object"
+      },
+      "FixedAssetDisposalResponse": {
+        "properties": {
+          "accumulated_depreciation_at_disposal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Accumulated Depreciation At Disposal",
+            "type": "string"
+          },
+          "asset_id": {
+            "format": "uuid",
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "book_value_at_disposal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Book Value At Disposal",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "format": "uuid",
+            "title": "Created By User Id",
+            "type": "string"
+          },
+          "disposal_kind": {
+            "enum": [
+              "sale",
+              "scrap",
+              "writeoff",
+              "donation"
+            ],
+            "title": "Disposal Kind",
+            "type": "string"
+          },
+          "disposed_on": {
+            "format": "date",
+            "title": "Disposed On",
+            "type": "string"
+          },
+          "gain_loss_account_id": {
+            "format": "uuid",
+            "title": "Gain Loss Account Id",
+            "type": "string"
+          },
+          "gain_loss_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Gain Loss Amount",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "proceeds_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proceeds Account Id"
+          },
+          "proceeds_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Proceeds Amount",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "asset_id",
+          "disposed_on",
+          "disposal_kind",
+          "proceeds_amount",
+          "gain_loss_account_id",
+          "book_value_at_disposal",
+          "accumulated_depreciation_at_disposal",
+          "gain_loss_amount",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "FixedAssetDisposalResponse",
+        "type": "object"
+      },
       "FixedAssetListResponse": {
         "properties": {
           "items": {
@@ -28234,11 +28421,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixedAssetDisposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/FixedAssetDisposalResponse"
+                }
               }
             },
             "description": "Successful Response"

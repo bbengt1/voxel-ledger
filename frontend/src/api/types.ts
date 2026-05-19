@@ -7616,6 +7616,90 @@ export interface components {
             /** Vendor Id */
             vendor_id?: string | null;
         };
+        /** FixedAssetDisposalRequest */
+        FixedAssetDisposalRequest: {
+            /**
+             * Disposed On
+             * Format: date
+             */
+            disposed_on: string;
+            /**
+             * Gain Loss Account Id
+             * Format: uuid
+             */
+            gain_loss_account_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "sale" | "scrap" | "writeoff" | "donation";
+            /** Notes */
+            notes?: string | null;
+            /** Proceeds Account Id */
+            proceeds_account_id?: string | null;
+            /**
+             * Proceeds Amount
+             * @default 0
+             */
+            proceeds_amount: number | string;
+        };
+        /** FixedAssetDisposalResponse */
+        FixedAssetDisposalResponse: {
+            /** Accumulated Depreciation At Disposal */
+            accumulated_depreciation_at_disposal: string;
+            /**
+             * Asset Id
+             * Format: uuid
+             */
+            asset_id: string;
+            /** Book Value At Disposal */
+            book_value_at_disposal: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Created By User Id
+             * Format: uuid
+             */
+            created_by_user_id: string;
+            /**
+             * Disposal Kind
+             * @enum {string}
+             */
+            disposal_kind: "sale" | "scrap" | "writeoff" | "donation";
+            /**
+             * Disposed On
+             * Format: date
+             */
+            disposed_on: string;
+            /**
+             * Gain Loss Account Id
+             * Format: uuid
+             */
+            gain_loss_account_id: string;
+            /** Gain Loss Amount */
+            gain_loss_amount: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Notes */
+            notes?: string | null;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Proceeds Account Id */
+            proceeds_account_id?: string | null;
+            /** Proceeds Amount */
+            proceeds_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** FixedAssetListResponse */
         FixedAssetListResponse: {
             /** Items */
@@ -16612,15 +16696,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixedAssetDisposalRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["FixedAssetDisposalResponse"];
                 };
             };
             /** @description Validation Error */

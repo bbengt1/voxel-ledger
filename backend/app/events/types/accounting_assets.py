@@ -66,8 +66,16 @@ class AssetAcquiredPayload(_AssetsPayloadBase):
 
 class AssetDisposedPayload(_AssetsPayloadBase):
     asset_id: uuid.UUID
+    disposal_id: uuid.UUID
     disposed_on: str
     kind: str
+    disposal_kind: str
+    proceeds_amount: str
+    accumulated_depreciation: str
+    book_value: str
+    gain_loss_amount: str
+    journal_entry_id: uuid.UUID
+    cancelled_schedule_entries: int
 
 
 # --- Written off (reserved) -------------------------------------------------
