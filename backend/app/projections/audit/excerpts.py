@@ -1621,3 +1621,40 @@ register_excerpt_fields(
     ("settlement_number", "channel_id", "period_end", "payout_amount", "line_count"),
 )
 # SettlementCancelled carries only the settlement_id — no excerpt is useful.
+
+# --- Phase 9.9 (#161) settlement match + post ----------------------------
+
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_MATCHED,
+    ("settlement_number", "matched_count", "unmatched_count", "ignored_count"),
+)
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_LINE_MATCHED,
+    (
+        "line_id",
+        "line_kind",
+        "matched_sale_id",
+        "matched_refund_id",
+        "match_strategy",
+    ),
+)
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_LINE_UNMATCHED,
+    ("line_id",),
+)
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_LINE_IGNORED,
+    ("line_id",),
+)
+register_excerpt_fields(
+    settlements_events.TYPE_SETTLEMENT_POSTED,
+    (
+        "settlement_number",
+        "channel_id",
+        "journal_entry_id",
+        "payout_amount",
+        "fee_amount",
+        "adjustment_amount",
+        "clearing_credit",
+    ),
+)

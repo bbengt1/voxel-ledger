@@ -90,6 +90,12 @@ class SalesChannel(Base):
     default_fee_account_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("account.id", ondelete="RESTRICT"), nullable=True
     )
+    # Phase 9.9 (#161) — the marketplace clearing / AR account credited
+    # by the settlement payout JE. ``None`` until the operator sets it;
+    # ``settlements.post`` raises a config error if missing at post time.
+    default_clearing_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("account.id", ondelete="RESTRICT"), nullable=True
+    )
 
     external_id_format_hint: Mapped[str | None] = mapped_column(Text(), nullable=True)
 

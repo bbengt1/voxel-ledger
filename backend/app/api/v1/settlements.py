@@ -24,6 +24,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_role
@@ -38,6 +39,7 @@ from app.schemas.settlements import (
     SettlementWithLinesResponse,
 )
 from app.services import settlement_imports as service
+from app.services import settlement_matcher as matcher_service
 
 router = APIRouter(prefix="/settlements", tags=["settlements"])
 
@@ -50,6 +52,20 @@ def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, service.InvalidSettlementFileError):
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, service.SettlementsServiceError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, matcher_service.SettlementNotFoundError):
+        return HTTPException(status_code=404, detail="settlement not found")
+    if isinstance(exc, matcher_service.SettlementLineNotFoundError):
+        return HTTPException(status_code=404, detail="settlement line not found")
+    if isinstance(exc, matcher_service.IncompleteMatchError):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, matcher_service.InvalidSettlementStateError):
+        return HTTPException(status_code=409, detail=str(exc))
+    if isinstance(exc, matcher_service.MissingSettlementAccountError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, matcher_service.InvalidMatchTargetError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, matcher_service.SettlementMatcherError):
         return HTTPException(status_code=400, detail=str(exc))
     raise exc
 
@@ -226,3 +242,132 @@ async def cancel_settlement(
     await session.refresh(row, ["created_at", "updated_at"])
     await session.commit()
     return _settlement_to_response(row)
+
+
+# ---------------------------------------------------------------------------
+# Phase 9.9 (#161) — match + post
+# ---------------------------------------------------------------------------
+
+
+from pydantic import BaseModel  # noqa: E402
+
+
+class ManualMatchRequest(BaseModel):
+    sale_id: uuid.UUID | None = None
+    refund_id: uuid.UUID | None = None
+
+
+class SettlementMatchSummary(BaseModel):
+    matched: int
+    unmatched: int
+
+
+@router.post("/{settlement_id}/match-now", response_model=SettlementMatchSummary)
+async def match_now(
+    settlement_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SettlementMatchSummary:
+    try:
+        results = await matcher_service.run_match(
+            session=session, settlement_id=settlement_id, actor_user_id=actor.id
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    matched = sum(1 for r in results if r.matched)
+    return SettlementMatchSummary(matched=matched, unmatched=len(results) - matched)
+
+
+@router.post("/{settlement_id}/lines/{line_id}/match", response_model=SettlementLineResponse)
+async def manual_match_line(
+    settlement_id: uuid.UUID,
+    line_id: uuid.UUID,
+    payload: ManualMatchRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SettlementLineResponse:
+    try:
+        line = await matcher_service.manual_match(
+            session=session,
+            settlement_id=settlement_id,
+            line_id=line_id,
+            sale_id=payload.sale_id,
+            refund_id=payload.refund_id,
+            actor_user_id=actor.id,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    fresh = (
+        await session.execute(select(SettlementLine).where(SettlementLine.id == line.id))
+    ).scalar_one()
+    return _line_to_response(fresh)
+
+
+@router.post("/{settlement_id}/lines/{line_id}/unmatch", response_model=SettlementLineResponse)
+async def manual_unmatch_line(
+    settlement_id: uuid.UUID,
+    line_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SettlementLineResponse:
+    try:
+        line = await matcher_service.manual_unmatch(
+            session=session,
+            settlement_id=settlement_id,
+            line_id=line_id,
+            actor_user_id=actor.id,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    fresh = (
+        await session.execute(select(SettlementLine).where(SettlementLine.id == line.id))
+    ).scalar_one()
+    return _line_to_response(fresh)
+
+
+@router.post("/{settlement_id}/lines/{line_id}/ignore", response_model=SettlementLineResponse)
+async def ignore_settlement_line(
+    settlement_id: uuid.UUID,
+    line_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SettlementLineResponse:
+    try:
+        line = await matcher_service.ignore_line(
+            session=session,
+            settlement_id=settlement_id,
+            line_id=line_id,
+            actor_user_id=actor.id,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    fresh = (
+        await session.execute(select(SettlementLine).where(SettlementLine.id == line.id))
+    ).scalar_one()
+    return _line_to_response(fresh)
+
+
+@router.post("/{settlement_id}/post", response_model=SettlementResponse)
+async def post_settlement(
+    settlement_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SettlementResponse:
+    try:
+        row = await matcher_service.post(
+            session=session, settlement_id=settlement_id, actor_user_id=actor.id
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    fresh = await service.get(session, row.id)
+    return _settlement_to_response(fresh)
