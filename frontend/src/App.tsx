@@ -37,6 +37,16 @@ import { AssetsListPage } from "@/pages/assets/AssetsList";
 import { DepreciationRunsPage } from "@/pages/assets/DepreciationRuns";
 import { WithholdingProfileComposerPage } from "@/pages/withholding/WithholdingProfileComposer";
 import { WithholdingProfilesListPage } from "@/pages/withholding/WithholdingProfilesList";
+// --- 9.10b imports (tax + settlements UI) ---
+import { SettlementBoardPage } from "@/pages/settlements/SettlementBoard";
+import { SettlementImportWizardPage } from "@/pages/settlements/SettlementImportWizard";
+import { SettlementsListPage } from "@/pages/settlements/SettlementsList";
+import { TaxLiabilityReportPage } from "@/pages/tax/TaxLiabilityReport";
+import { TaxProfileComposerPage } from "@/pages/tax/TaxProfileComposer";
+import { TaxProfilesListPage } from "@/pages/tax/TaxProfilesList";
+import { TaxRemittanceFormPage } from "@/pages/tax/TaxRemittanceForm";
+import { TaxRemittancesListPage } from "@/pages/tax/TaxRemittancesList";
+import { WithholdingYtdReportPage } from "@/pages/withholding/WithholdingYtdReport";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -1233,6 +1243,108 @@ export function App() {
         }
       />
       {/* --- end 9.10a routes --- */}
+      {/* --- 9.10b routes (tax + settlements UI) --- */}
+      <Route
+        path="/tax-profiles"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxProfilesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tax-profiles/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxProfileComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tax-profiles/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxProfileComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tax-remittances"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxRemittancesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/tax-remittances/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxRemittanceFormPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/tax-liability"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TaxLiabilityReportPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/withholding-1099"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <WithholdingYtdReportPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settlements"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettlementsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settlements/import"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettlementImportWizardPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settlements/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettlementBoardPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 9.10b routes --- */}
     </Routes>
   );
 }

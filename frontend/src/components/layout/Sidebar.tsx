@@ -106,10 +106,13 @@ const SECTIONS: NavSection[] = [
       { label: "Periods", href: "/accounting/periods" },
       { label: "Divisions", href: "/accounting/divisions" },
       { label: "Budgets", href: "/accounting/budgets" },
-      // --- 9.10a additions ---
+      // --- 9.10a + 9.10b additions ---
       { label: "Fixed assets", href: "/assets" },
       { label: "Depreciation", href: "/depreciation" },
+      { label: "Tax profiles", href: "/tax-profiles" },
+      { label: "Tax remittances", href: "/tax-remittances" },
       { label: "Withholding profiles", href: "/withholding-profiles" },
+      { label: "Settlements", href: "/settlements" },
     ],
   },
   {
@@ -121,7 +124,13 @@ const SECTIONS: NavSection[] = [
   },
   {
     label: "Reports",
-    items: [{ label: "Overview", href: "#reports/overview" }],
+    items: [
+      { label: "Overview", href: "#reports/overview" },
+      { label: "AR aging", href: "/reports/ar-aging" },
+      { label: "AP aging", href: "/reports/ap-aging" },
+      { label: "Tax liability", href: "/reports/tax-liability" },
+      { label: "Withholding 1099", href: "/reports/withholding-1099" },
+    ],
   },
   {
     label: "Admin",
