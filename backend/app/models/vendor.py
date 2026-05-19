@@ -90,6 +90,11 @@ class Vendor(Base):
         ForeignKey("tax_profile.id", ondelete="SET NULL"), nullable=True
     )
 
+    # Phase 9.7 (#159): per-vendor default withholding profile (1099-style).
+    withholding_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("withholding_profile.id", ondelete="SET NULL"), nullable=True
+    )
+
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     state: Mapped[VendorState] = mapped_column(

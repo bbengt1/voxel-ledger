@@ -254,6 +254,7 @@ from app.models.vendor import (
     VendorContact,
     VendorState,
 )
+from app.models.withholding_profile import WithholdingProfile
 
 __all__ = [
     "ACCOUNTING_PERIOD_STATE_VALUES",
@@ -464,4 +465,5 @@ __all__ = [
     "Vendor",
     "VendorContact",
     "VendorState",
+    "WithholdingProfile",
 ]

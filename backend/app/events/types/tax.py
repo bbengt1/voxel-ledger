@@ -23,6 +23,7 @@ from app.events.registry import register_event
 AGGREGATE_TYPE_TAX_PROFILE: str = "tax_profile"
 AGGREGATE_TYPE_TAX_RATE: str = "tax_rate"
 AGGREGATE_TYPE_TAX_REMITTANCE: str = "tax_remittance"
+AGGREGATE_TYPE_WITHHOLDING_PROFILE: str = "withholding_profile"
 
 
 class _TaxPayloadBase(BaseModel):
@@ -115,6 +116,38 @@ TYPE_TAX_REMITTANCE_RECORDED = "tax.TaxRemittanceRecorded"
 TYPE_TAX_REMITTANCE_CANCELLED = "tax.TaxRemittanceCancelled"
 
 
+# --- Withholding profile (Phase 9.7, #159) ---------------------------------
+
+
+class WithholdingProfileCreatedPayload(_TaxPayloadBase):
+    withholding_profile_id: uuid.UUID
+    code: str
+    name: str
+    jurisdiction: str
+    rate: str
+    liability_account_id: uuid.UUID
+    threshold_per_year: str | None = None
+    form_kind: str | None = None
+    is_active: bool
+
+
+class WithholdingProfileUpdatedPayload(_TaxPayloadBase):
+    withholding_profile_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class WithholdingProfileArchivedPayload(_TaxPayloadBase):
+    withholding_profile_id: uuid.UUID
+    code: str
+    name: str
+
+
+TYPE_WITHHOLDING_PROFILE_CREATED = "tax.WithholdingProfileCreated"
+TYPE_WITHHOLDING_PROFILE_UPDATED = "tax.WithholdingProfileUpdated"
+TYPE_WITHHOLDING_PROFILE_ARCHIVED = "tax.WithholdingProfileArchived"
+
+
 register_event(TYPE_TAX_PROFILE_CREATED, TaxProfileCreatedPayload)
 register_event(TYPE_TAX_PROFILE_UPDATED, TaxProfileUpdatedPayload)
 register_event(TYPE_TAX_PROFILE_ARCHIVED, TaxProfileArchivedPayload)
@@ -123,3 +156,6 @@ register_event(TYPE_TAX_RATE_UPDATED, TaxRateUpdatedPayload)
 register_event(TYPE_TAX_RATE_REMOVED, TaxRateRemovedPayload)
 register_event(TYPE_TAX_REMITTANCE_RECORDED, TaxRemittanceRecordedPayload)
 register_event(TYPE_TAX_REMITTANCE_CANCELLED, TaxRemittanceCancelledPayload)
+register_event(TYPE_WITHHOLDING_PROFILE_CREATED, WithholdingProfileCreatedPayload)
+register_event(TYPE_WITHHOLDING_PROFILE_UPDATED, WithholdingProfileUpdatedPayload)
+register_event(TYPE_WITHHOLDING_PROFILE_ARCHIVED, WithholdingProfileArchivedPayload)

@@ -667,6 +667,20 @@ class ApDefaultBankAccountId(SettingSchema):
 
 
 @register
+class ApDefaultWithholdingProfileId(SettingSchema):
+    """Default withholding profile applied to every vendor unless they
+    set their own ``vendor.withholding_profile_id`` (Phase 9.7, #159).
+
+    When unset and a vendor has no per-vendor profile, no withholding
+    fires on bill-payment apply.
+    """
+
+    key: ClassVar[str] = "ap.default_withholding_profile_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class ApPaymentMethodToAccount(SettingSchema):
     """Per-payment-method override map for the bank-side account on bill
     payments (Phase 8.3, #130).

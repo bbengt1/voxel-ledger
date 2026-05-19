@@ -4892,6 +4892,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vendors/{vendor_id}/ytd-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vendor Ytd Payments */
+        get: operations["vendor_ytd_payments_api_v1_vendors__vendor_id__ytd_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/withholding-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Profiles */
+        get: operations["list_profiles_api_v1_withholding_profiles_get"];
+        put?: never;
+        /** Create Profile */
+        post: operations["create_profile_api_v1_withholding_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/withholding-profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_api_v1_withholding_profiles__profile_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Profile */
+        patch: operations["update_profile_api_v1_withholding_profiles__profile_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/withholding-profiles/{profile_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Profile */
+        post: operations["archive_profile_api_v1_withholding_profiles__profile_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/withholding/ytd-by-vendor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ytd By Vendor */
+        get: operations["ytd_by_vendor_api_v1_withholding_ytd_by_vendor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -6023,6 +6110,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Withholding Amount
+             * @default 0
+             */
+            withholding_amount: string;
+            /** Withholding Profile Id */
+            withholding_profile_id?: string | null;
         };
         /** BillPaymentCreate */
         BillPaymentCreate: {
@@ -6046,6 +6140,8 @@ export interface components {
              * Format: uuid
              */
             vendor_id: string;
+            /** Withhold */
+            withhold?: boolean | null;
         };
         /** BillPaymentListResponse */
         BillPaymentListResponse: {
@@ -12116,6 +12212,18 @@ export interface components {
             /** Tax Id */
             tax_id?: string | null;
         };
+        /** VendorYtdPaymentsResponse */
+        VendorYtdPaymentsResponse: {
+            /** Total Paid */
+            total_paid: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+            /** Year */
+            year: number;
+        };
         /**
          * VerifyChainResponse
          * @description Result of ``GET /admin/events/verify-chain``.
@@ -12143,6 +12251,124 @@ export interface components {
             last_position?: number | null;
             /** Ok */
             ok: boolean;
+        };
+        /** WithholdingProfileCreate */
+        WithholdingProfileCreate: {
+            /** Code */
+            code: string;
+            /** Form Kind */
+            form_kind?: string | null;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /**
+             * Liability Account Id
+             * Format: uuid
+             */
+            liability_account_id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Rate */
+            rate: number | string;
+            /** Threshold Per Year */
+            threshold_per_year?: number | string | null;
+        };
+        /** WithholdingProfileListResponse */
+        WithholdingProfileListResponse: {
+            /** Items */
+            items: components["schemas"]["WithholdingProfileResponse"][];
+        };
+        /** WithholdingProfileResponse */
+        WithholdingProfileResponse: {
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /** Form Kind */
+            form_kind?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /**
+             * Liability Account Id
+             * Format: uuid
+             */
+            liability_account_id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Rate */
+            rate: string;
+            /** Threshold Per Year */
+            threshold_per_year?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** WithholdingProfileUpdate */
+        WithholdingProfileUpdate: {
+            /** Form Kind */
+            form_kind?: string | null;
+            /** Jurisdiction */
+            jurisdiction?: string | null;
+            /** Liability Account Id */
+            liability_account_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Rate */
+            rate?: number | string | null;
+            /** Threshold Per Year */
+            threshold_per_year?: number | string | null;
+        };
+        /** WithholdingYtdReportResponse */
+        WithholdingYtdReportResponse: {
+            /** Grand Total Paid */
+            grand_total_paid: string;
+            /** Grand Total Withheld */
+            grand_total_withheld: string;
+            /** Rows */
+            rows: components["schemas"]["WithholdingYtdRowResponse"][];
+            /** Year */
+            year: number;
+        };
+        /** WithholdingYtdRowResponse */
+        WithholdingYtdRowResponse: {
+            /** Display Name */
+            display_name: string;
+            /** Form Kind */
+            form_kind?: string | null;
+            /** Profile Code */
+            profile_code?: string | null;
+            /** Profile Id */
+            profile_id?: string | null;
+            /** Total Paid */
+            total_paid: string;
+            /** Total Withheld */
+            total_withheld: string;
+            /**
+             * Vendor Id
+             * Format: uuid
+             */
+            vendor_id: string;
+            /** Vendor Number */
+            vendor_number: string;
         };
     };
     responses: never;
@@ -24175,6 +24401,235 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VendorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    vendor_ytd_payments_api_v1_vendors__vendor_id__ytd_payments_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+            };
+            header?: never;
+            path: {
+                vendor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VendorYtdPaymentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_profiles_api_v1_withholding_profiles_get: {
+        parameters: {
+            query?: {
+                active?: boolean | null;
+                search?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingProfileListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_profile_api_v1_withholding_profiles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithholdingProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_v1_withholding_profiles__profile_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_api_v1_withholding_profiles__profile_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithholdingProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_profile_api_v1_withholding_profiles__profile_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ytd_by_vendor_api_v1_withholding_ytd_by_vendor_get: {
+        parameters: {
+            query: {
+                year: number;
+                profile_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithholdingYtdReportResponse"];
                 };
             };
             /** @description Validation Error */

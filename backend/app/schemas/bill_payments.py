@@ -26,6 +26,10 @@ class BillPaymentCreate(BaseModel):
     reference_number: str | None = Field(default=None, max_length=64)
     notes: str | None = None
     applications: list[BillPaymentApplicationInput] = Field(default_factory=list)
+    # Phase 9.7 (#159): per-payment override. None = use vendor/setting default,
+    # False = suppress withholding even when a profile applies, True = require
+    # a resolvable profile.
+    withhold: bool | None = None
 
 
 class BillPaymentApplicationResponse(BaseModel):
@@ -34,6 +38,9 @@ class BillPaymentApplicationResponse(BaseModel):
     id: uuid.UUID
     bill_id: uuid.UUID
     amount_applied: Decimal
+    # Phase 9.7 (#159): per-application withholding stamps.
+    withholding_amount: Decimal = Decimal("0")
+    withholding_profile_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 
