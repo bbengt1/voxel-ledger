@@ -116,7 +116,7 @@ export function PosScreenPage() {
   useEffect(() => {
     let cancelled = false;
     apiClient
-      .get<ChannelListResponse>("/api/v1/sales/channels", {
+      .get<ChannelListResponse>("/api/v1/sales-channels", {
         params: { kind: "pos", active: true },
       })
       .then((res) => {
