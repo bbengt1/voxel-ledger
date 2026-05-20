@@ -43,12 +43,17 @@ from app.schemas.tax_remittances import (
     TaxLiabilityReportResponse,
     TaxLiabilityRowResponse,
 )
+from app.schemas.trial_balance import (
+    TrialBalanceResponse,
+    TrialBalanceRowResponse,
+)
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 from app.services.reports import balance_sheet as balance_sheet_service
 from app.services.reports import cash_flow as cash_flow_service
 from app.services.reports import income_statement as income_statement_service
 from app.services.reports import tax_liability as tax_liability_service
+from app.services.reports import trial_balance as trial_balance_service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -353,4 +358,56 @@ async def cash_flow_report(
         financing_total=report.financing_total,
         net_change_in_cash=report.net_change_in_cash,
         reconciliation_residual=report.reconciliation_residual,
+    )  # type: ignore[return-value]
+
+
+@router.get("/trial-balance", response_model=TrialBalanceResponse)
+async def trial_balance_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    include_zero: Annotated[bool, Query()] = False,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    try:
+        report = await trial_balance_service.build(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            division_id=division_id,
+            include_zero=include_zero,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = trial_balance_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="trial-balance.csv"'},
+        )
+
+    return TrialBalanceResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        include_zero=report.include_zero,
+        rows=[
+            TrialBalanceRowResponse(
+                account_id=uuid.UUID(r.account_id),
+                code=r.code,
+                name=r.name,
+                type=r.type,
+                opening_balance=r.opening_balance,
+                period_debit=r.period_debit,
+                period_credit=r.period_credit,
+                closing_balance=r.closing_balance,
+            )
+            for r in report.rows
+        ],
+        total_period_debit=report.total_period_debit,
+        total_period_credit=report.total_period_credit,
     )  # type: ignore[return-value]

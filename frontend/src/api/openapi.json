@@ -19389,6 +19389,116 @@
         "title": "TokenPair",
         "type": "object"
       },
+      "TrialBalanceResponse": {
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "include_zero": {
+            "title": "Include Zero",
+            "type": "boolean"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TrialBalanceRowResponse"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "total_period_credit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Period Credit",
+            "type": "string"
+          },
+          "total_period_debit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Period Debit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "include_zero",
+          "rows",
+          "total_period_debit",
+          "total_period_credit"
+        ],
+        "title": "TrialBalanceResponse",
+        "type": "object"
+      },
+      "TrialBalanceRowResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "closing_balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Closing Balance",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "opening_balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Opening Balance",
+            "type": "string"
+          },
+          "period_credit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Period Credit",
+            "type": "string"
+          },
+          "period_debit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Period Debit",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "type",
+          "opening_balance",
+          "period_debit",
+          "period_credit",
+          "closing_balance"
+        ],
+        "title": "TrialBalanceRowResponse",
+        "type": "object"
+      },
       "UnbilledRow": {
         "properties": {
           "amount": {
@@ -39202,6 +39312,107 @@
           }
         ],
         "summary": "Tax Liability Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/trial-balance": {
+      "get": {
+        "operationId": "trial_balance_report_api_v1_reports_trial_balance_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Division Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_zero",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Zero",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialBalanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Trial Balance Report",
         "tags": [
           "reports"
         ]
