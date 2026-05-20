@@ -47,6 +47,11 @@ import { TaxProfilesListPage } from "@/pages/tax/TaxProfilesList";
 import { TaxRemittanceFormPage } from "@/pages/tax/TaxRemittanceForm";
 import { TaxRemittancesListPage } from "@/pages/tax/TaxRemittancesList";
 import { WithholdingYtdReportPage } from "@/pages/withholding/WithholdingYtdReport";
+// --- 10.8a imports (financial-statement report pages) ---
+import { BalanceSheetPage } from "@/pages/reports/BalanceSheet";
+import { CashFlowPage } from "@/pages/reports/CashFlow";
+import { IncomeStatementPage } from "@/pages/reports/IncomeStatement";
+import { TrialBalancePage } from "@/pages/reports/TrialBalance";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -1345,6 +1350,48 @@ export function App() {
         }
       />
       {/* --- end 9.10b routes --- */}
+      {/* --- 10.8a routes (financial-statement reports) --- */}
+      <Route
+        path="/reports/income-statement"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <IncomeStatementPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/balance-sheet"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BalanceSheetPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/cash-flow"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CashFlowPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/trial-balance"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <TrialBalancePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 10.8a routes --- */}
     </Routes>
   );
 }
