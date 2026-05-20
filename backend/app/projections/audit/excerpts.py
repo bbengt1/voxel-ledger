@@ -1680,3 +1680,13 @@ register_excerpt_fields(
     reports_events.TYPE_AI_INSIGHT_FAILED,
     ("summary_id", "scope", "period_start", "period_end"),
 )
+
+
+# --- Batch operations (Phase 11.3, #195) -----------------------------------
+
+from app.events.types import batch_ops as batch_ops_events  # noqa: E402
+
+register_excerpt_fields(
+    batch_ops_events.TYPE_BATCH_COMMITTED,
+    ("entity", "action", "applied_ids", "skipped_ids", "params"),
+)

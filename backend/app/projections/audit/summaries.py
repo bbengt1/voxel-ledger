@@ -2120,3 +2120,20 @@ def _ai_insight_failed(payload: dict[str, Any], _actor: str) -> str:
 register_summary(reports_events.TYPE_AI_INSIGHT_REQUESTED, _ai_insight_requested)
 register_summary(reports_events.TYPE_AI_INSIGHT_READY, _ai_insight_ready)
 register_summary(reports_events.TYPE_AI_INSIGHT_FAILED, _ai_insight_failed)
+
+
+# --- Batch operations (Phase 11.3, #195) -----------------------------------
+
+from app.events.types import batch_ops as batch_ops_events  # noqa: E402
+
+
+def _batch_committed(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} batch {payload.get('action', '?')} on "
+        f"{payload.get('entity', '?')}: "
+        f"applied={len(payload.get('applied_ids') or [])} "
+        f"skipped={len(payload.get('skipped_ids') or [])}"
+    )
+
+
+register_summary(batch_ops_events.TYPE_BATCH_COMMITTED, _batch_committed)
