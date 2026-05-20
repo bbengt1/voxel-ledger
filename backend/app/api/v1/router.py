@@ -16,6 +16,7 @@ from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banking import imports_router as bank_imports_router
+from app.api.v1.batch_ops import router as batch_ops_router
 from app.api.v1.banking import mappings_router as bank_mappings_router
 from app.api.v1.banking import match_rules_router as bank_match_rules_router
 from app.api.v1.banking import reconciliations_router as bank_reconciliations_router
@@ -172,3 +173,4 @@ api_router.include_router(withholding_profiles_router)
 api_router.include_router(vendor_ytd_router)
 api_router.include_router(webhooks_inbound_router)
 api_router.include_router(webhooks_router)
+api_router.include_router(batch_ops_router)
