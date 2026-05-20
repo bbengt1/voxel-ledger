@@ -30,6 +30,7 @@ from app.api.v1.cameras import router as cameras_router
 from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.customers import router as customers_router
+from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.depreciation_runs import router as depreciation_runs_router
 from app.api.v1.divisions import router as divisions_router
 from app.api.v1.email_messages import router as email_messages_router
@@ -88,6 +89,7 @@ api_router.include_router(approvals_router)
 api_router.include_router(attachments_router)
 api_router.include_router(budgets_router)
 api_router.include_router(divisions_router)
+api_router.include_router(dashboard_router)
 api_router.include_router(settings_router)
 api_router.include_router(users_router)
 api_router.include_router(custom_fields_router)

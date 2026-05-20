@@ -1545,6 +1545,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard Kpis */
+        get: operations["dashboard_kpis_api_v1_dashboard_kpis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/debit-notes": {
         parameters: {
             query?: never;
@@ -7436,6 +7453,35 @@ export interface components {
             shipping_address?: components["schemas"]["CustomerAddress"] | null;
             /** Tax Profile Id */
             tax_profile_id?: string | null;
+        };
+        /** DashboardKpisResponse */
+        DashboardKpisResponse: {
+            /** Accounts Payable */
+            accounts_payable: string;
+            /** Accounts Receivable */
+            accounts_receivable: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Cash On Hand */
+            cash_on_hand: string;
+            /**
+             * Last Updated At
+             * Format: date-time
+             */
+            last_updated_at: string;
+            /** Low Stock Alert Count */
+            low_stock_alert_count: number;
+            /** Net Income Mtd */
+            net_income_mtd: string;
+            /** Net Income Ytd */
+            net_income_ytd: string;
+            /** Overdue Bill Count */
+            overdue_bill_count: number;
+            /** Overdue Invoice Count */
+            overdue_invoice_count: number;
         };
         /** DebitNoteCreate */
         DebitNoteCreate: {
@@ -16450,6 +16496,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dashboard_kpis_api_v1_dashboard_kpis_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardKpisResponse"];
                 };
             };
         };
