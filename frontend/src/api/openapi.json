@@ -6165,6 +6165,71 @@
         "title": "CustomerUpdate",
         "type": "object"
       },
+      "DashboardKpisResponse": {
+        "properties": {
+          "accounts_payable": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Accounts Payable",
+            "type": "string"
+          },
+          "accounts_receivable": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Accounts Receivable",
+            "type": "string"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "cash_on_hand": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cash On Hand",
+            "type": "string"
+          },
+          "last_updated_at": {
+            "format": "date-time",
+            "title": "Last Updated At",
+            "type": "string"
+          },
+          "low_stock_alert_count": {
+            "title": "Low Stock Alert Count",
+            "type": "integer"
+          },
+          "net_income_mtd": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Income Mtd",
+            "type": "string"
+          },
+          "net_income_ytd": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Income Ytd",
+            "type": "string"
+          },
+          "overdue_bill_count": {
+            "title": "Overdue Bill Count",
+            "type": "integer"
+          },
+          "overdue_invoice_count": {
+            "title": "Overdue Invoice Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "cash_on_hand",
+          "accounts_receivable",
+          "accounts_payable",
+          "overdue_invoice_count",
+          "overdue_bill_count",
+          "low_stock_alert_count",
+          "net_income_mtd",
+          "net_income_ytd",
+          "last_updated_at"
+        ],
+        "title": "DashboardKpisResponse",
+        "type": "object"
+      },
       "DebitNoteCreate": {
         "properties": {
           "invoice_id": {
@@ -27868,6 +27933,32 @@
         "summary": "Unarchive Customer",
         "tags": [
           "customers"
+        ]
+      }
+    },
+    "/api/v1/dashboard/kpis": {
+      "get": {
+        "operationId": "dashboard_kpis_api_v1_dashboard_kpis_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardKpisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Kpis",
+        "tags": [
+          "dashboard"
         ]
       }
     },
