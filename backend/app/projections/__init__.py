@@ -19,4 +19,5 @@ from app.projections import (
     product_cost,  # noqa: F401
     settings_cache,  # noqa: F401
     test_event_projection,  # noqa: F401
+    webhook_fanout,  # noqa: F401
 )
