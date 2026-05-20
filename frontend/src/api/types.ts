@@ -4104,6 +4104,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/trial-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Trial Balance Report */
+        get: operations["trial_balance_report_api_v1_reports_trial_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sales": {
         parameters: {
             query?: never;
@@ -12191,6 +12208,51 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** TrialBalanceResponse */
+        TrialBalanceResponse: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Include Zero */
+            include_zero: boolean;
+            /** Rows */
+            rows: components["schemas"]["TrialBalanceRowResponse"][];
+            /** Total Period Credit */
+            total_period_credit: string;
+            /** Total Period Debit */
+            total_period_debit: string;
+        };
+        /** TrialBalanceRowResponse */
+        TrialBalanceRowResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Closing Balance */
+            closing_balance: string;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Opening Balance */
+            opening_balance: string;
+            /** Period Credit */
+            period_credit: string;
+            /** Period Debit */
+            period_debit: string;
+            /** Type */
+            type: string;
         };
         /** UnbilledRow */
         UnbilledRow: {
@@ -22690,6 +22752,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaxLiabilityReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trial_balance_report_api_v1_reports_trial_balance_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                division_id?: string | null;
+                include_zero?: boolean;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialBalanceResponse"];
                 };
             };
             /** @description Validation Error */
