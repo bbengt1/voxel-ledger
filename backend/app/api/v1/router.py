@@ -78,6 +78,7 @@ from app.api.v1.tax_remittances import router as tax_remittances_router
 from app.api.v1.users import router as users_router
 from app.api.v1.vendors import router as vendors_router
 from app.api.v1.webhooks import router as webhooks_router
+from app.api.v1.webhooks_inbound import router as webhooks_inbound_router
 from app.api.v1.withholding_profiles import router as withholding_profiles_router
 from app.api.v1.withholding_profiles import vendor_ytd_router as vendor_ytd_router
 
@@ -169,4 +170,5 @@ api_router.include_router(tax_remittances_router)
 # does not collide with the bulk vendor CRUD.
 api_router.include_router(withholding_profiles_router)
 api_router.include_router(vendor_ytd_router)
+api_router.include_router(webhooks_inbound_router)
 api_router.include_router(webhooks_router)

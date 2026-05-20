@@ -265,6 +265,13 @@ from app.models.webhook import (
     WebhookDeliveryStatus,
     WebhookSubscription,
 )
+from app.models.webhook_inbound import (
+    WEBHOOK_INBOUND_KIND_VALUES,
+    WEBHOOK_INBOUND_STATUS_VALUES,
+    WebhookInboundEvent,
+    WebhookInboundKind,
+    WebhookInboundStatus,
+)
 from app.models.withholding_profile import WithholdingProfile
 
 __all__ = [
@@ -480,8 +487,13 @@ __all__ = [
     "VendorContact",
     "VendorState",
     "WEBHOOK_DELIVERY_STATUS_VALUES",
+    "WEBHOOK_INBOUND_KIND_VALUES",
+    "WEBHOOK_INBOUND_STATUS_VALUES",
     "WebhookDelivery",
     "WebhookDeliveryStatus",
+    "WebhookInboundEvent",
+    "WebhookInboundKind",
+    "WebhookInboundStatus",
     "WebhookSubscription",
     "WithholdingProfile",
 ]
