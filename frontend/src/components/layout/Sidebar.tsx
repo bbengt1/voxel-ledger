@@ -125,7 +125,10 @@ const SECTIONS: NavSection[] = [
   {
     label: "Reports",
     items: [
-      { label: "Overview", href: "#reports/overview" },
+      { label: "Income statement", href: "/reports/income-statement" },
+      { label: "Balance sheet", href: "/reports/balance-sheet" },
+      { label: "Cash flow", href: "/reports/cash-flow" },
+      { label: "Trial balance", href: "/reports/trial-balance" },
       { label: "AR aging", href: "/reports/ar-aging" },
       { label: "AP aging", href: "/reports/ap-aging" },
       { label: "Tax liability", href: "/reports/tax-liability" },
