@@ -1,5 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 
+// jsdom doesn't ship ResizeObserver; recharts' ResponsiveContainer
+// (used by the Phase 10.8b dashboard) crashes without it.
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+if (typeof globalThis !== "undefined" && !("ResizeObserver" in globalThis)) {
+  (globalThis as unknown as { ResizeObserver: typeof ResizeObserverStub }).ResizeObserver =
+    ResizeObserverStub;
+}
+
 // Node 25 ships an experimental `localStorage` global that lacks the Web
 // Storage interface methods, and it leaks into the jsdom environment under
 // vitest. Replace it with a minimal in-memory implementation for tests so

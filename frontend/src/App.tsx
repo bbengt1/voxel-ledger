@@ -52,6 +52,9 @@ import { BalanceSheetPage } from "@/pages/reports/BalanceSheet";
 import { CashFlowPage } from "@/pages/reports/CashFlow";
 import { IncomeStatementPage } from "@/pages/reports/IncomeStatement";
 import { TrialBalancePage } from "@/pages/reports/TrialBalance";
+// --- 10.8b imports (sales / inventory reports) ---
+import { InventoryValuationPage } from "@/pages/reports/InventoryValuation";
+import { SalesByPeriodPage } from "@/pages/reports/SalesByPeriod";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -1392,6 +1395,28 @@ export function App() {
         }
       />
       {/* --- end 10.8a routes --- */}
+      {/* --- 10.8b routes (sales / inventory reports) --- */}
+      <Route
+        path="/reports/sales-by-period"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SalesByPeriodPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/inventory-valuation"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InventoryValuationPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      {/* --- end 10.8b routes --- */}
     </Routes>
   );
 }
