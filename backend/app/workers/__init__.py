@@ -28,6 +28,7 @@ from app.workers.recurring_invoice_materializer import (
     JOB_NAME as RECURRING_INVOICE_MATERIALIZER_JOB,
 )
 from app.workers.registry import WorkerJob, list_jobs, register_job, run_job
+from app.workers.webhook_dispatcher import JOB_NAME as WEBHOOK_DISPATCHER_JOB
 
 __all__ = [
     "AI_INSIGHTS_RUNNER_JOB",
@@ -38,6 +39,7 @@ __all__ = [
     "OVERDUE_MARKER_JOB",
     "RECURRING_BILL_MATERIALIZER_JOB",
     "RECURRING_INVOICE_MATERIALIZER_JOB",
+    "WEBHOOK_DISPATCHER_JOB",
     "WorkerJob",
     "list_jobs",
     "register_job",

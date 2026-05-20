@@ -259,6 +259,12 @@ from app.models.vendor import (
     VendorContact,
     VendorState,
 )
+from app.models.webhook import (
+    WEBHOOK_DELIVERY_STATUS_VALUES,
+    WebhookDelivery,
+    WebhookDeliveryStatus,
+    WebhookSubscription,
+)
 from app.models.withholding_profile import WithholdingProfile
 
 __all__ = [
@@ -473,5 +479,9 @@ __all__ = [
     "Vendor",
     "VendorContact",
     "VendorState",
+    "WEBHOOK_DELIVERY_STATUS_VALUES",
+    "WebhookDelivery",
+    "WebhookDeliveryStatus",
+    "WebhookSubscription",
     "WithholdingProfile",
 ]
