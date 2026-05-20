@@ -831,3 +831,75 @@ class ReportsRetainedEarningsAccountId(SettingSchema):
     key: ClassVar[str] = "reports.retained_earnings_account_id"
     default: ClassVar[uuid.UUID | None] = None
     value: uuid.UUID | None = None
+
+
+@register
+class ReportsDepreciationExpenseAccountIds(SettingSchema):
+    """Expense accounts whose Dr - Cr in a period is added back to net
+    income on the cash-flow statement (Phase 10.3, #178).
+
+    Includes amortization expense accounts too — the cash-flow report
+    treats both as non-cash add-backs.
+    """
+
+    key: ClassVar[str] = "reports.depreciation_expense_account_ids"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsWorkingCapitalAccounts(SettingSchema):
+    """Accounts whose Δ over the period drives the operating-activities
+    working-capital walk on the cash-flow statement (Phase 10.3, #178).
+
+    Typical members: AR, inventory, prepaid expenses, AP, accrued
+    liabilities. Sign handling is automatic — for any account class,
+    cash impact of period activity = ``sum(credit) - sum(debit)``.
+    """
+
+    key: ClassVar[str] = "reports.working_capital_accounts"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsInvestingAccounts(SettingSchema):
+    """Accounts whose period activity rolls up under "Investing
+    activities" on the cash-flow statement (Phase 10.3, #178).
+
+    Typical members: fixed-asset accounts, intangible-asset accounts,
+    long-term investments.
+    """
+
+    key: ClassVar[str] = "reports.investing_accounts"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsFinancingAccounts(SettingSchema):
+    """Accounts whose period activity rolls up under "Financing
+    activities" on the cash-flow statement (Phase 10.3, #178).
+
+    Typical members: long-term debt, owner contributions, dividends
+    paid.
+    """
+
+    key: ClassVar[str] = "reports.financing_accounts"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsCashAccounts(SettingSchema):
+    """Cash + equivalent accounts whose Dr - Cr over the period is the
+    "Net change in cash" line on the cash-flow statement (Phase 10.3,
+    #178).
+
+    The dashboard-KPIs service (#181) also reads this list for "Cash on
+    hand".
+    """
+
+    key: ClassVar[str] = "reports.cash_accounts"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)

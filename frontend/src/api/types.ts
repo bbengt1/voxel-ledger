@@ -4053,6 +4053,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cash Flow Report */
+        get: operations["cash_flow_report_api_v1_reports_cash_flow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/income-statement": {
         parameters: {
             query?: never;
@@ -6887,6 +6904,46 @@ export interface components {
             updated_at: string;
             /** Username */
             username?: string | null;
+        };
+        /** CashFlowLineResponse */
+        CashFlowLineResponse: {
+            /** Amount */
+            amount: string;
+            /** Line Item */
+            line_item: string;
+            /** Section */
+            section: string;
+        };
+        /** CashFlowResponse */
+        CashFlowResponse: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Financing Lines */
+            financing_lines: components["schemas"]["CashFlowLineResponse"][];
+            /** Financing Total */
+            financing_total: string;
+            /** Investing Lines */
+            investing_lines: components["schemas"]["CashFlowLineResponse"][];
+            /** Investing Total */
+            investing_total: string;
+            /** Net Change In Cash */
+            net_change_in_cash: string;
+            /** Operating Lines */
+            operating_lines: components["schemas"]["CashFlowLineResponse"][];
+            /** Operating Total */
+            operating_total: string;
+            /** Reconciliation Residual */
+            reconciliation_residual: string;
         };
         /** CheckoutRequest */
         CheckoutRequest: {
@@ -22531,6 +22588,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BalanceSheetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cash_flow_report_api_v1_reports_cash_flow_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                division_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashFlowResponse"];
                 };
             };
             /** @description Validation Error */
