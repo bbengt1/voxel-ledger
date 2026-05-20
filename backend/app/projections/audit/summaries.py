@@ -2088,3 +2088,35 @@ register_summary(settlements_events.TYPE_SETTLEMENT_LINE_MATCHED, _settlement_li
 register_summary(settlements_events.TYPE_SETTLEMENT_LINE_UNMATCHED, _settlement_line_unmatched)
 register_summary(settlements_events.TYPE_SETTLEMENT_LINE_IGNORED, _settlement_line_ignored)
 register_summary(settlements_events.TYPE_SETTLEMENT_POSTED, _settlement_posted)
+
+
+# --- AI insights (Phase 10.7, #182) ----------------------------------------
+
+from app.events.types import reports as reports_events  # noqa: E402
+
+
+def _ai_insight_requested(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} requested AI insight for scope "
+        f"{payload.get('scope', '?')} covering "
+        f"{payload.get('period_start', '?')}..{payload.get('period_end', '?')}"
+    )
+
+
+def _ai_insight_ready(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"AI insight ready for scope {payload.get('scope', '?')} "
+        f"({payload.get('summary_id', '?')}) — model {payload.get('model', '?')}"
+    )
+
+
+def _ai_insight_failed(payload: dict[str, Any], _actor: str) -> str:
+    return (
+        f"AI insight failed for scope {payload.get('scope', '?')} "
+        f"({payload.get('summary_id', '?')})"
+    )
+
+
+register_summary(reports_events.TYPE_AI_INSIGHT_REQUESTED, _ai_insight_requested)
+register_summary(reports_events.TYPE_AI_INSIGHT_READY, _ai_insight_ready)
+register_summary(reports_events.TYPE_AI_INSIGHT_FAILED, _ai_insight_failed)

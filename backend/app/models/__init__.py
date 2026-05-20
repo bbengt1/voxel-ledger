@@ -8,6 +8,11 @@ from app.models.accounting_period import (
     AccountingPeriod,
     AccountingPeriodState,
 )
+from app.models.ai_insight_summary import (
+    AI_INSIGHT_STATUS_VALUES,
+    AiInsightStatus,
+    AiInsightSummary,
+)
 from app.models.approval_request import (
     APPROVAL_STATE_VALUES,
     ApprovalRequest,
@@ -259,6 +264,9 @@ from app.models.withholding_profile import WithholdingProfile
 __all__ = [
     "ACCOUNTING_PERIOD_STATE_VALUES",
     "ACCOUNT_TYPE_VALUES",
+    "AI_INSIGHT_STATUS_VALUES",
+    "AiInsightStatus",
+    "AiInsightSummary",
     "APPROVAL_STATE_VALUES",
     "Account",
     "AccountBalance",
