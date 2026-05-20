@@ -22,6 +22,10 @@ from app.schemas.ap_aging import (
     ApAgingReportResponse,
     ApAgingRowResponse,
 )
+from app.schemas.income_statement import (
+    IncomeStatementResponse,
+    IncomeStatementRowResponse,
+)
 from app.schemas.late_fees import (
     AgingBucketResponse,
     AgingRowResponse,
@@ -33,6 +37,7 @@ from app.schemas.tax_remittances import (
 )
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
+from app.services.reports import income_statement as income_statement_service
 from app.services.reports import tax_liability as tax_liability_service
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -180,4 +185,62 @@ async def tax_liability_report(
         grand_total_collected=report.grand_total_collected,
         grand_total_remitted=report.grand_total_remitted,
         grand_total_net=report.grand_total_net,
+    )  # type: ignore[return-value]
+
+
+@router.get("/income-statement", response_model=IncomeStatementResponse)
+async def income_statement_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    try:
+        report = await income_statement_service.build(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            division_id=division_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = income_statement_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": 'attachment; filename="income-statement.csv"',
+            },
+        )
+
+    def _to_rows(rows):
+        return [
+            IncomeStatementRowResponse(
+                account_id=uuid.UUID(r.account_id),
+                code=r.code,
+                name=r.name,
+                depth=r.depth,
+                section=r.section,
+                amount=r.amount,
+            )
+            for r in rows
+        ]
+
+    return IncomeStatementResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        revenue_rows=_to_rows(report.revenue_rows),
+        cogs_rows=_to_rows(report.cogs_rows),
+        operating_expense_rows=_to_rows(report.operating_expense_rows),
+        total_revenue=report.total_revenue,
+        total_cogs=report.total_cogs,
+        gross_profit=report.gross_profit,
+        total_operating_expenses=report.total_operating_expenses,
+        operating_income=report.operating_income,
+        net_income=report.net_income,
     )  # type: ignore[return-value]

@@ -800,3 +800,17 @@ class SettlementsDefaultAdjustmentAccountId(SettingSchema):
     key: ClassVar[str] = "settlements.default_adjustment_account_id"
     default: ClassVar[uuid.UUID | None] = None
     value: uuid.UUID | None = None
+
+
+@register
+class ReportsCogsAccountIds(SettingSchema):
+    """List of account UUIDs treated as Cost of Goods Sold in the
+    income statement (Phase 10.1, #176).
+
+    Default ``[]`` — every expense account rolls up under "Operating
+    expenses" until the operator flags specific accounts as COGS.
+    """
+
+    key: ClassVar[str] = "reports.cogs_account_ids"
+    default: ClassVar[list[str]] = []
+    value: list[str] = Field(default_factory=list)
