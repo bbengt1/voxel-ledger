@@ -932,3 +932,64 @@ class ReportsAiInsightsModel(SettingSchema):
     key: ClassVar[str] = "reports.ai_insights_model"
     default: ClassVar[str] = "deterministic"
     value: str = Field(default="deterministic", min_length=1)
+
+
+# ---------------------------------------------------------------------------
+# Phase 11.2 - inbound webhook shared secrets (#194)
+# ---------------------------------------------------------------------------
+
+
+def _make_inbound_secret_schema(key_name: str, doc: str) -> type[SettingSchema]:
+    """Build a setting-schema class for one inbound provider's shared secret.
+
+    Each provider configures its own HMAC shared secret outside the
+    application (in the provider's dashboard) and we mirror it here so
+    the inbound verifier can recompute the signature.
+    """
+
+    class _Schema(SettingSchema):
+        __doc__ = doc
+        key: ClassVar[str] = key_name
+        default: ClassVar[str] = ""
+        value: str = Field(default="")
+
+    _Schema.__name__ = "WebhookInboundSecret_" + key_name.replace(".", "_")
+    return _Schema
+
+
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.carrier.easypost.secret",
+        "EasyPost webhook shared secret (HMAC-SHA256).",
+    )
+)
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.carrier.shipstation.secret",
+        "ShipStation webhook shared secret (HMAC-SHA256).",
+    )
+)
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.marketplace.ebay.secret",
+        "eBay marketplace webhook shared secret (HMAC-SHA256).",
+    )
+)
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.marketplace.etsy.secret",
+        "Etsy marketplace webhook shared secret (HMAC-SHA256).",
+    )
+)
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.marketplace.shopify.secret",
+        "Shopify marketplace webhook shared secret (HMAC-SHA256).",
+    )
+)
+register(
+    _make_inbound_secret_schema(
+        "webhooks.inbound.marketplace.amazon.secret",
+        "Amazon marketplace webhook shared secret (HMAC-SHA256).",
+    )
+)
