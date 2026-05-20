@@ -4087,6 +4087,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/inventory-valuation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inventory Valuation Report */
+        get: operations["inventory_valuation_report_api_v1_reports_inventory_valuation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/sales-by-period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sales By Period Report */
+        get: operations["sales_by_period_report_api_v1_reports_sales_by_period_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/tax-liability": {
         parameters: {
             query?: never;
@@ -8593,6 +8627,55 @@ export interface components {
              */
             transfer_pair_id: string;
         };
+        /** InventoryValuationResponse */
+        InventoryValuationResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Location Id */
+            location_id?: string | null;
+            /** Rows */
+            rows: components["schemas"]["InventoryValuationRowResponse"][];
+            /** Total Valuation */
+            total_valuation: string;
+            /** Totals By Kind */
+            totals_by_kind: {
+                [key: string]: string;
+            };
+            /** Totals By Location */
+            totals_by_location: {
+                [key: string]: string;
+            };
+        };
+        /** InventoryValuationRowResponse */
+        InventoryValuationRowResponse: {
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Entity Kind */
+            entity_kind: string;
+            /**
+             * Location Id
+             * Format: uuid
+             */
+            location_id: string;
+            /** Location Name */
+            location_name: string;
+            /** Name */
+            name: string;
+            /** On Hand */
+            on_hand: string;
+            /** Sku */
+            sku?: string | null;
+            /** Unit Cost */
+            unit_cost: string;
+            /** Valuation */
+            valuation: string;
+        };
         /** InvoiceCreate */
         InvoiceCreate: {
             /**
@@ -11429,6 +11512,54 @@ export interface components {
             shipping_amount?: number | string | null;
             /** Tax Amount */
             tax_amount?: number | string | null;
+        };
+        /** SalesByPeriodResponse */
+        SalesByPeriodResponse: {
+            /** Bucket */
+            bucket: string;
+            /** Channel Id */
+            channel_id?: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Rows */
+            rows: components["schemas"]["SalesByPeriodRowResponse"][];
+            /** Total Gross */
+            total_gross: string;
+            /** Total Net */
+            total_net: string;
+            /** Total Orders */
+            total_orders: number;
+            /** Total Refunds */
+            total_refunds: string;
+        };
+        /** SalesByPeriodRowResponse */
+        SalesByPeriodRowResponse: {
+            /**
+             * Bucket Start
+             * Format: date
+             */
+            bucket_start: string;
+            /**
+             * Channel Id
+             * Format: uuid
+             */
+            channel_id: string;
+            /** Gross Sales */
+            gross_sales: string;
+            /** Net Sales */
+            net_sales: string;
+            /** Order Count */
+            order_count: number;
+            /** Refunds */
+            refunds: string;
         };
         /** SalesChannelCreate */
         SalesChannelCreate: {
@@ -22718,6 +22849,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IncomeStatementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inventory_valuation_report_api_v1_reports_inventory_valuation_get: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+                location_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryValuationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sales_by_period_report_api_v1_reports_sales_by_period_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                bucket?: string;
+                channel_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesByPeriodResponse"];
                 };
             };
             /** @description Validation Error */
