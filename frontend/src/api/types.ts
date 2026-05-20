@@ -4036,6 +4036,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/balance-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Balance Sheet Report */
+        get: operations["balance_sheet_report_api_v1_reports_balance_sheet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/income-statement": {
         parameters: {
             query?: never;
@@ -5588,6 +5605,50 @@ export interface components {
             } | null;
             /** Summary */
             summary: string;
+        };
+        /** BalanceSheetResponse */
+        BalanceSheetResponse: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Asset Rows */
+            asset_rows: components["schemas"]["BalanceSheetRowResponse"][];
+            /** Division Id */
+            division_id?: string | null;
+            /** Equity Rows */
+            equity_rows: components["schemas"]["BalanceSheetRowResponse"][];
+            /** Imbalance */
+            imbalance: string;
+            /** Liability Rows */
+            liability_rows: components["schemas"]["BalanceSheetRowResponse"][];
+            /** Total Assets */
+            total_assets: string;
+            /** Total Equity */
+            total_equity: string;
+            /** Total Liabilities */
+            total_liabilities: string;
+            /** Total Liabilities And Equity */
+            total_liabilities_and_equity: string;
+        };
+        /** BalanceSheetRowResponse */
+        BalanceSheetRowResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Balance */
+            balance: string;
+            /** Code */
+            code: string;
+            /** Depth */
+            depth: number;
+            /** Name */
+            name: string;
+            /** Section */
+            section: string;
         };
         /** BankAutoMatchResultItem */
         BankAutoMatchResultItem: {
@@ -22437,6 +22498,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArAgingReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    balance_sheet_report_api_v1_reports_balance_sheet_get: {
+        parameters: {
+            query: {
+                as_of: string;
+                division_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BalanceSheetResponse"];
                 };
             };
             /** @description Validation Error */

@@ -1223,6 +1223,126 @@
         "title": "AuditLogRow",
         "type": "object"
       },
+      "BalanceSheetResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "asset_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceSheetRowResponse"
+            },
+            "title": "Asset Rows",
+            "type": "array"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "equity_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceSheetRowResponse"
+            },
+            "title": "Equity Rows",
+            "type": "array"
+          },
+          "imbalance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Imbalance",
+            "type": "string"
+          },
+          "liability_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceSheetRowResponse"
+            },
+            "title": "Liability Rows",
+            "type": "array"
+          },
+          "total_assets": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Assets",
+            "type": "string"
+          },
+          "total_equity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Equity",
+            "type": "string"
+          },
+          "total_liabilities": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Liabilities",
+            "type": "string"
+          },
+          "total_liabilities_and_equity": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Liabilities And Equity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "asset_rows",
+          "liability_rows",
+          "equity_rows",
+          "total_assets",
+          "total_liabilities",
+          "total_equity",
+          "total_liabilities_and_equity",
+          "imbalance"
+        ],
+        "title": "BalanceSheetResponse",
+        "type": "object"
+      },
+      "BalanceSheetRowResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Balance",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "depth",
+          "section",
+          "balance"
+        ],
+        "title": "BalanceSheetRowResponse",
+        "type": "object"
+      },
       "BankAutoMatchResultItem": {
         "properties": {
           "action_kind": {
@@ -38618,6 +38738,87 @@
           }
         ],
         "summary": "Ar Aging Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/balance-sheet": {
+      "get": {
+        "operationId": "balance_sheet_report_api_v1_reports_balance_sheet_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "As Of",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Division Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceSheetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Balance Sheet Report",
         "tags": [
           "reports"
         ]

@@ -22,6 +22,10 @@ from app.schemas.ap_aging import (
     ApAgingReportResponse,
     ApAgingRowResponse,
 )
+from app.schemas.balance_sheet import (
+    BalanceSheetResponse,
+    BalanceSheetRowResponse,
+)
 from app.schemas.income_statement import (
     IncomeStatementResponse,
     IncomeStatementRowResponse,
@@ -37,6 +41,7 @@ from app.schemas.tax_remittances import (
 )
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
+from app.services.reports import balance_sheet as balance_sheet_service
 from app.services.reports import income_statement as income_statement_service
 from app.services.reports import tax_liability as tax_liability_service
 
@@ -243,4 +248,49 @@ async def income_statement_report(
         total_operating_expenses=report.total_operating_expenses,
         operating_income=report.operating_income,
         net_income=report.net_income,
+    )  # type: ignore[return-value]
+
+
+@router.get("/balance-sheet", response_model=BalanceSheetResponse)
+async def balance_sheet_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    as_of: Annotated[date_type, Query(...)],
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    report = await balance_sheet_service.build(session, as_of=as_of, division_id=division_id)
+
+    if format == "csv":
+        body = balance_sheet_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="balance-sheet.csv"'},
+        )
+
+    def _to_rows(rows):
+        return [
+            BalanceSheetRowResponse(
+                account_id=uuid.UUID(r.account_id),
+                code=r.code,
+                name=r.name,
+                depth=r.depth,
+                section=r.section,
+                balance=r.balance,
+            )
+            for r in rows
+        ]
+
+    return BalanceSheetResponse(
+        as_of=report.as_of,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        asset_rows=_to_rows(report.asset_rows),
+        liability_rows=_to_rows(report.liability_rows),
+        equity_rows=_to_rows(report.equity_rows),
+        total_assets=report.total_assets,
+        total_liabilities=report.total_liabilities,
+        total_equity=report.total_equity,
+        total_liabilities_and_equity=report.total_liabilities_and_equity,
+        imbalance=report.imbalance,
     )  # type: ignore[return-value]

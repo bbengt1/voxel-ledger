@@ -814,3 +814,20 @@ class ReportsCogsAccountIds(SettingSchema):
     key: ClassVar[str] = "reports.cogs_account_ids"
     default: ClassVar[list[str]] = []
     value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsRetainedEarningsAccountId(SettingSchema):
+    """Equity account that absorbs current-period net income on the
+    Balance Sheet until period-close (Phase 10.2, #177).
+
+    When set, the balance-sheet service adds revenue - expense YTD
+    through ``as_of`` onto this account's balance so the report
+    balances before the operator manually closes P&L. Unset is fine —
+    the report still computes correctly and surfaces an ``imbalance``
+    line.
+    """
+
+    key: ClassVar[str] = "reports.retained_earnings_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
