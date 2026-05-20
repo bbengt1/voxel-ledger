@@ -903,3 +903,32 @@ class ReportsCashAccounts(SettingSchema):
     key: ClassVar[str] = "reports.cash_accounts"
     default: ClassVar[list[str]] = []
     value: list[str] = Field(default_factory=list)
+
+
+@register
+class ReportsAiInsightsProvider(SettingSchema):
+    """Which provider the AI-insights worker uses (Phase 10.7, #182).
+
+    Values: ``"deterministic"`` (default — no API calls, used in
+    tests and dev) / ``"anthropic"`` / ``"openai"``. The deterministic
+    summarizer renders a non-empty narrative from the structured
+    payload so the dashboard tile is always populated.
+    """
+
+    key: ClassVar[str] = "reports.ai_insights_provider"
+    default: ClassVar[str] = "deterministic"
+    value: str = Field(default="deterministic", min_length=1)
+
+
+@register
+class ReportsAiInsightsModel(SettingSchema):
+    """Model identifier passed to the LLM provider (Phase 10.7, #182).
+
+    Ignored by the deterministic provider. The shape depends on the
+    provider — e.g. ``"claude-opus-4-7"`` for Anthropic, a model id
+    for OpenAI.
+    """
+
+    key: ClassVar[str] = "reports.ai_insights_model"
+    default: ClassVar[str] = "deterministic"
+    value: str = Field(default="deterministic", min_length=1)

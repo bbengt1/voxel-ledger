@@ -1658,3 +1658,25 @@ register_excerpt_fields(
         "clearing_credit",
     ),
 )
+
+
+# --- AI insights (Phase 10.7, #182) ----------------------------------------
+#
+# CRITICAL PII RULE: ``narrative`` and ``error`` are free-text and MUST
+# NEVER be whitelisted. The denormalized excerpt stays strictly to the
+# structured / non-PII fields.
+
+from app.events.types import reports as reports_events  # noqa: E402
+
+register_excerpt_fields(
+    reports_events.TYPE_AI_INSIGHT_REQUESTED,
+    ("summary_id", "scope", "period_start", "period_end"),
+)
+register_excerpt_fields(
+    reports_events.TYPE_AI_INSIGHT_READY,
+    ("summary_id", "scope", "period_start", "period_end", "model"),
+)
+register_excerpt_fields(
+    reports_events.TYPE_AI_INSIGHT_FAILED,
+    ("summary_id", "scope", "period_start", "period_end"),
+)

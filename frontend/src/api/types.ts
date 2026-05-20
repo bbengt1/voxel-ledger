@@ -1545,6 +1545,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/ai-insights/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Latest Ai Insight */
+        get: operations["latest_ai_insight_api_v1_dashboard_ai_insights_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/ai-insights/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Ai Insight */
+        post: operations["request_ai_insight_api_v1_dashboard_ai_insights_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/kpis": {
         parameters: {
             query?: never;
@@ -5448,6 +5482,68 @@ export interface components {
             display_name: string;
             /** Total Outstanding */
             total_outstanding: string;
+        };
+        /** AiInsightRequest */
+        AiInsightRequest: {
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Scope */
+            scope: string;
+        };
+        /** AiInsightSummaryResponse */
+        AiInsightSummaryResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Model */
+            model?: string | null;
+            /** Narrative */
+            narrative: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Requested By User Id */
+            requested_by_user_id?: string | null;
+            /** Scope */
+            scope: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "ready" | "failed";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** ApAgingBucketResponse */
         ApAgingBucketResponse: {
@@ -16487,6 +16583,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    latest_ai_insight_api_v1_dashboard_ai_insights_latest_get: {
+        parameters: {
+            query: {
+                scope: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiInsightSummaryResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_ai_insight_api_v1_dashboard_ai_insights_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiInsightRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiInsightSummaryResponse"];
                 };
             };
             /** @description Validation Error */

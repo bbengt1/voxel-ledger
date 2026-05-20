@@ -15,6 +15,7 @@ from app.events.types import (
     inventory,  # noqa: F401
     notes_attachments,  # noqa: F401
     production,  # noqa: F401
+    reports,  # noqa: F401
     sales,  # noqa: F401
     settings,  # noqa: F401
     settlements,  # noqa: F401

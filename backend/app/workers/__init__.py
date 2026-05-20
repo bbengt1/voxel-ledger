@@ -15,6 +15,7 @@ so a bad row does not block the rest.
 
 from __future__ import annotations
 
+from app.workers.ai_insights_runner import JOB_NAME as AI_INSIGHTS_RUNNER_JOB
 from app.workers.bank_auto_matcher import JOB_NAME as BANK_AUTO_MATCHER_JOB
 from app.workers.depreciation_runner import JOB_NAME as DEPRECIATION_RUNNER_JOB
 from app.workers.late_fee_applicator import JOB_NAME as LATE_FEE_APPLICATOR_JOB
@@ -29,6 +30,7 @@ from app.workers.recurring_invoice_materializer import (
 from app.workers.registry import WorkerJob, list_jobs, register_job, run_job
 
 __all__ = [
+    "AI_INSIGHTS_RUNNER_JOB",
     "BANK_AUTO_MATCHER_JOB",
     "DEPRECIATION_RUNNER_JOB",
     "LATE_FEE_APPLICATOR_JOB",
