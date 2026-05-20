@@ -26,6 +26,10 @@ from app.schemas.balance_sheet import (
     BalanceSheetResponse,
     BalanceSheetRowResponse,
 )
+from app.schemas.cash_flow import (
+    CashFlowLineResponse,
+    CashFlowResponse,
+)
 from app.schemas.income_statement import (
     IncomeStatementResponse,
     IncomeStatementRowResponse,
@@ -42,6 +46,7 @@ from app.schemas.tax_remittances import (
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 from app.services.reports import balance_sheet as balance_sheet_service
+from app.services.reports import cash_flow as cash_flow_service
 from app.services.reports import income_statement as income_statement_service
 from app.services.reports import tax_liability as tax_liability_service
 
@@ -293,4 +298,59 @@ async def balance_sheet_report(
         total_equity=report.total_equity,
         total_liabilities_and_equity=report.total_liabilities_and_equity,
         imbalance=report.imbalance,
+    )  # type: ignore[return-value]
+
+
+_CASH_FLOW_READ_ROLES = ("owner", "bookkeeper", "viewer")
+
+
+@router.get("/cash-flow", response_model=CashFlowResponse)
+async def cash_flow_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_CASH_FLOW_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    try:
+        report = await cash_flow_service.build(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            division_id=division_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = cash_flow_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="cash-flow.csv"'},
+        )
+
+    def _to_lines(lines):
+        return [
+            CashFlowLineResponse(
+                section=line.section,
+                line_item=line.line_item,
+                amount=line.amount,
+            )
+            for line in lines
+        ]
+
+    return CashFlowResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        operating_lines=_to_lines(report.operating_lines),
+        operating_total=report.operating_total,
+        investing_lines=_to_lines(report.investing_lines),
+        investing_total=report.investing_total,
+        financing_lines=_to_lines(report.financing_lines),
+        financing_total=report.financing_total,
+        net_change_in_cash=report.net_change_in_cash,
+        reconciliation_residual=report.reconciliation_residual,
     )  # type: ignore[return-value]

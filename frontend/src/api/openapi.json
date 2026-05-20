@@ -4638,6 +4638,116 @@
         "title": "CameraResponse",
         "type": "object"
       },
+      "CashFlowLineResponse": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "line_item": {
+            "title": "Line Item",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "line_item",
+          "amount"
+        ],
+        "title": "CashFlowLineResponse",
+        "type": "object"
+      },
+      "CashFlowResponse": {
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "financing_lines": {
+            "items": {
+              "$ref": "#/components/schemas/CashFlowLineResponse"
+            },
+            "title": "Financing Lines",
+            "type": "array"
+          },
+          "financing_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Financing Total",
+            "type": "string"
+          },
+          "investing_lines": {
+            "items": {
+              "$ref": "#/components/schemas/CashFlowLineResponse"
+            },
+            "title": "Investing Lines",
+            "type": "array"
+          },
+          "investing_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Investing Total",
+            "type": "string"
+          },
+          "net_change_in_cash": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Change In Cash",
+            "type": "string"
+          },
+          "operating_lines": {
+            "items": {
+              "$ref": "#/components/schemas/CashFlowLineResponse"
+            },
+            "title": "Operating Lines",
+            "type": "array"
+          },
+          "operating_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Operating Total",
+            "type": "string"
+          },
+          "reconciliation_residual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Reconciliation Residual",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "operating_lines",
+          "operating_total",
+          "investing_lines",
+          "investing_total",
+          "financing_lines",
+          "financing_total",
+          "net_change_in_cash",
+          "reconciliation_residual"
+        ],
+        "title": "CashFlowResponse",
+        "type": "object"
+      },
       "CheckoutRequest": {
         "properties": {
           "customer_email": {
@@ -38819,6 +38929,97 @@
           }
         ],
         "summary": "Balance Sheet Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/cash-flow": {
+      "get": {
+        "operationId": "cash_flow_report_api_v1_reports_cash_flow_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Division Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashFlowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cash Flow Report",
         "tags": [
           "reports"
         ]
