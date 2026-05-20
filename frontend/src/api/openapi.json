@@ -8312,6 +8312,138 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "IncomeStatementResponse": {
+        "properties": {
+          "cogs_rows": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeStatementRowResponse"
+            },
+            "title": "Cogs Rows",
+            "type": "array"
+          },
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "gross_profit": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Gross Profit",
+            "type": "string"
+          },
+          "net_income": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Net Income",
+            "type": "string"
+          },
+          "operating_expense_rows": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeStatementRowResponse"
+            },
+            "title": "Operating Expense Rows",
+            "type": "array"
+          },
+          "operating_income": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Operating Income",
+            "type": "string"
+          },
+          "revenue_rows": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeStatementRowResponse"
+            },
+            "title": "Revenue Rows",
+            "type": "array"
+          },
+          "total_cogs": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cogs",
+            "type": "string"
+          },
+          "total_operating_expenses": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Operating Expenses",
+            "type": "string"
+          },
+          "total_revenue": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "revenue_rows",
+          "cogs_rows",
+          "operating_expense_rows",
+          "total_revenue",
+          "total_cogs",
+          "gross_profit",
+          "total_operating_expenses",
+          "operating_income",
+          "net_income"
+        ],
+        "title": "IncomeStatementResponse",
+        "type": "object"
+      },
+      "IncomeStatementRowResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "depth",
+          "section",
+          "amount"
+        ],
+        "title": "IncomeStatementRowResponse",
+        "type": "object"
+      },
       "InterAccountTransferRequest": {
         "properties": {
           "amount": {
@@ -38486,6 +38618,97 @@
           }
         ],
         "summary": "Ar Aging Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/income-statement": {
+      "get": {
+        "operationId": "income_statement_report_api_v1_reports_income_statement_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Division Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomeStatementResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Income Statement Report",
         "tags": [
           "reports"
         ]

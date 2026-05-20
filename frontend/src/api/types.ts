@@ -4036,6 +4036,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/income-statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Income Statement Report */
+        get: operations["income_statement_report_api_v1_reports_income_statement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/tax-liability": {
         parameters: {
             query?: never;
@@ -8146,6 +8163,57 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IncomeStatementResponse */
+        IncomeStatementResponse: {
+            /** Cogs Rows */
+            cogs_rows: components["schemas"]["IncomeStatementRowResponse"][];
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Gross Profit */
+            gross_profit: string;
+            /** Net Income */
+            net_income: string;
+            /** Operating Expense Rows */
+            operating_expense_rows: components["schemas"]["IncomeStatementRowResponse"][];
+            /** Operating Income */
+            operating_income: string;
+            /** Revenue Rows */
+            revenue_rows: components["schemas"]["IncomeStatementRowResponse"][];
+            /** Total Cogs */
+            total_cogs: string;
+            /** Total Operating Expenses */
+            total_operating_expenses: string;
+            /** Total Revenue */
+            total_revenue: string;
+        };
+        /** IncomeStatementRowResponse */
+        IncomeStatementRowResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Amount */
+            amount: string;
+            /** Code */
+            code: string;
+            /** Depth */
+            depth: number;
+            /** Name */
+            name: string;
+            /** Section */
+            section: string;
         };
         /** InterAccountTransferRequest */
         InterAccountTransferRequest: {
@@ -22369,6 +22437,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArAgingReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    income_statement_report_api_v1_reports_income_statement_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                division_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncomeStatementResponse"];
                 };
             };
             /** @description Validation Error */
