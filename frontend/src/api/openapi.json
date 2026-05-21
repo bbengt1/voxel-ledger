@@ -751,6 +751,34 @@
         "title": "AiInsightSummaryResponse",
         "type": "object"
       },
+      "AmountSectionRead": {
+        "properties": {
+          "amount_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Total",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "sample": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sample",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "sample",
+          "amount_total"
+        ],
+        "title": "AmountSectionRead",
+        "type": "object"
+      },
       "ApAgingBucketResponse": {
         "properties": {
           "amount": {
@@ -2855,6 +2883,121 @@
         "title": "BankTransactionResponse",
         "type": "object"
       },
+      "BatchCommitResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "audit_id": {
+            "format": "uuid",
+            "title": "Audit Id",
+            "type": "string"
+          },
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerResponse"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entity",
+          "action",
+          "applied",
+          "skipped",
+          "audit_id",
+          "blockers"
+        ],
+        "title": "BatchCommitResponse",
+        "type": "object"
+      },
+      "BatchPreviewResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerResponse"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "entity": {
+            "title": "Entity",
+            "type": "string"
+          },
+          "matched_count": {
+            "title": "Matched Count",
+            "type": "integer"
+          },
+          "sample": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sample",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity",
+          "action",
+          "matched_count",
+          "sample",
+          "blockers"
+        ],
+        "title": "BatchPreviewResponse",
+        "type": "object"
+      },
+      "BatchSpec": {
+        "properties": {
+          "action": {
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "entity": {
+            "minLength": 1,
+            "title": "Entity",
+            "type": "string"
+          },
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Ids",
+            "type": "array"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "entity",
+          "action"
+        ],
+        "title": "BatchSpec",
+        "type": "object"
+      },
       "BillCreate": {
         "properties": {
           "currency": {
@@ -3820,6 +3963,25 @@
           "id"
         ],
         "title": "BillableSourceRef",
+        "type": "object"
+      },
+      "BlockerResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "title": "BlockerResponse",
         "type": "object"
       },
       "Body_discover_from_sidecar_api_v1_jobs_discover_post": {
@@ -4969,6 +5131,48 @@
           "cart"
         ],
         "title": "CheckoutResponse",
+        "type": "object"
+      },
+      "ControlCenterResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "failed_jobs": {
+            "$ref": "#/components/schemas/SectionRead"
+          },
+          "low_stock_alerts": {
+            "$ref": "#/components/schemas/SectionRead"
+          },
+          "overdue_bills": {
+            "$ref": "#/components/schemas/AmountSectionRead"
+          },
+          "overdue_invoices": {
+            "$ref": "#/components/schemas/AmountSectionRead"
+          },
+          "pending_approvals": {
+            "$ref": "#/components/schemas/SectionRead"
+          },
+          "webhook_dlq": {
+            "$ref": "#/components/schemas/SectionRead"
+          },
+          "ws_health": {
+            "$ref": "#/components/schemas/WsHealthRead"
+          }
+        },
+        "required": [
+          "as_of",
+          "pending_approvals",
+          "low_stock_alerts",
+          "overdue_invoices",
+          "overdue_bills",
+          "failed_jobs",
+          "webhook_dlq",
+          "ws_health"
+        ],
+        "title": "ControlCenterResponse",
         "type": "object"
       },
       "CostBreakdownComponent": {
@@ -18135,6 +18339,28 @@
         "title": "ScanRequest",
         "type": "object"
       },
+      "SectionRead": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "sample": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sample",
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "sample"
+        ],
+        "title": "SectionRead",
+        "type": "object"
+      },
       "SendStatementRequest": {
         "properties": {
           "include_paid": {
@@ -21023,6 +21249,331 @@
         "title": "VerifyChainResponse",
         "type": "object"
       },
+      "WebhookDeliveryRead": {
+        "properties": {
+          "attempt_count": {
+            "title": "Attempt Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Id"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_response_code": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Response Code"
+          },
+          "last_status": {
+            "enum": [
+              "pending",
+              "delivered",
+              "failed",
+              "dead_letter"
+            ],
+            "title": "Last Status",
+            "type": "string"
+          },
+          "next_attempt_at": {
+            "format": "date-time",
+            "title": "Next Attempt At",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "subscription_id": {
+            "format": "uuid",
+            "title": "Subscription Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subscription_id",
+          "event_type",
+          "payload",
+          "attempt_count",
+          "last_status",
+          "next_attempt_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WebhookDeliveryRead",
+        "type": "object"
+      },
+      "WebhookSubscriptionCreate": {
+        "properties": {
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "target_url": {
+            "format": "uri",
+            "maxLength": 2083,
+            "minLength": 1,
+            "title": "Target Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "target_url"
+        ],
+        "title": "WebhookSubscriptionCreate",
+        "type": "object"
+      },
+      "WebhookSubscriptionCreated": {
+        "description": "Same as :class:`WebhookSubscriptionRead` plus the one-time secret.\n\nReturned only on create + rotate-secret PATCH. The secret is never\nsurfaced on GETs.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "secret": {
+            "title": "Secret",
+            "type": "string"
+          },
+          "target_url": {
+            "title": "Target Url",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "target_url",
+          "event_types",
+          "is_active",
+          "created_at",
+          "updated_at",
+          "secret"
+        ],
+        "title": "WebhookSubscriptionCreated",
+        "type": "object"
+      },
+      "WebhookSubscriptionRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Event Types",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "target_url": {
+            "title": "Target Url",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "target_url",
+          "event_types",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WebhookSubscriptionRead",
+        "type": "object"
+      },
+      "WebhookSubscriptionUpdate": {
+        "properties": {
+          "event_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Types"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "rotate_secret": {
+            "default": false,
+            "title": "Rotate Secret",
+            "type": "boolean"
+          },
+          "target_url": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2083,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Url"
+          }
+        },
+        "title": "WebhookSubscriptionUpdate",
+        "type": "object"
+      },
       "WithholdingProfileCreate": {
         "properties": {
           "code": {
@@ -21415,6 +21966,31 @@
           "total_withheld"
         ],
         "title": "WithholdingYtdRowResponse",
+        "type": "object"
+      },
+      "WsHealthRead": {
+        "properties": {
+          "last_event_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          },
+          "moonraker_ws_connected": {
+            "title": "Moonraker Ws Connected",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "moonraker_ws_connected"
+        ],
+        "title": "WsHealthRead",
         "type": "object"
       }
     },
@@ -25797,6 +26373,98 @@
         ]
       }
     },
+    "/api/v1/batch/commit": {
+      "post": {
+        "operationId": "commit_api_v1_batch_commit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchCommitResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Commit",
+        "tags": [
+          "batch"
+        ]
+      }
+    },
+    "/api/v1/batch/preview": {
+      "post": {
+        "operationId": "preview_api_v1_batch_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchSpec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview",
+        "tags": [
+          "batch"
+        ]
+      }
+    },
     "/api/v1/bill-payments": {
       "get": {
         "operationId": "list_bill_payments_api_v1_bill_payments_get",
@@ -26751,6 +27419,32 @@
         "summary": "Void Bill",
         "tags": [
           "bills"
+        ]
+      }
+    },
+    "/api/v1/control-center": {
+      "get": {
+        "operationId": "get_control_center_api_v1_control_center_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlCenterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Control Center",
+        "tags": [
+          "control-center"
         ]
       }
     },
@@ -44261,6 +44955,467 @@
         "summary": "Vendor Ytd Payments",
         "tags": [
           "withholding-profiles"
+        ]
+      }
+    },
+    "/api/v1/webhooks/deliveries": {
+      "get": {
+        "operationId": "list_deliveries_api_v1_webhooks_deliveries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subscription_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subscription Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "delivered",
+                    "failed",
+                    "dead_letter"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookDeliveryRead"
+                  },
+                  "title": "Response List Deliveries Api V1 Webhooks Deliveries Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Deliveries",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/deliveries/{delivery_id}/replay": {
+      "post": {
+        "operationId": "replay_delivery_api_v1_webhooks_deliveries__delivery_id__replay_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "delivery_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Delivery Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replay Delivery",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/inbound/carriers/{provider}": {
+      "post": {
+        "operationId": "inbound_carrier_api_v1_webhooks_inbound_carriers__provider__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Inbound Carrier Api V1 Webhooks Inbound Carriers  Provider  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inbound Carrier",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/inbound/marketplaces/{provider}": {
+      "post": {
+        "operationId": "inbound_marketplace_api_v1_webhooks_inbound_marketplaces__provider__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Inbound Marketplace Api V1 Webhooks Inbound Marketplaces  Provider  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inbound Marketplace",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/subscriptions": {
+      "get": {
+        "operationId": "list_subscriptions_api_v1_webhooks_subscriptions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookSubscriptionRead"
+                  },
+                  "title": "Response List Subscriptions Api V1 Webhooks Subscriptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Subscriptions",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "create_subscription_api_v1_webhooks_subscriptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSubscriptionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Subscription",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/api/v1/webhooks/subscriptions/{subscription_id}": {
+      "delete": {
+        "operationId": "delete_subscription_api_v1_webhooks_subscriptions__subscription_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subscription Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Subscription",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "get": {
+        "operationId": "get_subscription_api_v1_webhooks_subscriptions__subscription_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subscription Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subscription",
+        "tags": [
+          "webhooks"
+        ]
+      },
+      "patch": {
+        "operationId": "update_subscription_api_v1_webhooks_subscriptions__subscription_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscription_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subscription Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSubscriptionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/WebhookSubscriptionRead"
+                    },
+                    {
+                      "$ref": "#/components/schemas/WebhookSubscriptionCreated"
+                    }
+                  ],
+                  "title": "Response Update Subscription Api V1 Webhooks Subscriptions  Subscription Id  Patch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Subscription",
+        "tags": [
+          "webhooks"
         ]
       }
     },

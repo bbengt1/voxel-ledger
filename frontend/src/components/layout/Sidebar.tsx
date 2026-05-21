@@ -141,6 +141,7 @@ const SECTIONS: NavSection[] = [
     label: "Admin",
     visibleTo: ADMIN_ROLES,
     items: [
+      { label: "Control Center", href: "/control-center", visibleTo: ADMIN_ROLES },
       { label: "Users", href: "/admin/users", visibleTo: ADMIN_ROLES },
       {
         label: "Custom fields",
@@ -148,6 +149,7 @@ const SECTIONS: NavSection[] = [
         visibleTo: OWNER_ONLY,
       },
       { label: "Email log", href: "/admin/email-log", visibleTo: ADMIN_ROLES },
+      { label: "Webhooks", href: "/settings/webhooks", visibleTo: ADMIN_ROLES },
       { label: "Settings", href: "#admin/settings", visibleTo: ADMIN_ROLES },
     ],
   },
