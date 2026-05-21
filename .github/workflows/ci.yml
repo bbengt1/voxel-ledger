@@ -164,3 +164,85 @@ jobs:
         # and runs `git diff --exit-code` on both. Non-zero exit means a
         # contributor changed the backend without re-running codegen.
         run: pnpm run codegen:check
+
+  loadtests-smoke:
+    name: Load tests (smoke, perf-budget enforcement)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: voxel
+          POSTGRES_PASSWORD: voxel
+          POSTGRES_DB: voxel_ledger_loadtest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U voxel -d voxel_ledger_loadtest"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: "postgresql+asyncpg://voxel:voxel@localhost:5432/voxel_ledger_loadtest"
+      JWT_SECRET_KEY: "loadtest-secret-key-not-a-real-secret-xx"
+      ENVIRONMENT: "test"
+      OWNER_EMAIL: "owner@voxel.local"
+      OWNER_PASSWORD: "voxel-owner-password"
+      BCRYPT_ROUNDS: "4"
+      BASE_URL: "http://localhost:8000"
+      VUS: "10"
+      DURATION: "30s"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            pyproject.toml
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend/[dev]"
+
+      - name: Migrate + seed owner
+        run: |
+          (cd backend && alembic upgrade head)
+          python -m scripts.seed_owner
+
+      - name: Boot backend
+        run: |
+          cd backend
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "backend up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "backend failed to start"; cat backend.log; exit 1
+
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 || true
+          curl -sL https://github.com/grafana/k6/releases/download/v0.54.0/k6-v0.54.0-linux-amd64.tar.gz \
+            | tar -xz --strip-components=1 -C /usr/local/bin k6-v0.54.0-linux-amd64/k6
+
+      - name: Run k6 budgets
+        run: |
+          set -e
+          for f in loadtests/simple_get.js loadtests/list_endpoints.js \
+                   loadtests/cost_calc.js loadtests/pos_lookup.js; do
+            echo "=== $f ==="
+            k6 run "$f"
+          done
