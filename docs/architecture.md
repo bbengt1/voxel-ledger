@@ -204,20 +204,26 @@ new contributor doesn't have to learn them by breaking them.
   (real v1 incident, 2026-05-09). Use `SKIP_MIGRATIONS=1` only for
   code-only emergency redeploys.
 
-## What's not yet implemented
+## Shipped beyond the early sections
 
-The repo is mid-rewrite. Phases 0 through 4.5 are landed; everything
-below is design-only with issues filed but no code merged.
+The bounded-contexts table at the top of this file documents Phases 0–4.
+Everything below has also shipped to `main` — see [`CHANGELOG.md`](../CHANGELOG.md)
+for the per-phase summary and PR links.
 
-- **Phase 5 — Jobs & production.** Job CRUD, `POST /jobs/calculate`
-  live-cost endpoint, printers, Moonraker WS (lazy-loaded), cameras,
-  production orders. Issues filed.
-- **Phase 6 — Sales pathway.** Sales channels, sale items, COGS FIFO,
-  POS module, refunds-with-approval, shipping labels.
-- **Phase 7 — AR.** Quotes, invoices, payments, recurring invoices,
-  late fees, AR aging, email delivery.
-- **Phase 8 — AP & Banking.** Vendors, bills, recurring bills, bank
-  feeds.
-- **Phase 9 onwards.** Reporting, notifications, hardening. See
-  [`print-sales-v2/IMPLEMENTATION_PLAN.md`](../print-sales-v2/IMPLEMENTATION_PLAN.md)
-  §5 for the full plan.
+| Phase | Context | Wire prefix | Notes |
+| --- | --- | --- | --- |
+| **5** | Production | `/api/v1/printers`, `/api/v1/cameras`, `/api/v1/jobs`, `/api/v1/production-orders`, `/api/v1/pos` | Lazy-loaded Moonraker integration |
+| **6** | Sales | `/api/v1/sales-channels`, `/api/v1/sales`, `/api/v1/refunds`, `/api/v1/shipments` | COGS FIFO; channel fees |
+| **7** | AR | `/api/v1/quotes`, `/api/v1/invoices`, `/api/v1/payments`, `/api/v1/customers`, `/api/v1/recurring-invoices`, `/api/v1/late-fee-policies` | Statement email; AR aging |
+| **8** | AP + Banking | `/api/v1/vendors`, `/api/v1/bills`, `/api/v1/bill-payments`, `/api/v1/expense-claims`, `/api/v1/billable-expenses`, `/api/v1/recurring-bills`, `/api/v1/banking/*` | Bank imports, match rules, reconciliation, inter-account transfers |
+| **9** | Specialized accounting | `/api/v1/fixed-assets`, `/api/v1/depreciation-runs`, `/api/v1/tax-profiles`, `/api/v1/tax-remittances`, `/api/v1/withholding-profiles`, `/api/v1/settlements` | Depreciation worker; compound + reverse-charge tax; marketplace settlement matcher + payout JE |
+| **10** | Reporting + Dashboard | `/api/v1/reports/*`, `/api/v1/dashboard/*` | Income statement, balance sheet, cash flow, trial balance, sales-by-period, inventory valuation, AR/AP aging, tax liability, withholding 1099, KPI tiles, AI insights worker |
+| **11** | Notifications + admin | `/api/v1/webhooks/*`, `/api/v1/webhooks/inbound/*`, `/api/v1/batch/{preview,commit}`, `/api/v1/control-center` | HMAC-signed outbound webhooks + DLQ; inbound carrier + marketplace intake; batch preview/commit; admin aggregate |
+
+## Still ahead
+
+Phase 12 (hardening + v1 cutover) is in flight — load testing, PITR drill,
+WCAG pass, v1 data migration, doc pass. See
+[`print-sales-v2/IMPLEMENTATION_PLAN.md`](../print-sales-v2/IMPLEMENTATION_PLAN.md)
+§5 for the original scope and the [`phase-12`](https://github.com/bbengt1/voxel-ledger/labels/phase-12)
+label for tracked work.
