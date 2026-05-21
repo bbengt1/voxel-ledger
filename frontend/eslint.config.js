@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
@@ -18,9 +19,48 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "jsx-a11y": jsxA11y,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.flatConfigs.recommended.rules,
+      // The project uses the "label wraps input" convention; nesting
+      // is the WCAG-acceptable form, but the default rule asks for
+      // both nesting AND htmlFor. Configure to accept either.
+      // 18 deep-nesting cases remain; tracked as a follow-up rather
+      // than blocking CI on each new label. The rule still surfaces
+      // problems on touch; flip back to "error" once cleared.
+      "jsx-a11y/label-has-associated-control": [
+        "warn",
+        {
+          assert: "either",
+          depth: 5,
+          // Custom components that wrap a real form control. jsx-a11y
+          // can't see through them without an explicit allow-list.
+          controlComponents: [
+            "Input",
+            "Textarea",
+            "Select",
+            "DatePicker",
+            "EntityPicker",
+            "AccountPicker",
+            "TaxProfilePicker",
+            "Combobox",
+          ],
+        },
+      ],
+      // autoFocus is fine for primary action targets in modals
+      // (Login submit, dialog confirmations); the rule is too strict
+      // for our usage.
+      "jsx-a11y/no-autofocus": "off",
+    },
+  },
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    rules: {
+      // `role` is a prop name in some of our components and collides
+      // with the ARIA role attribute the plugin guards.
+      "jsx-a11y/aria-role": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

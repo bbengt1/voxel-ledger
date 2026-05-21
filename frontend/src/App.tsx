@@ -102,6 +102,7 @@ import { RecurringDetailPage } from "@/pages/ar/RecurringDetail";
 import { RecurringListPage } from "@/pages/ar/RecurringList";
 import { EmailLogPage } from "@/pages/admin/EmailLog";
 import { ControlCenterPage } from "@/pages/ControlCenter";
+import { ContrastCatalogPage } from "@/pages/dev/ContrastCatalog";
 import { WebhooksSettingsPage } from "@/pages/settings/Webhooks";
 // --- end 7.8b AR routes ---
 // --- 8.12a AP routes ---
@@ -854,6 +855,14 @@ export function App() {
               <EmailLogPage />
             </AppShell>
           </RequireAuth>
+        }
+      />
+      <Route
+        path="/dev/contrast-catalog"
+        element={
+          <AppShell>
+            <ContrastCatalogPage />
+          </AppShell>
         }
       />
       <Route
