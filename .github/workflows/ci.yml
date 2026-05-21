@@ -165,6 +165,65 @@ jobs:
         # contributor changed the backend without re-running codegen.
         run: pnpm run codegen:check
 
+  pitr-drill:
+    name: PITR drill (pg_dump round-trip + parity)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: voxel
+          POSTGRES_PASSWORD: voxel
+          POSTGRES_DB: voxel_ledger_drill
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U voxel -d voxel_ledger_drill"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: "postgresql+asyncpg://voxel:voxel@localhost:5432/voxel_ledger_drill"
+      JWT_SECRET_KEY: "drill-secret-key-not-a-real-secret-xx"
+      ENVIRONMENT: "test"
+      OWNER_EMAIL: "owner@voxel.local"
+      OWNER_PASSWORD: "voxel-owner-password"
+      BCRYPT_ROUNDS: "4"
+      PGPASSWORD: "voxel"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/pyproject.toml
+            pyproject.toml
+
+      - name: Install backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "backend/[dev]"
+
+      - name: Migrate + seed owner
+        run: |
+          (cd backend && alembic upgrade head)
+          python -m scripts.seed_owner
+
+      - name: Run drill against fresh DB
+        run: |
+          DRILL_SRC_URL="postgres://voxel:voxel@localhost:5432/voxel_ledger_drill" \
+            DRILL_DST_PORT=5599 \
+            ops/backups/drill.sh smoke
+
   loadtests-smoke:
     name: Load tests (smoke, perf-budget enforcement)
     runs-on: ubuntu-latest
