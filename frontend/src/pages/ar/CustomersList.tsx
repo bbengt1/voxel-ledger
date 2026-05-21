@@ -7,6 +7,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { BatchOpsDialog } from "@/components/batch/BatchOpsDialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -33,6 +34,17 @@ export function CustomersListPage() {
   const [items, setItems] = useState<CustomerResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [batchOpen, setBatchOpen] = useState(false);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const query = useMemo(() => {
     const q: Record<string, string> = {};
@@ -70,11 +82,23 @@ export function CustomersListPage() {
     <section className="flex flex-col gap-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Customers</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/customers/new">New customer</Link>
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {canWrite && selected.size > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="customers-batch-archive"
+              onClick={() => setBatchOpen(true)}
+            >
+              Archive {selected.size} selected
+            </Button>
+          ) : null}
+          {canWrite ? (
+            <Button asChild>
+              <Link to="/customers/new">New customer</Link>
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -113,6 +137,7 @@ export function CustomersListPage() {
       <table className="w-full table-fixed border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+            {canWrite ? <th className="py-2 pr-2 w-6"></th> : null}
             <th className="py-2 pr-2">#</th>
             <th className="py-2 pr-2">Name</th>
             <th className="py-2 pr-2">Email</th>
@@ -123,13 +148,13 @@ export function CustomersListPage() {
         <tbody>
           {loading && items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
+              <td colSpan={canWrite ? 6 : 5} className="py-4 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
+              <td colSpan={canWrite ? 6 : 5} className="py-4 text-center text-muted-foreground">
                 No customers match these filters.
               </td>
             </tr>
@@ -140,6 +165,16 @@ export function CustomersListPage() {
                 className="border-b border-border/50 hover:bg-accent/30"
                 data-testid={`customer-row-${c.id}`}
               >
+                {canWrite ? (
+                  <td className="py-2 pr-2">
+                    <input
+                      type="checkbox"
+                      data-testid={`customer-select-${c.id}`}
+                      checked={selected.has(c.id)}
+                      onChange={() => toggle(c.id)}
+                    />
+                  </td>
+                ) : null}
                 <td className="py-2 pr-2 font-mono text-xs">
                   <Link to={`/customers/${c.id}`} className="hover:underline">
                     {c.customer_number}
@@ -154,6 +189,21 @@ export function CustomersListPage() {
           )}
         </tbody>
       </table>
+
+      <BatchOpsDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        entity="customer"
+        action="archive"
+        ids={Array.from(selected)}
+        title={`Archive ${selected.size} customer${selected.size === 1 ? "" : "s"}`}
+        onCommitted={() => {
+          setSelected(new Set());
+          setBatchOpen(false);
+          // Re-fetch by toggling a state param so the existing effect re-runs.
+          updateParam("state", state);
+        }}
+      />
     </section>
   );
 }

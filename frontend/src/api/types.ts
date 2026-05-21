@@ -1059,6 +1059,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/batch/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit */
+        post: operations["commit_api_v1_batch_commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/batch/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_v1_batch_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bill-payments": {
         parameters: {
             query?: never;
@@ -1243,6 +1277,23 @@ export interface paths {
         put?: never;
         /** Void Bill */
         post: operations["void_bill_api_v1_bills__bill_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control-center": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Control Center */
+        get: operations["get_control_center_api_v1_control_center_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5147,6 +5198,111 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Deliveries */
+        get: operations["list_deliveries_api_v1_webhooks_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/deliveries/{delivery_id}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replay Delivery */
+        post: operations["replay_delivery_api_v1_webhooks_deliveries__delivery_id__replay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/inbound/carriers/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inbound Carrier */
+        post: operations["inbound_carrier_api_v1_webhooks_inbound_carriers__provider__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/inbound/marketplaces/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inbound Marketplace */
+        post: operations["inbound_marketplace_api_v1_webhooks_inbound_marketplaces__provider__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Subscriptions */
+        get: operations["list_subscriptions_api_v1_webhooks_subscriptions_get"];
+        put?: never;
+        /** Create Subscription */
+        post: operations["create_subscription_api_v1_webhooks_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/subscriptions/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Subscription */
+        get: operations["get_subscription_api_v1_webhooks_subscriptions__subscription_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Subscription */
+        delete: operations["delete_subscription_api_v1_webhooks_subscriptions__subscription_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Subscription */
+        patch: operations["update_subscription_api_v1_webhooks_subscriptions__subscription_id__patch"];
+        trace?: never;
+    };
     "/api/v1/withholding-profiles": {
         parameters: {
             query?: never;
@@ -5544,6 +5700,17 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AmountSectionRead */
+        AmountSectionRead: {
+            /** Amount Total */
+            amount_total: string;
+            /** Count */
+            count: number;
+            /** Sample */
+            sample: {
+                [key: string]: unknown;
+            }[];
         };
         /** ApAgingBucketResponse */
         ApAgingBucketResponse: {
@@ -6326,6 +6493,52 @@ export interface components {
              */
             updated_at: string;
         };
+        /** BatchCommitResponse */
+        BatchCommitResponse: {
+            /** Action */
+            action: string;
+            /** Applied */
+            applied: number;
+            /**
+             * Audit Id
+             * Format: uuid
+             */
+            audit_id: string;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerResponse"][];
+            /** Entity */
+            entity: string;
+            /** Skipped */
+            skipped: number;
+        };
+        /** BatchPreviewResponse */
+        BatchPreviewResponse: {
+            /** Action */
+            action: string;
+            /** Blockers */
+            blockers: components["schemas"]["BlockerResponse"][];
+            /** Entity */
+            entity: string;
+            /** Matched Count */
+            matched_count: number;
+            /** Sample */
+            sample: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** BatchSpec */
+        BatchSpec: {
+            /** Action */
+            action: string;
+            /** Entity */
+            entity: string;
+            /** Ids */
+            ids?: string[];
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
         /** BillCreate */
         BillCreate: {
             /**
@@ -6674,6 +6887,16 @@ export interface components {
             kind: "bill_item" | "expense_claim_line";
             /** Markup Percent Override */
             markup_percent_override?: number | string | null;
+        };
+        /** BlockerResponse */
+        BlockerResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
         };
         /** Body_discover_from_sidecar_api_v1_jobs_discover_post */
         Body_discover_from_sidecar_api_v1_jobs_discover_post: {
@@ -7133,6 +7356,21 @@ export interface components {
             /** Change Due */
             change_due: string;
             sale: components["schemas"]["SaleResponse"];
+        };
+        /** ControlCenterResponse */
+        ControlCenterResponse: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            failed_jobs: components["schemas"]["SectionRead"];
+            low_stock_alerts: components["schemas"]["SectionRead"];
+            overdue_bills: components["schemas"]["AmountSectionRead"];
+            overdue_invoices: components["schemas"]["AmountSectionRead"];
+            pending_approvals: components["schemas"]["SectionRead"];
+            webhook_dlq: components["schemas"]["SectionRead"];
+            ws_health: components["schemas"]["WsHealthRead"];
         };
         /** CostBreakdownComponent */
         CostBreakdownComponent: {
@@ -11808,6 +12046,15 @@ export interface components {
             /** Barcode */
             barcode: string;
         };
+        /** SectionRead */
+        SectionRead: {
+            /** Count */
+            count: number;
+            /** Sample */
+            sample: {
+                [key: string]: unknown;
+            }[];
+        };
         /** SendStatementRequest */
         SendStatementRequest: {
             /**
@@ -12872,6 +13119,150 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** WebhookDeliveryRead */
+        WebhookDeliveryRead: {
+            /** Attempt Count */
+            attempt_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Event Id */
+            event_id?: string | null;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Response Code */
+            last_response_code?: number | null;
+            /**
+             * Last Status
+             * @enum {string}
+             */
+            last_status: "pending" | "delivered" | "failed" | "dead_letter";
+            /**
+             * Next Attempt At
+             * Format: date-time
+             */
+            next_attempt_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Subscription Id
+             * Format: uuid
+             */
+            subscription_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** WebhookSubscriptionCreate */
+        WebhookSubscriptionCreate: {
+            /** Event Types */
+            event_types?: string[];
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Target Url
+             * Format: uri
+             */
+            target_url: string;
+        };
+        /**
+         * WebhookSubscriptionCreated
+         * @description Same as :class:`WebhookSubscriptionRead` plus the one-time secret.
+         *
+         *     Returned only on create + rotate-secret PATCH. The secret is never
+         *     surfaced on GETs.
+         */
+        WebhookSubscriptionCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /** Event Types */
+            event_types: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Secret */
+            secret: string;
+            /** Target Url */
+            target_url: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** WebhookSubscriptionRead */
+        WebhookSubscriptionRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /** Event Types */
+            event_types: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Target Url */
+            target_url: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** WebhookSubscriptionUpdate */
+        WebhookSubscriptionUpdate: {
+            /** Event Types */
+            event_types?: string[] | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Rotate Secret
+             * @default false
+             */
+            rotate_secret: boolean;
+            /** Target Url */
+            target_url?: string | null;
+        };
         /** WithholdingProfileCreate */
         WithholdingProfileCreate: {
             /** Code */
@@ -12989,6 +13380,13 @@ export interface components {
             vendor_id: string;
             /** Vendor Number */
             vendor_number: string;
+        };
+        /** WsHealthRead */
+        WsHealthRead: {
+            /** Last Event At */
+            last_event_at?: string | null;
+            /** Moonraker Ws Connected */
+            moonraker_ws_connected: boolean;
         };
     };
     responses: never;
@@ -15341,6 +15739,72 @@ export interface operations {
             };
         };
     };
+    commit_api_v1_batch_commit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchSpec"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchCommitResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_v1_batch_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchSpec"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_bill_payments_api_v1_bill_payments_get: {
         parameters: {
             query?: {
@@ -15811,6 +16275,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_control_center_api_v1_control_center_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlCenterResponse"];
                 };
             };
         };
@@ -25504,6 +25988,286 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VendorYtdPaymentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deliveries_api_v1_webhooks_deliveries_get: {
+        parameters: {
+            query?: {
+                subscription_id?: string | null;
+                status?: ("pending" | "delivered" | "failed" | "dead_letter") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_delivery_api_v1_webhooks_deliveries__delivery_id__replay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookDeliveryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbound_carrier_api_v1_webhooks_inbound_carriers__provider__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbound_marketplace_api_v1_webhooks_inbound_marketplaces__provider__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_subscriptions_api_v1_webhooks_subscriptions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionRead"][];
+                };
+            };
+        };
+    };
+    create_subscription_api_v1_webhooks_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSubscriptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subscription_api_v1_webhooks_subscriptions__subscription_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subscription_api_v1_webhooks_subscriptions__subscription_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_subscription_api_v1_webhooks_subscriptions__subscription_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSubscriptionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscriptionRead"] | components["schemas"]["WebhookSubscriptionCreated"];
                 };
             };
             /** @description Validation Error */

@@ -101,6 +101,8 @@ import { RecurringComposerPage } from "@/pages/ar/RecurringComposer";
 import { RecurringDetailPage } from "@/pages/ar/RecurringDetail";
 import { RecurringListPage } from "@/pages/ar/RecurringList";
 import { EmailLogPage } from "@/pages/admin/EmailLog";
+import { ControlCenterPage } from "@/pages/ControlCenter";
+import { WebhooksSettingsPage } from "@/pages/settings/Webhooks";
 // --- end 7.8b AR routes ---
 // --- 8.12a AP routes ---
 import { VendorsListPage } from "@/pages/ap/VendorsList";
@@ -850,6 +852,26 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <EmailLogPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/control-center"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ControlCenterPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/webhooks"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <WebhooksSettingsPage />
             </AppShell>
           </RequireAuth>
         }
