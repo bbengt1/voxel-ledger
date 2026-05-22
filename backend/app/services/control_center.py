@@ -211,11 +211,25 @@ async def _webhook_dlq(session: AsyncSession) -> Section:
     return Section(count=count, sample=sample)
 
 
-def _ws_health() -> WsHealth:
-    # No live Moonraker WS connector lives in-process today; the
-    # printer monitor service polls HTTP. Surface "not connected" so
-    # the contract is honest until the WS layer lands.
-    return WsHealth(moonraker_ws_connected=False, last_event_at=None)
+async def _ws_health() -> WsHealth:
+    """Aggregate freshness across all monitored printers.
+
+    Reads the in-process ``PrinterMonitor`` singleton if it's already
+    been kicked off (by the first request that hit
+    ``/api/v1/printers/{id}/state``). If the monitor hasn't been
+    instantiated, this returns ``not connected`` without forcing it —
+    the Control Center read should never trigger background DB scans
+    or task spawns as a side effect.
+    """
+    from app.services.printer_monitor import monitor as monitor_module
+
+    instance = monitor_module._monitor
+    if instance is None:
+        return WsHealth(moonraker_ws_connected=False, last_event_at=None)
+    connected, last_event_at = instance.get_ws_health()
+    return WsHealth(
+        moonraker_ws_connected=connected, last_event_at=last_event_at
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +246,7 @@ async def build(session: AsyncSession) -> ControlCenter:
         overdue_bills=await _overdue_bills(session),
         failed_jobs=await _failed_jobs(session),
         webhook_dlq=await _webhook_dlq(session),
-        ws_health=_ws_health(),
+        ws_health=await _ws_health(),
     )
 
 

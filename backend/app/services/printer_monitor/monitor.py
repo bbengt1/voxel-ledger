@@ -297,6 +297,28 @@ class PrinterMonitor:
     def get_state(self, printer_id: uuid.UUID) -> PrinterState | None:
         return self._states.get(printer_id)
 
+    def get_ws_health(
+        self, *, freshness_seconds: float = 30.0
+    ) -> tuple[bool, datetime | None]:
+        """Aggregate "is any printer's status fresh?" + the most-recent
+        ``last_seen_at`` across all monitored printers.
+
+        Used by the Control Center to render the ``ws_health`` tile.
+        Returns ``(connected, last_event_at)`` where ``connected`` means
+        at least one monitored printer reported a status within the
+        freshness window.
+        """
+        most_recent: datetime | None = None
+        for state in self._states.values():
+            if state.last_seen_at is None:
+                continue
+            if most_recent is None or state.last_seen_at > most_recent:
+                most_recent = state.last_seen_at
+        if most_recent is None:
+            return False, None
+        delta = (datetime.now(UTC) - most_recent).total_seconds()
+        return delta <= freshness_seconds, most_recent
+
     def force_refresh(self, printer_id: uuid.UUID) -> bool:
         """Trigger an out-of-band probe. Returns True if the printer is
         being monitored, False otherwise."""
