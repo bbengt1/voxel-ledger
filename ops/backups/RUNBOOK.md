@@ -108,14 +108,27 @@ verify the latest known invoice number is present.
 
 ## 5. Drill (rehearsal)
 
-`drill.sh` runs the round-trip in CI and locally. It does NOT prove
-WAL-replay PITR (no privileged setup); it proves the dump + restore
-+ row-count parity + event-chain tail-hash path.
+Two modes, both run in CI on every PR:
+
+- **`drill.sh smoke`** — `pg_dump` → `pg_restore` round-trip against a
+  source DB. Proves the schema + data payload survives a logical
+  dump. Used as the per-PR data-payload gate.
+- **`drill.sh full`** — end-to-end `pg_basebackup` + WAL archive +
+  point-in-time restore. Self-contained: launches its own primary +
+  target Postgres containers via Docker, writes a synthetic event
+  table, takes a base, writes *more* rows, captures
+  `pg_current_wal_lsn()` as the recovery target, then verifies the
+  post-base rows replay in. Validates the OPS MECHANICS
+  (archive_command, restore_command, recovery_target_lsn,
+  promotion).
 
 ```bash
-# Against a local dev stack (after make bootstrap):
+# Smoke mode (data-payload round-trip).
 DRILL_SRC_URL="postgres://voxel:voxel@localhost:5432/voxel_ledger" \
   ops/backups/drill.sh smoke
+
+# Full mode (WAL-replay + PITR).
+DRILL_DST_PORT=5601 ops/backups/drill.sh full
 ```
 
 A real on-host drill (twice a year, scheduled):
@@ -130,9 +143,6 @@ A real on-host drill (twice a year, scheduled):
 
 ## 6. Limits + follow-ups
 
-- `drill.sh full` is documented but not scripted — operator-driven
-  for now. Automating it requires sudo + a privileged Postgres in
-  CI; that's a Phase 12 follow-up.
 - The S3-flavored offsite path (rclone / restic) is not wired
   here; the runbook uses `rsync` over SSH because that's what
   web01 currently has.

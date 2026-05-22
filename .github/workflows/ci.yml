@@ -224,6 +224,20 @@ jobs:
             DRILL_DST_PORT=5599 \
             ops/backups/drill.sh smoke
 
+  pitr-drill-full:
+    name: PITR drill (WAL-archive + base + replay, end-to-end)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Run full WAL-replay drill
+        run: |
+          DRILL_DST_PORT=5601 ops/backups/drill.sh full
+
   loadtests-smoke:
     name: Load tests (smoke, perf-budget enforcement)
     runs-on: ubuntu-latest
