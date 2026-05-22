@@ -27,11 +27,8 @@ export default tseslint.config(
       // The project uses the "label wraps input" convention; nesting
       // is the WCAG-acceptable form, but the default rule asks for
       // both nesting AND htmlFor. Configure to accept either.
-      // 18 deep-nesting cases remain; tracked as a follow-up rather
-      // than blocking CI on each new label. The rule still surfaces
-      // problems on touch; flip back to "error" once cleared.
       "jsx-a11y/label-has-associated-control": [
-        "warn",
+        "error",
         {
           assert: "either",
           depth: 5,
@@ -44,7 +41,11 @@ export default tseslint.config(
             "DatePicker",
             "EntityPicker",
             "AccountPicker",
+            "BankAccountPicker",
+            "CustomerPicker",
+            "ExpenseCategoryPicker",
             "TaxProfilePicker",
+            "VendorPicker",
             "Combobox",
           ],
         },

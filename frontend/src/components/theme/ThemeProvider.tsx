@@ -107,7 +107,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
  * Co-locating the hook keeps the public theme surface in one import path.
  * Fast refresh degrades to a full reload for this file, which is fine.
  */
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
