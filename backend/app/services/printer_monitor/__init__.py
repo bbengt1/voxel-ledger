@@ -39,10 +39,18 @@ from app.services.printer_monitor.monitor import (
     set_probe_factory,
     stop_monitor,
 )
+from app.services.printer_monitor.ws import (
+    MoonrakerWsClient,
+    StatusUpdate,
+    WsStatus,
+)
 
 __all__ = [
+    "MoonrakerWsClient",
     "PrinterMonitor",
     "PrinterState",
+    "StatusUpdate",
+    "WsStatus",
     "get_monitor",
     "set_probe_factory",
     "stop_monitor",

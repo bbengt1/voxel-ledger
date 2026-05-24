@@ -113,6 +113,35 @@ async def test_aggregates_each_section(client, app_session: AsyncSession) -> Non
 
 
 @pytest.mark.asyncio
+async def test_ws_health_reads_monitor_when_present(
+    client, app_session: AsyncSession
+) -> None:
+    """When the printer monitor is alive and has a fresh state, the
+    Control Center should reflect ``connected=True`` with the
+    monitor's most-recent ``last_seen_at``.
+    """
+    from datetime import UTC, datetime
+
+    from app.services.printer_monitor import PrinterMonitor, PrinterState
+    from app.services.printer_monitor import monitor as monitor_module
+
+    fake = PrinterMonitor.__new__(PrinterMonitor)
+    fake._states = {}  # type: ignore[attr-defined]
+    now = datetime.now(UTC)
+    pid = uuid.uuid4()
+    fake._states[pid] = PrinterState(  # type: ignore[attr-defined]
+        printer_id=pid, state="idle", last_seen_at=now
+    )
+    monitor_module._monitor = fake
+    try:
+        cc = await control_center.build(app_session)
+        assert cc.ws_health.moonraker_ws_connected is True
+        assert cc.ws_health.last_event_at is not None
+    finally:
+        monitor_module._monitor = None
+
+
+@pytest.mark.asyncio
 async def test_endpoint_role_matrix(client: AsyncClient, app_session: AsyncSession) -> None:
     sales_token = await token_for(Role.SALES, client, app_session)
     resp = await client.get(
