@@ -273,6 +273,11 @@ from app.models.webhook_inbound import (
     WebhookInboundStatus,
 )
 from app.models.withholding_profile import WithholdingProfile
+from app.models.worker_run_state import (
+    WORKER_RUN_STATUS_VALUES,
+    WorkerRunState,
+    WorkerRunStatus,
+)
 
 __all__ = [
     "ACCOUNTING_PERIOD_STATE_VALUES",
@@ -495,5 +500,8 @@ __all__ = [
     "WebhookInboundKind",
     "WebhookInboundStatus",
     "WebhookSubscription",
+    "WORKER_RUN_STATUS_VALUES",
     "WithholdingProfile",
+    "WorkerRunState",
+    "WorkerRunStatus",
 ]

@@ -24,6 +24,7 @@ from app.models.approval_request import ApprovalRequest, ApprovalState
 from app.models.bill import Bill, BillState
 from app.models.invoice import Invoice, InvoiceState
 from app.models.webhook import WebhookDelivery, WebhookDeliveryStatus
+from app.models.worker_run_state import WorkerRunState, WorkerRunStatus
 from app.services import inventory_alerts as low_stock_service
 
 SAMPLE_LIMIT: int = 5
@@ -173,11 +174,37 @@ async def _overdue_bills(session: AsyncSession) -> AmountSection:
     )
 
 
-async def _failed_jobs(_session: AsyncSession) -> Section:
-    # Worker run-state table doesn't exist yet; intentionally stub so
-    # the frontend contract is stable. When the run-state table lands,
-    # swap this for a real query (last_status='failed' in 24h).
-    return Section(count=0, sample=[])
+async def _failed_jobs(session: AsyncSession) -> Section:
+    """Worker runs that ended in ``failed`` within the last 24h.
+
+    Sourced from the ``worker_run_state`` table written by every
+    ``app/workers/registry.run_job`` invocation. A row stays in
+    ``failed`` state until the job runs again and succeeds, so this
+    naturally surfaces persistently-broken jobs.
+    """
+    from datetime import timedelta
+
+    cutoff = datetime.now(UTC) - timedelta(hours=24)
+    rows = (
+        await session.execute(
+            select(WorkerRunState)
+            .where(WorkerRunState.last_status == WorkerRunStatus.FAILED)
+            .where(WorkerRunState.last_finished_at >= cutoff)
+            .order_by(WorkerRunState.last_finished_at.desc())
+        )
+    ).scalars().all()
+    sample = [
+        {
+            "job_name": r.job_name,
+            "last_finished_at": (
+                r.last_finished_at.isoformat() if r.last_finished_at else None
+            ),
+            "last_error": (r.last_error or "")[:160] or None,
+            "duration_ms": r.last_duration_ms,
+        }
+        for r in rows[:SAMPLE_LIMIT]
+    ]
+    return Section(count=len(rows), sample=sample)
 
 
 async def _webhook_dlq(session: AsyncSession) -> Section:
