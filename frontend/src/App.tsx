@@ -51,6 +51,7 @@ import { WithholdingYtdReportPage } from "@/pages/withholding/WithholdingYtdRepo
 import { BalanceSheetPage } from "@/pages/reports/BalanceSheet";
 import { CashFlowPage } from "@/pages/reports/CashFlow";
 import { IncomeStatementPage } from "@/pages/reports/IncomeStatement";
+import { DivisionsComparisonPage } from "@/pages/reports/DivisionsComparison";
 import { TrialBalancePage } from "@/pages/reports/TrialBalance";
 // --- 10.8b imports (sales / inventory reports) ---
 import { InventoryValuationPage } from "@/pages/reports/InventoryValuation";
@@ -1421,6 +1422,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <TrialBalancePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports/divisions-comparison"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <DivisionsComparisonPage />
             </AppShell>
           </RequireAuth>
         }

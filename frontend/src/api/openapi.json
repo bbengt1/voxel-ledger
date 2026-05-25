@@ -5133,6 +5133,66 @@
         "title": "CheckoutResponse",
         "type": "object"
       },
+      "ComparisonColumnResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "division_id": {
+            "title": "Division Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "division_id",
+          "code",
+          "label"
+        ],
+        "title": "ComparisonColumnResponse",
+        "type": "object"
+      },
+      "ComparisonRowResponse": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "amounts": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Amounts",
+            "type": "object"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "section",
+          "amounts"
+        ],
+        "title": "ComparisonRowResponse",
+        "type": "object"
+      },
       "ControlCenterResponse": {
         "properties": {
           "as_of": {
@@ -7055,6 +7115,112 @@
           }
         },
         "title": "DivisionUpdateRequest",
+        "type": "object"
+      },
+      "DivisionsComparisonResponse": {
+        "properties": {
+          "cogs_rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRowResponse"
+            },
+            "title": "Cogs Rows",
+            "type": "array"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonColumnResponse"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "gross_profit": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Gross Profit",
+            "type": "object"
+          },
+          "net_income": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Net Income",
+            "type": "object"
+          },
+          "operating_expense_rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRowResponse"
+            },
+            "title": "Operating Expense Rows",
+            "type": "array"
+          },
+          "operating_income": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Operating Income",
+            "type": "object"
+          },
+          "revenue_rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRowResponse"
+            },
+            "title": "Revenue Rows",
+            "type": "array"
+          },
+          "total_cogs": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Total Cogs",
+            "type": "object"
+          },
+          "total_operating_expenses": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Total Operating Expenses",
+            "type": "object"
+          },
+          "total_revenue": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "title": "Total Revenue",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "columns",
+          "revenue_rows",
+          "cogs_rows",
+          "operating_expense_rows",
+          "total_revenue",
+          "total_cogs",
+          "gross_profit",
+          "total_operating_expenses",
+          "operating_income",
+          "net_income"
+        ],
+        "title": "DivisionsComparisonResponse",
         "type": "object"
       },
       "EmailAttachmentRef": {
@@ -40883,6 +41049,81 @@
           }
         ],
         "summary": "Cash Flow Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/divisions-comparison": {
+      "get": {
+        "description": "Per-division income statement side-by-side (Parity #229).\n\nEvery non-archived division gets its own column; lines without\na division contribute to a final ``(unallocated)`` column. CSV\nexport mirrors the table's column shape.",
+        "operationId": "divisions_comparison_report_api_v1_reports_divisions_comparison_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DivisionsComparisonResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Divisions Comparison Report",
         "tags": [
           "reports"
         ]
