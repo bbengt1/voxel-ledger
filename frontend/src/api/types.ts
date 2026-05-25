@@ -4497,6 +4497,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/saved-reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Saved Reports */
+        get: operations["list_saved_reports_api_v1_saved_reports_get"];
+        put?: never;
+        /** Create Saved Report */
+        post: operations["create_saved_report_api_v1_saved_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/saved-reports/{saved_report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Saved Report */
+        get: operations["get_saved_report_api_v1_saved_reports__saved_report_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Saved Report */
+        delete: operations["delete_saved_report_api_v1_saved_reports__saved_report_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Saved Report */
+        patch: operations["update_saved_report_api_v1_saved_reports__saved_report_id__patch"];
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -12154,6 +12191,52 @@ export interface components {
             name?: string | null;
             /** Slug */
             slug?: string | null;
+        };
+        /** SavedReportCreate */
+        SavedReportCreate: {
+            /** Filters */
+            filters?: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /** Report Kind */
+            report_kind: string;
+        };
+        /** SavedReportRead */
+        SavedReportRead: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Filters */
+            filters: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Report Kind */
+            report_kind: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SavedReportUpdate */
+        SavedReportUpdate: {
+            /** Filters */
+            filters?: {
+                [key: string]: unknown;
+            } | null;
+            /** Name */
+            name?: string | null;
         };
         /** ScanRequest */
         ScanRequest: {
@@ -24390,6 +24473,165 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShipmentResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_saved_reports_api_v1_saved_reports_get: {
+        parameters: {
+            query?: {
+                report_kind?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReportRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_saved_report_api_v1_saved_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_saved_report_api_v1_saved_reports__saved_report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                saved_report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_saved_report_api_v1_saved_reports__saved_report_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                saved_report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_saved_report_api_v1_saved_reports__saved_report_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                saved_report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReportUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReportRead"];
                 };
             };
             /** @description Validation Error */

@@ -18497,6 +18497,106 @@
         "title": "SalesChannelUpdate",
         "type": "object"
       },
+      "SavedReportCreate": {
+        "properties": {
+          "filters": {
+            "additionalProperties": true,
+            "title": "Filters",
+            "type": "object"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "report_kind": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Report Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "report_kind"
+        ],
+        "title": "SavedReportCreate",
+        "type": "object"
+      },
+      "SavedReportRead": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filters": {
+            "additionalProperties": true,
+            "title": "Filters",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "report_kind": {
+            "title": "Report Kind",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "report_kind",
+          "filters",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SavedReportRead",
+        "type": "object"
+      },
+      "SavedReportUpdate": {
+        "properties": {
+          "filters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filters"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "SavedReportUpdate",
+        "type": "object"
+      },
       "ScanRequest": {
         "properties": {
           "barcode": {
@@ -42160,6 +42260,251 @@
         "summary": "Create Shipment",
         "tags": [
           "shipments"
+        ]
+      }
+    },
+    "/api/v1/saved-reports": {
+      "get": {
+        "operationId": "list_saved_reports_api_v1_saved_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "report_kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Report Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SavedReportRead"
+                  },
+                  "title": "Response List Saved Reports Api V1 Saved Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Saved Reports",
+        "tags": [
+          "saved-reports"
+        ]
+      },
+      "post": {
+        "operationId": "create_saved_report_api_v1_saved_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Saved Report",
+        "tags": [
+          "saved-reports"
+        ]
+      }
+    },
+    "/api/v1/saved-reports/{saved_report_id}": {
+      "delete": {
+        "operationId": "delete_saved_report_api_v1_saved_reports__saved_report_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saved_report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Saved Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Saved Report",
+        "tags": [
+          "saved-reports"
+        ]
+      },
+      "get": {
+        "operationId": "get_saved_report_api_v1_saved_reports__saved_report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saved_report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Saved Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Saved Report",
+        "tags": [
+          "saved-reports"
+        ]
+      },
+      "patch": {
+        "operationId": "update_saved_report_api_v1_saved_reports__saved_report_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saved_report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Saved Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReportUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReportRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Saved Report",
+        "tags": [
+          "saved-reports"
         ]
       }
     },
