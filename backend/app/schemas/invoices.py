@@ -17,7 +17,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.billable_expenses import BillableSourceRef
 from app.schemas.customers import CustomerAddress
 
-InvoiceStateLiteral = Literal["draft", "issued", "partially_paid", "paid", "overdue", "void"]
+InvoiceStateLiteral = Literal[
+    "draft",
+    "issued",
+    "partially_paid",
+    "paid",
+    "overdue",
+    "void",
+    "written_off",
+]
 InvoiceItemKindLiteral = Literal["product", "job", "manual"]
 
 
@@ -132,3 +140,18 @@ class InvoiceStateTransitionRequest(BaseModel):
     """Reserved for any future per-transition payload (note, reason)."""
 
     note: str | None = None
+
+
+class InvoiceWriteOffRequest(BaseModel):
+    """Bad-debt write-off request (Parity #236).
+
+    All three fields are optional:
+      - ``bad_debt_account_id`` falls back to the
+        ``ar.default_bad_debt_account_id`` setting.
+      - ``posted_at`` defaults to ``now()``.
+      - ``reason`` is free text; never enters audit excerpts.
+    """
+
+    bad_debt_account_id: uuid.UUID | None = None
+    posted_at: datetime | None = None
+    reason: str | None = Field(default=None, max_length=4096)

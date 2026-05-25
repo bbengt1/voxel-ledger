@@ -412,6 +412,22 @@ class ArDefaultArAccountId(SettingSchema):
 
 
 @register
+class ArDefaultBadDebtAccountId(SettingSchema):
+    """Default bad-debt expense account for invoice write-offs
+    (Parity #236).
+
+    Debited when an invoice is written off; the matching credit goes
+    against the customer's / channel's AR account. Required only
+    when the operator calls write-off without passing an explicit
+    account id.
+    """
+
+    key: ClassVar[str] = "ar.default_bad_debt_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class ArDefaultSalesTaxPayableAccountId(SettingSchema):
     """Default sales-tax-payable liability account for invoice issuance
     (Phase 7.3, #111).

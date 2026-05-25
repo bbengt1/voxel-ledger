@@ -2515,6 +2515,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{invoice_id}/write-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write Off Invoice
+         * @description Write off the outstanding balance of an invoice as bad debt
+         *     (Parity #236).
+         *
+         *     DR ``bad_debt_account_id`` (defaults to the
+         *     ``ar.default_bad_debt_account_id`` setting) for
+         *     ``amount_outstanding``; CR the customer's AR account. Flips
+         *     invoice state to ``written_off`` and emits
+         *     ``ar.InvoiceWrittenOff``.
+         */
+        post: operations["write_off_invoice_api_v1_invoices__invoice_id__write_off_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -9286,7 +9313,7 @@ export interface components {
              * State
              * @enum {string}
              */
-            state: "draft" | "issued" | "partially_paid" | "paid" | "overdue" | "void";
+            state: "draft" | "issued" | "partially_paid" | "paid" | "overdue" | "void" | "written_off";
             /** Subtotal */
             subtotal: string;
             /** Tax Amount */
@@ -9327,6 +9354,24 @@ export interface components {
             notes?: string | null;
             /** Tax Amount */
             tax_amount?: number | string | null;
+        };
+        /**
+         * InvoiceWriteOffRequest
+         * @description Bad-debt write-off request (Parity #236).
+         *
+         *     All three fields are optional:
+         *       - ``bad_debt_account_id`` falls back to the
+         *         ``ar.default_bad_debt_account_id`` setting.
+         *       - ``posted_at`` defaults to ``now()``.
+         *       - ``reason`` is free text; never enters audit excerpts.
+         */
+        InvoiceWriteOffRequest: {
+            /** Bad Debt Account Id */
+            bad_debt_account_id?: string | null;
+            /** Posted At */
+            posted_at?: string | null;
+            /** Reason */
+            reason?: string | null;
         };
         /** JobCreate */
         JobCreate: {
@@ -19525,6 +19570,41 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": components["schemas"]["InvoiceStateTransitionRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    write_off_invoice_api_v1_invoices__invoice_id__write_off_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceWriteOffRequest"];
             };
         };
         responses: {

@@ -10284,7 +10284,8 @@
               "partially_paid",
               "paid",
               "overdue",
-              "void"
+              "void",
+              "written_off"
             ],
             "title": "State",
             "type": "string"
@@ -10431,6 +10432,49 @@
           }
         },
         "title": "InvoiceUpdate",
+        "type": "object"
+      },
+      "InvoiceWriteOffRequest": {
+        "description": "Bad-debt write-off request (Parity #236).\n\nAll three fields are optional:\n  - ``bad_debt_account_id`` falls back to the\n    ``ar.default_bad_debt_account_id`` setting.\n  - ``posted_at`` defaults to ``now()``.\n  - ``reason`` is free text; never enters audit excerpts.",
+        "properties": {
+          "bad_debt_account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bad Debt Account Id"
+          },
+          "posted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posted At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "InvoiceWriteOffRequest",
         "type": "object"
       },
       "JobCreate": {
@@ -33250,6 +33294,65 @@
           }
         ],
         "summary": "Void Invoice",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/{invoice_id}/write-off": {
+      "post": {
+        "description": "Write off the outstanding balance of an invoice as bad debt\n(Parity #236).\n\nDR ``bad_debt_account_id`` (defaults to the\n``ar.default_bad_debt_account_id`` setting) for\n``amount_outstanding``; CR the customer's AR account. Flips\ninvoice state to ``written_off`` and emits\n``ar.InvoiceWrittenOff``.",
+        "operationId": "write_off_invoice_api_v1_invoices__invoice_id__write_off_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceWriteOffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Write Off Invoice",
         "tags": [
           "invoices"
         ]

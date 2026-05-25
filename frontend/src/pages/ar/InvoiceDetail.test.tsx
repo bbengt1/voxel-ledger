@@ -126,4 +126,29 @@ describe("<InvoiceDetailPage /> credit-note inline composer", () => {
       expect(issued).toBe(true);
     });
   });
+
+  it("write-off flow posts to /write-off with the reason (Parity #236)", async () => {
+    const user = userEvent.setup();
+    let writeOffBody: Record<string, unknown> | undefined;
+    mock
+      .onPost(`/api/v1/invoices/${INVOICE_ID}/write-off`)
+      .reply((config) => {
+        writeOffBody = JSON.parse(config.data as string);
+        return [200, {}];
+      });
+
+    renderPage();
+
+    const action = await screen.findByTestId("action-write-off");
+    await user.click(action);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("write-off-dialog")).toBeInTheDocument();
+    });
+    await user.type(screen.getByTestId("write-off-reason"), "customer bankrupt");
+    await user.click(screen.getByTestId("action-write-off-confirm"));
+
+    await waitFor(() => expect(writeOffBody).toBeDefined());
+    expect(writeOffBody?.["reason"]).toBe("customer bankrupt");
+  });
 });

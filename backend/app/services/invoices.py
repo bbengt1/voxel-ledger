@@ -149,16 +149,28 @@ _TRANSITIONS: dict[InvoiceState, frozenset[InvoiceState]] = {
             InvoiceState.PAID,
             InvoiceState.OVERDUE,
             InvoiceState.VOID,
+            InvoiceState.WRITTEN_OFF,
         }
     ),
     InvoiceState.PARTIALLY_PAID: frozenset(
-        {InvoiceState.PAID, InvoiceState.OVERDUE, InvoiceState.VOID}
+        {
+            InvoiceState.PAID,
+            InvoiceState.OVERDUE,
+            InvoiceState.VOID,
+            InvoiceState.WRITTEN_OFF,
+        }
     ),
     InvoiceState.OVERDUE: frozenset(
-        {InvoiceState.PARTIALLY_PAID, InvoiceState.PAID, InvoiceState.VOID}
+        {
+            InvoiceState.PARTIALLY_PAID,
+            InvoiceState.PAID,
+            InvoiceState.VOID,
+            InvoiceState.WRITTEN_OFF,
+        }
     ),
     InvoiceState.PAID: frozenset(),
     InvoiceState.VOID: frozenset(),
+    InvoiceState.WRITTEN_OFF: frozenset(),
 }
 
 
@@ -1269,6 +1281,125 @@ async def void(
             },
             actor_user_id=actor_user_id,
         )
+    return invoice
+
+
+# ---------------------------------------------------------------------------
+# Bad-debt write-off (Parity #236)
+# ---------------------------------------------------------------------------
+
+
+class InvoiceWriteOffOutstandingZeroError(InvoiceServiceError):
+    """Mapped to 400."""
+
+
+async def write_off(
+    session: AsyncSession,
+    *,
+    invoice_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
+    bad_debt_account_id: uuid.UUID | None = None,
+    posted_at: datetime | None = None,
+    reason: str | None = None,
+) -> Invoice:
+    """Write off the outstanding balance of an invoice as bad debt.
+
+    Composes the bad-debt JE (DR bad-debt expense, CR AR for the
+    invoice's ``amount_outstanding``), posts via the standard
+    ``journal_entries.post()`` path (period-state + approval gating
+    are inherited), flips the invoice state to ``written_off``, and
+    emits ``ar.InvoiceWrittenOff``.
+
+    ``bad_debt_account_id`` defaults to the setting
+    ``ar.default_bad_debt_account_id``. Reject if neither is set.
+
+    Allowed source states: ``issued``, ``partially_paid``,
+    ``overdue``. Already-paid and already-void invoices are rejected
+    via the state-machine transition check.
+    """
+    invoice = await _load(session, invoice_id)
+    _ensure_transition(invoice.state, InvoiceState.WRITTEN_OFF)
+
+    outstanding = _q(invoice.amount_outstanding)
+    if outstanding <= _ZERO:
+        raise InvoiceWriteOffOutstandingZeroError(
+            f"invoice {invoice.invoice_number} has nothing to write off "
+            f"(amount_outstanding={invoice.amount_outstanding})"
+        )
+
+    if bad_debt_account_id is None:
+        resolved = await SettingsService.get(
+            "ar.default_bad_debt_account_id", session=session
+        )
+        if resolved is None:
+            raise MissingArPostingAccountError(
+                "set 'ar.default_bad_debt_account_id' or pass "
+                "bad_debt_account_id explicitly"
+            )
+        bad_debt_account_id = (
+            resolved if isinstance(resolved, uuid.UUID) else uuid.UUID(str(resolved))
+        )
+
+    customer = await _load_customer(session, invoice.customer_id)
+    ar_account_id = await _resolve_ar_account(session, customer=customer)
+    when = posted_at or datetime.now(UTC)
+
+    je = await journal_service.post(
+        journal_service.JournalEntryInput(
+            description=(
+                f"Write-off of invoice {invoice.invoice_number}"
+                + (f": {reason}" if reason else "")
+            ),
+            posted_at=when,
+            lines=[
+                journal_service.JournalLineInput(
+                    account_id=bad_debt_account_id,
+                    debit=outstanding,
+                    credit=_ZERO,
+                    line_number=1,
+                    memo=f"Bad debt for invoice {invoice.invoice_number}",
+                ),
+                journal_service.JournalLineInput(
+                    account_id=ar_account_id,
+                    debit=_ZERO,
+                    credit=outstanding,
+                    line_number=2,
+                    memo=f"Clear AR for written-off invoice {invoice.invoice_number}",
+                ),
+            ],
+        ),
+        session=session,
+        actor_user_id=actor_user_id,
+        _internal_skip_approval_check=False,
+    )
+    # JE posting could surface an ApprovalRequest if it crossed the
+    # threshold; reject that path here for clarity — operators can
+    # raise the threshold or approve via the JE-side workflow.
+    if not isinstance(je, JournalEntry):
+        raise InvoiceServiceError(
+            "write-off generated an approval request; raise the JE "
+            "approval threshold or approve via the JE workflow"
+        )
+
+    invoice.state = InvoiceState.WRITTEN_OFF
+    invoice.amount_outstanding = _ZERO
+    await session.flush()
+
+    await _emit(
+        session,
+        event_type=ar_events.TYPE_INVOICE_WRITTEN_OFF,
+        aggregate_id=invoice.id,
+        payload={
+            "invoice_id": str(invoice.id),
+            "invoice_number": invoice.invoice_number,
+            "customer_id": str(invoice.customer_id),
+            "amount": str(outstanding),
+            "bad_debt_account_id": str(bad_debt_account_id),
+            "journal_entry_id": str(je.id),
+            "reason": reason,
+        },
+        actor_user_id=actor_user_id,
+    )
     return invoice
 
 

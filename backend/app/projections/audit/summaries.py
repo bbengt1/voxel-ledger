@@ -1297,6 +1297,16 @@ register_summary(ar_events.TYPE_INVOICE_VOIDED, _invoice_voided)
 register_summary(ar_events.TYPE_INVOICE_REVERSED, _invoice_reversed)
 
 
+def _invoice_written_off(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} wrote off invoice {payload.get('invoice_number', '?')} "
+        f"(amount {payload.get('amount', '?')})"
+    )
+
+
+register_summary(ar_events.TYPE_INVOICE_WRITTEN_OFF, _invoice_written_off)
+
+
 # --- AR: payments + credit/debit notes + customer credit (Phase 7.4, #112) ---
 
 

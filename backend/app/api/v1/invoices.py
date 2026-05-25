@@ -31,6 +31,7 @@ from app.schemas.invoices import (
     InvoiceResponse,
     InvoiceStateTransitionRequest,
     InvoiceUpdate,
+    InvoiceWriteOffRequest,
 )
 from app.services import files as file_storage
 from app.services import invoices as invoices_service
@@ -236,6 +237,41 @@ async def void_invoice(
 ) -> InvoiceResponse:
     try:
         await invoices_service.void(session, invoice_id=invoice_id, actor_user_id=actor.id)
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    invoice = await invoices_service.get(session, invoice_id)
+    return _to_response(invoice)
+
+
+@router.post("/{invoice_id}/write-off", response_model=InvoiceResponse)
+async def write_off_invoice(
+    invoice_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    # Write-off recognizes bad debt as expense — accounting decision.
+    # Sales can issue/void but cannot write off.
+    actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+    payload: InvoiceWriteOffRequest,
+) -> InvoiceResponse:
+    """Write off the outstanding balance of an invoice as bad debt
+    (Parity #236).
+
+    DR ``bad_debt_account_id`` (defaults to the
+    ``ar.default_bad_debt_account_id`` setting) for
+    ``amount_outstanding``; CR the customer's AR account. Flips
+    invoice state to ``written_off`` and emits
+    ``ar.InvoiceWrittenOff``.
+    """
+    try:
+        await invoices_service.write_off(
+            session,
+            invoice_id=invoice_id,
+            actor_user_id=actor.id,
+            bad_debt_account_id=payload.bad_debt_account_id,
+            posted_at=payload.posted_at,
+            reason=payload.reason,
+        )
     except Exception as exc:
         await session.rollback()
         raise _map_error(exc) from None

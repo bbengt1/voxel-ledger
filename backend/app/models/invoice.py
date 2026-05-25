@@ -53,6 +53,11 @@ class InvoiceState(enum.StrEnum):
     PAID = "paid"
     OVERDUE = "overdue"
     VOID = "void"
+    # Parity #236: bad-debt write-off. Terminal state distinct from
+    # void — void means the invoice never happened; written_off
+    # means we recognized the outstanding balance as bad-debt
+    # expense.
+    WRITTEN_OFF = "written_off"
 
 
 class InvoiceItemKind(enum.StrEnum):
