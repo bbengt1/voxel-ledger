@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { SavedReportsControl } from "@/components/reports/SavedReportsControl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -149,6 +150,23 @@ export function IncomeStatementPage() {
           />
         </label>
       </div>
+
+      <SavedReportsControl
+        reportKind="income_statement"
+        currentFilters={{
+          date_from: dateFrom,
+          date_to: dateTo,
+          division_id: divisionId || null,
+        }}
+        onLoad={(filters) => {
+          const next = new URLSearchParams(params);
+          for (const [k, v] of Object.entries(filters)) {
+            if (v == null || v === "") next.delete(k);
+            else next.set(k, String(v));
+          }
+          setParams(next, { replace: true });
+        }}
+      />
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">

@@ -232,6 +232,7 @@ from app.models.sales_channel import (
     SalesChannelFeeModel,
     SalesChannelKind,
 )
+from app.models.saved_report import SavedReport
 from app.models.setting import Setting
 from app.models.settlement import (
     SETTLEMENT_LINE_KIND_VALUES,
@@ -500,6 +501,7 @@ __all__ = [
     "WebhookInboundKind",
     "WebhookInboundStatus",
     "WebhookSubscription",
+    "SavedReport",
     "WORKER_RUN_STATUS_VALUES",
     "WithholdingProfile",
     "WorkerRunState",

@@ -16,19 +16,19 @@ from app.api.v1.approvals import router as approvals_router
 from app.api.v1.attachments import router as attachments_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.banking import imports_router as bank_imports_router
-from app.api.v1.batch_ops import router as batch_ops_router
-from app.api.v1.control_center import router as control_center_router
 from app.api.v1.banking import mappings_router as bank_mappings_router
 from app.api.v1.banking import match_rules_router as bank_match_rules_router
 from app.api.v1.banking import reconciliations_router as bank_reconciliations_router
 from app.api.v1.banking import transactions_router as bank_transactions_router
 from app.api.v1.banking import transfers_router as inter_account_transfers_router
+from app.api.v1.batch_ops import router as batch_ops_router
 from app.api.v1.bill_payments import bill_payments_router
 from app.api.v1.billable_expenses import router as billable_expenses_router
 from app.api.v1.bills import router as bills_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.budgets import router as budgets_router
 from app.api.v1.cameras import router as cameras_router
+from app.api.v1.control_center import router as control_center_router
 from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.customers import router as customers_router
@@ -70,6 +70,7 @@ from app.api.v1.refunds import router as refunds_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
+from app.api.v1.saved_reports import router as saved_reports_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.settlements import router as settlements_router
 from app.api.v1.shipments import router as shipments_router
@@ -145,6 +146,7 @@ api_router.include_router(recurring_invoices_router)
 api_router.include_router(recurring_bills_router)
 api_router.include_router(late_fee_policies_router)
 api_router.include_router(reports_router)
+api_router.include_router(saved_reports_router)
 api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)
 # The statements router lives under /customers but is mounted last so
