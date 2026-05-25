@@ -412,6 +412,23 @@ class ArDefaultArAccountId(SettingSchema):
 
 
 @register
+class ArUndepositedFundsAccountId(SettingSchema):
+    """Default clearing account for payments awaiting deposit
+    (Parity #235).
+
+    Customer payments with ``deposit_to_undeposited=True`` debit
+    this account instead of the bank account. A ``deposit_slip``
+    later moves the consolidated balance to the bank account in a
+    single JE — matching how the bank statement reports the
+    deposit.
+    """
+
+    key: ClassVar[str] = "ar.undeposited_funds_account_id"
+    default: ClassVar[uuid.UUID | None] = None
+    value: uuid.UUID | None = None
+
+
+@register
 class ArDefaultBadDebtAccountId(SettingSchema):
     """Default bad-debt expense account for invoice write-offs
     (Parity #236).

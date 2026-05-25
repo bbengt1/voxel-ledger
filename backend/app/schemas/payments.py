@@ -24,6 +24,9 @@ class PaymentCreate(BaseModel):
     reference: str | None = Field(default=None, max_length=128)
     received_at: datetime | None = None
     notes: str | None = None
+    # Parity #235: when True, the apply-payment JE debits the
+    # undeposited-funds clearing account instead of the bank.
+    deposit_to_undeposited: bool = False
 
 
 class PaymentApplicationInput(BaseModel):

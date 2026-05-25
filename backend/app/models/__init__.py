@@ -97,6 +97,12 @@ from app.models.depreciation_schedule import (
     DepreciationEntryState,
     DepreciationScheduleEntry,
 )
+from app.models.deposit_slip import (
+    DEPOSIT_SLIP_STATE_VALUES,
+    DepositSlip,
+    DepositSlipItem,
+    DepositSlipState,
+)
 from app.models.division import Division
 from app.models.email_message import (
     EMAIL_KIND_VALUES,
@@ -501,6 +507,10 @@ __all__ = [
     "WebhookInboundKind",
     "WebhookInboundStatus",
     "WebhookSubscription",
+    "DEPOSIT_SLIP_STATE_VALUES",
+    "DepositSlip",
+    "DepositSlipItem",
+    "DepositSlipState",
     "SavedReport",
     "WORKER_RUN_STATUS_VALUES",
     "WithholdingProfile",

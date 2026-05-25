@@ -176,6 +176,7 @@ async def create_payment(
             received_at=payload.received_at,
             notes=payload.notes,
             actor_user_id=actor.id,
+            deposit_to_undeposited=payload.deposit_to_undeposited,
         )
     except Exception as exc:
         await session.rollback()

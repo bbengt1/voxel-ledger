@@ -1307,6 +1307,17 @@ def _invoice_written_off(payload: dict[str, Any], actor: str) -> str:
 register_summary(ar_events.TYPE_INVOICE_WRITTEN_OFF, _invoice_written_off)
 
 
+def _deposit_slip_built(payload: dict[str, Any], actor: str) -> str:
+    return (
+        f"{actor} built deposit slip {payload.get('slip_number', '?')} "
+        f"(total {payload.get('total', '?')}, "
+        f"{len(payload.get('payment_ids') or [])} payments)"
+    )
+
+
+register_summary(ar_events.TYPE_DEPOSIT_SLIP_BUILT, _deposit_slip_built)
+
+
 # --- AR: payments + credit/debit notes + customer credit (Phase 7.4, #112) ---
 
 

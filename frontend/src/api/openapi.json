@@ -6851,6 +6851,107 @@
         "title": "DebitNoteUpdate",
         "type": "object"
       },
+      "DepositSlipBuildRequest": {
+        "properties": {
+          "bank_account_id": {
+            "format": "uuid",
+            "title": "Bank Account Id",
+            "type": "string"
+          },
+          "deposit_date": {
+            "format": "date",
+            "title": "Deposit Date",
+            "type": "string"
+          },
+          "payment_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Payment Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "payment_ids",
+          "bank_account_id",
+          "deposit_date"
+        ],
+        "title": "DepositSlipBuildRequest",
+        "type": "object"
+      },
+      "DepositSlipResponse": {
+        "properties": {
+          "bank_account_id": {
+            "format": "uuid",
+            "title": "Bank Account Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deposit_date": {
+            "format": "date",
+            "title": "Deposit Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "posting_journal_entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Journal Entry Id"
+          },
+          "slip_number": {
+            "title": "Slip Number",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "draft",
+              "deposited",
+              "reconciled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "total_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slip_number",
+          "bank_account_id",
+          "deposit_date",
+          "total_amount",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DepositSlipResponse",
+        "type": "object"
+      },
       "DepreciationRunRequest": {
         "properties": {
           "period_end": {
@@ -13070,6 +13171,11 @@
             "format": "uuid",
             "title": "Customer Id",
             "type": "string"
+          },
+          "deposit_to_undeposited": {
+            "default": false,
+            "title": "Deposit To Undeposited",
+            "type": "boolean"
           },
           "method": {
             "enum": [
@@ -20762,6 +20868,59 @@
           "occurred_on"
         ],
         "title": "UnbilledRow",
+        "type": "object"
+      },
+      "UndepositedPaymentResponse": {
+        "properties": {
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "customer_id": {
+            "format": "uuid",
+            "title": "Customer Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "payment_number": {
+            "title": "Payment Number",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "required": [
+          "id",
+          "payment_number",
+          "customer_id",
+          "amount",
+          "method",
+          "received_at"
+        ],
+        "title": "UndepositedPaymentResponse",
         "type": "object"
       },
       "UserCreateRequest": {
@@ -30049,6 +30208,158 @@
         "summary": "Issue Debit Note",
         "tags": [
           "debit-notes"
+        ]
+      }
+    },
+    "/api/v1/deposit-slips": {
+      "get": {
+        "operationId": "list_deposit_slips_api_v1_deposit_slips_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DepositSlipResponse"
+                  },
+                  "title": "Response List Deposit Slips Api V1 Deposit Slips Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Deposit Slips",
+        "tags": [
+          "deposit-slips"
+        ]
+      },
+      "post": {
+        "operationId": "build_slip_api_v1_deposit_slips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepositSlipBuildRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositSlipResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Build Slip",
+        "tags": [
+          "deposit-slips"
+        ]
+      }
+    },
+    "/api/v1/deposit-slips/undeposited": {
+      "get": {
+        "operationId": "list_undeposited_api_v1_deposit_slips_undeposited_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UndepositedPaymentResponse"
+                  },
+                  "title": "Response List Undeposited Api V1 Deposit Slips Undeposited Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Undeposited",
+        "tags": [
+          "deposit-slips"
+        ]
+      }
+    },
+    "/api/v1/deposit-slips/{slip_id}": {
+      "get": {
+        "operationId": "get_deposit_slip_api_v1_deposit_slips__slip_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slip_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Slip Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepositSlipResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Deposit Slip",
+        "tags": [
+          "deposit-slips"
         ]
       }
     },
