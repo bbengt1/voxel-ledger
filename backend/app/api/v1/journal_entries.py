@@ -283,6 +283,7 @@ async def reverse_entry(
             session=session,
             actor_user_id=actor.id,
             description=payload.description,
+            posted_at=payload.posted_at,
         )
     except je_service.JournalEntriesServiceError as exc:
         await session.rollback()

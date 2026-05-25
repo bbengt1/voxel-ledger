@@ -112,14 +112,15 @@ describe("<JournalEntryDetailPage />", () => {
     expect(screen.getByTestId("reverse-entry")).toBeDisabled();
   });
 
-  it("disables reverse when entry is itself a reversal", async () => {
+  it("allows reverse on an entry that is itself a reversal (Parity #231)", async () => {
     setRole("owner");
     mock
       .onGet(`/api/v1/accounting/entries/${ID}`)
       .reply(200, entry({ reversal_of_entry_id: "prior-id" }));
     renderPage();
     await screen.findByText(/JE-1/i);
-    expect(screen.getByTestId("reverse-entry")).toBeDisabled();
+    // Reversing-a-reversal is now allowed; the button stays enabled.
+    expect(screen.getByTestId("reverse-entry")).not.toBeDisabled();
   });
 
   it("disables reverse for sales role", async () => {

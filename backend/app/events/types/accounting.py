@@ -98,6 +98,10 @@ class JournalEntryReversedPayload(_AccountingPayloadBase):
     original_entry_id: uuid.UUID
     reversal_entry_id: uuid.UUID
     reversal_entry_number: str
+    # True when the original being reversed was itself a reversal — an
+    # auditor's flag, not a workflow change. Defaults False so existing
+    # backfill / replay paths don't have to set it.
+    reversal_of_reversal: bool = False
 
 
 TYPE_JOURNAL_ENTRY_POSTED = "accounting.JournalEntryPosted"

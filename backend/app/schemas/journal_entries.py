@@ -35,6 +35,10 @@ class JournalEntryCreate(BaseModel):
 
 class JournalEntryReverseRequest(BaseModel):
     description: str | None = Field(default=None, max_length=4096)
+    # When None the service uses now(); operators typically point this
+    # at the FIRST day of the next open period so the closed period
+    # stays untouched.
+    posted_at: datetime | None = None
 
 
 class JournalLineResponse(BaseModel):

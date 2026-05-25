@@ -87,7 +87,13 @@ async def test_cannot_reverse_twice(session: AsyncSession, engine) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cannot_reverse_a_reversal(session: AsyncSession, engine) -> None:
+async def test_reversal_of_reversal_is_allowed_and_flagged(
+    session: AsyncSession, engine
+) -> None:
+    """Per Parity #231 the workflow allows reversing a reversal
+    (an adjusting entry can itself be later adjusted). The event
+    payload carries ``reversal_of_reversal=true`` so the audit log
+    surfaces it without needing to reconstruct the chain."""
     await ensure_schema(engine)
     owner = await seed_owner(session)
     cash = await seed_account(session, code="1000", name="Cash", type="asset")
@@ -95,9 +101,11 @@ async def test_cannot_reverse_a_reversal(session: AsyncSession, engine) -> None:
 
     original = await _balanced_pair(session, owner, cash, revenue)
     reversal = await svc.reverse(original.id, session=session, actor_user_id=owner.id)
-
-    with pytest.raises(svc.JournalEntryIsReversalError):
-        await svc.reverse(reversal.id, session=session, actor_user_id=owner.id)
+    # Reversing the reversal must succeed.
+    second_reversal = await svc.reverse(
+        reversal.id, session=session, actor_user_id=owner.id
+    )
+    assert second_reversal.reversal_of_entry_id == reversal.id
 
 
 @pytest.mark.asyncio
@@ -120,3 +128,36 @@ async def test_reversed_event_is_balance_noop(session: AsyncSession, engine) -> 
     assert by_account[cash.id].total_credits == Decimal("100.000000")
     assert by_account[revenue.id].total_debits == Decimal("100.000000")
     assert by_account[revenue.id].total_credits == Decimal("100.000000")
+
+
+@pytest.mark.asyncio
+async def test_reverse_with_explicit_posted_at(
+    session: AsyncSession, engine
+) -> None:
+    """Bookkeepers typically back-date or forward-date a reversal to
+    the first day of the next open period. The service accepts an
+    explicit ``posted_at`` and uses it on the reversal entry."""
+    from datetime import timedelta
+
+    await ensure_schema(engine)
+    owner = await seed_owner(session)
+    cash = await seed_account(session, code="1000", name="Cash", type="asset")
+    revenue = await seed_account(session, code="4000", name="Revenue", type="revenue")
+
+    original = await _balanced_pair(session, owner, cash, revenue)
+    target = now_utc() + timedelta(days=1)
+    reversal = await svc.reverse(
+        original.id,
+        session=session,
+        actor_user_id=owner.id,
+        posted_at=target,
+    )
+    # The reversal sits on the requested date, not now(). SQLite
+    # returns the timestamp naive; strip tz on the target to compare.
+    persisted = reversal.posted_at
+    if persisted.tzinfo is not None:
+        persisted = persisted.replace(tzinfo=None)
+    target_naive = target.replace(tzinfo=None)
+    assert (
+        abs((persisted - target_naive).total_seconds()) < 2
+    ), f"posted_at not honored: {persisted!r} vs {target_naive!r}"
