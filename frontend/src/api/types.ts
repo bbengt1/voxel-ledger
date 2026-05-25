@@ -4220,6 +4220,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/divisions-comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Divisions Comparison Report
+         * @description Per-division income statement side-by-side (Parity #229).
+         *
+         *     Every non-archived division gets its own column; lines without
+         *     a division contribute to a final ``(unallocated)`` column. CSV
+         *     export mirrors the table's column shape.
+         */
+        get: operations["divisions_comparison_report_api_v1_reports_divisions_comparison_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/general-ledger-detail": {
         parameters: {
             query?: never;
@@ -7467,6 +7491,30 @@ export interface components {
             change_due: string;
             sale: components["schemas"]["SaleResponse"];
         };
+        /** ComparisonColumnResponse */
+        ComparisonColumnResponse: {
+            /** Code */
+            code: string;
+            /** Division Id */
+            division_id: string;
+            /** Label */
+            label: string;
+        };
+        /** ComparisonRowResponse */
+        ComparisonRowResponse: {
+            /** Account Id */
+            account_id: string;
+            /** Amounts */
+            amounts: {
+                [key: string]: string;
+            };
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Section */
+            section: string;
+        };
         /** ControlCenterResponse */
         ControlCenterResponse: {
             /**
@@ -8151,6 +8199,51 @@ export interface components {
         DivisionUpdateRequest: {
             /** Name */
             name?: string | null;
+        };
+        /** DivisionsComparisonResponse */
+        DivisionsComparisonResponse: {
+            /** Cogs Rows */
+            cogs_rows: components["schemas"]["ComparisonRowResponse"][];
+            /** Columns */
+            columns: components["schemas"]["ComparisonColumnResponse"][];
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Gross Profit */
+            gross_profit: {
+                [key: string]: string;
+            };
+            /** Net Income */
+            net_income: {
+                [key: string]: string;
+            };
+            /** Operating Expense Rows */
+            operating_expense_rows: components["schemas"]["ComparisonRowResponse"][];
+            /** Operating Income */
+            operating_income: {
+                [key: string]: string;
+            };
+            /** Revenue Rows */
+            revenue_rows: components["schemas"]["ComparisonRowResponse"][];
+            /** Total Cogs */
+            total_cogs: {
+                [key: string]: string;
+            };
+            /** Total Operating Expenses */
+            total_operating_expenses: {
+                [key: string]: string;
+            };
+            /** Total Revenue */
+            total_revenue: {
+                [key: string]: string;
+            };
         };
         /** EmailAttachmentRef */
         EmailAttachmentRef: {
@@ -23848,6 +23941,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    divisions_comparison_report_api_v1_reports_divisions_comparison_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DivisionsComparisonResponse"];
                 };
             };
             /** @description Validation Error */

@@ -30,6 +30,11 @@ from app.schemas.cash_flow import (
     CashFlowLineResponse,
     CashFlowResponse,
 )
+from app.schemas.divisions_comparison import (
+    ComparisonColumnResponse,
+    ComparisonRowResponse,
+    DivisionsComparisonResponse,
+)
 from app.schemas.general_ledger_detail import (
     LedgerDetailResponse,
     LedgerLineResponse,
@@ -62,6 +67,7 @@ from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 from app.services.reports import balance_sheet as balance_sheet_service
 from app.services.reports import cash_flow as cash_flow_service
+from app.services.reports import divisions_comparison as divisions_comparison_service
 from app.services.reports import general_ledger_detail as gl_detail_service
 from app.services.reports import income_statement as income_statement_service
 from app.services.reports import inventory_valuation as inventory_valuation_service
@@ -497,6 +503,72 @@ async def general_ledger_detail_report(
             )
             for s in report.sections
         ],
+    )  # type: ignore[return-value]
+
+
+@router.get(
+    "/divisions-comparison",
+    response_model=DivisionsComparisonResponse,
+)
+async def divisions_comparison_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    """Per-division income statement side-by-side (Parity #229).
+
+    Every non-archived division gets its own column; lines without
+    a division contribute to a final ``(unallocated)`` column. CSV
+    export mirrors the table's column shape.
+    """
+    try:
+        report = await divisions_comparison_service.build(
+            session, date_from=date_from, date_to=date_to
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = divisions_comparison_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": (
+                    'attachment; filename="divisions-comparison.csv"'
+                )
+            },
+        )
+
+    def _row(r) -> ComparisonRowResponse:
+        return ComparisonRowResponse(
+            account_id=r.account_id,
+            code=r.code,
+            name=r.name,
+            section=r.section,
+            amounts=r.amounts,
+        )
+
+    return DivisionsComparisonResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        columns=[
+            ComparisonColumnResponse(
+                division_id=c.division_id, code=c.code, label=c.label
+            )
+            for c in report.columns
+        ],
+        revenue_rows=[_row(r) for r in report.revenue_rows],
+        cogs_rows=[_row(r) for r in report.cogs_rows],
+        operating_expense_rows=[_row(r) for r in report.operating_expense_rows],
+        total_revenue=report.total_revenue,
+        total_cogs=report.total_cogs,
+        gross_profit=report.gross_profit,
+        total_operating_expenses=report.total_operating_expenses,
+        operating_income=report.operating_income,
+        net_income=report.net_income,
     )  # type: ignore[return-value]
 
 

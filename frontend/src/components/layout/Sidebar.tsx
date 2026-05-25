@@ -129,6 +129,7 @@ const SECTIONS: NavSection[] = [
       { label: "Balance sheet", href: "/reports/balance-sheet" },
       { label: "Cash flow", href: "/reports/cash-flow" },
       { label: "Trial balance", href: "/reports/trial-balance" },
+      { label: "Divisions comparison", href: "/reports/divisions-comparison" },
       { label: "Sales by period", href: "/reports/sales-by-period" },
       { label: "Inventory valuation", href: "/reports/inventory-valuation" },
       { label: "AR aging", href: "/reports/ar-aging" },
