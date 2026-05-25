@@ -30,6 +30,11 @@ from app.schemas.cash_flow import (
     CashFlowLineResponse,
     CashFlowResponse,
 )
+from app.schemas.general_ledger_detail import (
+    LedgerDetailResponse,
+    LedgerLineResponse,
+    LedgerSectionResponse,
+)
 from app.schemas.income_statement import (
     IncomeStatementResponse,
     IncomeStatementRowResponse,
@@ -57,6 +62,7 @@ from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 from app.services.reports import balance_sheet as balance_sheet_service
 from app.services.reports import cash_flow as cash_flow_service
+from app.services.reports import general_ledger_detail as gl_detail_service
 from app.services.reports import income_statement as income_statement_service
 from app.services.reports import inventory_valuation as inventory_valuation_service
 from app.services.reports import sales_by_period as sales_by_period_service
@@ -418,6 +424,79 @@ async def trial_balance_report(
         ],
         total_period_debit=report.total_period_debit,
         total_period_credit=report.total_period_credit,
+    )  # type: ignore[return-value]
+
+
+@router.get("/general-ledger-detail", response_model=LedgerDetailResponse)
+async def general_ledger_detail_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    date_from: Annotated[date_type, Query(...)],
+    date_to: Annotated[date_type, Query(...)],
+    account_id: Annotated[uuid.UUID | None, Query()] = None,
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    """Per-account drill-down behind the trial balance.
+
+    Returns one section per touched account (or just the
+    ``account_id``-filtered one) with opening balance + every JE
+    line in the window + running balance + closing balance. CSV
+    export via ``?format=csv``.
+    """
+    try:
+        report = await gl_detail_service.build(
+            session,
+            date_from=date_from,
+            date_to=date_to,
+            account_id=account_id,
+            division_id=division_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = gl_detail_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": (
+                    'attachment; filename="general-ledger-detail.csv"'
+                )
+            },
+        )
+
+    return LedgerDetailResponse(
+        date_from=report.date_from,
+        date_to=report.date_to,
+        account_id=uuid.UUID(report.account_id) if report.account_id else None,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        sections=[
+            LedgerSectionResponse(
+                account_id=uuid.UUID(s.account_id),
+                code=s.code,
+                name=s.name,
+                type=s.type,
+                opening_balance=s.opening_balance,
+                closing_balance=s.closing_balance,
+                period_debit=s.period_debit,
+                period_credit=s.period_credit,
+                lines=[
+                    LedgerLineResponse(
+                        journal_entry_id=uuid.UUID(line.journal_entry_id),
+                        entry_number=line.entry_number,
+                        posted_at=line.posted_at,
+                        description=line.description,
+                        debit=line.debit,
+                        credit=line.credit,
+                        running_balance=line.running_balance,
+                    )
+                    for line in s.lines
+                ],
+            )
+            for s in report.sections
+        ],
     )  # type: ignore[return-value]
 
 
