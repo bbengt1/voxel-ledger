@@ -25,6 +25,7 @@ type CreditNoteResponse = components["schemas"]["CreditNoteResponse"];
 type DebitNoteResponse = components["schemas"]["DebitNoteResponse"];
 
 const WRITE_ROLES: readonly string[] = ["owner", "sales", "bookkeeper"];
+const WRITE_OFF_ROLES: readonly string[] = ["owner", "bookkeeper"];
 
 type Inline = "none" | "credit" | "debit";
 
@@ -33,6 +34,7 @@ export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const role = useAuthStore((s) => s.user?.role);
   const canWrite = role ? WRITE_ROLES.includes(role) : false;
+  const canWriteOff = role ? WRITE_OFF_ROLES.includes(role) : false;
 
   const [invoice, setInvoice] = useState<InvoiceResponse | null>(null);
   const [creditNotes, setCreditNotes] = useState<CreditNoteResponse[]>([]);
@@ -41,6 +43,8 @@ export function InvoiceDetailPage() {
   const [busy, setBusy] = useState(false);
   const [issueOpen, setIssueOpen] = useState(false);
   const [inline, setInline] = useState<Inline>("none");
+  const [writeOffOpen, setWriteOffOpen] = useState(false);
+  const [writeOffReason, setWriteOffReason] = useState("");
 
   const refetch = useCallback(async () => {
     if (!id) return;
@@ -116,6 +120,29 @@ export function InvoiceDetailPage() {
     window.open(`/api/v1/invoices/${id}/pdf`, "_blank", "noopener,noreferrer");
   }
 
+  async function writeOff() {
+    if (!id) return;
+    setBusy(true);
+    try {
+      await apiClient.post(`/api/v1/invoices/${id}/write-off`, {
+        reason: writeOffReason.trim() || null,
+      });
+      setWriteOffOpen(false);
+      setWriteOffReason("");
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(
+        typeof detail === "string"
+          ? detail
+          : "Could not write off invoice.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!invoice) {
     return error ? (
       <p role="alert" className="text-sm text-destructive">
@@ -135,6 +162,12 @@ export function InvoiceDetailPage() {
     invoice.state === "partially_paid" ||
     invoice.state === "overdue";
   const canIssueNotes = canRecordPayment || invoice.state === "paid";
+  const canWriteOffNow =
+    canWriteOff &&
+    (invoice.state === "issued" ||
+      invoice.state === "overdue" ||
+      invoice.state === "partially_paid") &&
+    Number(invoice.amount_outstanding || 0) > 0;
 
   return (
     <section className="space-y-4">
@@ -228,6 +261,62 @@ export function InvoiceDetailPage() {
               </Button>
             </>
           ) : null}
+          {canWriteOffNow ? (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setWriteOffOpen(true)}
+              data-testid="action-write-off"
+            >
+              Write off
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {writeOffOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-testid="write-off-dialog"
+          className="rounded border border-border bg-card p-4 text-sm shadow-sm"
+        >
+          <div className="font-medium">
+            Write off ${invoice.amount_outstanding} as bad debt?
+          </div>
+          <p className="pt-1 text-muted-foreground">
+            Posts DR to the configured bad-debt expense account and CR
+            to AR. The invoice flips to <code>written_off</code>.
+          </p>
+          <label className="mt-3 block">
+            <span className="text-xs">Reason (optional)</span>
+            <textarea
+              value={writeOffReason}
+              onChange={(e) => setWriteOffReason(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background p-2 text-sm"
+              data-testid="write-off-reason"
+            />
+          </label>
+          <div className="mt-3 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setWriteOffOpen(false);
+                setWriteOffReason("");
+              }}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => void writeOff()}
+              disabled={busy}
+              data-testid="action-write-off-confirm"
+            >
+              Confirm write-off
+            </Button>
+          </div>
         </div>
       ) : null}
 

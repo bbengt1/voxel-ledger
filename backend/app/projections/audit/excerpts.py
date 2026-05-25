@@ -877,6 +877,18 @@ register_excerpt_fields(
         "original_journal_entry_id",
     ),
 )
+# Parity #236 InvoiceWrittenOff. PII RULE: ``reason`` is free text;
+# never whitelist it.
+register_excerpt_fields(
+    ar_events.TYPE_INVOICE_WRITTEN_OFF,
+    (
+        "invoice_number",
+        "customer_id",
+        "amount",
+        "bad_debt_account_id",
+        "journal_entry_id",
+    ),
+)
 
 
 # ---------------------------------------------------------------------------

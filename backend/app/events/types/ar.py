@@ -17,6 +17,7 @@ the audit denormalization keeps strictly to ``customer_number`` and
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -267,12 +268,26 @@ class InvoiceReversedPayload(_ARPayloadBase):
     original_journal_entry_id: uuid.UUID
 
 
+class InvoiceWrittenOffPayload(_ARPayloadBase):
+    """Bad-debt write-off (Parity #236). Note that ``reason`` is free
+    text; it must NOT be whitelisted into audit excerpts."""
+
+    invoice_id: uuid.UUID
+    invoice_number: str
+    customer_id: uuid.UUID
+    amount: Decimal
+    bad_debt_account_id: uuid.UUID
+    journal_entry_id: uuid.UUID
+    reason: str | None = None
+
+
 TYPE_INVOICE_CREATED = "ar.InvoiceCreated"
 TYPE_INVOICE_UPDATED = "ar.InvoiceUpdated"
 TYPE_INVOICE_ISSUED = "ar.InvoiceIssued"
 TYPE_INVOICE_POSTED = "ar.InvoicePosted"
 TYPE_INVOICE_VOIDED = "ar.InvoiceVoided"
 TYPE_INVOICE_REVERSED = "ar.InvoiceReversed"
+TYPE_INVOICE_WRITTEN_OFF = "ar.InvoiceWrittenOff"
 
 
 register_event(TYPE_INVOICE_CREATED, InvoiceCreatedPayload)
@@ -281,6 +296,7 @@ register_event(TYPE_INVOICE_ISSUED, InvoiceIssuedPayload)
 register_event(TYPE_INVOICE_POSTED, InvoicePostedPayload)
 register_event(TYPE_INVOICE_VOIDED, InvoiceVoidedPayload)
 register_event(TYPE_INVOICE_REVERSED, InvoiceReversedPayload)
+register_event(TYPE_INVOICE_WRITTEN_OFF, InvoiceWrittenOffPayload)
 
 
 # --- Payments (Phase 7.4, #112) ---------------------------------------------
