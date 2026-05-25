@@ -26,6 +26,10 @@ from app.schemas.balance_sheet import (
     BalanceSheetResponse,
     BalanceSheetRowResponse,
 )
+from app.schemas.budget_variance import (
+    BudgetVarianceResponse,
+    BudgetVarianceRowResponse,
+)
 from app.schemas.cash_flow import (
     CashFlowLineResponse,
     CashFlowResponse,
@@ -66,6 +70,7 @@ from app.schemas.trial_balance import (
 from app.services.reports import ap_aging as ap_aging_service
 from app.services.reports import ar_aging as ar_aging_service
 from app.services.reports import balance_sheet as balance_sheet_service
+from app.services.reports import budget_variance as budget_variance_service
 from app.services.reports import cash_flow as cash_flow_service
 from app.services.reports import divisions_comparison as divisions_comparison_service
 from app.services.reports import general_ledger_detail as gl_detail_service
@@ -569,6 +574,66 @@ async def divisions_comparison_report(
         total_operating_expenses=report.total_operating_expenses,
         operating_income=report.operating_income,
         net_income=report.net_income,
+    )  # type: ignore[return-value]
+
+
+@router.get("/budget-variance", response_model=BudgetVarianceResponse)
+async def budget_variance_report(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role(*_READ_ROLES))],
+    period_id: Annotated[uuid.UUID, Query(...)],
+    division_id: Annotated[uuid.UUID | None, Query()] = None,
+    format: Annotated[str | None, Query()] = None,
+) -> Response:
+    """Budget vs actual variance for an ``accounting_period`` (Parity
+    #227). When ``division_id`` is set, both sides are filtered to
+    that division."""
+    try:
+        report = await budget_variance_service.build(
+            session, period_id=period_id, division_id=division_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    if format == "csv":
+        body = budget_variance_service.to_csv(report)
+        return PlainTextResponse(
+            content=body,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": (
+                    'attachment; filename="budget-variance.csv"'
+                )
+            },
+        )
+
+    def _row(r) -> BudgetVarianceRowResponse:
+        return BudgetVarianceRowResponse(
+            account_id=uuid.UUID(r.account_id),
+            code=r.code,
+            name=r.name,
+            section=r.section,
+            budget=r.budget,
+            actual=r.actual,
+            variance=r.variance,
+            variance_pct=r.variance_pct,
+        )
+
+    return BudgetVarianceResponse(
+        period_id=uuid.UUID(report.period_id),
+        period_name=report.period_name,
+        date_from=report.date_from,
+        date_to=report.date_to,
+        division_id=uuid.UUID(report.division_id) if report.division_id else None,
+        revenue_rows=[_row(r) for r in report.revenue_rows],
+        cogs_rows=[_row(r) for r in report.cogs_rows],
+        operating_expense_rows=[_row(r) for r in report.operating_expense_rows],
+        total_revenue_budget=report.total_revenue_budget,
+        total_revenue_actual=report.total_revenue_actual,
+        total_cogs_budget=report.total_cogs_budget,
+        total_cogs_actual=report.total_cogs_actual,
+        total_operating_expense_budget=report.total_operating_expense_budget,
+        total_operating_expense_actual=report.total_operating_expense_actual,
     )  # type: ignore[return-value]
 
 
