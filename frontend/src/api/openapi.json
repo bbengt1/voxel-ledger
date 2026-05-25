@@ -4484,28 +4484,6 @@
         "title": "BudgetUpsertRequest",
         "type": "object"
       },
-      "BudgetVarianceResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/BudgetVarianceRow"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "period_id": {
-            "format": "uuid",
-            "title": "Period Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "period_id",
-          "items"
-        ],
-        "title": "BudgetVarianceResponse",
-        "type": "object"
-      },
       "BudgetVarianceRow": {
         "properties": {
           "account_code": {
@@ -4587,6 +4565,65 @@
           "variance_pct"
         ],
         "title": "BudgetVarianceRow",
+        "type": "object"
+      },
+      "BudgetVarianceRowResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Actual",
+            "type": "string"
+          },
+          "budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Budget",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          },
+          "variance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Variance",
+            "type": "string"
+          },
+          "variance_pct": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variance Pct"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "section",
+          "budget",
+          "actual",
+          "variance"
+        ],
+        "title": "BudgetVarianceRowResponse",
         "type": "object"
       },
       "BulkSettingUpdateRequest": {
@@ -22577,6 +22614,131 @@
         ],
         "title": "WsHealthRead",
         "type": "object"
+      },
+      "app__schemas__budget_variance__BudgetVarianceResponse": {
+        "properties": {
+          "cogs_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Cogs Rows",
+            "type": "array"
+          },
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "operating_expense_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Operating Expense Rows",
+            "type": "array"
+          },
+          "period_id": {
+            "format": "uuid",
+            "title": "Period Id",
+            "type": "string"
+          },
+          "period_name": {
+            "title": "Period Name",
+            "type": "string"
+          },
+          "revenue_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Revenue Rows",
+            "type": "array"
+          },
+          "total_cogs_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cogs Actual",
+            "type": "string"
+          },
+          "total_cogs_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cogs Budget",
+            "type": "string"
+          },
+          "total_operating_expense_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Operating Expense Actual",
+            "type": "string"
+          },
+          "total_operating_expense_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Operating Expense Budget",
+            "type": "string"
+          },
+          "total_revenue_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Revenue Actual",
+            "type": "string"
+          },
+          "total_revenue_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Revenue Budget",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "period_name",
+          "date_from",
+          "date_to",
+          "revenue_rows",
+          "cogs_rows",
+          "operating_expense_rows",
+          "total_revenue_budget",
+          "total_revenue_actual",
+          "total_cogs_budget",
+          "total_cogs_actual",
+          "total_operating_expense_budget",
+          "total_operating_expense_actual"
+        ],
+        "title": "BudgetVarianceResponse",
+        "type": "object"
+      },
+      "app__schemas__budgets__BudgetVarianceResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "period_id": {
+            "format": "uuid",
+            "title": "Period Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "items"
+        ],
+        "title": "BudgetVarianceResponse",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -22884,7 +23046,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BudgetVarianceResponse"
+                  "$ref": "#/components/schemas/app__schemas__budgets__BudgetVarianceResponse"
                 }
               }
             },
@@ -40958,6 +41120,88 @@
           }
         ],
         "summary": "Balance Sheet Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/reports/budget-variance": {
+      "get": {
+        "description": "Budget vs actual variance for an ``accounting_period`` (Parity\n#227). When ``division_id`` is set, both sides are filtered to\nthat division.",
+        "operationId": "budget_variance_report_api_v1_reports_budget_variance_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Period Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Division Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__schemas__budget_variance__BudgetVarianceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Budget Variance Report",
         "tags": [
           "reports"
         ]

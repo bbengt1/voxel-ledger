@@ -4203,6 +4203,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/budget-variance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Budget Variance Report
+         * @description Budget vs actual variance for an ``accounting_period`` (Parity
+         *     #227). When ``division_id`` is set, both sides are filtered to
+         *     that division.
+         */
+        get: operations["budget_variance_report_api_v1_reports_budget_variance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/cash-flow": {
         parameters: {
             query?: never;
@@ -7234,16 +7256,6 @@ export interface components {
              */
             period_id: string;
         };
-        /** BudgetVarianceResponse */
-        BudgetVarianceResponse: {
-            /** Items */
-            items: components["schemas"]["BudgetVarianceRow"][];
-            /**
-             * Period Id
-             * Format: uuid
-             */
-            period_id: string;
-        };
         /** BudgetVarianceRow */
         BudgetVarianceRow: {
             /** Account Code */
@@ -7272,6 +7284,28 @@ export interface components {
             variance: string;
             /** Variance Pct */
             variance_pct: string;
+        };
+        /** BudgetVarianceRowResponse */
+        BudgetVarianceRowResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Actual */
+            actual: string;
+            /** Budget */
+            budget: string;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Section */
+            section: string;
+            /** Variance */
+            variance: string;
+            /** Variance Pct */
+            variance_pct?: string | null;
         };
         /**
          * BulkSettingUpdateRequest
@@ -13749,6 +13783,56 @@ export interface components {
             /** Moonraker Ws Connected */
             moonraker_ws_connected: boolean;
         };
+        /** BudgetVarianceResponse */
+        app__schemas__budget_variance__BudgetVarianceResponse: {
+            /** Cogs Rows */
+            cogs_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Operating Expense Rows */
+            operating_expense_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /**
+             * Period Id
+             * Format: uuid
+             */
+            period_id: string;
+            /** Period Name */
+            period_name: string;
+            /** Revenue Rows */
+            revenue_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /** Total Cogs Actual */
+            total_cogs_actual: string;
+            /** Total Cogs Budget */
+            total_cogs_budget: string;
+            /** Total Operating Expense Actual */
+            total_operating_expense_actual: string;
+            /** Total Operating Expense Budget */
+            total_operating_expense_budget: string;
+            /** Total Revenue Actual */
+            total_revenue_actual: string;
+            /** Total Revenue Budget */
+            total_revenue_budget: string;
+        };
+        /** BudgetVarianceResponse */
+        app__schemas__budgets__BudgetVarianceResponse: {
+            /** Items */
+            items: components["schemas"]["BudgetVarianceRow"][];
+            /**
+             * Period Id
+             * Format: uuid
+             */
+            period_id: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -13906,7 +13990,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BudgetVarianceResponse"];
+                    "application/json": components["schemas"]["app__schemas__budgets__BudgetVarianceResponse"];
                 };
             };
             /** @description Validation Error */
@@ -23907,6 +23991,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BalanceSheetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    budget_variance_report_api_v1_reports_budget_variance_get: {
+        parameters: {
+            query: {
+                period_id: string;
+                division_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__budget_variance__BudgetVarianceResponse"];
                 };
             };
             /** @description Validation Error */
