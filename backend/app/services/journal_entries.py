@@ -425,22 +425,30 @@ async def reverse(
     session: AsyncSession,
     actor_user_id: uuid.UUID,
     description: str | None = None,
+    posted_at: datetime | None = None,
 ) -> JournalEntry:
     """Post a cancelling reversal entry and flag the original as reversed.
 
-    The reversal swaps each line's debit ↔ credit. Posting the new entry
-    runs through the normal ``post(...)`` validation path, so the
+    The reversal swaps each line's debit <-> credit. Posting the new
+    entry runs through the normal ``post(...)`` validation path, so the
     balance projection has already applied the cancelling deltas by the
     time we return. The trailing ``JournalEntryReversed`` event is
     informational (audit) — it does not move balances.
+
+    ``posted_at`` defaults to ``now()`` (the historical behavior) but
+    can be set to any open-period date — bookkeepers typically post
+    reversals at the start of the NEXT period so the closed period
+    stays untouched. Period-state validation runs through the standard
+    ``post`` path.
+
+    Reversing a reversal is permitted (an adjusting entry can itself be
+    later adjusted) but emits ``accounting.JournalEntryReversed`` with
+    ``reversal_of_reversal=true`` so the audit log can flag it.
     """
     original = await _load_full(session, entry_id)
     if original.is_reversed:
         raise JournalEntryAlreadyReversedError(f"entry {original.entry_number} is already reversed")
-    if original.reversal_of_entry_id is not None:
-        raise JournalEntryIsReversalError(
-            f"entry {original.entry_number} is itself a reversal; cannot reverse it"
-        )
+    reversal_of_reversal = original.reversal_of_entry_id is not None
 
     desc = description or f"Reversal of {original.entry_number}: {original.description}"
 
@@ -459,7 +467,7 @@ async def reverse(
     reversal_entry = await post(
         JournalEntryInput(
             description=desc,
-            posted_at=datetime.now(UTC),
+            posted_at=posted_at or datetime.now(UTC),
             lines=reversal_lines,
         ),
         session=session,
@@ -495,6 +503,7 @@ async def reverse(
             "original_entry_id": str(original.id),
             "reversal_entry_id": str(reversal_entry.id),
             "reversal_entry_number": reversal_entry.entry_number,
+            "reversal_of_reversal": reversal_of_reversal,
         },
         actor_user_id=actor_user_id,
     )

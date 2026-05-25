@@ -495,6 +495,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/workers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Worker States
+         * @description Return one row per registered worker, including jobs that have
+         *     never run (status=null). Sorted by job name for stable display.
+         */
+        get: operations["list_worker_states_api_v1_admin_workers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approvals": {
         parameters: {
             query?: never;
@@ -4164,6 +4185,31 @@ export interface paths {
         };
         /** Cash Flow Report */
         get: operations["cash_flow_report_api_v1_reports_cash_flow_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/general-ledger-detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * General Ledger Detail Report
+         * @description Per-account drill-down behind the trial balance.
+         *
+         *     Returns one section per touched account (or just the
+         *     ``account_id``-filtered one) with opening balance + every JE
+         *     line in the window + running balance + closing balance. CSV
+         *     export via ``?format=csv``.
+         */
+        get: operations["general_ledger_detail_report_api_v1_reports_general_ledger_detail_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9439,6 +9485,8 @@ export interface components {
         JournalEntryReverseRequest: {
             /** Description */
             description?: string | null;
+            /** Posted At */
+            posted_at?: string | null;
         };
         /** JournalLineCreate */
         JournalLineCreate: {
@@ -9615,6 +9663,72 @@ export interface components {
             kind?: ("percent_of_outstanding" | "flat" | "compound_percent") | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** LedgerDetailResponse */
+        LedgerDetailResponse: {
+            /** Account Id */
+            account_id?: string | null;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Sections */
+            sections: components["schemas"]["LedgerSectionResponse"][];
+        };
+        /** LedgerLineResponse */
+        LedgerLineResponse: {
+            /** Credit */
+            credit: string;
+            /** Debit */
+            debit: string;
+            /** Description */
+            description: string;
+            /** Entry Number */
+            entry_number: string;
+            /**
+             * Journal Entry Id
+             * Format: uuid
+             */
+            journal_entry_id: string;
+            /**
+             * Posted At
+             * Format: date-time
+             */
+            posted_at: string;
+            /** Running Balance */
+            running_balance: string;
+        };
+        /** LedgerSectionResponse */
+        LedgerSectionResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Closing Balance */
+            closing_balance: string;
+            /** Code */
+            code: string;
+            /** Lines */
+            lines: components["schemas"]["LedgerLineResponse"][];
+            /** Name */
+            name: string;
+            /** Opening Balance */
+            opening_balance: string;
+            /** Period Credit */
+            period_credit: string;
+            /** Period Debit */
+            period_debit: string;
+            /** Type */
+            type: string;
         };
         /** LineUpdateRequest */
         LineUpdateRequest: {
@@ -13381,6 +13495,32 @@ export interface components {
             /** Vendor Number */
             vendor_number: string;
         };
+        /** WorkerRunStateRead */
+        WorkerRunStateRead: {
+            /** Cron */
+            cron: string;
+            /** Description */
+            description: string;
+            /** Job Name */
+            job_name: string;
+            /** Last Duration Ms */
+            last_duration_ms?: number | null;
+            /** Last Error */
+            last_error?: string | null;
+            /** Last Finished At */
+            last_finished_at?: string | null;
+            /**
+             * Last Processed
+             * @default 0
+             */
+            last_processed: number;
+            /** Last Started At */
+            last_started_at?: string | null;
+            /** Last Status */
+            last_status?: ("ok" | "failed" | "running") | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
         /** WsHealthRead */
         WsHealthRead: {
             /** Last Event At */
@@ -14514,6 +14654,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferenceSequenceRow"][];
+                };
+            };
+        };
+    };
+    list_worker_states_api_v1_admin_workers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkerRunStateRead"][];
                 };
             };
         };
@@ -23525,6 +23685,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CashFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    general_ledger_detail_report_api_v1_reports_general_ledger_detail_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+                account_id?: string | null;
+                division_id?: string | null;
+                format?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerDetailResponse"];
                 };
             };
             /** @description Validation Error */

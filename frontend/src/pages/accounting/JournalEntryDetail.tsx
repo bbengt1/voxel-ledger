@@ -28,6 +28,9 @@ export function JournalEntryDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [reason, setReason] = useState("");
+  const [postedAt, setPostedAt] = useState<string>(
+    () => new Date().toISOString().slice(0, 10),
+  );
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -59,7 +62,13 @@ export function JournalEntryDetailPage() {
     try {
       await apiClient.post(
         `/api/v1/accounting/entries/${entry.id}/reverse`,
-        { description: reason.trim() || null },
+        {
+          description: reason.trim() || null,
+          // Post the reversal at midnight UTC on the chosen date.
+          // Bookkeepers typically point this at the first day of the
+          // next open period so the closed period stays untouched.
+          posted_at: new Date(`${postedAt}T00:00:00Z`).toISOString(),
+        },
       );
       setConfirm(false);
       setReloadKey((k) => k + 1);
@@ -82,7 +91,9 @@ export function JournalEntryDetailPage() {
   }
 
   const isReversal = !!entry.reversal_of_entry_id;
-  const reverseDisabled = entry.is_reversed || isReversal || !canReverse;
+  // Reversing a reversal is now allowed (Parity #231) — only block
+  // when the entry is already reversed or the user lacks the role.
+  const reverseDisabled = entry.is_reversed || !canReverse;
   const totalDebits = entry.lines
     .reduce((s, ln) => s + Number(ln.debit || 0), 0)
     .toFixed(2);
@@ -111,12 +122,12 @@ export function JournalEntryDetailPage() {
             onClick={() => setConfirm(true)}
             disabled={reverseDisabled}
             title={
-              isReversal
-                ? "Cannot reverse a reversal"
-                : entry.is_reversed
-                  ? "Already reversed"
-                  : !canReverse
-                    ? "Requires owner or bookkeeper"
+              entry.is_reversed
+                ? "Already reversed"
+                : !canReverse
+                  ? "Requires owner or bookkeeper"
+                  : isReversal
+                    ? "This is itself a reversal — proceed to post a counter-adjusting entry"
                     : ""
             }
             data-testid="reverse-entry"
@@ -206,9 +217,58 @@ export function JournalEntryDetailPage() {
         <DialogContent data-testid="reverse-dialog">
           <DialogTitle>Reverse entry?</DialogTitle>
           <p className="mt-2 text-sm text-muted-foreground">
-            Posts a counter-entry with mirrored debits and credits. The original
-            entry is marked reversed and can't be reversed again.
+            Posts a counter-entry with mirrored debits and credits on the date
+            you choose. The original entry is flagged reversed.
           </p>
+
+          <label className="mt-3 flex flex-col gap-1 text-xs">
+            Reversal date
+            <input
+              type="date"
+              value={postedAt}
+              onChange={(e) => setPostedAt(e.target.value)}
+              className="rounded-md border border-input bg-background p-2 text-sm"
+              data-testid="reverse-posted-at"
+            />
+            <span className="text-muted-foreground">
+              Tip: use the first day of the next open period.
+            </span>
+          </label>
+
+          <details className="mt-3 text-xs">
+            <summary
+              className="cursor-pointer text-muted-foreground"
+              data-testid="reverse-preview-summary"
+            >
+              Preview reversal lines ({entry.lines.length})
+            </summary>
+            <table className="mt-2 w-full text-xs">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="text-left">Account</th>
+                  <th className="text-right">Debit</th>
+                  <th className="text-right">Credit</th>
+                </tr>
+              </thead>
+              <tbody data-testid="reverse-preview-lines">
+                {entry.lines.map((line) => (
+                  <tr key={line.id}>
+                    <td className="font-mono">
+                      {line.account_code} {line.account_name}
+                    </td>
+                    {/* Swapped: original credit becomes new debit. */}
+                    <td className="text-right tabular-nums">
+                      {Number(line.credit || 0) > 0 ? line.credit : ""}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {Number(line.debit || 0) > 0 ? line.debit : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+
           <label className="mt-3 flex flex-col gap-1 text-xs">
             Reason (optional)
             <textarea
