@@ -117,14 +117,16 @@ async def test_calculate_for_inputs_uses_settings_fallback(
     session: AsyncSession,
 ) -> None:
     """End-to-end through the service with no Rate rows: pulls labor=25,
-    machine=1, overhead=15%, margin=30% from settings."""
+    machine=1, overhead=15%, margin=30%, failure=10% from settings (#249)."""
     inputs = _simple_inputs()
     result = await CostEngineService.calculate_for_inputs(inputs, session=session)
-    # 1h labor @ $25 = $25.00, 1h machine @ $1 = $1.00. Direct = $26.00.
-    # Overhead = 15% of $26 = $3.90. Total = $29.90.
+    # 1h labor @ $25 = $25.00, 1h machine @ $1 = $1.00.
+    # Direct pre-failure = $26.00. Failure 10% = $2.60. Direct = $28.60.
+    # Overhead 15% of $28.60 = $4.29. Total = $32.89.
     assert result.labor_cost == Decimal("25.00")
     assert result.machine_cost == Decimal("1.00")
-    assert result.overhead_cost == Decimal("3.90")
-    assert result.total_cost == Decimal("29.90")
-    # margin 30% → suggested = 29.90 * 1.30 = 38.87.
-    assert result.suggested_unit_price == Decimal("38.87")
+    assert result.failure_adjustment_cost == Decimal("2.60")
+    assert result.overhead_cost == Decimal("4.29")
+    assert result.total_cost == Decimal("32.89")
+    # margin 30% → suggested = 32.89 * 1.30 = 42.757 → 42.76.
+    assert result.suggested_unit_price == Decimal("42.76")

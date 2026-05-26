@@ -33,6 +33,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.material import Material
+from app.models.printer import Printer
 from app.models.rate import Rate, RateKind
 from app.models.supply import Supply
 from app.services.cost_engine.calculator import (
@@ -40,6 +41,7 @@ from app.services.cost_engine.calculator import (
     CalcInputs,
     CalcResult,
     PlateInput,
+    PrinterCostParams,
     calculate,
 )
 from app.services.jobs import JobNotFoundError
@@ -161,6 +163,56 @@ async def _resolve_overhead_percent(rates: list[Rate], session: AsyncSession) ->
     return Decimal(str(fallback)) / _HUNDRED
 
 
+async def _load_printer_cost_params(
+    session: AsyncSession, ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, PrinterCostParams]:
+    """Snapshot per-printer cost-engine inputs (#249) for the given ids."""
+    id_list = list({i for i in ids})
+    if not id_list:
+        return {}
+    rows = (
+        await session.execute(
+            select(
+                Printer.id,
+                Printer.power_draw_watts,
+                Printer.purchase_price,
+                Printer.salvage_value,
+                Printer.lifespan_years,
+                Printer.annual_print_hours,
+                Printer.preheat_minutes,
+                Printer.preheat_power_watts,
+            ).where(Printer.id.in_(id_list))
+        )
+    ).all()
+    return {
+        row[0]: PrinterCostParams(
+            power_draw_watts=row[1],
+            purchase_price=row[2],
+            salvage_value=row[3],
+            lifespan_years=row[4],
+            annual_print_hours=row[5],
+            preheat_minutes=row[6],
+            preheat_power_watts=row[7],
+        )
+        for row in rows
+    }
+
+
+async def _resolve_power_cost_per_kwh(session: AsyncSession) -> Decimal:
+    raw = await SettingsService.get("cost_engine.power_cost_per_kwh", session=session)
+    if raw is None:
+        return _ZERO
+    return Decimal(str(raw))
+
+
+async def _resolve_failure_rate(session: AsyncSession) -> Decimal:
+    """Failure-rate buffer as a decimal fraction (e.g. 0.10 for 10%)."""
+    raw = await SettingsService.get("cost_engine.failure_rate_percent", session=session)
+    if raw is None:
+        return _ZERO
+    return Decimal(str(raw)) / _HUNDRED
+
+
 async def _resolve_default_margin_percent(session: AsyncSession) -> Decimal:
     """Default margin as a decimal fraction (e.g. 0.30 for 30%).
 
@@ -208,6 +260,13 @@ class CostEngineService:
         overhead = await _resolve_overhead_percent(rates, session)
         margin = await _resolve_default_margin_percent(session)
 
+        printer_ids: set[uuid.UUID] = set()
+        for p in plate_inputs:
+            printer_ids.update(p.assigned_printer_ids)
+        printer_cost_params = await _load_printer_cost_params(session, printer_ids)
+        power_cost = await _resolve_power_cost_per_kwh(session)
+        failure_rate = await _resolve_failure_rate(session)
+
         return CalcContext(
             material_cost_per_gram=material_costs,
             supply_unit_cost=supply_costs,
@@ -216,6 +275,9 @@ class CostEngineService:
             default_machine_rate_per_hour=default_machine_rate,
             overhead_percent=overhead,
             default_margin_percent=margin,
+            printer_cost_params=printer_cost_params,
+            power_cost_per_kwh=power_cost,
+            failure_rate=failure_rate,
         )
 
     @staticmethod

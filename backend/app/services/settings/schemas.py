@@ -160,6 +160,21 @@ class DefaultMarginPercent(SettingSchema):
 
 
 @register
+class FailureRatePercent(SettingSchema):
+    """Failure-rate buffer applied to direct costs (percent, 0-100).
+
+    Multiplies (material + supply + labor + machine) by (1 + rate/100)
+    before overhead and margin are layered on. Default 10% reflects a
+    conservative estimate for a well-tuned multi-color printer; tune
+    down as actual job history proves a lower rate.
+    """
+
+    key: ClassVar[str] = "cost_engine.failure_rate_percent"
+    default: ClassVar[Decimal] = Decimal("10.00")
+    value: Decimal = Field(ge=0, le=100)
+
+
+@register
 class BarcodeScanPadding(SettingSchema):
     """Pad character prepended to short barcode scans at POS.
 

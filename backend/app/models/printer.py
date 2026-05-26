@@ -18,7 +18,9 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text, func, text
+from decimal import Decimal
+
+from sqlalchemy import Boolean, DateTime, Index, Integer, Numeric, String, Text, func, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -68,6 +70,19 @@ class Printer(Base):
     moonraker_api_key: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     power_draw_watts: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+
+    # Cost-engine inputs (#249). All optional. When the full set is
+    # populated (purchase_price, salvage_value, lifespan_years,
+    # annual_print_hours) the cost engine derives a per-hour
+    # depreciation rate; preheat_minutes + preheat_power_watts add a
+    # one-shot preheat electricity cost per print run.
+    purchase_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    salvage_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    lifespan_years: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+    annual_print_hours: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+    preheat_minutes: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+    preheat_power_watts: Mapped[int | None] = mapped_column(Integer(), nullable=True)
+
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
     is_archived: Mapped[bool] = mapped_column(
