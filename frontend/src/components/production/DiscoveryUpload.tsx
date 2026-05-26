@@ -1,7 +1,12 @@
 /**
- * Discovery upload — sends a g-code sidecar (`.gcode.json` from
- * PrusaSlicer / Bambu Studio) to `POST /api/v1/jobs/discover` and exposes
- * the parsed fields so the parent can pre-fill a plate row.
+ * Discovery upload — POSTs a slicer artifact to `/api/v1/jobs/discover`
+ * and surfaces the parsed plate fields. Accepts:
+ *
+ *   - ``.gcode.json`` sidecars (PrusaSlicer / Bambu Studio)
+ *   - ``.3mf`` sliced archives (Bambu, OrcaSlicer, PrusaSlicer)
+ *
+ * The backend detects format from the file bytes (zip magic vs JSON),
+ * so the same endpoint handles both.
  */
 import { useRef, useState } from "react";
 
@@ -54,7 +59,7 @@ export function DiscoveryUpload({ onDiscovered, "data-testid": testId }: Props) 
         <input
           ref={inputRef}
           type="file"
-          accept=".json,.gcode.json,application/json"
+          accept=".json,.gcode.json,application/json,.3mf,model/3mf,application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
           data-testid={testId ? `${testId}-input` : "discovery-file-input"}
           className="sr-only"
           onChange={(e) => {
@@ -70,7 +75,7 @@ export function DiscoveryUpload({ onDiscovered, "data-testid": testId }: Props) 
           onClick={() => inputRef.current?.click()}
           data-testid={testId ?? "discovery-trigger"}
         >
-          {loading ? "Parsing…" : "Discover from g-code"}
+          {loading ? "Parsing…" : "Import 3MF / g-code"}
         </Button>
       </div>
       {error ? (

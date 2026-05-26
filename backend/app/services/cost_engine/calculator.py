@@ -11,9 +11,11 @@ that lands this module):
   quantized to 2 decimal places (USD cents).
 - ``material_cost`` per plate run = ``sum(grams * cost_per_gram)``. Across
   plate runs and across plates: sum.
-- ``labor_cost`` per plate run = ``((print_minutes + setup_minutes) / 60)
-  * labor_rate_per_hour``. The setup minutes pay labor once per run
-  alongside the print time.
+- ``labor_cost`` per plate run = ``(setup_minutes / 60) *
+  labor_rate_per_hour``. 3D printing is unattended — only the operator
+  time (setup, bed prep, post-processing, removal) is billed at the
+  labor rate. Shops that pay an operator to babysit the printer should
+  push that time into ``setup_minutes`` directly.
 - ``machine_cost`` per plate run = ``(print_minutes / 60) *
   machine_rate(assigned_printer)``. If the plate has multiple printers
   assigned, we use the **lowest** rate among them — the operator will
@@ -383,10 +385,12 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
         material_per_run = _plate_material_cost_per_run(plate, ctx)
         plate_material = _q6(material_per_run * Decimal(runs_per_plate))
 
-        # Labor: print + setup, both paid at the labor rate.
+        # Labor: setup + operator-attended time only. Print time is
+        # unattended in a typical print shop and is captured by the
+        # machine rate (or per-printer depreciation + electricity).
         print_hours = Decimal(plate.print_minutes) / _SIXTY
         setup_hours = Decimal(plate.setup_minutes) / _SIXTY
-        labor_per_run = _q6((print_hours + setup_hours) * labor_rate)
+        labor_per_run = _q6(setup_hours * labor_rate)
         plate_labor = _q6(labor_per_run * Decimal(runs_per_plate))
 
         # Machine: when the chosen printer has full per-printer cost

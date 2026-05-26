@@ -32,7 +32,7 @@ def _simple_inputs() -> CalcInputs:
                 parts_per_set=1,
                 print_minutes=60,
                 print_grams_by_material={},
-                setup_minutes=0,
+                setup_minutes=60,
                 assigned_printer_ids=[],
             )
         ],

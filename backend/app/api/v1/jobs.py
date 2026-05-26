@@ -514,7 +514,9 @@ async def discover_from_sidecar(
     """
     content = await file.read()
     try:
-        result = discovery_service.parse_gcode_sidecar(content, source_filename=file.filename)
+        # Dispatcher routes JSON sidecars and 3MF archives to the right
+        # parser based on a zip-magic sniff of the first four bytes.
+        result = discovery_service.parse_job_artifact(content, source_filename=file.filename)
     except discovery_service.UnknownSidecarFormatError as exc:
         raise HTTPException(status_code=415, detail=str(exc)) from None
     except discovery_service.MalformedSidecarError as exc:

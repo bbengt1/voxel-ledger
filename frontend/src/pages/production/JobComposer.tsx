@@ -80,6 +80,29 @@ function emptyPlate(): PlateDraft {
   };
 }
 
+/** Strip slicer-generated artifacts from an imported filename so we can
+ * propose it as a product name. Removes file extensions (``.gcode``,
+ * ``.gcode.json``, ``.3mf``), trailing time tags (``_6h44m``), filament
+ * tags (``_PLA``, ``_PETG``), and version suffixes (``_v6``). Whitespace
+ * is collapsed so what's left reads cleanly in the picker. */
+function cleanProductNameFromFilename(raw: string | null | undefined): string {
+  if (!raw) return "";
+  let s = raw.trim();
+  // Drop any path component the source had.
+  if (s.includes("/")) s = s.substring(s.lastIndexOf("/") + 1);
+  // Strip well-known extensions, including compound .gcode.json.
+  s = s.replace(/\.(gcode\.json|gcode|3mf|json)$/i, "");
+  // Drop print-time suffixes like ``_6h44m`` or ``_12m30s``.
+  s = s.replace(/[_-]\d+h\d+m(\d+s)?$/i, "");
+  s = s.replace(/[_-]\d+m\d+s?$/i, "");
+  // Filament hint and version suffixes.
+  s = s.replace(/[_-](pla\+?|petg|abs|asa|tpu|tpe|nylon|pc|pva|hips)$/i, "");
+  s = s.replace(/[_-]v\d+$/i, "");
+  // Collapse remaining separators to spaces for readability.
+  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+
 function parseIntSafe(s: string, fallback = 0): number {
   const n = Number.parseInt(s, 10);
   return Number.isFinite(n) ? n : fallback;
@@ -122,6 +145,14 @@ export function JobComposerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [browsingPlateIdx, setBrowsingPlateIdx] = useState<number | null>(null);
+  // Confirm-before-write prompt for the Product field after an import.
+  // ``suggested`` is the cleaned product name pulled from the file;
+  // ``current`` is the label that's already set (so the operator can
+  // see what they'd be replacing).
+  const [productPrompt, setProductPrompt] = useState<{
+    suggested: string;
+    current: string | null;
+  } | null>(null);
 
   const [printers, setPrinters] = useState<PrinterResponse[]>([]);
   const [materialsById, setMaterialsById] = useState<
@@ -316,6 +347,62 @@ export function JobComposerPage() {
         };
       }),
     );
+    // After a plate is populated, propose the cleaned filename as the
+    // Product name — but never write it without explicit confirmation.
+    // Skip when we have nothing useful or the suggestion already matches
+    // the currently-selected product.
+    const suggested = cleanProductNameFromFilename(disc.source_filename);
+    if (suggested && suggested.toLowerCase() !== (product?.label ?? "").toLowerCase()) {
+      setProductPrompt({ suggested, current: product?.label ?? null });
+    }
+  }
+
+  /** Confirm path for the import-suggested product. Tries to find a
+   * catalog product whose name matches the suggestion (exact, then
+   * substring); on miss, kicks off the existing create-product round
+   * trip with the name pre-filled. */
+  async function acceptProductSuggestion() {
+    if (!productPrompt) return;
+    const needle = productPrompt.suggested.toLowerCase();
+    try {
+      const res = await api.get("/api/v1/products", {
+        params: { search: productPrompt.suggested, is_archived: "false" },
+      });
+      const items = res.data.items;
+      const exact = items.find((p) => p.name.toLowerCase() === needle);
+      const fuzzy =
+        exact ||
+        items.find(
+          (p) =>
+            needle.includes(p.name.toLowerCase()) ||
+            p.name.toLowerCase().includes(needle),
+        );
+      if (fuzzy) {
+        setProduct({ id: fuzzy.id, label: fuzzy.name });
+        setProductPrompt(null);
+        return;
+      }
+    } catch {
+      /* fall through to create */
+    }
+    // No catalog hit — round-trip to the create-product page with the
+    // name pre-filled. The existing createProductFromComposer flow
+    // restores composer state on return.
+    saveJobComposerDraft({
+      customer,
+      quantityOrdered,
+      priority,
+      dueAt,
+      notes,
+      product,
+      plates,
+      pending: null,
+    });
+    const params = new URLSearchParams();
+    params.set("name", productPrompt.suggested);
+    params.set("return_to", "job_composer");
+    setProductPrompt(null);
+    navigate(`/catalog/products/new?${params.toString()}`);
   }
 
   /** Restore in-progress composer state after a side-trip to
@@ -493,6 +580,46 @@ export function JobComposerPage() {
 
         <div className="space-y-3 rounded-lg border border-border p-4">
           <h2 className="text-sm font-semibold">Job details</h2>
+
+          {productPrompt ? (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950/40"
+              data-testid="product-import-prompt"
+            >
+              <div className="min-w-0">
+                <p className="font-medium">
+                  {productPrompt.current
+                    ? `Replace product "${productPrompt.current}" with "${productPrompt.suggested}"?`
+                    : `Use "${productPrompt.suggested}" as the Product?`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Pulled from the imported file. Existing catalog entries will
+                  be linked; otherwise we'll create a new product.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void acceptProductSuggestion()}
+                  data-testid="product-import-accept"
+                >
+                  {productPrompt.current ? "Replace" : "Use"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setProductPrompt(null)}
+                  data-testid="product-import-skip"
+                >
+                  Skip
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           <label className="block text-sm">
             Product
             <EntityPicker

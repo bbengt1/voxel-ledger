@@ -31,10 +31,13 @@ clearly rejecting unknown formats.
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import zipfile
 from dataclasses import dataclass, field
 from decimal import Decimal
+from xml.etree import ElementTree as ET
 
 
 class JobDiscoveryError(Exception):
@@ -70,8 +73,16 @@ def _parse_time_to_minutes(value: object) -> int:
         return max(0, int(round(float(value) / 60.0)))
     if not isinstance(value, str):
         return 0
+    stripped = value.strip()
+    # Bambu's 3MF stores ``prediction`` as a bare-number string of
+    # seconds. Honor that path before falling to the h/m/s regex so we
+    # don't silently return 0 for an otherwise valid time.
+    try:
+        return max(0, int(round(float(stripped) / 60.0)))
+    except ValueError:
+        pass
     total_seconds = 0
-    for amount, unit in _TIME_TOKEN_RE.findall(value):
+    for amount, unit in _TIME_TOKEN_RE.findall(stripped):
         n = int(amount)
         if unit == "h":
             total_seconds += n * 3600
@@ -223,10 +234,208 @@ def parse_gcode_sidecar(
     return result
 
 
+# ---------------------------------------------------------------------------
+# 3MF support
+# ---------------------------------------------------------------------------
+#
+# A 3MF is a zip archive. "Sliced" 3MFs from Bambu Studio, OrcaSlicer, or
+# PrusaSlicer carry a per-plate metadata file we can parse without
+# touching the slicer pipeline:
+#
+#   Bambu / Orca: ``Metadata/slice_info.config`` — XML, one ``<plate>``
+#     per print plate, with ``<metadata key="prediction" value="…"/>``
+#     for time and ``<filament … used_g="…"/>`` per spool.
+#   PrusaSlicer:  ``Metadata/Slic3r_PE.config`` — flat ``key = value``
+#     pairs, same vocabulary as the gcode header that ``parse_gcode_sidecar``
+#     already understands.
+#
+# Unsliced 3MFs contain only geometry — we reject them with a clear
+# message rather than guessing.
+
+_3MF_BAMBU_CONFIG = "Metadata/slice_info.config"
+_3MF_PRUSA_CONFIGS = (
+    "Metadata/Slic3r_PE.config",
+    "Metadata/Slic3r_PE_model.config",
+)
+
+
+def _is_zip(file_bytes: bytes) -> bool:
+    return file_bytes[:4] == b"PK\x03\x04"
+
+
+def _read_member(zf: zipfile.ZipFile, name: str) -> str | None:
+    """Case-insensitive zip member read. Returns ``None`` if missing."""
+    needle = name.lower()
+    for info in zf.infolist():
+        if info.filename.lower() == needle:
+            try:
+                return zf.read(info).decode("utf-8", errors="replace")
+            except KeyError:
+                return None
+    return None
+
+
+def _parse_bambu_3mf(xml_text: str) -> DiscoveredPlate:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise MalformedSidecarError(f"3MF slice_info.config is not valid XML: {exc}") from exc
+
+    plates = root.findall(".//plate")
+    if not plates:
+        raise MalformedSidecarError("3MF slice_info.config has no <plate> entries")
+
+    # Use the first plate. Multi-plate prints can have more added by hand
+    # in the composer if needed.
+    plate = plates[0]
+
+    minutes = 0
+    parts_per_set = 1
+    for meta in plate.findall("metadata"):
+        key = meta.get("key") or ""
+        value = meta.get("value")
+        if value is None:
+            continue
+        if key == "prediction":
+            minutes = _parse_time_to_minutes(value)
+        elif key == "object_count" and value.isdigit():
+            parts_per_set = max(parts_per_set, int(value))
+
+    # ``<object>`` children describe distinct printed objects on this
+    # plate. Bambu reports them with ``skipped="false"`` when they
+    # actually print; treat any non-skipped object as part of the set.
+    objects = [
+        o
+        for o in plate.findall("object")
+        if (o.get("skipped") or "false").lower() != "true"
+    ]
+    if objects:
+        parts_per_set = max(parts_per_set, len(objects))
+
+    grams_by_slot: dict[str, Decimal] = {}
+    for fil in plate.findall("filament"):
+        used = fil.get("used_g") or fil.get("weight")
+        if used is None:
+            continue
+        # Prefer a human-readable label (type/colour) over the raw slot
+        # id so the discovered-name hint on the form is useful. Fall back
+        # to the slot id when neither is present.
+        fil_type = (fil.get("type") or "").strip()
+        fil_color = (fil.get("color") or "").strip()
+        fil_id = (fil.get("id") or "").strip()
+        if fil_type and fil_color:
+            label = f"{fil_type} {fil_color}"
+        elif fil_type:
+            label = fil_type
+        elif fil_id:
+            label = f"slot_{fil_id}"
+        else:
+            label = f"slot_{len(grams_by_slot)}"
+        # If two slots collide on the same label, accumulate grams.
+        existing = grams_by_slot.get(label, Decimal("0"))
+        grams_by_slot[label] = existing + _coerce_decimal(used)
+
+    return DiscoveredPlate(
+        print_minutes=minutes,
+        filament_grams_by_material=grams_by_slot,
+        parts_per_set=max(1, parts_per_set),
+        source_format="bambu_3mf",
+    )
+
+
+def _parse_prusa_3mf_config(text: str) -> DiscoveredPlate:
+    """Parse PrusaSlicer's ``Slic3r_PE.config`` (gcode-header-style keys).
+
+    Lines look like ``; estimated printing time (normal mode) = 1h 23m`` or
+    ``; filament used [g] = 12.34,5.67``.
+    """
+    minutes = 0
+    grams_by_slot: dict[str, Decimal] = {}
+    parts_per_set = 1
+    for raw_line in text.splitlines():
+        line = raw_line.lstrip("; ").strip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip().lower()
+        value = value.strip()
+        if "estimated printing time" in key:
+            minutes = _parse_time_to_minutes(value)
+        elif key.startswith("filament used [g]"):
+            for idx, item in enumerate(value.split(",")):
+                grams_by_slot[f"slot_{idx}"] = _coerce_decimal(item.strip())
+        elif key == "objects_info" or key == "object_count":
+            if value.isdigit() and int(value) > 0:
+                parts_per_set = max(parts_per_set, int(value))
+    if minutes == 0 and not grams_by_slot:
+        raise MalformedSidecarError(
+            "PrusaSlicer 3MF config had no print time or filament data"
+        )
+    return DiscoveredPlate(
+        print_minutes=minutes,
+        filament_grams_by_material=grams_by_slot,
+        parts_per_set=max(1, parts_per_set),
+        source_format="prusaslicer_3mf",
+    )
+
+
+def parse_3mf(
+    file_bytes: bytes, *, source_filename: str | None = None
+) -> DiscoveredPlate:
+    """Parse a sliced 3MF archive into a :class:`DiscoveredPlate`.
+
+    Raises :class:`UnknownSidecarFormatError` for an unsliced 3MF (no
+    slicer metadata inside) and :class:`MalformedSidecarError` when the
+    metadata we find is broken.
+    """
+    if not _is_zip(file_bytes):
+        raise UnknownSidecarFormatError("3MF must be a zip archive")
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(file_bytes))
+    except zipfile.BadZipFile as exc:
+        raise MalformedSidecarError(f"corrupt 3MF zip: {exc}") from exc
+
+    with zf:
+        bambu_text = _read_member(zf, _3MF_BAMBU_CONFIG)
+        if bambu_text:
+            result = _parse_bambu_3mf(bambu_text)
+            result.source_filename = source_filename
+            return result
+        for member_name in _3MF_PRUSA_CONFIGS:
+            prusa_text = _read_member(zf, member_name)
+            if prusa_text:
+                result = _parse_prusa_3mf_config(prusa_text)
+                result.source_filename = source_filename
+                return result
+
+    raise UnknownSidecarFormatError(
+        "3MF doesn't contain slicer metadata — slice it in Bambu Studio, "
+        "OrcaSlicer, or PrusaSlicer first, then re-upload."
+    )
+
+
+def parse_job_artifact(
+    file_bytes: bytes, *, source_filename: str | None = None
+) -> DiscoveredPlate:
+    """Dispatch by content: ``.3mf`` (zip) vs ``.gcode.json`` (JSON).
+
+    Callers should hand the raw upload bytes to this function rather
+    than picking the parser themselves — the JSON vs. zip distinction
+    is unambiguous from the first few bytes.
+    """
+    if not file_bytes:
+        raise MalformedSidecarError("empty upload")
+    if _is_zip(file_bytes):
+        return parse_3mf(file_bytes, source_filename=source_filename)
+    return parse_gcode_sidecar(file_bytes, source_filename=source_filename)
+
+
 __all__ = [
     "DiscoveredPlate",
     "JobDiscoveryError",
     "MalformedSidecarError",
     "UnknownSidecarFormatError",
+    "parse_3mf",
     "parse_gcode_sidecar",
+    "parse_job_artifact",
 ]
