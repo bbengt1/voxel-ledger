@@ -268,6 +268,19 @@ class InvoiceReversedPayload(_ARPayloadBase):
     original_journal_entry_id: uuid.UUID
 
 
+class DepositSlipBuiltPayload(_ARPayloadBase):
+    """Consolidated bank-deposit built from N undeposited customer
+    payments (Parity #235)."""
+
+    slip_id: uuid.UUID
+    slip_number: str
+    bank_account_id: uuid.UUID
+    deposit_date: str  # ISO date
+    total: Decimal
+    payment_ids: list[str]
+    journal_entry_id: uuid.UUID
+
+
 class InvoiceWrittenOffPayload(_ARPayloadBase):
     """Bad-debt write-off (Parity #236). Note that ``reason`` is free
     text; it must NOT be whitelisted into audit excerpts."""
@@ -297,6 +310,9 @@ register_event(TYPE_INVOICE_POSTED, InvoicePostedPayload)
 register_event(TYPE_INVOICE_VOIDED, InvoiceVoidedPayload)
 register_event(TYPE_INVOICE_REVERSED, InvoiceReversedPayload)
 register_event(TYPE_INVOICE_WRITTEN_OFF, InvoiceWrittenOffPayload)
+
+TYPE_DEPOSIT_SLIP_BUILT = "ar.DepositSlipBuilt"
+register_event(TYPE_DEPOSIT_SLIP_BUILT, DepositSlipBuiltPayload)
 
 
 # --- Payments (Phase 7.4, #112) ---------------------------------------------

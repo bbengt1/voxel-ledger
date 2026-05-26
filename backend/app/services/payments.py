@@ -186,13 +186,41 @@ async def _emit(
 # ---------------------------------------------------------------------------
 
 
-async def _resolve_bank_account(session: AsyncSession, *, method: PaymentMethod) -> uuid.UUID:
+async def _resolve_undeposited_account(session: AsyncSession) -> uuid.UUID:
+    """Resolve the undeposited-funds clearing account (Parity #235).
+
+    Set on the ``ar.undeposited_funds_account_id`` setting. Raises
+    ``MissingArPostingAccountError`` when unset — the caller asked
+    for the undeposited workflow and we can't service it.
+    """
+    raw = await SettingsService.get(
+        "ar.undeposited_funds_account_id", session=session
+    )
+    if raw is None:
+        raise MissingArPostingAccountError(
+            "set 'ar.undeposited_funds_account_id' or omit "
+            "deposit_to_undeposited (needed to debit the clearing "
+            "account for a payment headed to a deposit slip)"
+        )
+    return raw if isinstance(raw, uuid.UUID) else uuid.UUID(str(raw))
+
+
+async def _resolve_bank_account(
+    session: AsyncSession,
+    *,
+    method: PaymentMethod,
+    deposit_to_undeposited: bool = False,
+) -> uuid.UUID:
     """Resolve the bank/cash account credited at posting.
 
-    ``ar.payment_method_to_account`` (JSON map) takes precedence; falls
-    through to ``ar.default_bank_account_id``. Raises
-    ``MissingArPostingAccountError`` if neither resolves.
+    When ``deposit_to_undeposited`` is True the payment debits the
+    configured undeposited-funds clearing account (Parity #235).
+    Otherwise: ``ar.payment_method_to_account`` (JSON map) takes
+    precedence; falls through to ``ar.default_bank_account_id``.
+    Raises ``MissingArPostingAccountError`` if neither resolves.
     """
+    if deposit_to_undeposited:
+        return await _resolve_undeposited_account(session)
     mapping = await SettingsService.get("ar.payment_method_to_account", session=session)
     if isinstance(mapping, dict):
         raw = mapping.get(method.value)
@@ -235,8 +263,15 @@ async def record_payment(
     received_at: datetime | None = None,
     notes: str | None = None,
     actor_user_id: uuid.UUID,
+    deposit_to_undeposited: bool = False,
 ) -> Payment:
-    """Record a customer remittance in ``state=pending``. No GL effect."""
+    """Record a customer remittance in ``state=pending``. No GL effect.
+
+    When ``deposit_to_undeposited`` is True the eventual apply-payment
+    JE will debit ``ar.undeposited_funds_account_id`` instead of the
+    bank account (Parity #235). A subsequent ``deposit_slip`` moves
+    the consolidated balance to the bank account in a single JE.
+    """
     customer = await _load_customer(session, customer_id)
     amt = _q(amount)
     if amt <= _ZERO:
@@ -256,6 +291,7 @@ async def record_payment(
         state=PaymentState.PENDING,
         notes=notes,
         created_by_user_id=actor_user_id,
+        deposit_to_undeposited=deposit_to_undeposited,
     )
     session.add(payment)
     await session.flush()
@@ -376,7 +412,11 @@ async def apply_payment(
 
     # Apply rows + invoice updates
     application_payload: list[dict[str, Any]] = []
-    bank_account_id = await _resolve_bank_account(session, method=payment.method)
+    bank_account_id = await _resolve_bank_account(
+        session,
+        method=payment.method,
+        deposit_to_undeposited=bool(payment.deposit_to_undeposited),
+    )
 
     # Build JE lines. Single debit-bank line for full payment amount;
     # one credit-AR line per applied invoice (different AR accounts

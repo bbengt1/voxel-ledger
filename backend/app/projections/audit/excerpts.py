@@ -889,6 +889,17 @@ register_excerpt_fields(
         "journal_entry_id",
     ),
 )
+register_excerpt_fields(
+    ar_events.TYPE_DEPOSIT_SLIP_BUILT,
+    (
+        "slip_number",
+        "bank_account_id",
+        "deposit_date",
+        "total",
+        "payment_ids",
+        "journal_entry_id",
+    ),
+)
 
 
 # ---------------------------------------------------------------------------

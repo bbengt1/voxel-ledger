@@ -25,6 +25,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -115,6 +116,14 @@ class Payment(Base):
 
     posting_journal_entry_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("journal_entry.id", ondelete="RESTRICT"), nullable=True
+    )
+
+    # Parity #235: when True, the apply-payment JE debits the
+    # configured ``ar.undeposited_funds_account_id`` instead of the
+    # bank account. A subsequent deposit-slip moves N undeposited
+    # payments to the bank account in one consolidated JE.
+    deposit_to_undeposited: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, default=False, server_default="0"
     )
 
     created_by_user_id: Mapped[uuid.UUID] = mapped_column(

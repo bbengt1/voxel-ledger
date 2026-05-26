@@ -1755,6 +1755,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/deposit-slips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Deposit Slips */
+        get: operations["list_deposit_slips_api_v1_deposit_slips_get"];
+        put?: never;
+        /** Build Slip */
+        post: operations["build_slip_api_v1_deposit_slips_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deposit-slips/undeposited": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Undeposited */
+        get: operations["list_undeposited_api_v1_deposit_slips_undeposited_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/deposit-slips/{slip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Deposit Slip */
+        get: operations["get_deposit_slip_api_v1_deposit_slips__slip_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/depreciation-runs": {
         parameters: {
             query?: never;
@@ -8088,6 +8140,60 @@ export interface components {
             /** Total Amount */
             total_amount?: number | string | null;
         };
+        /** DepositSlipBuildRequest */
+        DepositSlipBuildRequest: {
+            /**
+             * Bank Account Id
+             * Format: uuid
+             */
+            bank_account_id: string;
+            /**
+             * Deposit Date
+             * Format: date
+             */
+            deposit_date: string;
+            /** Payment Ids */
+            payment_ids: string[];
+        };
+        /** DepositSlipResponse */
+        DepositSlipResponse: {
+            /**
+             * Bank Account Id
+             * Format: uuid
+             */
+            bank_account_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Deposit Date
+             * Format: date
+             */
+            deposit_date: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Posting Journal Entry Id */
+            posting_journal_entry_id?: string | null;
+            /** Slip Number */
+            slip_number: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "deposited" | "reconciled";
+            /** Total Amount */
+            total_amount: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** DepreciationRunRequest */
         DepreciationRunRequest: {
             /**
@@ -10416,6 +10522,11 @@ export interface components {
              * Format: uuid
              */
             customer_id: string;
+            /**
+             * Deposit To Undeposited
+             * @default false
+             */
+            deposit_to_undeposited: boolean;
             /**
              * Method
              * @enum {string}
@@ -13176,6 +13287,32 @@ export interface components {
              * @enum {string}
              */
             source_kind: "bill_item" | "expense_claim_line";
+        };
+        /** UndepositedPaymentResponse */
+        UndepositedPaymentResponse: {
+            /** Amount */
+            amount: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Method */
+            method: string;
+            /** Payment Number */
+            payment_number: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Reference */
+            reference?: string | null;
         };
         /** UserCreateRequest */
         UserCreateRequest: {
@@ -17842,6 +17979,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebitNoteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_deposit_slips_api_v1_deposit_slips_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepositSlipResponse"][];
+                };
+            };
+        };
+    };
+    build_slip_api_v1_deposit_slips_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepositSlipBuildRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepositSlipResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_undeposited_api_v1_deposit_slips_undeposited_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UndepositedPaymentResponse"][];
+                };
+            };
+        };
+    };
+    get_deposit_slip_api_v1_deposit_slips__slip_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepositSlipResponse"];
                 };
             };
             /** @description Validation Error */
