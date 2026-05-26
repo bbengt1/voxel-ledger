@@ -5,6 +5,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type ProductResponse = components["schemas"]["ProductResponse"];
@@ -18,6 +19,7 @@ export function ProductsListPage() {
   const canWrite = role
     ? (CAN_WRITE_ROLES as readonly string[]).includes(role)
     : false;
+  const currency = useCurrency();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -175,7 +177,7 @@ export function ProductsListPage() {
                   </Link>
                 </td>
                 <td className="py-2 pr-2">{p.name}</td>
-                <td className="py-2 pr-2">{p.unit_price}</td>
+                <td className="py-2 pr-2">{formatCurrency(p.unit_price, currency)}</td>
                 <td className="py-2 pr-2">{p.category ?? "—"}</td>
                 <td className="py-2 pr-2">
                   {p.is_archived ? "Archived" : "Active"}

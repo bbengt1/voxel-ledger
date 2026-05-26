@@ -27,6 +27,7 @@ from app.schemas.products import (
 from app.services import custom_fields as cf_service
 from app.services import inventory_alerts as alerts_service
 from app.services import products as products_service
+from app.services import upc as upc_service
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -122,6 +123,21 @@ async def list_products(
         items=[await _to_response(session, p) for p in page.items],
         next_cursor=page.next_cursor,
     )
+
+
+@router.post("/upc/generate")
+async def generate_upc(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+) -> dict[str, str]:
+    """Mint a fresh unused UPC-A. Returns ``{"upc": "<12 digits>"}``."""
+    try:
+        upc = await upc_service.allocate_unique_upc(session)
+    except upc_service.UpcGenerationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from None
+    return {"upc": upc}
 
 
 @router.get("/lookup", response_model=ProductResponse)

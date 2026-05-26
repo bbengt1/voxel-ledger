@@ -5,6 +5,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { HomePage } from "@/pages/Home";
 import { LoginPage } from "@/pages/Login";
 import { CustomFieldsPage } from "@/pages/admin/CustomFields";
+import { SettingsPage } from "@/pages/admin/Settings";
 import { UserCreatePage } from "@/pages/admin/UserCreate";
 import { UserDetailPage } from "@/pages/admin/UserDetail";
 import { UsersListPage } from "@/pages/admin/UsersList";
@@ -189,6 +190,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <CustomFieldsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettingsPage />
             </AppShell>
           </RequireAuth>
         }

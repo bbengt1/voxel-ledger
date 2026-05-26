@@ -46,6 +46,29 @@ function fmtDuration(seconds: number | null | undefined): string {
   return `${h}h ${m % 60}m`;
 }
 
+function fmtEtaClock(remainingSeconds: number | null | undefined): string {
+  if (!remainingSeconds || remainingSeconds < 0) return "—";
+  const finish = new Date(Date.now() + remainingSeconds * 1000);
+  return finish.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function fmtMeters(mm: number | null | undefined): string {
+  if (mm == null) return "—";
+  return `${(mm / 1000).toFixed(2)} m`;
+}
+
+function fmtFixed(
+  value: number | null | undefined,
+  digits: number,
+  suffix: string,
+): string {
+  if (value == null) return "—";
+  return `${value.toFixed(digits)} ${suffix}`;
+}
+
 interface Props {
   printer: PrinterResponse;
 }
@@ -56,6 +79,7 @@ export function PrinterStateCard({ printer }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [hasCamera, setHasCamera] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   const fetchState = useCallback(async () => {
     try {
@@ -96,6 +120,37 @@ export function PrinterStateCard({ printer }: Props) {
     return () => window.clearInterval(t);
   }, []);
 
+  // Fetch the gcode thumbnail via axios (so the Authorization header is
+  // attached) and turn it into a blob URL the <img> can render. Re-fetch
+  // when the current file changes; clear the blob URL on cleanup.
+  useEffect(() => {
+    const file = state?.current_file;
+    const isPrinting = state?.state === "printing";
+    if (!isPrinting || !file) {
+      setThumbnailUrl(null);
+      return;
+    }
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    apiClient
+      .get<Blob>(`/api/v1/printers/${printer.id}/gcode/thumbnail.png`, {
+        responseType: "blob",
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const url = URL.createObjectURL(res.data);
+        createdUrl = url;
+        setThumbnailUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setThumbnailUrl(null);
+      });
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [printer.id, state?.current_file, state?.state]);
+
   // Detect whether a camera is configured (best-effort, one-shot).
   useEffect(() => {
     let cancelled = false;
@@ -124,19 +179,29 @@ export function PrinterStateCard({ printer }: Props) {
         >
           {printer.name}
         </Link>
-        {state ? (
-          <span
-            className={cn(
-              "rounded px-2 py-0.5 text-xs font-medium",
-              STATE_COLORS[state.state],
-            )}
-            data-testid={`printer-card-state-${printer.id}`}
+        <div className="flex items-center gap-2">
+          {state ? (
+            <span
+              className={cn(
+                "rounded px-2 py-0.5 text-xs font-medium",
+                STATE_COLORS[state.state],
+              )}
+              data-testid={`printer-card-state-${printer.id}`}
+            >
+              {state.state}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">…</span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            asChild
+            data-testid={`printer-card-edit-${printer.id}`}
           >
-            {state.state}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">…</span>
-        )}
+            <Link to={`/production/printers/${printer.id}`}>Edit</Link>
+          </Button>
+        </div>
       </header>
 
       <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
@@ -186,12 +251,19 @@ export function PrinterStateCard({ printer }: Props) {
       ) : null}
 
       {state && state.state === "printing" ? (
-        <div className="text-xs">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="truncate text-muted-foreground">
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="truncate text-muted-foreground"
+              title={state.current_file ?? undefined}
+              data-testid={`printer-file-${printer.id}`}
+            >
               {state.current_file ?? "Printing"}
             </span>
-            <span data-testid={`printer-progress-${printer.id}`}>
+            <span
+              className="tabular-nums"
+              data-testid={`printer-progress-${printer.id}`}
+            >
               {state.progress_pct != null
                 ? `${Math.round(state.progress_pct)}%`
                 : "—"}
@@ -208,8 +280,78 @@ export function PrinterStateCard({ printer }: Props) {
               }}
             />
           </div>
-          <div className="mt-1 text-muted-foreground">
-            ETA {fmtDuration(state.remaining_seconds_estimate)}
+
+          {/* Live print telemetry + gcode thumbnail */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2">
+              <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-muted-foreground">
+                <dt>Speed</dt>
+                <dd
+                  className="text-foreground tabular-nums"
+                  data-testid={`printer-speed-${printer.id}`}
+                >
+                  {fmtFixed(state.speed_mm_s, 1, "mm/s")}
+                </dd>
+
+                <dt>Flow</dt>
+                <dd
+                  className="text-foreground tabular-nums"
+                  data-testid={`printer-flow-${printer.id}`}
+                >
+                  {fmtFixed(state.flow_mm3_s, 1, "mm³/s")}
+                </dd>
+
+                <dt>Filament</dt>
+                <dd
+                  className="text-foreground tabular-nums"
+                  data-testid={`printer-filament-${printer.id}`}
+                >
+                  {fmtMeters(state.filament_used_mm)}
+                </dd>
+
+                <dt>Layer</dt>
+                <dd
+                  className="text-foreground tabular-nums"
+                  data-testid={`printer-layer-${printer.id}`}
+                >
+                  {state.current_layer != null
+                    ? `${state.current_layer}${state.total_layers ? ` / ${state.total_layers}` : ""}`
+                    : "—"}
+                </dd>
+
+                <dt>Elapsed</dt>
+                <dd className="text-foreground tabular-nums">
+                  {fmtDuration(state.elapsed_seconds)}
+                </dd>
+
+                <dt>ETA</dt>
+                <dd className="text-foreground tabular-nums">
+                  {fmtDuration(state.remaining_seconds_estimate)}
+                </dd>
+
+                <dt>Finish</dt>
+                <dd
+                  className="text-foreground tabular-nums"
+                  data-testid={`printer-finish-${printer.id}`}
+                >
+                  {fmtEtaClock(state.remaining_seconds_estimate)}
+                </dd>
+              </dl>
+            </div>
+            <div className="flex items-center justify-center rounded border border-border bg-muted/40 p-1">
+              {thumbnailUrl ? (
+                <img
+                  alt="Gcode thumbnail"
+                  src={thumbnailUrl}
+                  className="max-h-24 w-full object-contain"
+                  data-testid={`printer-thumbnail-${printer.id}`}
+                />
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  No thumbnail
+                </span>
+              )}
+            </div>
           </div>
         </div>
       ) : null}

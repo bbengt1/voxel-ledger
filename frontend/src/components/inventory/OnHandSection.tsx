@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { ReconcileModal } from "@/components/inventory/ReconcileModal";
 import { RecordTransactionModal } from "@/components/inventory/RecordTransactionModal";
 import { TransferStockModal } from "@/components/inventory/TransferStockModal";
 import { Button } from "@/components/ui/Button";
@@ -68,6 +69,7 @@ export function OnHandSection({
     "receipt",
   );
   const [transferOpen, setTransferOpen] = useState(false);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [editingThreshold, setEditingThreshold] = useState(false);
@@ -168,6 +170,14 @@ export function OnHandSection({
                 data-testid="onhand-record-adjustment"
               >
                 Record adjustment
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setReconcileOpen(true)}
+                data-testid="onhand-reconcile"
+              >
+                Reconcile
               </Button>
             </>
           ) : null}
@@ -300,6 +310,18 @@ export function OnHandSection({
           label: entityName,
           kind: entityKind,
         }}
+      />
+
+      <ReconcileModal
+        open={reconcileOpen}
+        onClose={() => setReconcileOpen(false)}
+        onReconciled={(summary) => {
+          setToast(summary);
+          onChanged?.();
+        }}
+        entity={{ id: entityId, kind: entityKind, label: entityName }}
+        unit={unit}
+        perLocationOnHand={perLocationOnHand}
       />
 
       <TransferStockModal

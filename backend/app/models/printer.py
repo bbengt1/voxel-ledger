@@ -46,6 +46,28 @@ PRINTER_TYPE_ENUM = SAEnum(
 )
 
 
+class PrinterStatus(enum.StrEnum):
+    """Operational state of an active printer row.
+
+    Independent of ``is_archived``: a printer can be archived (hidden
+    from default lists) or active, and in either case carries a status
+    that describes whether it's currently usable.
+    """
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    DECOMMISSIONED = "decommissioned"
+
+
+PRINTER_STATUS_VALUES: tuple[str, ...] = tuple(m.value for m in PrinterStatus)
+
+PRINTER_STATUS_ENUM = SAEnum(
+    PrinterStatus,
+    name="printer_status",
+    values_callable=lambda enum_cls: [member.value for member in enum_cls],
+)
+
+
 class Printer(Base):
     __tablename__ = "printer"
     __table_args__ = (
@@ -63,6 +85,12 @@ class Printer(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(64), nullable=False)
     printer_type: Mapped[PrinterType] = mapped_column(PRINTER_TYPE_ENUM, nullable=False)
+    status: Mapped[PrinterStatus] = mapped_column(
+        PRINTER_STATUS_ENUM,
+        nullable=False,
+        default=PrinterStatus.ACTIVE,
+        server_default=PrinterStatus.ACTIVE.value,
+    )
 
     moonraker_url: Mapped[str | None] = mapped_column(Text(), nullable=True)
     # SECRET — never echoed to clients/events/excerpts. Service layer

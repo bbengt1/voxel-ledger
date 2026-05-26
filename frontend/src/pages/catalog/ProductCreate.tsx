@@ -19,7 +19,23 @@ export function ProductCreatePage() {
   const [category, setCategory] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [generatingUpc, setGeneratingUpc] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function onGenerateUpc() {
+    setGeneratingUpc(true);
+    try {
+      const res = await apiClient.post<{ upc: string }>(
+        "/api/v1/products/upc/generate",
+        {},
+      );
+      setUpc(res.data.upc);
+    } catch {
+      setError("Could not generate UPC.");
+    } finally {
+      setGeneratingUpc(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,11 +85,22 @@ export function ProductCreatePage() {
         </label>
         <label className="block text-sm">
           UPC
-          <Input
-            className="mt-1"
-            value={upc}
-            onChange={(e) => setUpc(e.target.value)}
-          />
+          <div className="mt-1 flex gap-2">
+            <Input
+              value={upc}
+              onChange={(e) => setUpc(e.target.value)}
+              data-testid="upc-input"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onGenerateUpc}
+              disabled={generatingUpc || submitting}
+              data-testid="upc-generate"
+            >
+              {generatingUpc ? "…" : "Generate"}
+            </Button>
+          </div>
         </label>
         <label className="block text-sm">
           Name

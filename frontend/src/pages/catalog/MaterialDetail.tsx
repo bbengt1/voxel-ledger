@@ -9,6 +9,7 @@ import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useMaterialTypes } from "@/lib/materialTypes";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type MaterialDetailResponse =
@@ -28,6 +29,7 @@ export function MaterialDetailPage() {
     ? (CAN_WRITE_ROLES as readonly string[]).includes(role)
     : false;
 
+  const materialTypes = useMaterialTypes();
   const [material, setMaterial] = useState<MaterialDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -216,7 +218,14 @@ export function MaterialDetailPage() {
               className="mt-1"
               value={materialType}
               onChange={(e) => setMaterialType(e.target.value)}
+              list="material-type-options"
+              data-testid="material-type-input"
             />
+            <datalist id="material-type-options">
+              {materialTypes.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
           </label>
           <label className="block text-sm">
             Color

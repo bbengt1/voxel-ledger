@@ -8,6 +8,7 @@ import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { formatCurrency, useCurrency } from "@/lib/currency";
 import { BomTab } from "@/pages/catalog/BomTab";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -23,6 +24,7 @@ export function ProductDetailPage() {
   const canWrite = role
     ? (CAN_WRITE_ROLES as readonly string[]).includes(role)
     : false;
+  const currency = useCurrency();
 
   const [product, setProduct] = useState<ProductResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,22 @@ export function ProductDetailPage() {
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [generatingUpc, setGeneratingUpc] = useState(false);
+
+  async function onGenerateUpc() {
+    setGeneratingUpc(true);
+    try {
+      const res = await apiClient.post<{ upc: string }>(
+        "/api/v1/products/upc/generate",
+        {},
+      );
+      setUpc(res.data.upc);
+    } catch {
+      setSaveMsg("Could not generate UPC.");
+    } finally {
+      setGeneratingUpc(false);
+    }
+  }
 
   function syncFormFromProduct(p: ProductResponse) {
     setName(p.name);
@@ -148,7 +166,10 @@ export function ProductDetailPage() {
         <p className="text-sm text-muted-foreground">
           <span className="font-mono text-xs">{product.sku}</span> ·{" "}
           {product.is_archived ? "Archived" : "Active"} ·{" "}
-          <span data-testid="unit-price">Price {product.unit_price}</span> ·{" "}
+          <span data-testid="unit-price">
+            Price {formatCurrency(product.unit_price, currency)}
+          </span>{" "}
+          ·{" "}
           <span data-testid="unit-cost">
             Cost{" "}
             {product.unit_cost_cached ??
@@ -205,11 +226,22 @@ export function ProductDetailPage() {
           </label>
           <label className="block text-sm">
             UPC
-            <Input
-              className="mt-1"
-              value={upc}
-              onChange={(e) => setUpc(e.target.value)}
-            />
+            <div className="mt-1 flex gap-2">
+              <Input
+                value={upc}
+                onChange={(e) => setUpc(e.target.value)}
+                data-testid="upc-input"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onGenerateUpc}
+                disabled={generatingUpc || saving}
+                data-testid="upc-generate"
+              >
+                {generatingUpc ? "…" : "Generate"}
+              </Button>
+            </div>
           </label>
           <label className="block text-sm">
             Weight (g)

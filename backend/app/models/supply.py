@@ -50,6 +50,11 @@ class Supply(Base):
     unit: Mapped[str] = mapped_column(String(32), nullable=False)
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     vendor: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Operator-supplied SKU/order identifier (Amazon ASIN, vendor SKU,
+    # etc.). Free-text and optional.
+    item_number: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # Where this supply is reordered from (Amazon, eBay, Home Depot, …).
+    place_of_purchase: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     # Phase 3.3: low-stock alert threshold. NULL = no alert configured.
     low_stock_threshold: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)

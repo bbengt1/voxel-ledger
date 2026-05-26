@@ -24,6 +24,7 @@ PrinterTypeLiteral = Literal[
     "voron_v2_4",
     "other",
 ]
+PrinterStatusLiteral = Literal["active", "inactive", "decommissioned"]
 
 
 class PrinterResponse(BaseModel):
@@ -37,6 +38,7 @@ class PrinterResponse(BaseModel):
     name: str
     slug: str
     printer_type: PrinterTypeLiteral
+    status: PrinterStatusLiteral = "active"
     moonraker_url: str | None = None
     moonraker_api_key_set: bool = False
     power_draw_watts: int | None = None
@@ -56,6 +58,7 @@ class PrinterCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     slug: str = Field(min_length=1, max_length=64)
     printer_type: PrinterTypeLiteral
+    status: PrinterStatusLiteral = "active"
     moonraker_url: str | None = Field(default=None, max_length=2048)
     moonraker_api_key: str | None = Field(default=None, max_length=4096)
     power_draw_watts: int | None = Field(default=None, ge=0, le=10_000)
@@ -78,6 +81,7 @@ class PrinterUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     slug: str | None = Field(default=None, min_length=1, max_length=64)
     printer_type: PrinterTypeLiteral | None = None
+    status: PrinterStatusLiteral | None = None
     moonraker_url: str | None = Field(default=None, max_length=2048)
     moonraker_api_key: str | None = Field(default=None, max_length=4096)
     power_draw_watts: int | None = Field(default=None, ge=0, le=10_000)

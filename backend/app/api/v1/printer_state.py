@@ -97,6 +97,11 @@ async def get_printer_state(
             extruder=state.temperatures.get("extruder"),
             bed=state.temperatures.get("bed"),
         ),
+        speed_mm_s=state.speed_mm_s,
+        flow_mm3_s=state.flow_mm3_s,
+        filament_used_mm=state.filament_used_mm,
+        current_layer=state.current_layer,
+        total_layers=state.total_layers,
         last_seen_at=state.last_seen_at,
     )
 

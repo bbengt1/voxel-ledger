@@ -4768,6 +4768,24 @@
             "title": "Cost Per Piece",
             "type": "string"
           },
+          "depreciation_cost": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Depreciation Cost",
+            "type": "string"
+          },
+          "electricity_cost": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Electricity Cost",
+            "type": "string"
+          },
+          "failure_adjustment_cost": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Failure Adjustment Cost",
+            "type": "string"
+          },
           "labor_cost": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Labor Cost",
@@ -4798,6 +4816,12 @@
           "pieces_per_set": {
             "title": "Pieces Per Set",
             "type": "integer"
+          },
+          "preheat_cost": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Preheat Cost",
+            "type": "string"
           },
           "sets_required": {
             "title": "Sets Required",
@@ -13910,6 +13934,32 @@
       },
       "PrinterCreateRequest": {
         "properties": {
+          "annual_print_hours": {
+            "anyOf": [
+              {
+                "maximum": 8760.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Print Hours"
+          },
+          "lifespan_years": {
+            "anyOf": [
+              {
+                "maximum": 50.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifespan Years"
+          },
           "moonraker_api_key": {
             "anyOf": [
               {
@@ -13965,6 +14015,32 @@
             ],
             "title": "Power Draw Watts"
           },
+          "preheat_minutes": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Minutes"
+          },
+          "preheat_power_watts": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Power Watts"
+          },
           "printer_type": {
             "enum": [
               "prusa_mk4",
@@ -13977,10 +14053,52 @@
             "title": "Printer Type",
             "type": "string"
           },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "salvage_value": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salvage Value"
+          },
           "slug": {
             "maxLength": 64,
             "minLength": 1,
             "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "inactive",
+              "decommissioned"
+            ],
+            "title": "Status",
             "type": "string"
           }
         },
@@ -14101,6 +14219,17 @@
       "PrinterResponse": {
         "description": "Printer response. Excludes ``moonraker_api_key`` by construction —\nthe boolean ``moonraker_api_key_set`` is the only signal we surface\nso the UI can decide whether to show \"configured\" vs \"not set\".",
         "properties": {
+          "annual_print_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Print Hours"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -14114,6 +14243,17 @@
           "is_archived": {
             "title": "Is Archived",
             "type": "boolean"
+          },
+          "lifespan_years": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifespan Years"
           },
           "moonraker_api_key_set": {
             "default": false,
@@ -14157,6 +14297,28 @@
             ],
             "title": "Power Draw Watts"
           },
+          "preheat_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Minutes"
+          },
+          "preheat_power_watts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Power Watts"
+          },
           "printer_type": {
             "enum": [
               "prusa_mk4",
@@ -14169,8 +14331,42 @@
             "title": "Printer Type",
             "type": "string"
           },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "salvage_value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salvage Value"
+          },
           "slug": {
             "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "active",
+            "enum": [
+              "active",
+              "inactive",
+              "decommissioned"
+            ],
+            "title": "Status",
             "type": "string"
           },
           "updated_at": {
@@ -14205,6 +14401,18 @@
             ],
             "title": "Current File"
           },
+          "current_layer": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Layer"
+          },
           "elapsed_seconds": {
             "anyOf": [
               {
@@ -14216,6 +14424,30 @@
               }
             ],
             "title": "Elapsed Seconds"
+          },
+          "filament_used_mm": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filament Used Mm"
+          },
+          "flow_mm3_s": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Mm3 S"
           },
           "last_seen_at": {
             "anyOf": [
@@ -14259,6 +14491,18 @@
             ],
             "title": "Remaining Seconds Estimate"
           },
+          "speed_mm_s": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Mm S"
+          },
           "state": {
             "enum": [
               "idle",
@@ -14272,6 +14516,18 @@
           },
           "temperatures": {
             "$ref": "#/components/schemas/PrinterTemperatures"
+          },
+          "total_layers": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Layers"
           }
         },
         "required": [
@@ -14312,6 +14568,32 @@
       "PrinterUpdateRequest": {
         "description": "PATCH-style — only fields the user wants to change.\n\nPassing ``moonraker_api_key: null`` clears the stored secret; passing\na non-null string replaces it.",
         "properties": {
+          "annual_print_hours": {
+            "anyOf": [
+              {
+                "maximum": 8760.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Print Hours"
+          },
+          "lifespan_years": {
+            "anyOf": [
+              {
+                "maximum": 50.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifespan Years"
+          },
           "moonraker_api_key": {
             "anyOf": [
               {
@@ -14374,6 +14656,32 @@
             ],
             "title": "Power Draw Watts"
           },
+          "preheat_minutes": {
+            "anyOf": [
+              {
+                "maximum": 600.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Minutes"
+          },
+          "preheat_power_watts": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preheat Power Watts"
+          },
           "printer_type": {
             "anyOf": [
               {
@@ -14393,6 +14701,38 @@
             ],
             "title": "Printer Type"
           },
+          "purchase_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Price"
+          },
+          "salvage_value": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salvage Value"
+          },
           "slug": {
             "anyOf": [
               {
@@ -14405,6 +14745,22 @@
               }
             ],
             "title": "Slug"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active",
+                  "inactive",
+                  "decommissioned"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
           }
         },
         "title": "PrinterUpdateRequest",
@@ -19607,6 +19963,18 @@
             ],
             "title": "Custom Fields"
           },
+          "item_number": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Number"
+          },
           "low_stock_threshold": {
             "anyOf": [
               {
@@ -19628,6 +19996,18 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "place_of_purchase": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Of Purchase"
           },
           "unit": {
             "maxLength": 32,
@@ -19717,6 +20097,17 @@
             "title": "Is Archived",
             "type": "boolean"
           },
+          "item_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Number"
+          },
           "low_stock_threshold": {
             "anyOf": [
               {
@@ -19743,6 +20134,17 @@
             },
             "title": "Per Location On Hand",
             "type": "object"
+          },
+          "place_of_purchase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Of Purchase"
           },
           "total_on_hand": {
             "default": "0",
@@ -19803,6 +20205,18 @@
             ],
             "title": "Custom Fields"
           },
+          "item_number": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Number"
+          },
           "low_stock_threshold": {
             "anyOf": [
               {
@@ -19831,6 +20245,18 @@
               }
             ],
             "title": "Name"
+          },
+          "place_of_purchase": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Of Purchase"
           },
           "unit": {
             "anyOf": [
@@ -37299,6 +37725,56 @@
         ]
       }
     },
+    "/api/v1/printers/{printer_id}/gcode/thumbnail.png": {
+      "get": {
+        "operationId": "get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {}
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "no current print or no embedded thumbnail"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "description": "moonraker upstream failed"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Gcode Thumbnail",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
     "/api/v1/printers/{printer_id}/history": {
       "get": {
         "operationId": "list_printer_history_api_v1_printers__printer_id__history_get",
@@ -38268,6 +38744,37 @@
           }
         ],
         "summary": "Lookup Product",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/products/upc/generate": {
+      "post": {
+        "description": "Mint a fresh unused UPC-A. Returns ``{\"upc\": \"<12 digits>\"}``.",
+        "operationId": "generate_upc_api_v1_products_upc_generate_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Generate Upc Api V1 Products Upc Generate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Upc",
         "tags": [
           "products"
         ]

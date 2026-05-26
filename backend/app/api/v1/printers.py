@@ -39,6 +39,7 @@ def _to_response(printer: Printer) -> PrinterResponse:
         name=printer.name,
         slug=printer.slug,
         printer_type=printer.printer_type.value,  # type: ignore[arg-type]
+        status=printer.status.value,  # type: ignore[arg-type]
         moonraker_url=printer.moonraker_url,
         moonraker_api_key_set=printer.moonraker_api_key is not None,
         power_draw_watts=printer.power_draw_watts,
@@ -67,6 +68,7 @@ async def create_printer(
             name=payload.name,
             slug=payload.slug,
             printer_type=payload.printer_type,
+            status=payload.status,
             moonraker_url=payload.moonraker_url,
             moonraker_api_key=payload.moonraker_api_key,
             power_draw_watts=payload.power_draw_watts,

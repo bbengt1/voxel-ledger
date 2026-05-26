@@ -130,12 +130,20 @@ async def create(
     unit_cost: Decimal,
     vendor: str | None,
     actor_user_id: uuid.UUID | None,
+    item_number: str | None = None,
+    place_of_purchase: str | None = None,
     low_stock_threshold: Decimal | None = None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Supply:
     name = name.strip()
     unit = unit.strip()
     vendor_norm = vendor.strip() if vendor else None
+    item_number_norm = item_number.strip() if item_number else None
+    if item_number_norm == "":
+        item_number_norm = None
+    place_norm = place_of_purchase.strip() if place_of_purchase else None
+    if place_norm == "":
+        place_norm = None
 
     existing = await _find_active_duplicate(session, name=name, vendor=vendor_norm)
     if existing is not None:
@@ -150,6 +158,8 @@ async def create(
         unit=unit,
         unit_cost=unit_cost,
         vendor=vendor_norm,
+        item_number=item_number_norm,
+        place_of_purchase=place_norm,
         low_stock_threshold=low_stock_threshold,
         is_archived=False,
         custom_fields=normalized_cf,
@@ -181,7 +191,15 @@ async def get(session: AsyncSession, supply_id: uuid.UUID) -> Supply:
     return row
 
 
-_EDITABLE_FIELDS = ("name", "unit", "unit_cost", "vendor", "low_stock_threshold")
+_EDITABLE_FIELDS = (
+    "name",
+    "unit",
+    "unit_cost",
+    "vendor",
+    "item_number",
+    "place_of_purchase",
+    "low_stock_threshold",
+)
 
 
 async def update(

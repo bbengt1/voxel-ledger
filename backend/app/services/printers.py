@@ -24,7 +24,7 @@ from sqlalchemy import and_, asc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import production as production_events
-from app.models.printer import Printer, PrinterType
+from app.models.printer import Printer, PrinterStatus, PrinterType
 from app.schemas.events import EventCreate
 from app.services import event_store
 
@@ -97,6 +97,15 @@ def _coerce_type(value: str | PrinterType) -> PrinterType:
         raise PrintersServiceError(f"invalid printer_type: {value!r}") from exc
 
 
+def _coerce_status(value: str | PrinterStatus) -> PrinterStatus:
+    if isinstance(value, PrinterStatus):
+        return value
+    try:
+        return PrinterStatus(value)
+    except ValueError as exc:
+        raise PrintersServiceError(f"invalid status: {value!r}") from exc
+
+
 async def _find_active_duplicate(
     session: AsyncSession,
     *,
@@ -120,6 +129,7 @@ async def create(
     name: str,
     slug: str,
     printer_type: str | PrinterType,
+    status: str | PrinterStatus = PrinterStatus.ACTIVE,
     moonraker_url: str | None = None,
     moonraker_api_key: str | None = None,
     power_draw_watts: int | None = None,
@@ -139,6 +149,7 @@ async def create(
     if not slug:
         raise PrintersServiceError("slug is required")
     pt = _coerce_type(printer_type)
+    status_norm = _coerce_status(status)
 
     moonraker_url_norm = (moonraker_url or "").strip() or None
     moonraker_api_key_norm = (moonraker_api_key or "").strip() or None
@@ -154,6 +165,7 @@ async def create(
         name=name,
         slug=slug,
         printer_type=pt,
+        status=status_norm,
         moonraker_url=moonraker_url_norm,
         moonraker_api_key=moonraker_api_key_norm,
         power_draw_watts=power_draw_watts,
@@ -196,6 +208,7 @@ _EDITABLE_FIELDS = (
     "name",
     "slug",
     "printer_type",
+    "status",
     "moonraker_url",
     "moonraker_api_key",
     "power_draw_watts",
@@ -214,6 +227,8 @@ def _redact_for_diff(field: str, value: Any) -> Any:
     if field == "moonraker_api_key" and value is not None:
         return SECRET_SENTINEL
     if isinstance(value, PrinterType):
+        return value.value
+    if isinstance(value, PrinterStatus):
         return value.value
     return value
 
@@ -235,6 +250,8 @@ async def update(
         new_value = patch[field]
         if field == "printer_type" and new_value is not None:
             new_value = _coerce_type(new_value)
+        elif field == "status" and new_value is not None:
+            new_value = _coerce_status(new_value)
         elif field in ("name", "slug"):
             if new_value is None:
                 raise PrintersServiceError(f"{field} must not be null")

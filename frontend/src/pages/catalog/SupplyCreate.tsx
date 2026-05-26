@@ -5,15 +5,19 @@ import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { usePlacesOfPurchase } from "@/lib/placesOfPurchase";
 
 type SupplyResponse = components["schemas"]["SupplyResponse"];
 
 export function SupplyCreatePage() {
   const navigate = useNavigate();
+  const places = usePlacesOfPurchase();
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("each");
   const [unitCost, setUnitCost] = useState("");
   const [vendor, setVendor] = useState("");
+  const [itemNumber, setItemNumber] = useState("");
+  const [placeOfPurchase, setPlaceOfPurchase] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +34,9 @@ export function SupplyCreatePage() {
         unit_cost: unitCost,
       };
       if (vendor.trim()) body["vendor"] = vendor.trim();
+      if (itemNumber.trim()) body["item_number"] = itemNumber.trim();
+      if (placeOfPurchase.trim())
+        body["place_of_purchase"] = placeOfPurchase.trim();
       if (lowStockThreshold.trim())
         body["low_stock_threshold"] = lowStockThreshold.trim();
       const res = await apiClient.post<SupplyResponse>(
@@ -86,6 +93,32 @@ export function SupplyCreatePage() {
             value={vendor}
             onChange={(e) => setVendor(e.target.value)}
           />
+        </label>
+        <label className="block text-sm">
+          Item number
+          <Input
+            className="mt-1"
+            value={itemNumber}
+            onChange={(e) => setItemNumber(e.target.value)}
+            placeholder="Vendor SKU, ASIN, etc."
+            data-testid="item-number-input"
+          />
+        </label>
+        <label className="block text-sm">
+          Place of purchase
+          <Input
+            className="mt-1"
+            value={placeOfPurchase}
+            onChange={(e) => setPlaceOfPurchase(e.target.value)}
+            list="place-of-purchase-options"
+            placeholder="Amazon, eBay, Home Depot, …"
+            data-testid="place-of-purchase-input"
+          />
+          <datalist id="place-of-purchase-options">
+            {places.map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
         </label>
         <label className="block text-sm">
           Low-stock threshold (optional)

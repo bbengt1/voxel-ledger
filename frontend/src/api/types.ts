@@ -3349,6 +3349,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/printers/{printer_id}/gcode/thumbnail.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gcode Thumbnail */
+        get: operations["get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/printers/{printer_id}/history": {
         parameters: {
             query?: never;
@@ -3551,6 +3568,26 @@ export interface paths {
         get: operations["lookup_product_api_v1_products_lookup_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/upc/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Upc
+         * @description Mint a fresh unused UPC-A. Returns ``{"upc": "<12 digits>"}``.
+         */
+        post: operations["generate_upc_api_v1_products_upc_generate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7426,6 +7463,21 @@ export interface components {
         CalcResultResponse: {
             /** Cost Per Piece */
             cost_per_piece: string;
+            /**
+             * Depreciation Cost
+             * @default 0.00
+             */
+            depreciation_cost: string;
+            /**
+             * Electricity Cost
+             * @default 0.00
+             */
+            electricity_cost: string;
+            /**
+             * Failure Adjustment Cost
+             * @default 0.00
+             */
+            failure_adjustment_cost: string;
             /** Labor Cost */
             labor_cost: string;
             /** Machine Cost */
@@ -7438,6 +7490,11 @@ export interface components {
             per_plate: components["schemas"]["PerPlateCostResponse"][];
             /** Pieces Per Set */
             pieces_per_set: number;
+            /**
+             * Preheat Cost
+             * @default 0.00
+             */
+            preheat_cost: string;
             /** Sets Required */
             sets_required: number;
             /** Suggested Unit Price */
@@ -10796,6 +10853,10 @@ export interface components {
         };
         /** PrinterCreateRequest */
         PrinterCreateRequest: {
+            /** Annual Print Hours */
+            annual_print_hours?: number | null;
+            /** Lifespan Years */
+            lifespan_years?: number | null;
             /** Moonraker Api Key */
             moonraker_api_key?: string | null;
             /** Moonraker Url */
@@ -10806,13 +10867,27 @@ export interface components {
             notes?: string | null;
             /** Power Draw Watts */
             power_draw_watts?: number | null;
+            /** Preheat Minutes */
+            preheat_minutes?: number | null;
+            /** Preheat Power Watts */
+            preheat_power_watts?: number | null;
             /**
              * Printer Type
              * @enum {string}
              */
             printer_type: "prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other";
+            /** Purchase Price */
+            purchase_price?: number | string | null;
+            /** Salvage Value */
+            salvage_value?: number | string | null;
             /** Slug */
             slug: string;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive" | "decommissioned";
         };
         /** PrinterHistoryEventResponse */
         PrinterHistoryEventResponse: {
@@ -10862,6 +10937,8 @@ export interface components {
          *     so the UI can decide whether to show "configured" vs "not set".
          */
         PrinterResponse: {
+            /** Annual Print Hours */
+            annual_print_hours?: number | null;
             /**
              * Created At
              * Format: date-time
@@ -10874,6 +10951,8 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Lifespan Years */
+            lifespan_years?: number | null;
             /**
              * Moonraker Api Key Set
              * @default false
@@ -10887,13 +10966,27 @@ export interface components {
             notes?: string | null;
             /** Power Draw Watts */
             power_draw_watts?: number | null;
+            /** Preheat Minutes */
+            preheat_minutes?: number | null;
+            /** Preheat Power Watts */
+            preheat_power_watts?: number | null;
             /**
              * Printer Type
              * @enum {string}
              */
             printer_type: "prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other";
+            /** Purchase Price */
+            purchase_price?: string | null;
+            /** Salvage Value */
+            salvage_value?: string | null;
             /** Slug */
             slug: string;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "inactive" | "decommissioned";
             /**
              * Updated At
              * Format: date-time
@@ -10907,8 +11000,14 @@ export interface components {
         PrinterStateResponse: {
             /** Current File */
             current_file?: string | null;
+            /** Current Layer */
+            current_layer?: number | null;
             /** Elapsed Seconds */
             elapsed_seconds?: number | null;
+            /** Filament Used Mm */
+            filament_used_mm?: number | null;
+            /** Flow Mm3 S */
+            flow_mm3_s?: number | null;
             /** Last Seen At */
             last_seen_at?: string | null;
             /**
@@ -10920,12 +11019,16 @@ export interface components {
             progress_pct?: number | null;
             /** Remaining Seconds Estimate */
             remaining_seconds_estimate?: number | null;
+            /** Speed Mm S */
+            speed_mm_s?: number | null;
             /**
              * State
              * @enum {string}
              */
             state: "idle" | "printing" | "paused" | "error" | "disconnected";
             temperatures?: components["schemas"]["PrinterTemperatures"];
+            /** Total Layers */
+            total_layers?: number | null;
         };
         /** PrinterTemperatures */
         PrinterTemperatures: {
@@ -10942,6 +11045,10 @@ export interface components {
          *     a non-null string replaces it.
          */
         PrinterUpdateRequest: {
+            /** Annual Print Hours */
+            annual_print_hours?: number | null;
+            /** Lifespan Years */
+            lifespan_years?: number | null;
             /** Moonraker Api Key */
             moonraker_api_key?: string | null;
             /** Moonraker Url */
@@ -10952,10 +11059,20 @@ export interface components {
             notes?: string | null;
             /** Power Draw Watts */
             power_draw_watts?: number | null;
+            /** Preheat Minutes */
+            preheat_minutes?: number | null;
+            /** Preheat Power Watts */
+            preheat_power_watts?: number | null;
             /** Printer Type */
             printer_type?: ("prusa_mk4" | "prusa_mk3s" | "bambu_x1c" | "bambu_a1" | "voron_v2_4" | "other") | null;
+            /** Purchase Price */
+            purchase_price?: number | string | null;
+            /** Salvage Value */
+            salvage_value?: number | string | null;
             /** Slug */
             slug?: string | null;
+            /** Status */
+            status?: ("active" | "inactive" | "decommissioned") | null;
         };
         /** ProductCreateRequest */
         ProductCreateRequest: {
@@ -12800,10 +12917,14 @@ export interface components {
             custom_fields?: {
                 [key: string]: unknown;
             } | null;
+            /** Item Number */
+            item_number?: string | null;
             /** Low Stock Threshold */
             low_stock_threshold?: number | string | null;
             /** Name */
             name: string;
+            /** Place Of Purchase */
+            place_of_purchase?: string | null;
             /** Unit */
             unit: string;
             /** Unit Cost */
@@ -12836,6 +12957,8 @@ export interface components {
             id: string;
             /** Is Archived */
             is_archived: boolean;
+            /** Item Number */
+            item_number?: string | null;
             /** Low Stock Threshold */
             low_stock_threshold?: string | null;
             /** Name */
@@ -12844,6 +12967,8 @@ export interface components {
             per_location_on_hand?: {
                 [key: string]: string;
             };
+            /** Place Of Purchase */
+            place_of_purchase?: string | null;
             /**
              * Total On Hand
              * @default 0
@@ -12870,10 +12995,14 @@ export interface components {
             custom_fields?: {
                 [key: string]: unknown;
             } | null;
+            /** Item Number */
+            item_number?: string | null;
             /** Low Stock Threshold */
             low_stock_threshold?: number | string | null;
             /** Name */
             name?: string | null;
+            /** Place Of Purchase */
+            place_of_purchase?: string | null;
             /** Unit */
             unit?: string | null;
             /** Unit Cost */
@@ -21992,6 +22121,51 @@ export interface operations {
             };
         };
     };
+    get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": unknown;
+                };
+            };
+            /** @description no current print or no embedded thumbnail */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description moonraker upstream failed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_printer_history_api_v1_printers__printer_id__history_get: {
         parameters: {
             query?: {
@@ -22513,6 +22687,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_upc_api_v1_products_upc_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };

@@ -8,6 +8,7 @@ import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { usePlacesOfPurchase } from "@/lib/placesOfPurchase";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type SupplyResponse = components["schemas"]["SupplyResponse"];
@@ -23,6 +24,7 @@ export function SupplyDetailPage() {
     ? (CAN_WRITE_ROLES as readonly string[]).includes(role)
     : false;
 
+  const places = usePlacesOfPurchase();
   const [supply, setSupply] = useState<SupplyResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,8 @@ export function SupplyDetailPage() {
   const [unit, setUnit] = useState("");
   const [unitCost, setUnitCost] = useState("");
   const [vendor, setVendor] = useState("");
+  const [itemNumber, setItemNumber] = useState("");
+  const [placeOfPurchase, setPlaceOfPurchase] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -40,6 +44,8 @@ export function SupplyDetailPage() {
     setUnit(s.unit);
     setUnitCost(s.unit_cost);
     setVendor(s.vendor ?? "");
+    setItemNumber(s.item_number ?? "");
+    setPlaceOfPurchase(s.place_of_purchase ?? "");
   }
 
   useEffect(() => {
@@ -79,6 +85,8 @@ export function SupplyDetailPage() {
         unit_cost: unitCost,
       };
       body["vendor"] = vendor.trim() || null;
+      body["item_number"] = itemNumber.trim() || null;
+      body["place_of_purchase"] = placeOfPurchase.trim() || null;
       const res = await apiClient.patch<SupplyResponse>(
         `/api/v1/supplies/${id}`,
         body,
@@ -197,6 +205,31 @@ export function SupplyDetailPage() {
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
             />
+          </label>
+          <label className="block text-sm">
+            Item number
+            <Input
+              className="mt-1"
+              value={itemNumber}
+              onChange={(e) => setItemNumber(e.target.value)}
+              placeholder="Vendor SKU, ASIN, etc."
+              data-testid="item-number-input"
+            />
+          </label>
+          <label className="block text-sm">
+            Place of purchase
+            <Input
+              className="mt-1"
+              value={placeOfPurchase}
+              onChange={(e) => setPlaceOfPurchase(e.target.value)}
+              list="supply-place-of-purchase-options"
+              data-testid="place-of-purchase-input"
+            />
+            <datalist id="supply-place-of-purchase-options">
+              {places.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
           </label>
           <div className="flex gap-2">
             <Button onClick={save} disabled={saving} data-testid="save-btn">

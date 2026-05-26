@@ -76,6 +76,12 @@ class PrinterState:
     temperatures: dict[str, float | None] = field(
         default_factory=lambda: {"extruder": None, "bed": None}
     )
+    # Live print telemetry (gcode_move / motion_report / print_stats).
+    speed_mm_s: float | None = None
+    flow_mm3_s: float | None = None
+    filament_used_mm: float | None = None
+    current_layer: int | None = None
+    total_layers: int | None = None
     last_seen_at: datetime | None = None
 
 
@@ -94,6 +100,11 @@ class ProbeResult:
     current_file: str | None = None
     extruder_temp: float | None = None
     bed_temp: float | None = None
+    speed_mm_s: float | None = None
+    flow_mm3_s: float | None = None
+    filament_used_mm: float | None = None
+    current_layer: int | None = None
+    total_layers: int | None = None
 
 
 ProbeFn = Callable[[str, str | None], Awaitable[ProbeResult]]
@@ -110,11 +121,13 @@ async def _default_probe(url: str, api_key: str | None) -> ProbeResult:
     import httpx
 
     query = (
-        "print_stats=state,filename,print_duration"
+        "print_stats=state,filename,print_duration,filament_used,info"
         "&display_status=progress"
         "&extruder=temperature"
         "&heater_bed=temperature"
         "&virtual_sdcard=progress"
+        "&gcode_move=speed,speed_factor,extrude_factor"
+        "&motion_report=live_position,live_velocity,live_extruder_velocity"
     )
     target = url.rstrip("/") + "/printer/objects/query?" + query
     headers: dict[str, str] = {}
@@ -134,6 +147,8 @@ async def _default_probe(url: str, api_key: str | None) -> ProbeResult:
     display = status.get("display_status", {}) or {}
     extruder = status.get("extruder", {}) or {}
     bed = status.get("heater_bed", {}) or {}
+    gcode_move = status.get("gcode_move", {}) or {}
+    motion = status.get("motion_report", {}) or {}
 
     moonraker_state = (print_stats.get("state") or "").lower()
     mapped = _map_moonraker_state(moonraker_state)
@@ -146,6 +161,33 @@ async def _default_probe(url: str, api_key: str | None) -> ProbeResult:
     if elapsed_seconds is not None and progress and progress > 0:
         remaining = int(elapsed_seconds * (1.0 - progress) / progress)
 
+    # Live speed: prefer motion_report.live_velocity (mm/s), fall back to
+    # gcode_move.speed (mm/min → mm/s) scaled by speed_factor.
+    speed_mm_s = _as_float(motion.get("live_velocity"))
+    if speed_mm_s is None:
+        raw_speed = _as_float(gcode_move.get("speed"))
+        factor = _as_float(gcode_move.get("speed_factor"))
+        if raw_speed is not None and factor is not None:
+            speed_mm_s = raw_speed * factor / 60.0
+        elif raw_speed is not None:
+            speed_mm_s = raw_speed / 60.0
+
+    # Flow ≈ live_extruder_velocity × π × (filament_radius_mm)² with
+    # 1.75 mm filament (r=0.875). live_extruder_velocity is mm/s of
+    # filament; convert to mm³/s of plastic.
+    extruder_vel = _as_float(motion.get("live_extruder_velocity"))
+    flow_mm3_s = None
+    if extruder_vel is not None:
+        # π × 0.875² ≈ 2.4053 mm² cross-section for 1.75 mm filament.
+        flow_mm3_s = extruder_vel * 2.4053
+
+    filament_used_mm = _as_float(print_stats.get("filament_used"))
+    info = print_stats.get("info") or {}
+    current_layer = info.get("current_layer")
+    total_layers = info.get("total_layer")
+    current_layer_int = int(current_layer) if isinstance(current_layer, int | float) else None
+    total_layers_int = int(total_layers) if isinstance(total_layers, int | float) else None
+
     return ProbeResult(
         ok=True,
         state=mapped,
@@ -155,6 +197,11 @@ async def _default_probe(url: str, api_key: str | None) -> ProbeResult:
         current_file=print_stats.get("filename") or None,
         extruder_temp=_as_float(extruder.get("temperature")),
         bed_temp=_as_float(bed.get("temperature")),
+        speed_mm_s=speed_mm_s,
+        flow_mm3_s=flow_mm3_s,
+        filament_used_mm=filament_used_mm,
+        current_layer=current_layer_int,
+        total_layers=total_layers_int,
     )
 
 
@@ -403,6 +450,13 @@ class PrinterMonitor:
                     else prev.temperatures.get("extruder"),
                     "bed": result.bed_temp if result.ok else prev.temperatures.get("bed"),
                 },
+                speed_mm_s=result.speed_mm_s if result.ok else prev.speed_mm_s,
+                flow_mm3_s=result.flow_mm3_s if result.ok else prev.flow_mm3_s,
+                filament_used_mm=(
+                    result.filament_used_mm if result.ok else prev.filament_used_mm
+                ),
+                current_layer=result.current_layer if result.ok else prev.current_layer,
+                total_layers=result.total_layers if result.ok else prev.total_layers,
                 last_seen_at=datetime.now(UTC) if result.ok else prev.last_seen_at,
             )
             self._states[printer_id] = updated

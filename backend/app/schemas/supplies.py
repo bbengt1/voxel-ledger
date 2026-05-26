@@ -18,6 +18,8 @@ class SupplyResponse(BaseModel):
     unit: str
     unit_cost: Decimal
     vendor: str | None = None
+    item_number: str | None = None
+    place_of_purchase: str | None = None
     # Phase 3.3: on-hand is sourced from ``inventory_on_hand``; the API
     # exposes the cross-location total plus a per-location breakdown.
     total_on_hand: Decimal = Field(default=Decimal("0"))
@@ -34,6 +36,8 @@ class SupplyCreateRequest(BaseModel):
     unit: str = Field(min_length=1, max_length=32)
     unit_cost: Decimal = Field(ge=0)
     vendor: str | None = Field(default=None, max_length=255)
+    item_number: str | None = Field(default=None, max_length=128)
+    place_of_purchase: str | None = Field(default=None, max_length=128)
     low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 
@@ -45,6 +49,8 @@ class SupplyUpdateRequest(BaseModel):
     unit: str | None = Field(default=None, min_length=1, max_length=32)
     unit_cost: Decimal | None = Field(default=None, ge=0)
     vendor: str | None = Field(default=None, max_length=255)
+    item_number: str | None = Field(default=None, max_length=128)
+    place_of_purchase: str | None = Field(default=None, max_length=128)
     low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
 

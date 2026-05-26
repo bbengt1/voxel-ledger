@@ -152,7 +152,7 @@ const SECTIONS: NavSection[] = [
       },
       { label: "Email log", href: "/admin/email-log", visibleTo: ADMIN_ROLES },
       { label: "Webhooks", href: "/settings/webhooks", visibleTo: ADMIN_ROLES },
-      { label: "Settings", href: "#admin/settings", visibleTo: ADMIN_ROLES },
+      { label: "Settings", href: "/admin/settings", visibleTo: ADMIN_ROLES },
     ],
   },
 ];

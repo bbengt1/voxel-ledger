@@ -48,6 +48,11 @@ class PrinterStateResponse(BaseModel):
     remaining_seconds_estimate: int | None = Field(default=None, ge=0)
     current_file: str | None = None
     temperatures: PrinterTemperatures = Field(default_factory=PrinterTemperatures)
+    speed_mm_s: float | None = Field(default=None, ge=0)
+    flow_mm3_s: float | None = Field(default=None, ge=0)
+    filament_used_mm: float | None = Field(default=None, ge=0)
+    current_layer: int | None = Field(default=None, ge=0)
+    total_layers: int | None = Field(default=None, ge=0)
     last_seen_at: datetime | None = None
 
 

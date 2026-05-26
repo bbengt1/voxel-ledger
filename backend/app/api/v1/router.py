@@ -60,6 +60,7 @@ from app.api.v1.payments import (
 )
 from app.api.v1.pos import router as pos_router
 from app.api.v1.printer_state import router as printer_state_router
+from app.api.v1.printer_thumbnail import router as printer_thumbnail_router
 from app.api.v1.printers import router as printers_router
 from app.api.v1.production_orders import router as production_orders_router
 from app.api.v1.products import router as products_router
@@ -115,6 +116,7 @@ api_router.include_router(materials_router)
 api_router.include_router(notes_router)
 api_router.include_router(printers_router)
 api_router.include_router(printer_state_router)
+api_router.include_router(printer_thumbnail_router)
 api_router.include_router(cameras_router)
 api_router.include_router(products_router)
 api_router.include_router(production_orders_router)

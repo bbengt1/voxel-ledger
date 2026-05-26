@@ -12,6 +12,25 @@ type CameraResponse = components["schemas"]["CameraResponse"];
 
 const CAN_WRITE_ROLES = ["owner", "production"] as const;
 
+const STATUS_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "decommissioned", label: "Decommissioned" },
+];
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case "active":
+      return "bg-green-100 text-green-800";
+    case "inactive":
+      return "bg-amber-100 text-amber-800";
+    case "decommissioned":
+      return "bg-zinc-200 text-zinc-700";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
 const CAMERA_KIND_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "go2rtc", label: "go2rtc (snapshot proxy supported)" },
   { value: "wyze", label: "Wyze (not yet proxied)" },
@@ -38,6 +57,16 @@ export function PrinterDetailPage() {
   const [moonrakerUrl, setMoonrakerUrl] = useState("");
   const [moonrakerApiKey, setMoonrakerApiKey] = useState("");
   const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState<string>("active");
+
+  // Cost / power fields (#249).
+  const [powerDrawWatts, setPowerDrawWatts] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [salvageValue, setSalvageValue] = useState("");
+  const [lifespanYears, setLifespanYears] = useState("");
+  const [annualPrintHours, setAnnualPrintHours] = useState("");
+  const [preheatMinutes, setPreheatMinutes] = useState("");
+  const [preheatPowerWatts, setPreheatPowerWatts] = useState("");
 
   // Camera editable fields.
   const [camKind, setCamKind] = useState<string>("go2rtc");
@@ -53,6 +82,20 @@ export function PrinterDetailPage() {
     setMoonrakerUrl(p.moonraker_url ?? "");
     setMoonrakerApiKey("");
     setNotes(p.notes ?? "");
+    setStatus(p.status ?? "active");
+    setPowerDrawWatts(p.power_draw_watts != null ? String(p.power_draw_watts) : "");
+    setPurchasePrice(p.purchase_price != null ? String(p.purchase_price) : "");
+    setSalvageValue(p.salvage_value != null ? String(p.salvage_value) : "");
+    setLifespanYears(p.lifespan_years != null ? String(p.lifespan_years) : "");
+    setAnnualPrintHours(
+      p.annual_print_hours != null ? String(p.annual_print_hours) : "",
+    );
+    setPreheatMinutes(
+      p.preheat_minutes != null ? String(p.preheat_minutes) : "",
+    );
+    setPreheatPowerWatts(
+      p.preheat_power_watts != null ? String(p.preheat_power_watts) : "",
+    );
   }
 
   function syncFromCamera(c: CameraResponse | null) {
@@ -108,8 +151,18 @@ export function PrinterDetailPage() {
     setSaveMsg(null);
     try {
       const body: Record<string, unknown> = { name, notes: notes || null };
+      body["status"] = status;
       body["moonraker_url"] = moonrakerUrl.trim() || null;
       if (moonrakerApiKey.trim()) body["moonraker_api_key"] = moonrakerApiKey;
+      const intOrNull = (s: string) => (s.trim() === "" ? null : Number(s));
+      const decOrNull = (s: string) => (s.trim() === "" ? null : s.trim());
+      body["power_draw_watts"] = intOrNull(powerDrawWatts);
+      body["purchase_price"] = decOrNull(purchasePrice);
+      body["salvage_value"] = decOrNull(salvageValue);
+      body["lifespan_years"] = intOrNull(lifespanYears);
+      body["annual_print_hours"] = intOrNull(annualPrintHours);
+      body["preheat_minutes"] = intOrNull(preheatMinutes);
+      body["preheat_power_watts"] = intOrNull(preheatPowerWatts);
       const r = await apiClient.patch<PrinterResponse>(
         `/api/v1/printers/${id}`,
         body,
@@ -201,10 +254,18 @@ export function PrinterDetailPage() {
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{printer.name}</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            {printer.name}
+            <span
+              className={`rounded px-2 py-0.5 text-xs font-medium ${statusBadgeClass(printer.status)}`}
+              data-testid="status-chip"
+            >
+              {printer.status}
+            </span>
+          </h1>
           <p className="text-sm text-muted-foreground">
             {printer.slug} · {printer.printer_type} ·{" "}
-            {printer.is_archived ? "Archived" : "Active"}
+            {printer.is_archived ? "Archived" : "Active row"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -245,6 +306,21 @@ export function PrinterDetailPage() {
           />
         </label>
         <label className="block text-sm">
+          Status
+          <select
+            className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            data-testid="status-select"
+          >
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm">
           Moonraker URL
           <Input
             className="mt-1"
@@ -279,6 +355,96 @@ export function PrinterDetailPage() {
         {canWrite ? (
           <Button type="button" onClick={savePrinter} disabled={saving}>
             Save printer
+          </Button>
+        ) : null}
+      </fieldset>
+
+      <fieldset
+        className="space-y-3 rounded-md border border-border p-4"
+        disabled={!canWrite || saving}
+      >
+        <legend className="px-1 text-sm font-medium">Cost & power</legend>
+        <p className="text-xs text-muted-foreground">
+          When the full set (power draw, purchase price, salvage, lifespan
+          years, annual hours) is filled in, the cost engine derives this
+          printer&apos;s per-hour cost from electricity + depreciation instead
+          of the flat machine-rate fallback.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm">
+            Avg power draw (W)
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={powerDrawWatts}
+              onChange={(e) => setPowerDrawWatts(e.target.value)}
+              data-testid="power-draw-watts"
+            />
+          </label>
+          <label className="block text-sm">
+            Purchase price
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              data-testid="purchase-price"
+            />
+          </label>
+          <label className="block text-sm">
+            Salvage value
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={salvageValue}
+              onChange={(e) => setSalvageValue(e.target.value)}
+              data-testid="salvage-value"
+            />
+          </label>
+          <label className="block text-sm">
+            Lifespan (years)
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={lifespanYears}
+              onChange={(e) => setLifespanYears(e.target.value)}
+              data-testid="lifespan-years"
+            />
+          </label>
+          <label className="block text-sm">
+            Annual print hours
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={annualPrintHours}
+              onChange={(e) => setAnnualPrintHours(e.target.value)}
+              data-testid="annual-print-hours"
+            />
+          </label>
+          <label className="block text-sm">
+            Preheat minutes
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={preheatMinutes}
+              onChange={(e) => setPreheatMinutes(e.target.value)}
+              data-testid="preheat-minutes"
+            />
+          </label>
+          <label className="block text-sm">
+            Preheat power (W)
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={preheatPowerWatts}
+              onChange={(e) => setPreheatPowerWatts(e.target.value)}
+              data-testid="preheat-power-watts"
+            />
+          </label>
+        </div>
+        {canWrite ? (
+          <Button type="button" onClick={savePrinter} disabled={saving}>
+            Save cost & power
           </Button>
         ) : null}
       </fieldset>

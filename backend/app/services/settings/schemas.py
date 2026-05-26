@@ -160,6 +160,80 @@ class DefaultMarginPercent(SettingSchema):
 
 
 @register
+class MaterialTypes(SettingSchema):
+    """List of filament types shown in the material-type picker.
+
+    Operator-tunable so a shop can add specialty resins or in-house
+    blends without a code change. The backend material_type column is
+    a free-text VARCHAR, so values outside this list still validate at
+    the API layer — these are just suggestions for the UI.
+    """
+
+    key: ClassVar[str] = "materials.types"
+    default: ClassVar[list[str]] = [
+        "PLA",
+        "PLA+",
+        "Silk PLA",
+        "PETG",
+        "ABS",
+        "ASA",
+        "TPU",
+        "TPE",
+        "Nylon",
+        "PC",
+        "PVA",
+        "HIPS",
+        "Carbon Fiber",
+        "Wood Fill",
+        "PEEK",
+        "PEI",
+    ]
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class SuppliesPlacesOfPurchase(SettingSchema):
+    """Suggested storefronts for the supply ``place_of_purchase`` picker.
+
+    Free-text field on the supply model — entries here only seed the
+    autocomplete in the create/edit forms. Add/remove via the settings
+    page; custom values still validate at the API layer.
+    """
+
+    key: ClassVar[str] = "supplies.places_of_purchase"
+    default: ClassVar[list[str]] = [
+        "Amazon",
+        "eBay",
+        "Home Depot",
+        "Lowes",
+        "Walmart",
+        "Target",
+        "Costco",
+        "AliExpress",
+        "Etsy",
+        "Best Buy",
+        "Micro Center",
+        "Local store",
+    ]
+    value: list[str] = Field(default_factory=list)
+
+
+@register
+class DisplayCurrency(SettingSchema):
+    """ISO 4217 currency code used to render money in the UI.
+
+    Defaults to ``USD`` to preserve existing behaviour. The application
+    is still single-tenant USD-only on the accounting side — this
+    setting only controls how amounts are formatted for display
+    (symbol, separators, decimal places) via ``Intl.NumberFormat``.
+    """
+
+    key: ClassVar[str] = "display.currency"
+    default: ClassVar[str] = "USD"
+    value: str = Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+
+
+@register
 class FailureRatePercent(SettingSchema):
     """Failure-rate buffer applied to direct costs (percent, 0-100).
 
