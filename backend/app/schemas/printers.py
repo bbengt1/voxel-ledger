@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,6 +40,12 @@ class PrinterResponse(BaseModel):
     moonraker_url: str | None = None
     moonraker_api_key_set: bool = False
     power_draw_watts: int | None = None
+    purchase_price: Decimal | None = None
+    salvage_value: Decimal | None = None
+    lifespan_years: int | None = None
+    annual_print_hours: int | None = None
+    preheat_minutes: int | None = None
+    preheat_power_watts: int | None = None
     notes: str | None = None
     is_archived: bool
     created_at: datetime
@@ -52,6 +59,12 @@ class PrinterCreateRequest(BaseModel):
     moonraker_url: str | None = Field(default=None, max_length=2048)
     moonraker_api_key: str | None = Field(default=None, max_length=4096)
     power_draw_watts: int | None = Field(default=None, ge=0, le=10_000)
+    purchase_price: Decimal | None = Field(default=None, ge=0)
+    salvage_value: Decimal | None = Field(default=None, ge=0)
+    lifespan_years: int | None = Field(default=None, ge=1, le=50)
+    annual_print_hours: int | None = Field(default=None, ge=1, le=8760)
+    preheat_minutes: int | None = Field(default=None, ge=0, le=600)
+    preheat_power_watts: int | None = Field(default=None, ge=0, le=10_000)
     notes: str | None = Field(default=None, max_length=4096)
 
 
@@ -68,6 +81,12 @@ class PrinterUpdateRequest(BaseModel):
     moonraker_url: str | None = Field(default=None, max_length=2048)
     moonraker_api_key: str | None = Field(default=None, max_length=4096)
     power_draw_watts: int | None = Field(default=None, ge=0, le=10_000)
+    purchase_price: Decimal | None = Field(default=None, ge=0)
+    salvage_value: Decimal | None = Field(default=None, ge=0)
+    lifespan_years: int | None = Field(default=None, ge=1, le=50)
+    annual_print_hours: int | None = Field(default=None, ge=1, le=8760)
+    preheat_minutes: int | None = Field(default=None, ge=0, le=600)
+    preheat_power_watts: int | None = Field(default=None, ge=0, le=10_000)
     notes: str | None = Field(default=None, max_length=4096)
 
 

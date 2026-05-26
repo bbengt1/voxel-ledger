@@ -57,4 +57,10 @@ class CalcResultResponse(BaseModel):
     total_cost: Decimal
     cost_per_piece: Decimal
     suggested_unit_price: Decimal
+    # #249 itemized breakdown of ``machine_cost`` when the plate's
+    # printer carries per-printer cost params; zero otherwise.
+    electricity_cost: Decimal = Decimal("0.00")
+    preheat_cost: Decimal = Decimal("0.00")
+    depreciation_cost: Decimal = Decimal("0.00")
+    failure_adjustment_cost: Decimal = Decimal("0.00")
     per_plate: list[PerPlateCostResponse]

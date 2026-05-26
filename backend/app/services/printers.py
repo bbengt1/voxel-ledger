@@ -17,6 +17,7 @@ import json
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import and_, asc, or_, select
@@ -122,6 +123,12 @@ async def create(
     moonraker_url: str | None = None,
     moonraker_api_key: str | None = None,
     power_draw_watts: int | None = None,
+    purchase_price: Decimal | None = None,
+    salvage_value: Decimal | None = None,
+    lifespan_years: int | None = None,
+    annual_print_hours: int | None = None,
+    preheat_minutes: int | None = None,
+    preheat_power_watts: int | None = None,
     notes: str | None = None,
     actor_user_id: uuid.UUID | None,
 ) -> Printer:
@@ -150,6 +157,12 @@ async def create(
         moonraker_url=moonraker_url_norm,
         moonraker_api_key=moonraker_api_key_norm,
         power_draw_watts=power_draw_watts,
+        purchase_price=purchase_price,
+        salvage_value=salvage_value,
+        lifespan_years=lifespan_years,
+        annual_print_hours=annual_print_hours,
+        preheat_minutes=preheat_minutes,
+        preheat_power_watts=preheat_power_watts,
         notes=notes_norm,
         is_archived=False,
     )
@@ -186,6 +199,12 @@ _EDITABLE_FIELDS = (
     "moonraker_url",
     "moonraker_api_key",
     "power_draw_watts",
+    "purchase_price",
+    "salvage_value",
+    "lifespan_years",
+    "annual_print_hours",
+    "preheat_minutes",
+    "preheat_power_watts",
     "notes",
 )
 

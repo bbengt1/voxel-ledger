@@ -99,6 +99,27 @@ class CalcInputs:
 
 
 @dataclass(frozen=True)
+class PrinterCostParams:
+    """Per-printer cost-engine inputs derived from the Printer row (#249).
+
+    All fields optional. When the full set is present the calculator
+    derives a per-hour machine cost from electricity + depreciation
+    instead of the flat ``machine_rate_per_hour``. Preheat is its own
+    one-shot-per-run line. ``power_draw_watts`` is the printing-time
+    average; ``preheat_power_watts`` is the higher draw during the
+    initial warmup.
+    """
+
+    power_draw_watts: int | None = None
+    purchase_price: Decimal | None = None
+    salvage_value: Decimal | None = None
+    lifespan_years: int | None = None
+    annual_print_hours: int | None = None
+    preheat_minutes: int | None = None
+    preheat_power_watts: int | None = None
+
+
+@dataclass(frozen=True)
 class CalcContext:
     """Snapshot of every cost input at calc time.
 
@@ -118,6 +139,16 @@ class CalcContext:
     # converts from the registry's percent-of-100 representation.
     overhead_percent: Decimal
     default_margin_percent: Decimal
+    # #249 — per-printer cost params keyed by printer_id. When a plate's
+    # assigned printer has a full set of cost params, the calculator
+    # uses derived electricity + depreciation + preheat instead of the
+    # flat ``machine_rate_per_hour``.
+    printer_cost_params: dict[uuid.UUID, PrinterCostParams] = field(default_factory=dict)
+    # Electricity rate in USD per kWh (``cost_engine.power_cost_per_kwh``).
+    power_cost_per_kwh: Decimal = field(default_factory=lambda: Decimal("0"))
+    # Failure buffer (decimal fraction; e.g. ``Decimal("0.10")`` = 10%).
+    # Applied to (material + supply + labor + machine) before overhead.
+    failure_rate: Decimal = field(default_factory=lambda: Decimal("0"))
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +186,15 @@ class CalcResult:
     total_cost: Decimal
     cost_per_piece: Decimal
     suggested_unit_price: Decimal
+    # #249 itemized breakdown. These three sum into ``machine_cost``
+    # when the plate's assigned printer carries per-printer cost params;
+    # otherwise they're zero and ``machine_cost`` is the flat-rate
+    # derivation. ``failure_adjustment_cost`` is the amount added by the
+    # failure-rate buffer (already folded into ``total_cost``).
+    electricity_cost: Decimal = field(default_factory=lambda: Decimal("0.00"))
+    preheat_cost: Decimal = field(default_factory=lambda: Decimal("0.00"))
+    depreciation_cost: Decimal = field(default_factory=lambda: Decimal("0.00"))
+    failure_adjustment_cost: Decimal = field(default_factory=lambda: Decimal("0.00"))
     per_plate: list[PerPlateCost] = field(default_factory=list)
 
 
@@ -187,6 +227,95 @@ def _machine_rate_for_plate(plate: PlateInput, ctx: CalcContext) -> Decimal:
             rate = ctx.default_machine_rate_per_hour
         candidate_rates.append(rate)
     return min(candidate_rates)
+
+
+def _has_full_cost_params(p: PrinterCostParams) -> bool:
+    """True when the printer carries enough fields to derive a per-hour
+    cost from electricity + depreciation."""
+    return (
+        p.power_draw_watts is not None
+        and p.power_draw_watts > 0
+        and p.purchase_price is not None
+        and p.purchase_price > 0
+        and p.salvage_value is not None
+        and p.lifespan_years is not None
+        and p.lifespan_years > 0
+        and p.annual_print_hours is not None
+        and p.annual_print_hours > 0
+    )
+
+
+def _component_costs_for_plate(
+    plate: PlateInput, ctx: CalcContext
+) -> tuple[Decimal, Decimal, Decimal] | None:
+    """Per-run (electricity, preheat, depreciation) when the chosen
+    printer has full cost params; else None and the caller falls back to
+    the flat ``machine_rate_per_hour`` path.
+
+    Multi-printer plates pick the printer with the **lowest** derived
+    per-hour cost (electricity + depreciation), matching the existing
+    floor convention in ``_machine_rate_for_plate``. If any assigned
+    printer is missing cost params we abort to the flat-rate path
+    rather than mixing methodologies for the same plate.
+    """
+    if not plate.assigned_printer_ids:
+        return None
+    candidates: list[tuple[Decimal, PrinterCostParams]] = []
+    for printer_id in plate.assigned_printer_ids:
+        params = ctx.printer_cost_params.get(printer_id)
+        if params is None or not _has_full_cost_params(params):
+            return None
+        # ``_has_full_cost_params`` guarantees non-None on the fields we
+        # touch; assertions keep mypy/pyright happy without runtime cost.
+        assert params.power_draw_watts is not None
+        assert params.purchase_price is not None
+        assert params.salvage_value is not None
+        assert params.lifespan_years is not None
+        assert params.annual_print_hours is not None
+        electricity_per_hour = (
+            Decimal(params.power_draw_watts) / Decimal("1000")
+        ) * ctx.power_cost_per_kwh
+        lifetime_hours = Decimal(params.lifespan_years) * Decimal(params.annual_print_hours)
+        depreciation_per_hour = (
+            (params.purchase_price - params.salvage_value) / lifetime_hours
+            if lifetime_hours > 0
+            else _ZERO
+        )
+        candidates.append((electricity_per_hour + depreciation_per_hour, params))
+    # Pick the lowest-cost printer among assigned. min() with tuples
+    # compares the first element first, which is what we want.
+    _, chosen = min(candidates, key=lambda c: c[0])
+    assert chosen.power_draw_watts is not None
+    assert chosen.purchase_price is not None
+    assert chosen.salvage_value is not None
+    assert chosen.lifespan_years is not None
+    assert chosen.annual_print_hours is not None
+
+    print_hours = Decimal(plate.print_minutes) / _SIXTY
+    electricity_per_hour = (
+        Decimal(chosen.power_draw_watts) / Decimal("1000")
+    ) * ctx.power_cost_per_kwh
+    electricity = _q6(print_hours * electricity_per_hour)
+
+    preheat_minutes = chosen.preheat_minutes or 0
+    preheat_power = chosen.preheat_power_watts or chosen.power_draw_watts
+    if preheat_minutes > 0 and preheat_power > 0:
+        preheat = _q6(
+            (Decimal(preheat_minutes) / _SIXTY)
+            * (Decimal(preheat_power) / Decimal("1000"))
+            * ctx.power_cost_per_kwh
+        )
+    else:
+        preheat = _ZERO
+
+    lifetime_hours = Decimal(chosen.lifespan_years) * Decimal(chosen.annual_print_hours)
+    depreciation_per_hour = (
+        (chosen.purchase_price - chosen.salvage_value) / lifetime_hours
+        if lifetime_hours > 0
+        else _ZERO
+    )
+    depreciation = _q6(print_hours * depreciation_per_hour)
+    return electricity, preheat, depreciation
 
 
 def _plate_material_cost_per_run(plate: PlateInput, ctx: CalcContext) -> Decimal:
@@ -243,6 +372,9 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
     total_material = _ZERO
     total_labor = _ZERO
     total_machine = _ZERO
+    total_electricity = _ZERO
+    total_preheat = _ZERO
+    total_depreciation = _ZERO
     per_plate_rows: list[PerPlateCost] = []
 
     labor_rate = ctx.labor_rate_per_hour
@@ -257,9 +389,19 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
         labor_per_run = _q6((print_hours + setup_hours) * labor_rate)
         plate_labor = _q6(labor_per_run * Decimal(runs_per_plate))
 
-        # Machine: print time only, lowest-rate-among-assigned.
-        machine_rate = _machine_rate_for_plate(plate, ctx)
-        machine_per_run = _q6(print_hours * machine_rate)
+        # Machine: when the chosen printer has full per-printer cost
+        # params, derive machine cost from electricity + depreciation +
+        # preheat; otherwise fall back to the flat ``machine_rate``.
+        components = _component_costs_for_plate(plate, ctx)
+        if components is not None:
+            electricity_per_run, preheat_per_run, depreciation_per_run = components
+            machine_per_run = electricity_per_run + preheat_per_run + depreciation_per_run
+            total_electricity += _q6(electricity_per_run * Decimal(runs_per_plate))
+            total_preheat += _q6(preheat_per_run * Decimal(runs_per_plate))
+            total_depreciation += _q6(depreciation_per_run * Decimal(runs_per_plate))
+        else:
+            machine_rate = _machine_rate_for_plate(plate, ctx)
+            machine_per_run = _q6(print_hours * machine_rate)
         plate_machine = _q6(machine_per_run * Decimal(runs_per_plate))
 
         total_material += plate_material
@@ -288,7 +430,9 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
         total_supply += unit_cost
     total_supply = _q6(total_supply)
 
-    direct_costs = total_material + total_supply + total_labor + total_machine
+    direct_costs_pre_failure = total_material + total_supply + total_labor + total_machine
+    failure_adjustment = _q6(direct_costs_pre_failure * ctx.failure_rate)
+    direct_costs = direct_costs_pre_failure + failure_adjustment
     total_overhead = _q6(direct_costs * ctx.overhead_percent)
 
     total_cost = _q6(direct_costs + total_overhead)
@@ -312,6 +456,10 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
         total_cost=_q2(total_cost),
         cost_per_piece=_q2(cost_per_piece),
         suggested_unit_price=_q2(suggested_raw),
+        electricity_cost=_q2(total_electricity),
+        preheat_cost=_q2(total_preheat),
+        depreciation_cost=_q2(total_depreciation),
+        failure_adjustment_cost=_q2(failure_adjustment),
         per_plate=per_plate_rows,
     )
 
@@ -322,5 +470,6 @@ __all__ = [
     "CalcResult",
     "PerPlateCost",
     "PlateInput",
+    "PrinterCostParams",
     "calculate",
 ]

@@ -15,6 +15,7 @@ from app.services.cost_engine.calculator import (
     CalcContext,
     CalcInputs,
     PlateInput,
+    PrinterCostParams,
     calculate,
 )
 
@@ -30,6 +31,9 @@ def _ctx(
     overhead: Decimal = Decimal("0"),
     margin: Decimal = Decimal("0"),
     supply_costs: dict[uuid.UUID, Decimal] | None = None,
+    printer_cost_params: dict[uuid.UUID, PrinterCostParams] | None = None,
+    power_cost_per_kwh: Decimal = Decimal("0"),
+    failure_rate: Decimal = Decimal("0"),
 ) -> CalcContext:
     return CalcContext(
         material_cost_per_gram=material_costs or {},
@@ -39,6 +43,9 @@ def _ctx(
         default_machine_rate_per_hour=default_machine_rate,
         overhead_percent=overhead,
         default_margin_percent=margin,
+        printer_cost_params=printer_cost_params or {},
+        power_cost_per_kwh=power_cost_per_kwh,
+        failure_rate=failure_rate,
     )
 
 
@@ -265,3 +272,175 @@ def test_no_plates_yields_zero_pieces_and_zero_costs() -> None:
     assert result.pieces_per_set == 0
     assert result.sets_required == 0
     assert result.total_cost == _ZERO.quantize(Decimal("0.01"))
+
+
+# ---------------------------------------------------------------------------
+# #249 — per-printer cost params, failure-rate buffer
+# ---------------------------------------------------------------------------
+
+
+def test_per_printer_cost_params_replace_flat_machine_rate() -> None:
+    """Snapmaker U1 from issue #249.
+
+    14.75-hour print, 296.67 g silk PLA at $17.99/kg, 5-year depreciation
+    (300 hr/yr, $899 - $200 salvage), preheat 18 min at 140W, electricity
+    $0.17/kWh, 10% failure buffer.
+
+    Math (no rounding to Grok's $0.50/hr — uses the actual derived rate):
+
+    - filament = 296.67 × $17.99/1000 = $5.336213
+    - electricity = (885/60) × (127/1000) × $0.17 = $0.318504
+    - preheat = (18/60) × (140/1000) × $0.17 = $0.007140
+    - depreciation = 14.75 × ($699 / (5×300)) = 14.75 × $0.466 = $6.873500
+    - subtotal direct = $12.535357
+    - failure 10% = $1.253536 → direct $13.788893
+    - overhead 0% → total = $13.79
+    """
+    material = uuid.uuid4()
+    printer = uuid.uuid4()
+    inputs = CalcInputs(
+        plates=[
+            PlateInput(
+                parts_per_set=1,
+                print_minutes=885,
+                print_grams_by_material={material: Decimal("296.67")},
+                setup_minutes=0,
+                assigned_printer_ids=[printer],
+            )
+        ],
+        quantity_ordered=1,
+    )
+    ctx = _ctx(
+        material_costs={material: Decimal("0.01799")},
+        labor_rate=Decimal("0"),
+        default_machine_rate=Decimal("999"),  # would explode if used
+        printer_cost_params={
+            printer: PrinterCostParams(
+                power_draw_watts=127,
+                purchase_price=Decimal("899"),
+                salvage_value=Decimal("200"),
+                lifespan_years=5,
+                annual_print_hours=300,
+                preheat_minutes=18,
+                preheat_power_watts=140,
+            )
+        },
+        power_cost_per_kwh=Decimal("0.17"),
+        failure_rate=Decimal("0.10"),
+    )
+    result = calculate(inputs, ctx)
+
+    assert result.material_cost == Decimal("5.34")
+    assert result.electricity_cost == Decimal("0.32")
+    assert result.preheat_cost == Decimal("0.01")
+    assert result.depreciation_cost == Decimal("6.87")
+    # machine = electricity + preheat + depreciation = 0.318504 + 0.007140 + 6.8735 = 7.199144 → 7.20
+    assert result.machine_cost == Decimal("7.20")
+    # failure adj = (5.336213 + 0.318504 + 0.00714 + 6.8735) × 0.10 = 1.253536 → 1.25
+    assert result.failure_adjustment_cost == Decimal("1.25")
+    # total = 12.535357 + 1.253536 = 13.788893 → 13.79
+    assert result.total_cost == Decimal("13.79")
+
+
+def test_printer_without_full_cost_params_falls_back_to_flat_rate() -> None:
+    """Missing cost params → flat machine_rate, breakdown stays zero."""
+    printer = uuid.uuid4()
+    inputs = CalcInputs(
+        plates=[
+            PlateInput(
+                parts_per_set=1,
+                print_minutes=60,
+                print_grams_by_material={},
+                setup_minutes=0,
+                assigned_printer_ids=[printer],
+            )
+        ],
+        quantity_ordered=1,
+    )
+    ctx = _ctx(
+        labor_rate=Decimal("0"),
+        default_machine_rate=Decimal("4"),
+        printer_cost_params={
+            # Has wattage but no depreciation inputs → not "full".
+            printer: PrinterCostParams(power_draw_watts=127)
+        },
+        power_cost_per_kwh=Decimal("0.17"),
+    )
+    result = calculate(inputs, ctx)
+    # Flat-rate path: 1h × $4 = $4.00.
+    assert result.machine_cost == Decimal("4.00")
+    assert result.electricity_cost == Decimal("0.00")
+    assert result.preheat_cost == Decimal("0.00")
+    assert result.depreciation_cost == Decimal("0.00")
+
+
+def test_failure_rate_applies_to_flat_rate_path_too() -> None:
+    m = uuid.uuid4()
+    inputs = CalcInputs(
+        plates=[
+            PlateInput(
+                parts_per_set=1,
+                print_minutes=60,
+                print_grams_by_material={m: Decimal("10")},
+                setup_minutes=0,
+                assigned_printer_ids=[],
+            )
+        ],
+        quantity_ordered=1,
+    )
+    ctx = _ctx(
+        material_costs={m: Decimal("1.00")},
+        labor_rate=Decimal("0"),
+        default_machine_rate=Decimal("0"),
+        failure_rate=Decimal("0.10"),
+    )
+    result = calculate(inputs, ctx)
+    # 10g × $1 = $10 material. Failure adj 10% = $1.00. Total $11.00.
+    assert result.material_cost == Decimal("10.00")
+    assert result.failure_adjustment_cost == Decimal("1.00")
+    assert result.total_cost == Decimal("11.00")
+
+
+def test_multi_printer_picks_lowest_derived_per_hour() -> None:
+    """When all assigned printers have full cost params, use the lowest
+    derived (electricity + depreciation) per-hour cost."""
+    cheap = uuid.uuid4()
+    expensive = uuid.uuid4()
+    inputs = CalcInputs(
+        plates=[
+            PlateInput(
+                parts_per_set=1,
+                print_minutes=60,
+                print_grams_by_material={},
+                setup_minutes=0,
+                assigned_printer_ids=[cheap, expensive],
+            )
+        ],
+        quantity_ordered=1,
+    )
+    ctx = _ctx(
+        labor_rate=Decimal("0"),
+        default_machine_rate=Decimal("999"),
+        printer_cost_params={
+            cheap: PrinterCostParams(
+                power_draw_watts=100,
+                purchase_price=Decimal("500"),
+                salvage_value=Decimal("100"),
+                lifespan_years=5,
+                annual_print_hours=400,
+            ),
+            expensive: PrinterCostParams(
+                power_draw_watts=300,
+                purchase_price=Decimal("5000"),
+                salvage_value=Decimal("500"),
+                lifespan_years=4,
+                annual_print_hours=300,
+            ),
+        },
+        power_cost_per_kwh=Decimal("0.15"),
+    )
+    result = calculate(inputs, ctx)
+    # cheap: electricity=(100/1000)*0.15=$0.015/hr, dep=400/2000=$0.20/hr → $0.215/hr
+    # expensive: electricity=(300/1000)*0.15=$0.045/hr, dep=4500/1200=$3.75/hr → $3.795/hr
+    # 1 hour → $0.22
+    assert result.machine_cost == Decimal("0.22")

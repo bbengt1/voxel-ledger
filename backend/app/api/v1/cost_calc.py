@@ -55,6 +55,10 @@ def _result_to_response(result: CalcResult) -> CalcResultResponse:
         total_cost=result.total_cost,
         cost_per_piece=result.cost_per_piece,
         suggested_unit_price=result.suggested_unit_price,
+        electricity_cost=result.electricity_cost,
+        preheat_cost=result.preheat_cost,
+        depreciation_cost=result.depreciation_cost,
+        failure_adjustment_cost=result.failure_adjustment_cost,
         per_plate=[
             PerPlateCostResponse(
                 plate_index=row.plate_index,
