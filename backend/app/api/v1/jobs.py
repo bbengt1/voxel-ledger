@@ -8,9 +8,12 @@ route on role.
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
@@ -33,6 +36,7 @@ from app.schemas.production_orders import DiscoveredPlateResponse
 from app.services import job_discovery as discovery_service
 from app.services import jobs as jobs_service
 from app.services import plates as plates_service
+from app.services import printers as printers_service
 from app.services.jobs import PlateInput
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -413,6 +417,90 @@ async def unassign_printer(
         raise HTTPException(status_code=404, detail="plate not found on this job")
     await session.commit()
     return _plate_to_response(plate)
+
+
+class _DiscoverFromPrinterRequest(BaseModel):
+    printer_id: uuid.UUID
+    filename: str = Field(min_length=1)
+
+
+@router.post("/discover-from-printer", response_model=DiscoveredPlateResponse)
+async def discover_from_printer(
+    payload: _DiscoverFromPrinterRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(get_current_user)],
+) -> DiscoveredPlateResponse:
+    """Parse Moonraker metadata for one gcode file and return the same
+    ``DiscoveredPlateResponse`` shape as the sidecar discover endpoint.
+
+    Moonraker exposes ``estimated_time``, per-extruder ``filament_used_mm``,
+    ``filament_weight``, ``filament_name``, ``filament_total``, and
+    ``object_count`` (via ``object_height`` + slicer metadata). We map
+    those into the same plate-population payload the UI already knows
+    how to apply.
+    """
+    try:
+        printer = await printers_service.get(session, payload.printer_id)
+    except printers_service.PrinterNotFoundError:
+        raise HTTPException(status_code=404, detail="printer not found") from None
+    if not printer.moonraker_url:
+        raise HTTPException(status_code=404, detail="moonraker not configured")
+
+    moonraker_base = printer.moonraker_url.rstrip("/")
+    headers: dict[str, str] = {}
+    if printer.moonraker_api_key:
+        headers["X-Api-Key"] = printer.moonraker_api_key
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                f"{moonraker_base}/server/files/metadata",
+                params={"filename": payload.filename},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            meta = resp.json().get("result") or {}
+    except Exception as exc:  # noqa: BLE001 — upstream is opaque
+        raise HTTPException(
+            status_code=502, detail=f"moonraker fetch failed: {exc}"
+        ) from None
+
+    # Moonraker timing is seconds → minutes (rounded up).
+    estimated = meta.get("estimated_time")
+    print_minutes = (
+        int((float(estimated) + 59.0) // 60.0) if isinstance(estimated, int | float) else 0
+    )
+
+    # Filament: prefer per-extruder weights; fall back to total mm × density.
+    grams_by_slot: dict[str, Decimal] = {}
+    weights = meta.get("filament_weight")
+    names_raw = meta.get("filament_name") or ""
+    # Moonraker concatenates filament names with ``;`` (per extruder).
+    names: list[str] = (
+        [s.strip(' "') for s in str(names_raw).split(";")] if names_raw else []
+    )
+    if isinstance(weights, list):
+        for idx, weight in enumerate(weights):
+            if not isinstance(weight, int | float) or weight <= 0:
+                continue
+            label = names[idx].strip() if idx < len(names) and names[idx].strip() else f"slot_{idx}"
+            grams_by_slot[label] = Decimal(str(weight))
+
+    # Object count: best-effort. SnapmakerOrca embeds it as
+    # ``object_count``; PrusaSlicer/Bambu often expose ``layer_count``
+    # without per-object counts. Default to 1 if absent.
+    parts_per_set_raw = meta.get("object_count")
+    parts_per_set = (
+        int(parts_per_set_raw) if isinstance(parts_per_set_raw, int | float) and parts_per_set_raw > 0 else 1
+    )
+
+    return DiscoveredPlateResponse(
+        print_minutes=print_minutes,
+        filament_grams_by_material=grams_by_slot,
+        parts_per_set=parts_per_set,
+        source_format=str(meta.get("slicer") or "moonraker"),
+        source_filename=payload.filename,
+    )
 
 
 @router.post("/discover", response_model=DiscoveredPlateResponse)

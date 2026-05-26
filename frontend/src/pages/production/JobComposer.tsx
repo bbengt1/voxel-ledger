@@ -12,12 +12,13 @@
  * keeps the UX as a single "save" action.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { DiscoveryUpload } from "@/components/production/DiscoveryUpload";
+import { PrinterFileBrowser } from "@/components/production/PrinterFileBrowser";
 import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import {
   EntityPicker,
@@ -25,6 +26,11 @@ import {
 } from "@/components/inventory/EntityPicker";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import {
+  clearJobComposerDraft,
+  loadJobComposerDraft,
+  saveJobComposerDraft,
+} from "@/lib/jobComposerDraft";
 
 type CalcResult = components["schemas"]["CalcResultResponse"];
 type CalcInputs = components["schemas"]["CalcInputsPayload"];
@@ -40,6 +46,9 @@ interface MaterialUsageDraft {
   key: string;
   material: EntityOption | null;
   grams: string;
+  /** Slot name from gcode discovery — used as a hint and to pre-fill
+   * MaterialCreate when the operator clicks "Create material". */
+  discoveredName?: string;
 }
 
 interface PlateDraft {
@@ -100,6 +109,7 @@ function plateToCalcPayload(p: PlateDraft):
 
 export function JobComposerPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [product, setProduct] = useState<EntityOption | null>(null);
   const [customer, setCustomer] = useState("");
@@ -111,6 +121,7 @@ export function JobComposerPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [browsingPlateIdx, setBrowsingPlateIdx] = useState<number | null>(null);
 
   const [printers, setPrinters] = useState<PrinterResponse[]>([]);
   const [materialsById, setMaterialsById] = useState<
@@ -216,6 +227,38 @@ export function JobComposerPage() {
     );
   }
 
+  /** Snapshot the full composer to sessionStorage and route to the
+   * material-create page with the discovered slot name + a return
+   * marker. On successful create that page navigates back to
+   * ``/production/jobs/new?restored=1&plate=<idx>&slot=<key>&material_id=<id>``
+   * and the effect below splices the new material into this slot.
+   */
+  function createMaterialForSlot(plateIdx: number, mat: MaterialUsageDraft) {
+    saveJobComposerDraft({
+      customer,
+      quantityOrdered,
+      priority,
+      dueAt,
+      notes,
+      product,
+      plates,
+      pending: { plateIdx, slotKey: mat.key },
+    });
+    const guessedName = mat.discoveredName ?? "";
+    const guessedType = guessedName.toUpperCase().includes("PETG")
+      ? "PETG"
+      : guessedName.toUpperCase().includes("ABS")
+        ? "ABS"
+        : guessedName.toUpperCase().includes("TPU")
+          ? "TPU"
+          : "PLA";
+    const params = new URLSearchParams();
+    if (guessedName) params.set("name", guessedName);
+    params.set("material_type", guessedType);
+    params.set("return_to", "job_composer");
+    navigate(`/catalog/materials/new?${params.toString()}`);
+  }
+
   function applyDiscovered(plateIdx: number, disc: DiscoveredPlate) {
     setPlates((prev) =>
       prev.map((p, i) => {
@@ -226,13 +269,23 @@ export function JobComposerPage() {
         const mats: MaterialUsageDraft[] = [];
         const grams = disc.filament_grams_by_material ?? {};
         for (const [name, g] of Object.entries(grams)) {
-          const found = Object.values(materialsById).find(
-            (m) => m.name.toLowerCase() === name.toLowerCase(),
-          );
+          const needle = name.toLowerCase();
+          const catalog = Object.values(materialsById);
+          // Exact case-insensitive match wins; fall back to substring
+          // either direction so "Generic PLA Silk" finds a catalog
+          // entry called "PLA Silk" (and vice versa).
+          const found =
+            catalog.find((m) => m.name.toLowerCase() === needle) ||
+            catalog.find(
+              (m) =>
+                needle.includes(m.name.toLowerCase()) ||
+                m.name.toLowerCase().includes(needle),
+            );
           mats.push({
             key: nextKey(),
             material: found ? { id: found.id, label: found.name } : null,
             grams: g,
+            discoveredName: name,
           });
         }
         return {
@@ -245,6 +298,57 @@ export function JobComposerPage() {
       }),
     );
   }
+
+  /** Restore in-progress composer state after a side-trip to
+   * /catalog/materials/new. The material-create page navigates here
+   * with ``?restored=1&material_id=…`` after a successful save; we
+   * hydrate from sessionStorage and slot the new material into the
+   * row the user was filling out. Runs once. */
+  useEffect(() => {
+    if (searchParams.get("restored") !== "1") return;
+    const draft = loadJobComposerDraft();
+    if (!draft) {
+      // Lost the snapshot somehow — strip the query and proceed empty.
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    setCustomer(draft.customer);
+    setQuantityOrdered(draft.quantityOrdered);
+    setPriority(draft.priority);
+    setDueAt(draft.dueAt);
+    setNotes(draft.notes);
+    setProduct(draft.product);
+    setPlates(draft.plates as PlateDraft[]);
+
+    const newMaterialId = searchParams.get("material_id");
+    const newMaterialLabel = searchParams.get("material_label") ?? "";
+    const pending = draft.pending;
+    if (newMaterialId && pending) {
+      setPlates((prev) =>
+        prev.map((p, i) =>
+          i !== pending.plateIdx
+            ? p
+            : {
+                ...p,
+                materials: p.materials.map((m) =>
+                  m.key !== pending.slotKey
+                    ? m
+                    : {
+                        ...m,
+                        material: {
+                          id: newMaterialId,
+                          label: newMaterialLabel || m.discoveredName || "Material",
+                        },
+                      },
+                ),
+              },
+        ),
+      );
+    }
+    clearJobComposerDraft();
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Eagerly fetch known materials so discovery matching works.
   useEffect(() => {
@@ -445,6 +549,15 @@ export function JobComposerPage() {
                     onDiscovered={(d) => applyDiscovered(idx, d)}
                     data-testid={`discover-plate-${idx}`}
                   />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBrowsingPlateIdx(idx)}
+                    data-testid={`browse-printer-plate-${idx}`}
+                  >
+                    Browse printer files
+                  </Button>
                   {plates.length > 1 ? (
                     <Button
                       type="button"
@@ -518,7 +631,7 @@ export function JobComposerPage() {
                     className="flex items-end gap-2"
                     data-testid={`plate-${idx}-material-${mIdx}`}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-1">
                       <EntityPicker
                         kind="material"
                         value={m.material}
@@ -527,6 +640,22 @@ export function JobComposerPage() {
                         }
                         data-testid={`plate-${idx}-material-picker-${mIdx}`}
                       />
+                      {m.discoveredName && !m.material ? (
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span title={m.discoveredName} className="truncate">
+                            Discovered: <span className="font-medium">{m.discoveredName}</span> — no catalog match
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => createMaterialForSlot(idx, m)}
+                            data-testid={`plate-${idx}-create-material-${mIdx}`}
+                          >
+                            Create material
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                     <label className="block text-xs">
                       Grams
@@ -676,6 +805,15 @@ export function JobComposerPage() {
         result={calcResult}
         loading={calcLoading}
         error={calcError}
+      />
+
+      <PrinterFileBrowser
+        open={browsingPlateIdx !== null}
+        onClose={() => setBrowsingPlateIdx(null)}
+        onPicked={(plate) => {
+          if (browsingPlateIdx !== null) applyDiscovered(browsingPlateIdx, plate);
+          setBrowsingPlateIdx(null);
+        }}
       />
     </section>
   );

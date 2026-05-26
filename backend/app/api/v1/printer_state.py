@@ -69,12 +69,18 @@ async def get_printer_state(
     state = monitor.get_state(printer_id)
 
     if state is None:
-        # Printer exists but has no moonraker_url, so it's not monitored.
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="monitor_warming_up",
-            headers={"Retry-After": "5"},
-        )
+        # Printer might have been added after the monitor started.
+        # Hot-discover it; on next tick get_state() will return a value.
+        added = await monitor.ensure_printer(printer_id)
+        if added:
+            state = monitor.get_state(printer_id)
+        if state is None:
+            # Printer has no moonraker_url, so it's not monitored.
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="monitor_warming_up",
+                headers={"Retry-After": "5"},
+            )
 
     if state.last_seen_at is None and state.state == "disconnected":
         # First tick hasn't completed yet (or first tick failed). Tell

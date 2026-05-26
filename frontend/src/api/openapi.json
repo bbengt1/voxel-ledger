@@ -23200,6 +23200,26 @@
         "title": "WsHealthRead",
         "type": "object"
       },
+      "_DiscoverFromPrinterRequest": {
+        "properties": {
+          "filename": {
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          },
+          "printer_id": {
+            "format": "uuid",
+            "title": "Printer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "printer_id",
+          "filename"
+        ],
+        "title": "_DiscoverFromPrinterRequest",
+        "type": "object"
+      },
       "app__schemas__budget_variance__BudgetVarianceResponse": {
         "properties": {
           "cogs_rows": {
@@ -34675,6 +34695,53 @@
         ]
       }
     },
+    "/api/v1/jobs/discover-from-printer": {
+      "post": {
+        "description": "Parse Moonraker metadata for one gcode file and return the same\n``DiscoveredPlateResponse`` shape as the sidecar discover endpoint.\n\nMoonraker exposes ``estimated_time``, per-extruder ``filament_used_mm``,\n``filament_weight``, ``filament_name``, ``filament_total``, and\n``object_count`` (via ``object_height`` + slicer metadata). We map\nthose into the same plate-population payload the UI already knows\nhow to apply.",
+        "operationId": "discover_from_printer_api_v1_jobs_discover_from_printer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_DiscoverFromPrinterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveredPlateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discover From Printer",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/api/v1/jobs/{job_id}": {
       "get": {
         "operationId": "get_job_api_v1_jobs__job_id__get",
@@ -37725,6 +37792,118 @@
         ]
       }
     },
+    "/api/v1/printers/{printer_id}/gcode-files": {
+      "get": {
+        "description": "List gcode files on the printer (flat, all subfolders included).",
+        "operationId": "list_gcode_files_api_v1_printers__printer_id__gcode_files_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response List Gcode Files Api V1 Printers  Printer Id  Gcode Files Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Gcode Files",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
+    "/api/v1/printers/{printer_id}/gcode/metadata": {
+      "get": {
+        "description": "Return the raw Moonraker metadata for one gcode file.",
+        "operationId": "get_gcode_metadata_api_v1_printers__printer_id__gcode_metadata_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "printer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Printer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filename",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Filename",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Gcode Metadata Api V1 Printers  Printer Id  Gcode Metadata Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Gcode Metadata",
+        "tags": [
+          "printers"
+        ]
+      }
+    },
     "/api/v1/printers/{printer_id}/gcode/thumbnail.png": {
       "get": {
         "operationId": "get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get",
@@ -37737,6 +37916,22 @@
               "format": "uuid",
               "title": "Printer Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filename",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Filename"
             }
           }
         ],

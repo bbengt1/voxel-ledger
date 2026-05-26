@@ -2651,6 +2651,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/discover-from-printer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover From Printer
+         * @description Parse Moonraker metadata for one gcode file and return the same
+         *     ``DiscoveredPlateResponse`` shape as the sidecar discover endpoint.
+         *
+         *     Moonraker exposes ``estimated_time``, per-extruder ``filament_used_mm``,
+         *     ``filament_weight``, ``filament_name``, ``filament_total``, and
+         *     ``object_count`` (via ``object_height`` + slicer metadata). We map
+         *     those into the same plate-population payload the UI already knows
+         *     how to apply.
+         */
+        post: operations["discover_from_printer_api_v1_jobs_discover_from_printer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -3341,6 +3368,46 @@ export interface paths {
         };
         /** Get Camera Snapshot */
         get: operations["get_camera_snapshot_api_v1_printers__printer_id__cameras_snapshot_jpg_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/gcode-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Gcode Files
+         * @description List gcode files on the printer (flat, all subfolders included).
+         */
+        get: operations["list_gcode_files_api_v1_printers__printer_id__gcode_files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/printers/{printer_id}/gcode/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Gcode Metadata
+         * @description Return the raw Moonraker metadata for one gcode file.
+         */
+        get: operations["get_gcode_metadata_api_v1_printers__printer_id__gcode_metadata_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -14049,6 +14116,16 @@ export interface components {
             /** Moonraker Ws Connected */
             moonraker_ws_connected: boolean;
         };
+        /** _DiscoverFromPrinterRequest */
+        _DiscoverFromPrinterRequest: {
+            /** Filename */
+            filename: string;
+            /**
+             * Printer Id
+             * Format: uuid
+             */
+            printer_id: string;
+        };
         /** BudgetVarianceResponse */
         app__schemas__budget_variance__BudgetVarianceResponse: {
             /** Cogs Rows */
@@ -20309,6 +20386,39 @@ export interface operations {
             };
         };
     };
+    discover_from_printer_api_v1_jobs_discover_from_printer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_DiscoverFromPrinterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveredPlateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_job_api_v1_jobs__job_id__get: {
         parameters: {
             query?: never;
@@ -22121,9 +22231,79 @@ export interface operations {
             };
         };
     };
-    get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get: {
+    list_gcode_files_api_v1_printers__printer_id__gcode_files_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gcode_metadata_api_v1_printers__printer_id__gcode_metadata_get: {
+        parameters: {
+            query: {
+                filename: string;
+            };
+            header?: never;
+            path: {
+                printer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gcode_thumbnail_api_v1_printers__printer_id__gcode_thumbnail_png_get: {
+        parameters: {
+            query?: {
+                filename?: string | null;
+            };
             header?: never;
             path: {
                 printer_id: string;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
@@ -13,9 +13,13 @@ type InventoryLocationResponse =
 
 export function MaterialCreatePage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("return_to");
+  const [name, setName] = useState(searchParams.get("name") ?? "");
   const [brand, setBrand] = useState("");
-  const [materialType, setMaterialType] = useState("PLA");
+  const [materialType, setMaterialType] = useState(
+    searchParams.get("material_type") ?? "PLA",
+  );
   const [materialTypeCustom, setMaterialTypeCustom] = useState(false);
   const [color, setColor] = useState("");
   const [density, setDensity] = useState("");
@@ -102,6 +106,14 @@ export function MaterialCreatePage() {
         }
       }
 
+      if (returnTo === "job_composer") {
+        const params = new URLSearchParams();
+        params.set("restored", "1");
+        params.set("material_id", materialId);
+        params.set("material_label", res.data.name);
+        navigate(`/production/jobs/new?${params.toString()}`);
+        return;
+      }
       navigate(`/catalog/materials/${materialId}`);
     } catch (err: unknown) {
       const detail =
@@ -271,7 +283,13 @@ export function MaterialCreatePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/catalog/materials")}
+            onClick={() =>
+              navigate(
+                returnTo === "job_composer"
+                  ? "/production/jobs/new?restored=1"
+                  : "/catalog/materials",
+              )
+            }
             disabled={submitting}
           >
             Cancel

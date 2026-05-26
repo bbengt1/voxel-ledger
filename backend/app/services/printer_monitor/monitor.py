@@ -329,6 +329,42 @@ class PrinterMonitor:
                 self._run(printer.id), name=f"printer-monitor-{printer.id}"
             )
 
+    async def ensure_printer(self, printer_id: uuid.UUID) -> bool:
+        """Hot-add a printer that wasn't present at ``start()`` time.
+
+        Returns ``True`` if a polling task now exists for ``printer_id``
+        (either already running or freshly spawned). Returns ``False``
+        if the printer doesn't qualify — no row, archived, or no
+        ``moonraker_url`` set.
+
+        Safe to call repeatedly; a no-op when the printer is already
+        tracked.
+        """
+        async with self._lock:
+            if printer_id in self._tasks:
+                return True
+        async with self._session_factory() as session:
+            stmt = select(Printer).where(
+                Printer.id == printer_id,
+                Printer.is_archived.is_(False),
+            )
+            printer = (await session.execute(stmt)).scalar_one_or_none()
+        if printer is None or not printer.moonraker_url:
+            return False
+        async with self._lock:
+            if printer_id in self._tasks:
+                return True
+            self._states[printer.id] = PrinterState(printer_id=printer.id)
+            self._refresh_events[printer.id] = asyncio.Event()
+            self._printer_meta[printer.id] = (
+                printer.moonraker_url or "",
+                printer.moonraker_api_key,
+            )
+            self._tasks[printer.id] = asyncio.create_task(
+                self._run(printer.id), name=f"printer-monitor-{printer.id}"
+            )
+        return True
+
     async def stop(self) -> None:
         self._stopping = True
         tasks = list(self._tasks.values())
