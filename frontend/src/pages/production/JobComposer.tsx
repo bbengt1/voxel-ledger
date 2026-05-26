@@ -259,6 +259,25 @@ export function JobComposerPage() {
     navigate(`/catalog/materials/new?${params.toString()}`);
   }
 
+  /** Same round-trip pattern as ``createMaterialForSlot`` but for the
+   * product picker. No pending-slot marker is needed — the restore
+   * effect just sees ``product_id`` in the URL and applies it. */
+  function createProductFromComposer() {
+    saveJobComposerDraft({
+      customer,
+      quantityOrdered,
+      priority,
+      dueAt,
+      notes,
+      product,
+      plates,
+      pending: null,
+    });
+    const params = new URLSearchParams();
+    params.set("return_to", "job_composer");
+    navigate(`/catalog/products/new?${params.toString()}`);
+  }
+
   function applyDiscovered(plateIdx: number, disc: DiscoveredPlate) {
     setPlates((prev) =>
       prev.map((p, i) => {
@@ -319,6 +338,17 @@ export function JobComposerPage() {
     setNotes(draft.notes);
     setProduct(draft.product);
     setPlates(draft.plates as PlateDraft[]);
+
+    // Newly-created product (from /catalog/products/new) — replaces the
+    // ``product`` we restored from the draft.
+    const newProductId = searchParams.get("product_id");
+    const newProductLabel = searchParams.get("product_label") ?? "";
+    if (newProductId) {
+      setProduct({
+        id: newProductId,
+        label: newProductLabel || "Product",
+      });
+    }
 
     const newMaterialId = searchParams.get("material_id");
     const newMaterialLabel = searchParams.get("material_label") ?? "";
@@ -471,6 +501,20 @@ export function JobComposerPage() {
               onChange={setProduct}
               data-testid="job-product-picker"
             />
+            {!product ? (
+              <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>No matching product? Create one and come back.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={createProductFromComposer}
+                  data-testid="job-create-product"
+                >
+                  Create product
+                </Button>
+              </div>
+            ) : null}
           </label>
           <label className="block text-sm">
             Customer (free text)

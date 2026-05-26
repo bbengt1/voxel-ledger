@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
@@ -10,9 +10,11 @@ type ProductResponse = components["schemas"]["ProductResponse"];
 
 export function ProductCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("return_to");
   const [sku, setSku] = useState("");
   const [upc, setUpc] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(searchParams.get("name") ?? "");
   const [description, setDescription] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [weight, setWeight] = useState("");
@@ -55,6 +57,14 @@ export function ProductCreatePage() {
         "/api/v1/products",
         body,
       );
+      if (returnTo === "job_composer") {
+        const params = new URLSearchParams();
+        params.set("restored", "1");
+        params.set("product_id", res.data.id);
+        params.set("product_label", res.data.name);
+        navigate(`/production/jobs/new?${params.toString()}`);
+        return;
+      }
       navigate(`/catalog/products/${res.data.id}`);
     } catch (err: unknown) {
       const detail =
@@ -164,7 +174,13 @@ export function ProductCreatePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/catalog/products")}
+            onClick={() =>
+              navigate(
+                returnTo === "job_composer"
+                  ? "/production/jobs/new?restored=1"
+                  : "/catalog/products",
+              )
+            }
             disabled={submitting}
           >
             Cancel
