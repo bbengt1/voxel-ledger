@@ -8,8 +8,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { NewAccountDialog } from "@/components/accounting/NewAccountDialog";
 import { AccountPicker } from "@/components/ar/AccountPicker";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -42,6 +44,19 @@ export function TaxProfileComposerPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Snapshot of the rate ids as they came back from the server so we
+  // can compute deletions on save (ids in the snapshot that the user
+  // has since removed from the local rates array).
+  const [originalRateIds, setOriginalRateIds] = useState<string[]>([]);
+  // Index of the rate row whose "+ New" button is currently driving the
+  // account-create modal. ``null`` when the modal is closed.
+  const [creatingAccountFor, setCreatingAccountFor] = useState<number | null>(
+    null,
+  );
+  // Bump to force AccountPicker to refetch its list after a new account
+  // is created, so the freshly-minted row shows up in every picker on
+  // the page.
+  const [accountsVersion, setAccountsVersion] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -54,18 +69,18 @@ export function TaxProfileComposerPage() {
         setJurisdiction(p.jurisdiction);
         setIsReverseCharge(p.is_reverse_charge);
         setNotes(p.notes ?? "");
-        setRates(
-          p.rates.map(
-            (r: TaxRateResponse): RateDraft => ({
-              id: r.id,
-              ordinal: r.ordinal,
-              name: r.name,
-              rate: String(r.rate),
-              liability_account_id: r.liability_account_id,
-              compound_on_previous: r.compound_on_previous,
-            }),
-          ),
+        const loaded = p.rates.map(
+          (r: TaxRateResponse): RateDraft => ({
+            id: r.id,
+            ordinal: r.ordinal,
+            name: r.name,
+            rate: String(r.rate),
+            liability_account_id: r.liability_account_id,
+            compound_on_previous: r.compound_on_previous,
+          }),
         );
+        setRates(loaded);
+        setOriginalRateIds(loaded.map((r) => r.id as string));
       })
       .catch((err: unknown) => {
         const detail = (err as { response?: { data?: { detail?: string } } }).response
@@ -140,11 +155,53 @@ export function TaxProfileComposerPage() {
         };
         const res = await api.post("/api/v1/tax-profiles", body);
         profileId = res.data.id;
+      } else {
+        // Profile-level fields can change on edit (notes, reverse-charge
+        // flag, even the name/jurisdiction). Send the updatable subset.
+        await apiClient.patch(`/api/v1/tax-profiles/${profileId}`, {
+          name: name.trim(),
+          jurisdiction: jurisdiction.trim(),
+          is_reverse_charge: isReverseCharge,
+          notes: notes || null,
+        });
       }
 
-      // For a freshly-created profile we POST every rate. For edits we
-      // skip — this composer treats rate edits as a re-list (post any
-      // rate without an id; existing rates are untouched).
+      // Diff-and-apply for rates. Order matters: DELETE removed rows
+      // first to free their ordinal slots; then PATCH existing rows
+      // (which may shift ordinals); finally POST any new rows.
+      const currentIds = new Set(rates.map((r) => r.id).filter(Boolean));
+      const removedIds = originalRateIds.filter((rid) => !currentIds.has(rid));
+      for (const rid of removedIds) {
+        await apiClient.delete(`/api/v1/tax-profiles/${profileId}/rates/${rid}`);
+      }
+
+      // To avoid transient ordinal collisions when the operator
+      // reorders rates, bump every existing rate to a high temporary
+      // ordinal first, then PATCH to the real target. With ~10 rates
+      // tops this is cheap and unambiguous.
+      const existing = rates.filter((r) => r.id);
+      if (isEdit && existing.length > 0) {
+        for (let i = 0; i < existing.length; i++) {
+          await apiClient.patch(
+            `/api/v1/tax-profiles/${profileId}/rates/${existing[i].id}`,
+            { ordinal: 1000 + i },
+          );
+        }
+      }
+
+      for (const r of existing) {
+        await apiClient.patch(
+          `/api/v1/tax-profiles/${profileId}/rates/${r.id}`,
+          {
+            ordinal: r.ordinal,
+            name: r.name.trim(),
+            rate: r.rate,
+            liability_account_id: r.liability_account_id,
+            compound_on_previous: r.compound_on_previous,
+          },
+        );
+      }
+
       for (const r of rates) {
         if (r.id) continue;
         const body: TaxRateCreate = {
@@ -273,12 +330,28 @@ export function TaxProfileComposerPage() {
                     />
                   </td>
                   <td className="py-1 pr-2">
-                    <AccountPicker
-                      value={r.liability_account_id}
-                      onChange={(id) => updateRate(i, { liability_account_id: id })}
-                      filterType="liability"
-                      data-testid={`tp-rate-acct-${i}`}
-                    />
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1">
+                        <AccountPicker
+                          value={r.liability_account_id}
+                          onChange={(id) =>
+                            updateRate(i, { liability_account_id: id })
+                          }
+                          filterType="liability"
+                          refreshKey={accountsVersion}
+                          data-testid={`tp-rate-acct-${i}`}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCreatingAccountFor(i)}
+                        data-testid={`tp-rate-acct-new-${i}`}
+                      >
+                        + New
+                      </Button>
+                    </div>
                   </td>
                   <td className="py-1 pr-2 text-center">
                     <input
@@ -340,6 +413,29 @@ export function TaxProfileComposerPage() {
           Cancel
         </Button>
       </div>
+
+      <NewAccountDialog
+        open={creatingAccountFor !== null}
+        onClose={() => setCreatingAccountFor(null)}
+        onCreated={(account) => {
+          // Slot the new account into the rate row that opened the
+          // modal, then refresh every picker on the page so future
+          // changes see the new row too.
+          if (creatingAccountFor !== null) {
+            updateRate(creatingAccountFor, {
+              liability_account_id: account.id,
+            });
+          }
+          setAccountsVersion((v) => v + 1);
+          setCreatingAccountFor(null);
+        }}
+        seedName={
+          creatingAccountFor !== null
+            ? rates[creatingAccountFor]?.name || undefined
+            : undefined
+        }
+        seedType="liability"
+      />
     </form>
   );
 }

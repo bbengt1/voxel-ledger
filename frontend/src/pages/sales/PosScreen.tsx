@@ -106,11 +106,46 @@ export function PosScreenPage() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [lastReceipt, setLastReceipt] = useState<CheckoutResponse | null>(null);
 
+  // Tax-profile picker (per-cart override). Loaded once; empty string
+  // means "fall back to the channel's profile."
+  const [taxProfiles, setTaxProfiles] = useState<
+    { id: string; name: string; jurisdiction: string }[]
+  >([]);
+
+  // Typed-search picker — complements the barcode scanner. Debounced
+  // ``?search=`` lookup against the products endpoint; clicking a row
+  // calls /carts/{id}/add-product to drop it in the cart.
+  const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    { id: string; sku: string; name: string; unit_price: string }[]
+  >([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const discountInputRef = useRef<HTMLInputElement | null>(null);
   const tenderedInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   /** Serializes scan API calls so subsequent scans queue rather than block input. */
   const scanQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Load active tax profiles for the override dropdown. Best-effort.
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ items: typeof taxProfiles }>("/api/v1/tax-profiles", {
+        params: { active: true },
+      })
+      .then((res) => {
+        if (!cancelled) setTaxProfiles(res.data.items);
+      })
+      .catch(() => {
+        /* non-fatal — dropdown just shows the "Channel default" option */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Load channels and open initial cart on mount.
   useEffect(() => {
@@ -164,10 +199,16 @@ export function PosScreenPage() {
     }
   }, [channelId, cart, openCart]);
 
-  // Always refocus the scan input unless a modal/discount is being typed in.
+  // Always refocus the scan input unless the operator is actively
+  // typing into another POS input — discount, tendered, or the
+  // typed-search picker. Without these exemptions every click on
+  // those inputs is yanked back to the scanner.
   const refocusScan = useCallback(() => {
     if (checkoutOpen) return;
-    if (document.activeElement === discountInputRef.current) return;
+    const active = document.activeElement;
+    if (active === discountInputRef.current) return;
+    if (active === tenderedInputRef.current) return;
+    if (active === searchInputRef.current) return;
     scanInputRef.current?.focus();
   }, [checkoutOpen]);
 
@@ -256,6 +297,71 @@ export function PosScreenPage() {
     }
   }
 
+  // Debounced product search. Each keystroke schedules a fetch 200ms
+  // out; an in-flight request is cancelled when a newer one arrives.
+  useEffect(() => {
+    const q = searchValue.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearchOpen(true);
+    setSearchLoading(true);
+    const controller = new AbortController();
+    const handle = window.setTimeout(() => {
+      apiClient
+        .get<{ items: typeof searchResults }>("/api/v1/products", {
+          params: { search: q, is_archived: "false", limit: 12 },
+          signal: controller.signal,
+        })
+        .then((res) => setSearchResults(res.data.items))
+        .catch(() => {
+          /* aborted or transient — ignore */
+        })
+        .finally(() => setSearchLoading(false));
+    }, 200);
+    return () => {
+      window.clearTimeout(handle);
+      controller.abort();
+    };
+  }, [searchValue]);
+
+  async function setCartTaxProfile(profileId: string) {
+    if (!cart) return;
+    try {
+      const res = await apiClient.post<PosCartResponse>(
+        `/api/v1/pos/carts/${cart.id}/tax-profile`,
+        { tax_profile_id: profileId || null },
+      );
+      setCart(res.data);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Could not change tax profile.";
+      setScanError(typeof detail === "string" ? detail : "Could not change tax profile.");
+    }
+  }
+
+  async function addProductFromSearch(productId: string) {
+    if (!cart) return;
+    setSearchOpen(false);
+    setSearchValue("");
+    try {
+      const res = await apiClient.post<PosCartResponse>(
+        `/api/v1/pos/carts/${cart.id}/add-product`,
+        { product_id: productId, quantity: "1" },
+      );
+      setCart(res.data);
+      requestAnimationFrame(() => scanInputRef.current?.focus());
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Could not add product.";
+      setScanError(typeof detail === "string" ? detail : "Could not add product.");
+    }
+  }
+
   async function applyDiscount() {
     if (!cart) return;
     const value = discount.trim();
@@ -320,9 +426,11 @@ export function PosScreenPage() {
     }
   }
 
-  const total = cart ? Number(cart.total) : 0;
   const subtotal = cart ? Number(cart.subtotal) : 0;
   const cartDiscount = cart ? Number(cart.cart_discount_amount) : 0;
+  const taxAmount = cart ? Number(cart.tax_amount ?? 0) : 0;
+  // ``cart.total`` is after-discount, pre-tax; the visible Total adds tax.
+  const total = (cart ? Number(cart.total) : 0) + taxAmount;
   const tenderedNum = Number(tendered || "0");
   const changeDue = Math.max(0, tenderedNum - total);
 
@@ -342,26 +450,46 @@ export function PosScreenPage() {
         </div>
       )}
 
-      {channels.length > 1 && (
-        <label className="text-sm">
-          Channel{" "}
-          <select
-            data-testid="pos-channel-select"
-            value={channelId}
-            onChange={(e) => {
-              setChannelId(e.target.value);
-              setCart(null);
-            }}
-            className="ml-2 rounded border border-border bg-background px-2 py-1"
-          >
-            {channels.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <div className="flex flex-wrap items-center gap-4">
+        {channels.length > 1 && (
+          <label className="text-sm">
+            Channel{" "}
+            <select
+              data-testid="pos-channel-select"
+              value={channelId}
+              onChange={(e) => {
+                setChannelId(e.target.value);
+                setCart(null);
+              }}
+              className="ml-2 rounded border border-border bg-background px-2 py-1"
+            >
+              {channels.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {cart ? (
+          <label className="text-sm">
+            Tax profile{" "}
+            <select
+              data-testid="pos-tax-profile-select"
+              value={cart.tax_profile_id ?? ""}
+              onChange={(e) => void setCartTaxProfile(e.target.value)}
+              className="ml-2 rounded border border-border bg-background px-2 py-1"
+            >
+              <option value="">— Channel default —</option>
+              {taxProfiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.jurisdiction})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-3">
@@ -385,6 +513,65 @@ export function PosScreenPage() {
               Add
             </Button>
           </form>
+
+          {/* Typed-search picker for products without a scannable code,
+              or when the operator knows part of the name. */}
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onFocus={() => {
+                if (searchValue.trim().length >= 2) setSearchOpen(true);
+              }}
+              onBlur={() => {
+                // Delay so a click on a result row registers before the
+                // dropdown unmounts.
+                setTimeout(() => setSearchOpen(false), 150);
+              }}
+              placeholder="Search products by name, SKU, or UPC…"
+              className="h-10 w-full rounded border border-border bg-background px-3 text-sm"
+              data-testid="pos-search-input"
+              aria-label="Search products"
+            />
+            {searchOpen && searchValue.trim().length >= 2 ? (
+              <ul
+                className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded border border-border bg-background shadow"
+                data-testid="pos-search-results"
+              >
+                {searchLoading && searchResults.length === 0 ? (
+                  <li className="p-2 text-xs text-muted-foreground">Searching…</li>
+                ) : searchResults.length === 0 ? (
+                  <li className="p-2 text-xs text-muted-foreground">
+                    No matches.
+                  </li>
+                ) : (
+                  searchResults.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          // Prevent the input from blurring before the
+                          // click handler fires (mousedown precedes blur).
+                          e.preventDefault();
+                          void addProductFromSearch(p.id);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-sm hover:bg-accent"
+                        data-testid={`pos-search-pick-${p.id}`}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {p.sku}
+                        </span>
+                        <span className="tabular-nums">{p.unit_price}</span>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            ) : null}
+          </div>
 
           {scanError && (
             <div role="alert" className="rounded border border-destructive p-3 text-sm">
@@ -473,6 +660,18 @@ export function PosScreenPage() {
             <span>Discount</span>
             <span>-{fmtMoney(cartDiscount)}</span>
           </div>
+          {cart?.tax_amount && Number(cart.tax_amount) > 0 ? (
+            <div
+              className="flex justify-between text-xs text-muted-foreground"
+              data-testid="cart-tax"
+            >
+              <span>
+                Tax
+                {cart.tax_profile_name ? ` (${cart.tax_profile_name})` : ""}
+              </span>
+              <span>{fmtMoney(Number(cart.tax_amount))}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between text-base font-semibold">
             <span>Total</span>
             <span data-testid="cart-total">{fmtMoney(total)}</span>

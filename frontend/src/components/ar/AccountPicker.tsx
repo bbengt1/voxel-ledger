@@ -16,6 +16,9 @@ interface Props {
   id?: string;
   disabled?: boolean;
   placeholder?: string;
+  /** Bump to force a refetch — useful after a sibling "Create account"
+   * flow so a freshly-created account shows up in the options. */
+  refreshKey?: number;
   "data-testid"?: string;
 }
 
@@ -26,6 +29,7 @@ export function AccountPicker({
   id,
   disabled,
   placeholder,
+  refreshKey,
   "data-testid": testId,
 }: Props) {
   const [accounts, setAccounts] = useState<AccountResponse[]>([]);
@@ -39,7 +43,7 @@ export function AccountPicker({
       .catch(() => {
         /* non-fatal */
       });
-  }, []);
+  }, [refreshKey]);
 
   const filtered = filterType
     ? accounts.filter((a) => a.type === filterType)

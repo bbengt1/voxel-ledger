@@ -73,7 +73,7 @@ const SECTIONS: NavSection[] = [
       { label: "POS", href: "/sales/pos" },
       { label: "Channels", href: "/sales/channels" },
       { label: "Shipments", href: "/sales?has_shipments=true" },
-      { label: "Refunds", href: "#sales/refunds" },
+      { label: "Refunds", href: "/sales/refunds" },
     ],
   },
   {
@@ -194,6 +194,11 @@ export function Sidebar() {
                   <li key={item.href}>
                     <NavLink
                       to={item.href}
+                      // ``end`` so e.g. /sales doesn't highlight every
+                      // /sales/* sibling at the same time. Every leaf
+                      // in the sidebar should highlight only on an
+                      // exact path match.
+                      end
                       className={({ isActive }) =>
                         cn(
                           "block rounded-md px-2 py-1.5 text-sm text-foreground/80 transition-colors",

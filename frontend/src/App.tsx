@@ -68,6 +68,7 @@ import { ProductionQueuePage } from "@/pages/production/ProductionQueue";
 import { PosScreenPage } from "@/pages/sales/PosScreen";
 import { RefundComposerPage } from "@/pages/sales/RefundComposer";
 import { RefundDetailPage } from "@/pages/sales/RefundDetail";
+import { RefundsListPage } from "@/pages/sales/RefundsList";
 import { LocationCreatePage } from "@/pages/inventory/LocationCreate";
 import { LocationDetailPage } from "@/pages/inventory/LocationDetail";
 import { AlertsListPage } from "@/pages/inventory/AlertsList";
@@ -572,6 +573,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <SaleComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sales/refunds"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RefundsListPage />
             </AppShell>
           </RequireAuth>
         }

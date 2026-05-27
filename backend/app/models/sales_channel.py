@@ -99,6 +99,14 @@ class SalesChannel(Base):
 
     external_id_format_hint: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
+    # Per-channel tax behavior — POS collects, marketplaces typically
+    # don't, wholesale may be exempt. ``NULL`` means the channel
+    # doesn't compute tax automatically; callers may still pass a
+    # flat ``tax_amount`` to ``checkout()``.
+    tax_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tax_profile.id", ondelete="SET NULL"), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

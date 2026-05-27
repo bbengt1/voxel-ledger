@@ -303,6 +303,59 @@ async def create(
     return await get(session, job.id)
 
 
+async def duplicate(
+    session: AsyncSession,
+    *,
+    source_job_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
+) -> Job:
+    """Create a fresh DRAFT job by cloning ``source_job_id``.
+
+    Copies: product, quantity_ordered, priority, due_at, notes,
+    and every plate (name, plate_number, parts_per_set, print_minutes,
+    print_grams_by_material, print_hours_setup_minutes, assigned_printer_ids).
+    Fresh: new job_number, state=DRAFT, runs_completed=0 on every plate,
+    and the duplicate carries the calling user as actor.
+
+    Source job state doesn't matter — completed or cancelled jobs can
+    still seed a new run.
+    """
+    source = await get(session, source_job_id)
+    plate_inputs: list[PlateInput] = []
+    for plate in source.plates:
+        # ``print_grams_by_material`` and ``assigned_printer_ids`` are
+        # stored as JSON with string UUIDs and Decimal-as-string. Coerce
+        # back to the native types ``create`` expects.
+        grams: dict[uuid.UUID, Decimal] = {}
+        for k, v in (plate.print_grams_by_material or {}).items():
+            grams[uuid.UUID(str(k))] = Decimal(str(v))
+        printer_ids = [
+            uuid.UUID(str(p)) for p in (plate.assigned_printer_ids or [])
+        ]
+        plate_inputs.append(
+            PlateInput(
+                name=plate.name,
+                plate_number=plate.plate_number,
+                parts_per_set=plate.parts_per_set,
+                print_minutes=plate.print_minutes,
+                print_grams_by_material=grams,
+                print_hours_setup_minutes=plate.print_hours_setup_minutes,
+                assigned_printer_ids=printer_ids,
+            )
+        )
+
+    return await create(
+        session,
+        product_id=source.product_id,
+        quantity_ordered=source.quantity_ordered,
+        plates=plate_inputs,
+        priority=source.priority,
+        due_at=source.due_at,
+        notes=source.notes,
+        actor_user_id=actor_user_id,
+    )
+
+
 async def get(session: AsyncSession, job_id: uuid.UUID) -> Job:
     stmt = select(Job).where(Job.id == job_id).options(selectinload(Job.plates))
     row = (await session.execute(stmt)).scalar_one_or_none()
@@ -428,16 +481,43 @@ async def complete(
     job_id: uuid.UUID,
     actor_user_id: uuid.UUID | None,
 ) -> Job:
-    # The spec says "warns if under, allow". We don't currently have an
-    # event-log warning sink — pieces shortfall is reflected by the
-    # pieces_produced helper on the response, so consumers can flag it.
-    return await _transition(
+    """Transition a job to ``COMPLETED`` and credit the produced pieces
+    to product on-hand.
+
+    Posts a single ``production_in`` inventory transaction for the job's
+    product at the configured receiving location, sized to
+    ``pieces_produced(job)``. Skips the inventory write when zero
+    pieces were recorded (``runs_completed=0`` on any plate, or
+    parts_per_set=0). Operates in the same TX as the state transition
+    so completion and the inventory credit succeed or fail together.
+
+    The spec says "warns if under, allow" — pieces shortfall is
+    reflected by the pieces_produced helper on the response and a
+    ``pieces_short`` flag on the event payload; we never block.
+    """
+    job = await _transition(
         session,
         job_id=job_id,
         target=JobState.COMPLETED,
         event_type=production_events.TYPE_JOB_COMPLETED,
         actor_user_id=actor_user_id,
     )
+
+    produced = pieces_produced(job)
+    if produced > 0:
+        location_id = await _resolve_consumption_location_id(session)
+        await inventory_tx_service.record(
+            session,
+            kind="production_in",
+            entity_kind="product",
+            entity_id=job.product_id,
+            location_id=location_id,
+            quantity=Decimal(produced),
+            actor_user_id=actor_user_id,
+            linked_job_id=job.id,
+            reason=f"job {job.job_number} completed",
+        )
+    return job
 
 
 async def cancel(

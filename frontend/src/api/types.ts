@@ -2730,6 +2730,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate Job
+         * @description Create a fresh DRAFT job by cloning ``job_id``'s product, plates,
+         *     and free-text fields. Plate ``runs_completed`` is reset to 0 and a
+         *     new ``job_number`` is allocated.
+         */
+        post: operations["duplicate_job_api_v1_jobs__job_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}/plates": {
         parameters: {
             query?: never;
@@ -3218,6 +3240,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pos/carts/{cart_id}/add-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Product */
+        post: operations["add_product_api_v1_pos_carts__cart_id__add_product_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pos/carts/{cart_id}/checkout": {
         parameters: {
             query?: never;
@@ -3264,6 +3303,26 @@ export interface paths {
         put?: never;
         /** Scan */
         post: operations["scan_api_v1_pos_carts__cart_id__scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pos/carts/{cart_id}/tax-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Cart Tax Profile
+         * @description Set or clear the per-cart tax-profile override.
+         */
+        post: operations["set_cart_tax_profile_api_v1_pos_carts__cart_id__tax_profile_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5928,6 +5987,25 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * AddProductRequest
+         * @description Add a product to the cart by id (used by the typed-search picker
+         *     on the POS screen). Quantity defaults to 1 so the picker matches the
+         *     barcode-scan UX where each click adds one unit and re-stacks an
+         *     existing line.
+         */
+        AddProductRequest: {
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /**
+             * Quantity
+             * @default 1
+             */
+            quantity: number | string;
+        };
         /** AgingBucketResponse */
         AgingBucketResponse: {
             /** Amount */
@@ -7635,6 +7713,15 @@ export interface components {
             updated_at: string;
             /** Username */
             username?: string | null;
+        };
+        /**
+         * CartTaxProfileRequest
+         * @description Set or clear the per-cart tax-profile override. ``None`` reverts
+         *     the cart to the channel's default.
+         */
+        CartTaxProfileRequest: {
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
         };
         /** CashFlowLineResponse */
         CashFlowLineResponse: {
@@ -9403,7 +9490,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out";
+            kind: "production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out" | "production_consumption" | "sale_consumption";
             /** Linked Job Id */
             linked_job_id?: string | null;
             /** Linked Sale Id */
@@ -10910,6 +10997,15 @@ export interface components {
             state: "open" | "checked_out" | "voided";
             /** Subtotal */
             subtotal: string;
+            /**
+             * Tax Amount
+             * @default 0
+             */
+            tax_amount: string;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
+            /** Tax Profile Name */
+            tax_profile_name?: string | null;
             /** Total */
             total: string;
             /**
@@ -12585,6 +12681,8 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
         };
         /** SalesChannelListResponse */
         SalesChannelListResponse: {
@@ -12629,6 +12727,8 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -12658,6 +12758,8 @@ export interface components {
             name?: string | null;
             /** Slug */
             slug?: string | null;
+            /** Tax Profile Id */
+            tax_profile_id?: string | null;
         };
         /** SavedReportCreate */
         SavedReportCreate: {
@@ -20547,6 +20649,37 @@ export interface operations {
             };
         };
     };
+    duplicate_job_api_v1_jobs__job_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_plate_api_v1_jobs__job_id__plates_post: {
         parameters: {
             query?: never;
@@ -21759,6 +21892,41 @@ export interface operations {
             };
         };
     };
+    add_product_api_v1_pos_carts__cart_id__add_product_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     checkout_api_v1_pos_carts__cart_id__checkout_post: {
         parameters: {
             query?: never;
@@ -21874,6 +22042,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ScanRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosCartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_cart_tax_profile_api_v1_pos_carts__cart_id__tax_profile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cart_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartTaxProfileRequest"];
             };
         };
         responses: {

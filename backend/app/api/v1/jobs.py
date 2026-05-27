@@ -218,6 +218,30 @@ async def update_job(
     return _job_to_response(job)
 
 
+@router.post(
+    "/{job_id}/duplicate",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def duplicate_job(
+    job_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "production"))],
+) -> JobResponse:
+    """Create a fresh DRAFT job by cloning ``job_id``'s product, plates,
+    and free-text fields. Plate ``runs_completed`` is reset to 0 and a
+    new ``job_number`` is allocated."""
+    try:
+        new_job = await jobs_service.duplicate(
+            session, source_job_id=job_id, actor_user_id=actor.id
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_jobs_error(exc) from None
+    await session.commit()
+    return _job_to_response(new_job)
+
+
 @router.post("/{job_id}/submit", response_model=JobResponse)
 async def submit_job(
     job_id: uuid.UUID,

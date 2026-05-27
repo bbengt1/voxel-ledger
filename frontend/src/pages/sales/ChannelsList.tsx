@@ -59,6 +59,7 @@ interface DraftState {
   externalIdFormatHint: string;
   revenueAccount: AccountOption | null;
   feeAccount: AccountOption | null;
+  taxProfileId: string;
 }
 
 function emptyDraft(): DraftState {
@@ -73,6 +74,7 @@ function emptyDraft(): DraftState {
     externalIdFormatHint: "",
     revenueAccount: null,
     feeAccount: null,
+    taxProfileId: "",
   };
 }
 
@@ -102,6 +104,7 @@ function channelToDraft(c: SalesChannelResponse): DraftState {
           type: "expense",
         }
       : null,
+    taxProfileId: c.tax_profile_id ?? "",
   };
 }
 
@@ -115,6 +118,27 @@ export function ChannelsListPage() {
   const [draft, setDraft] = useState<DraftState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [taxProfiles, setTaxProfiles] = useState<
+    { id: string; name: string; jurisdiction: string }[]
+  >([]);
+
+  // Load active tax profiles once for the picker.
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ items: typeof taxProfiles }>("/api/v1/tax-profiles", {
+        params: { active: true },
+      })
+      .then((res) => {
+        if (!cancelled) setTaxProfiles(res.data.items);
+      })
+      .catch(() => {
+        /* non-fatal — picker just shows "None". */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refetch = useCallback(async () => {
     setLoading(true);
@@ -162,6 +186,7 @@ export function ChannelsListPage() {
           external_id_format_hint: trimmedHint || null,
           default_revenue_account_id: draft.revenueAccount?.id ?? null,
           default_fee_account_id: draft.feeAccount?.id ?? null,
+          tax_profile_id: draft.taxProfileId || null,
         };
         await apiClient.patch(`/api/v1/sales-channels/${draft.id}`, body);
       } else {
@@ -177,6 +202,7 @@ export function ChannelsListPage() {
         if (draft.revenueAccount)
           body.default_revenue_account_id = draft.revenueAccount.id;
         if (draft.feeAccount) body.default_fee_account_id = draft.feeAccount.id;
+        if (draft.taxProfileId) body.tax_profile_id = draft.taxProfileId;
         await apiClient.post("/api/v1/sales-channels", body);
       }
       setDraft(null);
@@ -403,6 +429,29 @@ export function ChannelsListPage() {
                 />
               </label>
             </div>
+            <label className="col-span-2 block text-sm">
+              Tax profile
+              <select
+                className="mt-1 block w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                value={draft.taxProfileId}
+                onChange={(e) =>
+                  setDraft({ ...draft, taxProfileId: e.target.value })
+                }
+                data-testid="channel-tax-profile"
+              >
+                <option value="">— None (no tax computed) —</option>
+                {taxProfiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.jurisdiction})
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                When set, POS and other checkout flows compute tax from
+                this profile's rate ladder. Manage profiles under
+                Accounting → Tax profiles.
+              </span>
+            </label>
           </div>
 
           {formError ? (

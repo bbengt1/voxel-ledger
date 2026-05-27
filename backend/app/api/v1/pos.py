@@ -9,9 +9,11 @@ Thin layer over ``app.services.pos``. Roles:
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_role
@@ -19,7 +21,11 @@ from app.api.v1.sales import _to_response as sale_to_response
 from app.core.db import get_session
 from app.models.auth import User
 from app.models.pos_cart import PosCart, PosCartItem, PosCartState
+from app.models.sales_channel import SalesChannel
+from app.models.tax_profile import TaxProfile
 from app.schemas.pos import (
+    AddProductRequest,
+    CartTaxProfileRequest,
     CheckoutRequest,
     CheckoutResponse,
     LineUpdateRequest,
@@ -30,6 +36,7 @@ from app.schemas.pos import (
 )
 from app.services import pos as pos_service
 from app.services import sales as sales_service
+from app.services import tax as tax_service
 from app.services.cogs import service as cogs_service
 
 router = APIRouter(prefix="/pos", tags=["pos"])
@@ -83,6 +90,48 @@ def _to_response(cart: PosCart) -> PosCartResponse:
     )
 
 
+async def _to_response_with_tax(
+    cart: PosCart, *, session: AsyncSession
+) -> PosCartResponse:
+    """Build the cart response and overlay a tax preview when the cart's
+    channel carries a ``tax_profile_id``. Computes the tax from the
+    after-discount ``total`` using the existing :func:`compute_line_tax`
+    helper, then exposes a single aggregate ``tax_amount`` plus the
+    profile id/name so the UI can label the line."""
+    response = _to_response(cart)
+    from sqlalchemy.orm import selectinload as _selectinload
+
+    # Per-cart override wins over the channel default.
+    profile_id = cart.tax_profile_id
+    if profile_id is None:
+        channel = (
+            await session.execute(
+                select(SalesChannel).where(SalesChannel.id == cart.channel_id)
+            )
+        ).scalar_one_or_none()
+        if channel is None:
+            return response
+        profile_id = channel.tax_profile_id
+    if profile_id is None:
+        return response
+    profile = (
+        await session.execute(
+            select(TaxProfile)
+            .where(TaxProfile.id == profile_id)
+            .options(_selectinload(TaxProfile.rates))
+        )
+    ).scalar_one_or_none()
+    if profile is None or not profile.is_active or not profile.rates:
+        return response
+    per_rate = tax_service.compute_line_tax(
+        line_subtotal=response.total, rates=list(profile.rates)
+    )
+    response.tax_amount = sum((amt for _, amt in per_rate), start=Decimal("0"))
+    response.tax_profile_id = profile.id
+    response.tax_profile_name = profile.name
+    return response
+
+
 def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, pos_service.PosCartNotFoundError):
         return HTTPException(status_code=404, detail="cart not found")
@@ -128,7 +177,7 @@ async def open_cart(
         raise _map_error(exc) from None
     await session.commit()
     cart = await pos_service.get(session, cart.id)
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)
 
 
 @router.get("/carts/{cart_id}", response_model=PosCartResponse)
@@ -141,7 +190,7 @@ async def get_cart(
         cart = await pos_service.get(session, cart_id)
     except Exception as exc:
         raise _map_error(exc) from None
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)
 
 
 @router.post("/carts/{cart_id}/scan", response_model=PosCartResponse)
@@ -160,7 +209,53 @@ async def scan(
         raise _map_error(exc) from None
     await session.commit()
     cart = await pos_service.get(session, cart_id)
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)
+
+
+@router.post("/carts/{cart_id}/add-product", response_model=PosCartResponse)
+async def add_product(
+    cart_id: uuid.UUID,
+    payload: AddProductRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "sales"))],
+) -> PosCartResponse:
+    try:
+        cart = await pos_service.add_product(
+            cart_id,
+            payload.product_id,
+            payload.quantity,
+            session=session,
+            actor=actor,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    cart = await pos_service.get(session, cart_id)
+    return await _to_response_with_tax(cart, session=session)
+
+
+@router.post("/carts/{cart_id}/tax-profile", response_model=PosCartResponse)
+async def set_cart_tax_profile(
+    cart_id: uuid.UUID,
+    payload: CartTaxProfileRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "sales"))],
+) -> PosCartResponse:
+    """Set or clear the per-cart tax-profile override."""
+    try:
+        cart = await pos_service.set_cart_tax_profile(
+            cart_id,
+            payload.tax_profile_id,
+            session=session,
+            actor=actor,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise _map_error(exc) from None
+    await session.commit()
+    cart = await pos_service.get(session, cart_id)
+    return await _to_response_with_tax(cart, session=session)
 
 
 @router.patch("/carts/{cart_id}/lines/{line_number}", response_model=PosCartResponse)
@@ -190,7 +285,7 @@ async def update_line(
         raise _map_error(exc) from None
     await session.commit()
     cart = await pos_service.get(session, cart_id)
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)
 
 
 @router.delete("/carts/{cart_id}/lines/{line_number}", response_model=PosCartResponse)
@@ -207,7 +302,7 @@ async def delete_line(
         raise _map_error(exc) from None
     await session.commit()
     cart = await pos_service.get(session, cart_id)
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)
 
 
 @router.post("/carts/{cart_id}/checkout", response_model=CheckoutResponse)
@@ -239,7 +334,7 @@ async def checkout(
     return CheckoutResponse(
         sale=sale_to_response(sale),
         change_due=result.change_due,
-        cart=_to_response(cart),
+        cart=await _to_response_with_tax(cart, session=session),
     )
 
 
@@ -256,4 +351,4 @@ async def void(
         raise _map_error(exc) from None
     await session.commit()
     cart = await pos_service.get(session, cart_id)
-    return _to_response(cart)
+    return await _to_response_with_tax(cart, session=session)

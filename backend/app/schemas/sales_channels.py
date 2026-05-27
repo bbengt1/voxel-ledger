@@ -42,6 +42,7 @@ class SalesChannelResponse(BaseModel):
     is_active: bool
     default_revenue_account_id: uuid.UUID | None = None
     default_fee_account_id: uuid.UUID | None = None
+    tax_profile_id: uuid.UUID | None = None
     external_id_format_hint: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -56,6 +57,7 @@ class SalesChannelCreate(BaseModel):
     fee_flat: Decimal | None = None
     default_revenue_account_id: uuid.UUID | None = None
     default_fee_account_id: uuid.UUID | None = None
+    tax_profile_id: uuid.UUID | None = None
     external_id_format_hint: str | None = Field(default=None, max_length=1024)
 
 
@@ -70,6 +72,7 @@ class SalesChannelUpdate(BaseModel):
     fee_flat: Decimal | None = None
     default_revenue_account_id: uuid.UUID | None = None
     default_fee_account_id: uuid.UUID | None = None
+    tax_profile_id: uuid.UUID | None = None
     external_id_format_hint: str | None = Field(default=None, max_length=1024)
 
 

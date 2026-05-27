@@ -5,8 +5,9 @@
  * Replaces the stub list from Phase 5.1.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
@@ -26,8 +27,26 @@ const STATES = [
 const CAN_CREATE: readonly string[] = ["owner", "production"];
 
 export function JobsListPage() {
+  const navigate = useNavigate();
   const role = useAuthStore((s) => s.user?.role);
   const canCreate = role ? CAN_CREATE.includes(role) : false;
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  async function duplicateJob(jobId: string) {
+    setDuplicatingId(jobId);
+    try {
+      const res = await apiClient.post<JobResponse>(
+        `/api/v1/jobs/${jobId}/duplicate`,
+      );
+      navigate(`/production/jobs/${res.data.id}`);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Could not duplicate job.";
+      setError(typeof detail === "string" ? detail : "Could not duplicate job.");
+      setDuplicatingId(null);
+    }
+  }
 
   const [params, setParams] = useSearchParams();
   const stateFilter = params.get("state") ?? "";
@@ -178,18 +197,19 @@ export function JobsListPage() {
             <th className="py-2 pr-2">Pieces</th>
             <th className="py-2 pr-2">Priority</th>
             <th className="py-2 pr-2">Due</th>
+            <th className="py-2 pr-2 text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading && items.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+              <td colSpan={7} className="py-4 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : filtered.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+              <td colSpan={7} className="py-4 text-center text-muted-foreground">
                 No jobs match these filters.
               </td>
             </tr>
@@ -213,6 +233,20 @@ export function JobsListPage() {
                 <td className="py-2 pr-2">{j.priority}</td>
                 <td className="py-2 pr-2">
                   {j.due_at ? new Date(j.due_at).toLocaleDateString() : "—"}
+                </td>
+                <td className="py-2 pr-2 text-right">
+                  {canCreate ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void duplicateJob(j.id)}
+                      disabled={duplicatingId === j.id}
+                      data-testid={`duplicate-job-${j.id}`}
+                    >
+                      {duplicatingId === j.id ? "Duplicating…" : "Duplicate"}
+                    </Button>
+                  ) : null}
                 </td>
               </tr>
             ))

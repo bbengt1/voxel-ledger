@@ -255,6 +255,7 @@ async def create(
     fee_flat: Decimal | str | int | float | None = None,
     default_revenue_account_id: uuid.UUID | None = None,
     default_fee_account_id: uuid.UUID | None = None,
+    tax_profile_id: uuid.UUID | None = None,
     external_id_format_hint: str | None = None,
     actor_user_id: uuid.UUID | None,
 ) -> SalesChannel:
@@ -293,6 +294,7 @@ async def create(
         is_active=True,
         default_revenue_account_id=default_revenue_account_id,
         default_fee_account_id=default_fee_account_id,
+        tax_profile_id=tax_profile_id,
         external_id_format_hint=hint,
     )
     session.add(channel)
@@ -332,6 +334,7 @@ _EDITABLE_FIELDS = (
     "fee_flat",
     "default_revenue_account_id",
     "default_fee_account_id",
+    "tax_profile_id",
     "external_id_format_hint",
 )
 

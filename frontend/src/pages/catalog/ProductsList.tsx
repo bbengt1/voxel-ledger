@@ -148,6 +148,7 @@ export function ProductsListPage() {
             <th className="py-2 pr-2">SKU</th>
             <th className="py-2 pr-2">Name</th>
             <th className="py-2 pr-2">Price</th>
+            <th className="py-2 pr-2 text-right">On hand</th>
             <th className="py-2 pr-2">Category</th>
             <th className="py-2 pr-2">Status</th>
           </tr>
@@ -155,13 +156,13 @@ export function ProductsListPage() {
         <tbody>
           {loading && items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
+              <td colSpan={6} className="py-4 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
+              <td colSpan={6} className="py-4 text-center text-muted-foreground">
                 No products match the current filters.
               </td>
             </tr>
@@ -178,6 +179,12 @@ export function ProductsListPage() {
                 </td>
                 <td className="py-2 pr-2">{p.name}</td>
                 <td className="py-2 pr-2">{formatCurrency(p.unit_price, currency)}</td>
+                <td
+                  className="py-2 pr-2 text-right tabular-nums"
+                  data-testid={`product-on-hand-${p.id}`}
+                >
+                  {Math.trunc(Number(p.total_on_hand ?? 0))}
+                </td>
                 <td className="py-2 pr-2">{p.category ?? "—"}</td>
                 <td className="py-2 pr-2">
                   {p.is_archived ? "Archived" : "Active"}

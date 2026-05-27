@@ -40,6 +40,7 @@ def _to_response(channel: SalesChannel) -> SalesChannelResponse:
         is_active=channel.is_active,
         default_revenue_account_id=channel.default_revenue_account_id,
         default_fee_account_id=channel.default_fee_account_id,
+        tax_profile_id=channel.tax_profile_id,
         external_id_format_hint=channel.external_id_format_hint,
         created_at=channel.created_at,
         updated_at=channel.updated_at,
@@ -75,6 +76,7 @@ async def create_sales_channel(
             fee_flat=payload.fee_flat,
             default_revenue_account_id=payload.default_revenue_account_id,
             default_fee_account_id=payload.default_fee_account_id,
+            tax_profile_id=payload.tax_profile_id,
             external_id_format_hint=payload.external_id_format_hint,
             actor_user_id=actor.id,
         )

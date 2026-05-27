@@ -34,9 +34,11 @@ from app.models.auth import User
 from app.models.pos_cart import PosCart, PosCartItem, PosCartState
 from app.models.product import Product
 from app.models.sales_channel import SalesChannel
+from app.models.tax_profile import TaxProfile
 from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services import sales as sales_service
+from app.services import tax as tax_service
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -281,6 +283,14 @@ async def scan_barcode(
         await session.execute(select(Product).where(Product.upc == barcode_norm))
     ).scalar_one_or_none()
     if product is None:
+        # Fall back to SKU lookup so a scanner that emits an SKU (or a
+        # paste of a manually-typed SKU) still adds the line. The
+        # explicit SKU search lives in the products service, but here a
+        # quick equality match is enough.
+        product = (
+            await session.execute(select(Product).where(Product.sku == barcode_norm))
+        ).scalar_one_or_none()
+    if product is None:
         raise PosBarcodeNotFoundError(f"no product with barcode {barcode_norm!r}")
 
     # Look for an existing line in this cart for this product.
@@ -323,6 +333,79 @@ async def scan_barcode(
                 "product_id": str(product.id),
                 "sku": product.sku,
                 "quantity": "1",
+                "unit_price": str(product.unit_price),
+            },
+            actor_user_id=actor.id if actor else None,
+        )
+    return await _load(session, cart.id)
+
+
+async def add_product(
+    cart_id: uuid.UUID,
+    product_id: uuid.UUID,
+    quantity: Decimal,
+    *,
+    session: AsyncSession,
+    actor: User | None,
+) -> PosCart:
+    """Add a product to the cart by id (used by typed-search picker).
+
+    Mirrors ``scan_barcode``'s stacking semantics: if a line already
+    exists for this product, increments its quantity; otherwise creates
+    a fresh line at the next line number.
+    """
+    cart = await _load(session, cart_id)
+    _ensure_open(cart)
+    qty = _q(Decimal(quantity))
+    if qty <= 0:
+        raise PosBarcodeNotFoundError("quantity must be > 0")
+
+    product = (
+        await session.execute(select(Product).where(Product.id == product_id))
+    ).scalar_one_or_none()
+    if product is None:
+        raise PosBarcodeNotFoundError(f"no product with id {product_id}")
+
+    existing = next((i for i in cart.items if i.product_id == product.id), None)
+    if existing is not None:
+        before = _q(existing.quantity)
+        existing.quantity = _q(existing.quantity + qty)
+        await session.flush()
+        await _emit(
+            session,
+            event_type=sales_events.TYPE_POS_LINE_UPDATED,
+            cart_id=cart.id,
+            payload={
+                "cart_id": str(cart.id),
+                "line_number": existing.line_number,
+                "before": {"quantity": str(before)},
+                "after": {"quantity": str(existing.quantity)},
+            },
+            actor_user_id=actor.id if actor else None,
+        )
+    else:
+        line_number = await _next_line_number(session, cart.id)
+        item = PosCartItem(
+            cart_id=cart.id,
+            line_number=line_number,
+            product_id=product.id,
+            description=product.name,
+            sku=product.sku,
+            quantity=qty,
+            unit_price=product.unit_price,
+        )
+        session.add(item)
+        await session.flush()
+        await _emit(
+            session,
+            event_type=sales_events.TYPE_POS_LINE_ADDED,
+            cart_id=cart.id,
+            payload={
+                "cart_id": str(cart.id),
+                "line_number": line_number,
+                "product_id": str(product.id),
+                "sku": product.sku,
+                "quantity": str(qty),
                 "unit_price": str(product.unit_price),
             },
             actor_user_id=actor.id if actor else None,
@@ -462,6 +545,90 @@ class CheckoutResult:
     cart: PosCart
 
 
+async def _resolve_effective_tax_profile_id(
+    session: AsyncSession,
+    cart: PosCart,
+) -> uuid.UUID | None:
+    """Return the profile id this cart should use for tax. The cart's
+    own ``tax_profile_id`` takes priority; otherwise the channel's
+    default."""
+    if cart.tax_profile_id is not None:
+        return cart.tax_profile_id
+    channel = (
+        await session.execute(
+            select(SalesChannel).where(SalesChannel.id == cart.channel_id)
+        )
+    ).scalar_one_or_none()
+    return channel.tax_profile_id if channel is not None else None
+
+
+async def _compute_cart_tax(
+    session: AsyncSession,
+    cart: PosCart,
+    subtotal: Decimal,
+) -> Decimal | None:
+    """Aggregate tax for the cart's after-discount subtotal using its
+    effective profile (cart override → channel default). Returns
+    ``None`` when no profile applies or the resolved profile is inactive
+    / has no rates — callers fall back to the client-supplied flat
+    amount in that case."""
+    from sqlalchemy.orm import selectinload as _selectinload
+
+    profile_id = await _resolve_effective_tax_profile_id(session, cart)
+    if profile_id is None:
+        return None
+    profile = (
+        await session.execute(
+            select(TaxProfile)
+            .where(TaxProfile.id == profile_id)
+            .options(_selectinload(TaxProfile.rates))
+        )
+    ).scalar_one_or_none()
+    if profile is None or not profile.is_active or not profile.rates:
+        return None
+    per_rate = tax_service.compute_line_tax(
+        line_subtotal=subtotal, rates=list(profile.rates)
+    )
+    return _q(sum((amt for _, amt in per_rate), start=Decimal("0")))
+
+
+async def set_cart_tax_profile(
+    cart_id: uuid.UUID,
+    tax_profile_id: uuid.UUID | None,
+    *,
+    session: AsyncSession,
+    actor: User | None,
+) -> PosCart:
+    """Set or clear the per-cart tax profile override. Passing ``None``
+    reverts the cart to the channel's default. Validates that the
+    referenced profile exists and is active before persisting."""
+    cart = await _load(session, cart_id)
+    _ensure_open(cart)
+    if tax_profile_id is not None:
+        profile = (
+            await session.execute(
+                select(TaxProfile).where(TaxProfile.id == tax_profile_id)
+            )
+        ).scalar_one_or_none()
+        if profile is None or not profile.is_active:
+            raise PosServiceError(
+                f"tax profile {tax_profile_id} not found or inactive"
+            )
+    cart.tax_profile_id = tax_profile_id
+    await session.flush()
+    await _emit(
+        session,
+        event_type=sales_events.TYPE_POS_CART_TAX_PROFILE_SET,
+        cart_id=cart.id,
+        payload={
+            "cart_id": str(cart.id),
+            "tax_profile_id": str(tax_profile_id) if tax_profile_id else None,
+        },
+        actor_user_id=actor.id if actor else None,
+    )
+    return await _load(session, cart.id)
+
+
 async def checkout(
     cart_id: uuid.UUID,
     *,
@@ -495,10 +662,18 @@ async def checkout(
         cart.customer_email = customer_email
 
     totals = compute_totals(cart)
+
+    # Resolve tax: if the cart's channel carries a tax profile, ignore
+    # any client-supplied ``tax_amount`` and compute fresh from the
+    # after-discount total. Authoritative server-side math; the client
+    # is only allowed to override when the channel has no profile.
+    computed_tax = await _compute_cart_tax(session, cart, totals.total)
+    effective_tax = computed_tax if computed_tax is not None else _q(tax_amount)
+
     tendered = _q(tendered_amount)
-    if tendered < totals.total:
+    if tendered < totals.total + effective_tax:
         raise PosServiceError(
-            f"tendered amount {tendered} less than total {totals.total + _q(tax_amount)}"
+            f"tendered amount {tendered} less than total {totals.total + effective_tax}"
         )
 
     # Build sale items. Cart-level discount becomes the sale's
@@ -545,7 +720,7 @@ async def checkout(
         occurred_at=datetime.now(UTC),
         discount_amount=totals.cart_discount_amount,
         shipping_amount=Decimal("0"),
-        tax_amount=_q(tax_amount),
+        tax_amount=effective_tax,
         notes=f"POS cart {cart.id} ({payment_method})",
         items=sale_items,
         actor_user_id=actor.id,
@@ -555,7 +730,7 @@ async def checkout(
     cart.state = PosCartState.CHECKED_OUT
     cart.sale_id = sale.id
     await session.flush()
-    change_due = _q(tendered - (totals.total + _q(tax_amount)))
+    change_due = _q(tendered - (totals.total + effective_tax))
     if change_due < 0:
         change_due = Decimal("0")
     await _emit(
@@ -567,7 +742,9 @@ async def checkout(
             "channel_id": str(cart.channel_id),
             "sale_id": str(sale.id),
             "sale_number": sale.sale_number,
-            "total": str(_q(totals.total + _q(tax_amount))),
+            "total": str(_q(totals.total + effective_tax)),
+            "tax_amount": str(effective_tax),
+            "tax_source": "channel_profile" if computed_tax is not None else "manual",
         },
         actor_user_id=actor.id,
     )

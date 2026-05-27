@@ -284,10 +284,22 @@ class PosCartCheckedOutPayload(_SalesPayloadBase):
     sale_id: uuid.UUID
     sale_number: str
     total: str
+    # Tax breakdown: amount applied + whether it came from the channel
+    # profile or a client-supplied flat figure. Defaults preserve prior
+    # event shape for backfills and tests that don't yet care.
+    tax_amount: str = "0"
+    tax_source: str = "manual"
 
 
 class PosCartVoidedPayload(_SalesPayloadBase):
     cart_id: uuid.UUID
+
+
+class PosCartTaxProfileSetPayload(_SalesPayloadBase):
+    cart_id: uuid.UUID
+    # ``None`` means the operator cleared the override (revert to the
+    # channel default).
+    tax_profile_id: uuid.UUID | None = None
 
 
 TYPE_POS_CART_OPENED = "sales.PosCartOpened"
@@ -296,6 +308,7 @@ TYPE_POS_LINE_UPDATED = "sales.PosLineUpdated"
 TYPE_POS_LINE_REMOVED = "sales.PosLineRemoved"
 TYPE_POS_CART_CHECKED_OUT = "sales.PosCartCheckedOut"
 TYPE_POS_CART_VOIDED = "sales.PosCartVoided"
+TYPE_POS_CART_TAX_PROFILE_SET = "sales.PosCartTaxProfileSet"
 
 
 register_event(TYPE_POS_CART_OPENED, PosCartOpenedPayload)
@@ -304,6 +317,7 @@ register_event(TYPE_POS_LINE_UPDATED, PosLineUpdatedPayload)
 register_event(TYPE_POS_LINE_REMOVED, PosLineRemovedPayload)
 register_event(TYPE_POS_CART_CHECKED_OUT, PosCartCheckedOutPayload)
 register_event(TYPE_POS_CART_VOIDED, PosCartVoidedPayload)
+register_event(TYPE_POS_CART_TAX_PROFILE_SET, PosCartTaxProfileSetPayload)
 # --- Shipments (Phase 6.6, #98) -------------------------------------------
 #
 # CRITICAL: the ``ship_to`` / ``ship_from`` JSON snapshots, the

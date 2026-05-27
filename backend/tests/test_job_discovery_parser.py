@@ -137,6 +137,24 @@ def test_unsliced_3mf_rejected_with_clear_message() -> None:
     assert "slice it" in str(exc.value).lower()
 
 
+def test_bambu_3mf_header_only_slice_info_treated_as_unsliced() -> None:
+    """Bambu/Orca writes a header-only slice_info.config when a project
+    is saved before slicing — surface the same "slice it first" error
+    as a model-only 3MF."""
+    header_only = """<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <header>
+    <header_item key="X-BBL-Client-Type" value="slicer"/>
+    <header_item key="X-BBL-Client-Version" value="02.06.01.55"/>
+  </header>
+</config>
+"""
+    data = _make_3mf({"Metadata/slice_info.config": header_only})
+    with pytest.raises(job_discovery.UnknownSidecarFormatError) as exc:
+        job_discovery.parse_job_artifact(data, source_filename="usa.3mf")
+    assert "slice" in str(exc.value).lower()
+
+
 def test_dispatcher_routes_json_to_sidecar_parser() -> None:
     # The dispatcher should still handle the existing .gcode.json path.
     result = job_discovery.parse_job_artifact(

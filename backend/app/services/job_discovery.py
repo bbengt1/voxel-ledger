@@ -283,7 +283,14 @@ def _parse_bambu_3mf(xml_text: str) -> DiscoveredPlate:
 
     plates = root.findall(".//plate")
     if not plates:
-        raise MalformedSidecarError("3MF slice_info.config has no <plate> entries")
+        # Bambu / Orca write a header-only ``slice_info.config`` when
+        # the project was saved but never sliced. Surface that as the
+        # same "slice it first" error as a model-only 3MF rather than
+        # a malformed-file error.
+        raise UnknownSidecarFormatError(
+            "3MF was saved before slicing — open it in Bambu Studio or "
+            "OrcaSlicer, slice all plates, then re-export the .3mf."
+        )
 
     # Use the first plate. Multi-plate prints can have more added by hand
     # in the composer if needed.

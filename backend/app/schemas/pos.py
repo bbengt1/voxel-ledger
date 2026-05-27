@@ -54,6 +54,11 @@ class PosCartResponse(BaseModel):
     line_discount_total: Decimal
     cart_discount_amount: Decimal
     total: Decimal
+    # Tax preview, derived from the cart's channel tax profile. Zero
+    # when the channel has no tax profile attached.
+    tax_amount: Decimal = Decimal("0")
+    tax_profile_id: uuid.UUID | None = None
+    tax_profile_name: str | None = None
 
 
 class OpenCartRequest(BaseModel):
@@ -65,6 +70,23 @@ class OpenCartRequest(BaseModel):
 
 class ScanRequest(BaseModel):
     barcode: str = Field(min_length=1, max_length=64)
+
+
+class CartTaxProfileRequest(BaseModel):
+    """Set or clear the per-cart tax-profile override. ``None`` reverts
+    the cart to the channel's default."""
+
+    tax_profile_id: uuid.UUID | None = None
+
+
+class AddProductRequest(BaseModel):
+    """Add a product to the cart by id (used by the typed-search picker
+    on the POS screen). Quantity defaults to 1 so the picker matches the
+    barcode-scan UX where each click adds one unit and re-stacks an
+    existing line."""
+
+    product_id: uuid.UUID
+    quantity: Decimal = Field(default=Decimal("1"), gt=0)
 
 
 class LineUpdateRequest(BaseModel):

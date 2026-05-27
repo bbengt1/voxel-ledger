@@ -94,6 +94,14 @@ class PosCart(Base):
     # ``percent`` or ``amount`` — ``None`` means no cart-level discount.
     discount_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
+    # Per-cart tax profile override. ``NULL`` means "fall back to the
+    # channel's tax profile." Operators can flip this in the POS UI for
+    # one-off jurisdictions or exempt sales without changing the
+    # channel default.
+    tax_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tax_profile.id", ondelete="SET NULL"), nullable=True
+    )
+
     # Populated once the cart checks out.
     sale_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("sale.id", ondelete="SET NULL"), nullable=True

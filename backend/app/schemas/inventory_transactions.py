@@ -9,6 +9,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# Kinds the operator may post via the create endpoint. ``transfer_in``
+# / ``transfer_out`` are written by the dedicated transfer endpoint and
+# ``production_consumption`` / ``sale_consumption`` are only written by
+# services (record-plate-run, sale fulfilment) — never accepted on the
+# raw create surface, so they're absent here.
 InventoryTransactionKindLiteral = Literal[
     "production_in",
     "sale_out",
@@ -18,6 +23,21 @@ InventoryTransactionKindLiteral = Literal[
     "receipt",
     "transfer_in",
     "transfer_out",
+]
+# Kinds the response may carry. Strict superset of the create literal —
+# the read surface has to round-trip every row the service might write,
+# including the consumption rows.
+InventoryTransactionResponseKindLiteral = Literal[
+    "production_in",
+    "sale_out",
+    "adjustment",
+    "return_in",
+    "waste",
+    "receipt",
+    "transfer_in",
+    "transfer_out",
+    "production_consumption",
+    "sale_consumption",
 ]
 InventoryEntityKindLiteral = Literal["material", "supply", "product"]
 
@@ -59,7 +79,7 @@ class InventoryTransactionResponse(BaseModel):
     id: uuid.UUID
     occurred_at: datetime
     created_at: datetime
-    kind: InventoryTransactionKindLiteral
+    kind: InventoryTransactionResponseKindLiteral
     entity_kind: InventoryEntityKindLiteral
     entity_id: uuid.UUID
     location_id: uuid.UUID

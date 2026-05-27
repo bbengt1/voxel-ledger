@@ -570,6 +570,35 @@
         "title": "AccountingPeriodUpdate",
         "type": "object"
       },
+      "AddProductRequest": {
+        "description": "Add a product to the cart by id (used by the typed-search picker\non the POS screen). Quantity defaults to 1 so the picker matches the\nbarcode-scan UX where each click adds one unit and re-stacks an\nexisting line.",
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "1",
+            "title": "Quantity"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "AddProductRequest",
+        "type": "object"
+      },
       "AgingBucketResponse": {
         "properties": {
           "amount": {
@@ -4983,6 +5012,25 @@
           "updated_at"
         ],
         "title": "CameraResponse",
+        "type": "object"
+      },
+      "CartTaxProfileRequest": {
+        "description": "Set or clear the per-cart tax-profile override. ``None`` reverts\nthe cart to the channel's default.",
+        "properties": {
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
+          }
+        },
+        "title": "CartTaxProfileRequest",
         "type": "object"
       },
       "CashFlowLineResponse": {
@@ -9859,7 +9907,9 @@
               "waste",
               "receipt",
               "transfer_in",
-              "transfer_out"
+              "transfer_out",
+              "production_consumption",
+              "sale_consumption"
             ],
             "title": "Kind",
             "type": "string"
@@ -13905,6 +13955,35 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Subtotal",
             "type": "string"
+          },
+          "tax_amount": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Tax Amount",
+            "type": "string"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
+          },
+          "tax_profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Name"
           },
           "total": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -18922,6 +19001,18 @@
             "minLength": 1,
             "title": "Slug",
             "type": "string"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
           }
         },
         "required": [
@@ -19052,6 +19143,18 @@
           "slug": {
             "title": "Slug",
             "type": "string"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
           },
           "updated_at": {
             "format": "date-time",
@@ -19201,6 +19304,18 @@
               }
             ],
             "title": "Slug"
+          },
+          "tax_profile_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Profile Id"
           }
         },
         "title": "SalesChannelUpdate",
@@ -34942,6 +35057,55 @@
         ]
       }
     },
+    "/api/v1/jobs/{job_id}/duplicate": {
+      "post": {
+        "description": "Create a fresh DRAFT job by cloning ``job_id``'s product, plates,\nand free-text fields. Plate ``runs_completed`` is reset to 0 and a\nnew ``job_number`` is allocated.",
+        "operationId": "duplicate_job_api_v1_jobs__job_id__duplicate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Duplicate Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/api/v1/jobs/{job_id}/plates": {
       "post": {
         "operationId": "create_plate_api_v1_jobs__job_id__plates_post",
@@ -37035,6 +37199,64 @@
         ]
       }
     },
+    "/api/v1/pos/carts/{cart_id}/add-product": {
+      "post": {
+        "operationId": "add_product_api_v1_pos_carts__cart_id__add_product_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cart_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cart Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosCartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Product",
+        "tags": [
+          "pos"
+        ]
+      }
+    },
     "/api/v1/pos/carts/{cart_id}/checkout": {
       "post": {
         "operationId": "checkout_api_v1_pos_carts__cart_id__checkout_post",
@@ -37268,6 +37490,65 @@
           }
         ],
         "summary": "Scan",
+        "tags": [
+          "pos"
+        ]
+      }
+    },
+    "/api/v1/pos/carts/{cart_id}/tax-profile": {
+      "post": {
+        "description": "Set or clear the per-cart tax-profile override.",
+        "operationId": "set_cart_tax_profile_api_v1_pos_carts__cart_id__tax_profile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cart_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cart Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CartTaxProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PosCartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Cart Tax Profile",
         "tags": [
           "pos"
         ]

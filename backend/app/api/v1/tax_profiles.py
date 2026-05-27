@@ -158,8 +158,9 @@ async def add_rate_endpoint(
     except Exception as exc:
         await session.rollback()
         raise _map_error(exc) from None
+    response = TaxRateResponse.model_validate(rate)
     await session.commit()
-    return TaxRateResponse.model_validate(rate)
+    return response
 
 
 @router.patch("/{profile_id}/rates/{rate_id}", response_model=TaxRateResponse)
@@ -180,8 +181,12 @@ async def update_rate_endpoint(
     except Exception as exc:
         await session.rollback()
         raise _map_error(exc) from None
+    # Snapshot the attributes for the response BEFORE committing — after
+    # commit the ORM expires the instance and ``model_validate`` would
+    # trigger an async lazy-load that fails outside a request scope.
+    response = TaxRateResponse.model_validate(rate)
     await session.commit()
-    return TaxRateResponse.model_validate(rate)
+    return response
 
 
 @router.delete("/{profile_id}/rates/{rate_id}", status_code=status.HTTP_204_NO_CONTENT)
