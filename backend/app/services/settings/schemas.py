@@ -219,6 +219,22 @@ class SuppliesPlacesOfPurchase(SettingSchema):
 
 
 @register
+class LabelsTemplate(SettingSchema):
+    """Avery-style label template used by ``/catalog/labels``.
+
+    Operator-tunable so the print sheet matches whatever physical
+    label stock the shop keeps in the printer. The frontend carries
+    a small registry of supported template ids and maps each one to
+    its physical dimensions; anything outside that registry falls
+    back to ``avery_5160`` at render time.
+    """
+
+    key: ClassVar[str] = "labels.template"
+    default: ClassVar[str] = "avery_5160"
+    value: str = Field(min_length=1, max_length=64)
+
+
+@register
 class DisplayCurrency(SettingSchema):
     """ISO 4217 currency code used to render money in the UI.
 

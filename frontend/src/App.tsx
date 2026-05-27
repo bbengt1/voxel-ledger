@@ -13,6 +13,7 @@ import { MaterialCreatePage } from "@/pages/catalog/MaterialCreate";
 import { MaterialDetailPage } from "@/pages/catalog/MaterialDetail";
 import { MaterialsListPage } from "@/pages/catalog/MaterialsList";
 import { ProductCreatePage } from "@/pages/catalog/ProductCreate";
+import { ProductLabelsPage } from "@/pages/catalog/ProductLabels";
 import { ProductDetailPage } from "@/pages/catalog/ProductDetail";
 import { ProductsListPage } from "@/pages/catalog/ProductsList";
 import { RateCreatePage } from "@/pages/catalog/RateCreate";
@@ -251,6 +252,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <ProductCreatePage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/catalog/labels"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ProductLabelsPage />
             </AppShell>
           </RequireAuth>
         }

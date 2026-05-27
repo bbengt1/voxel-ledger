@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/api/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import {
+  LABEL_TEMPLATES,
+  invalidateLabelTemplateCache,
+} from "@/lib/labelTemplates";
 import { invalidateMaterialTypesCache } from "@/lib/materialTypes";
 import { invalidatePlacesOfPurchaseCache } from "@/lib/placesOfPurchase";
 
@@ -22,7 +26,13 @@ interface SettingDef {
   // Renders as a plain text input; "number" hint is just for inputMode.
   // ``string-list`` renders a multi-line textarea where each non-blank
   // line is one entry.
-  kind: "string" | "decimal" | "percent" | "currency-code" | "string-list";
+  kind:
+    | "string"
+    | "decimal"
+    | "percent"
+    | "currency-code"
+    | "string-list"
+    | "label-template";
 }
 
 // Only the operator-tunable knobs. Excludes infra (storage paths,
@@ -46,6 +56,12 @@ const EDITABLE_SETTINGS: SettingDef[] = [
     label: "Supplies — places of purchase",
     help: "Suggested storefronts in the supply place-of-purchase picker. One per line. Custom values still accepted.",
     kind: "string-list",
+  },
+  {
+    key: "labels.template",
+    label: "Product label template",
+    help: "Avery-style sheet used by the Catalog → Labels print page. Pick the stock you keep in the printer; the grid resizes to match.",
+    kind: "label-template",
   },
   {
     key: "cost_engine.labor_rate_per_hour",
@@ -167,6 +183,7 @@ export function SettingsPage() {
       if (def.key === "materials.types") invalidateMaterialTypesCache();
       if (def.key === "supplies.places_of_purchase")
         invalidatePlacesOfPurchaseCache();
+      if (def.key === "labels.template") invalidateLabelTemplateCache();
     } catch (err: unknown) {
       const detail =
         (err as { response?: { data?: { detail?: string } } }).response?.data
@@ -247,6 +264,35 @@ export function SettingsPage() {
                           className="block w-full rounded border border-input bg-background px-2 py-1 font-mono text-sm"
                           data-testid={`setting-input-${def.key}`}
                         />
+                        <Button
+                          type="button"
+                          onClick={() => save(def)}
+                          disabled={savingKey === def.key}
+                          data-testid={`setting-save-${def.key}`}
+                        >
+                          {savingKey === def.key ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    ) : def.kind === "label-template" ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <select
+                          id={`setting-${def.key}`}
+                          value={draft}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [def.key]: e.target.value,
+                            }))
+                          }
+                          className="block w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                          data-testid={`setting-input-${def.key}`}
+                        >
+                          {LABEL_TEMPLATES.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
                         <Button
                           type="button"
                           onClick={() => save(def)}
