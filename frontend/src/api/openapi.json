@@ -44390,6 +44390,64 @@
         ]
       }
     },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "global_search_api_v1_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 128,
+              "minLength": 0,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "title": "Response Global Search Api V1 Search Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Global Search",
+        "tags": [
+          "search"
+        ]
+      }
+    },
     "/api/v1/settings": {
       "get": {
         "description": "Return every registered setting, merged with schema defaults.",

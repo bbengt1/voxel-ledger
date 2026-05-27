@@ -4822,6 +4822,23 @@ export interface paths {
         patch: operations["update_saved_report_api_v1_saved_reports__saved_report_id__patch"];
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Global Search */
+        get: operations["global_search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings": {
         parameters: {
             query?: never;
@@ -25775,6 +25792,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedReportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    global_search_api_v1_search_get: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: {
+                            [key: string]: unknown;
+                        }[];
+                    };
                 };
             };
             /** @description Validation Error */

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { Input } from "@/components/ui/Input";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -40,13 +40,7 @@ export function TopBar() {
   return (
     <header className="flex h-14 items-center gap-3 border-b border-border bg-background px-4">
       <div className="flex-1">
-        <Input
-          type="search"
-          placeholder="Search (coming soon)"
-          aria-label="Global search"
-          disabled
-          className="max-w-md"
-        />
+        <GlobalSearch />
       </div>
       <ThemeToggle />
       <DropdownMenu>

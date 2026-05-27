@@ -73,6 +73,7 @@ from app.api.v1.reports import router as reports_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.sales_channels import router as sales_channels_router
 from app.api.v1.saved_reports import router as saved_reports_router
+from app.api.v1.search import router as search_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.settlements import router as settlements_router
 from app.api.v1.shipments import router as shipments_router
@@ -150,6 +151,7 @@ api_router.include_router(recurring_bills_router)
 api_router.include_router(late_fee_policies_router)
 api_router.include_router(reports_router)
 api_router.include_router(saved_reports_router)
+api_router.include_router(search_router)
 api_router.include_router(shipments_router)
 api_router.include_router(supplies_router)
 # The statements router lives under /customers but is mounted last so
