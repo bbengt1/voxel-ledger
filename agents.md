@@ -54,7 +54,7 @@ run on `web01.bengtson.local` until v2 cutover; see
 - Systemd unit: `voxel-ledger.service`
 - Compose wrapper: `/srv/voxel-ledger/repo/scripts/web02-compose.sh`
 - Host-side deploy wrapper: `/srv/voxel-ledger/deploy.sh` (invokes `scripts/deploy.sh` with `COMPOSE=scripts/web02-compose.sh`)
-- Public exposure terminates at Cloudflare Tunnel; the host serves plain HTTP on port 80 internally.
+- Public URL: **https://print.bengtsonprecision3d.com/** (Cloudflare Tunnel → `web02:80`). Internally the host serves plain HTTP on port 80; TLS terminates at Cloudflare.
 - **Migrations must run on every schema-changing deploy.** Backend startup queries newly-added tables/columns; skipping migrations crashes the container. (Real v1 incident on 2026-05-09 with PR #271 / #239.) Use `SKIP_MIGRATIONS=1` only for code-only emergency redeploys when you know there's no schema delta.
 - Container names: `3d-print-sales-db`, `3d-print-sales-backend`, `3d-print-sales-frontend`, `3d-print-sales-nginx` (the `container_name` fields predate the rename; the compose `name:` is `voxel-ledger`).
 - Before deploying, ensure the target commit/branch is correct on the server checkout and that required migrations, docs, tests, and validation are already complete.

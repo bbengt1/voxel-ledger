@@ -15,8 +15,10 @@ deploys go through [the n8n workflow](web02_n8n_deploy.md) or
 - SSH key-based access for `root` from your workstation. Set up via
   `ssh-copy-id` (see `~/.ssh/config` entry `web02`).
 - Outbound internet from web02 (package install, image pulls, `git clone`).
-- DNS: `web02.bengtson.local` resolves on the LAN. Cloudflare Tunnel handles
-  public exposure later; the box itself only serves HTTP locally.
+- DNS: `web02.bengtson.local` resolves on the LAN. Cloudflare Tunnel
+  fronts the public hostname **https://print.bengtsonprecision3d.com/**
+  → `web02:80`. The box itself only serves plain HTTP locally; TLS
+  terminates at Cloudflare.
 
 ## 1. Install host packages
 
