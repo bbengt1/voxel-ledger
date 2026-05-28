@@ -40,21 +40,23 @@
 
 ## Deployment Targets
 
-The v1 app is still live on `web01` and will continue serving production until v2 cutover. Keep these references; they apply to v2 once it ships.
+The v2 app deploys to `web02.bengtson.local`. The legacy v1 app continues to
+run on `web01.bengtson.local` until v2 cutover; see
+[`docs/web01_runbook.md`](docs/web01_runbook.md) for v1 ops.
 
-- `web01.bengtson.local` is the deployment target.
-- Production on `web01` runs from `/srv/3d-print-sales/repo` using Docker Compose plus the server env file at `/srv/3d-print-sales/env/web01.env`.
-- Canonical deploy entrypoints on `web01`: `scripts/web01-compose.sh up -d --build`, `systemctl reload 3d-print-sales.service`, or `/srv/3d-print-sales/deploy.sh` for a pull-and-rebuild deploy.
-- **Canonical deploy path: the `web01-deploy` n8n workflow** at [`ops/n8n/web01-deploy.json`](ops/n8n/web01-deploy.json). It encapsulates pull → migrate → rebuild → verify with per-step observability. Operator runbook: [`docs/deployment_n8n_workflow.md`](docs/deployment_n8n_workflow.md). (These paths will be re-established as v2 reaches Phase 0.)
-- **Fallback: manual SSH flow.** Use it when n8n is unavailable, when debugging a broken deploy, or for one-off operations (e.g. `alembic downgrade`, emergency restart).
-- Live host: `root@web01.bengtson.local`
-- App root on host: `/srv/3d-print-sales`
-- Repo checkout on host: `/srv/3d-print-sales/repo`
-- Server env file: `/srv/3d-print-sales/env/web01.env`
-- Systemd unit: `3d-print-sales.service`
-- Compose wrapper: `/srv/3d-print-sales/repo/scripts/web01-compose.sh`
+- **Canonical deploy path: the `web02-deploy` n8n workflow** at [`ops/n8n/web02-deploy.json`](ops/n8n/web02-deploy.json), executed from `n8n.bengtson.local`. It encapsulates pull → migrate → rebuild → verify with per-step observability. Operator runbook: [`docs/web02_n8n_deploy.md`](docs/web02_n8n_deploy.md).
+- **Fallback: manual SSH flow.** [`docs/web02_runbook.md`](docs/web02_runbook.md). Use it when n8n is unavailable, when debugging a broken deploy, or for one-off operations (e.g. `alembic downgrade`, emergency restart).
+- **First-time host setup:** [`docs/web02_bootstrap.md`](docs/web02_bootstrap.md).
+- Live host: `root@web02.bengtson.local` (SSH alias `web02`).
+- App root on host: `/srv/voxel-ledger`
+- Repo checkout on host: `/srv/voxel-ledger/repo`
+- Server env file: `/srv/voxel-ledger/env/web02.env` (template at [`.env.web02.example`](.env.web02.example))
+- Systemd unit: `voxel-ledger.service`
+- Compose wrapper: `/srv/voxel-ledger/repo/scripts/web02-compose.sh`
+- Host-side deploy wrapper: `/srv/voxel-ledger/deploy.sh` (invokes `scripts/deploy.sh` with `COMPOSE=scripts/web02-compose.sh`)
+- Public exposure terminates at Cloudflare Tunnel; the host serves plain HTTP on port 80 internally.
 - **Migrations must run on every schema-changing deploy.** Backend startup queries newly-added tables/columns; skipping migrations crashes the container. (Real v1 incident on 2026-05-09 with PR #271 / #239.) Use `SKIP_MIGRATIONS=1` only for code-only emergency redeploys when you know there's no schema delta.
-- Running containers (v1, still in use): `3d-print-sales-db`, `3d-print-sales-backend`, `3d-print-sales-frontend`.
+- Container names: `3d-print-sales-db`, `3d-print-sales-backend`, `3d-print-sales-frontend`, `3d-print-sales-nginx` (the `container_name` fields predate the rename; the compose `name:` is `voxel-ledger`).
 - Before deploying, ensure the target commit/branch is correct on the server checkout and that required migrations, docs, tests, and validation are already complete.
 - After deploying, verify container health, backend health, and frontend reachability before calling the work live.
 
@@ -66,9 +68,9 @@ The v1 app is still live on `web01` and will continue serving production until v
 - Replay test: rebuild projections from the event log and assert read-model parity (nightly + on-demand).
 - Prefer targeted pytest runs while iterating; rerun the broader suite before declaring done.
 - All delivered work should include testing and validation appropriate to the change. Do not treat implementation alone as done.
-- If work is intended to go live, complete local validation first, then verify deployment on `web01` with post-deploy checks.
-- Standard post-deploy checks on `web01`:
-  - `cd /srv/3d-print-sales/repo && scripts/web01-compose.sh ps`
+- If work is intended to go live, complete local validation first, then verify deployment on `web02` with post-deploy checks.
+- Standard post-deploy checks on `web02`:
+  - `cd /srv/voxel-ledger/repo && scripts/web02-compose.sh ps`
   - `curl -fsS http://127.0.0.1/health`
   - `curl -I http://127.0.0.1/`
 - Review recent logs when the change affects startup, migrations, API routing, auth, printer monitoring, or frontend assets.

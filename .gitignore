@@ -74,6 +74,7 @@ docker-compose.override.yml
 !.env.dev.example
 !.env.prod.example
 !.env.test.example
+!.env.web02.example
 
 # ---- Editors / IDE ----
 .vscode/

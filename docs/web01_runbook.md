@@ -1,5 +1,11 @@
 # `web01` manual SSH runbook
 
+> **HISTORICAL — v1 era.** `web01` hosts the legacy v1 app and is no longer the
+> v2 deploy target. Current production runs on `web02.bengtson.local`; see
+> [`web02_runbook.md`](web02_runbook.md) and [`web02_n8n_deploy.md`](web02_n8n_deploy.md).
+> This document is preserved for v1 operations until the legacy host is
+> retired.
+
 The fallback path when [the n8n deploy workflow](deployment_n8n_workflow.md) is
 unavailable or you need to do something it doesn't cover (rollback, emergency
 restart, log dive, `alembic downgrade`).
