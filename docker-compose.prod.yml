@@ -65,7 +65,7 @@ services:
     # The frontend image bundles a fallback nginx config and serves the SPA
     # on :80. The reverse-proxy `nginx` service below sits in front of it.
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
       interval: 15s
       timeout: 5s
       retries: 12
@@ -88,7 +88,11 @@ services:
       # Mount certs from the host once they exist. Stub path until Phase 12:
       # - /srv/3d-print-sales/env/certs:/etc/nginx/certs:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost/health"]
+      # NOTE: 127.0.0.1, not `localhost`. Busybox wget in alpine resolves
+      # `localhost` to ::1 first; nginx only binds IPv4 → connection
+      # refused, even though the site is up. Same trap applies to the
+      # frontend probe above.
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/health"]
       interval: 15s
       timeout: 5s
       retries: 12
