@@ -60,10 +60,10 @@ export function TaxProfileComposerPage() {
 
   useEffect(() => {
     if (!id) return;
-    api
-      .get(`/api/v1/tax-profiles/${id}`)
+    apiClient
+      .get<TaxProfileResponse>(`/api/v1/tax-profiles/${id}`)
       .then((res) => {
-        const p = res.data as TaxProfileResponse;
+        const p = res.data;
         setCode(p.code);
         setName(p.name);
         setJurisdiction(p.jurisdiction);
@@ -182,8 +182,10 @@ export function TaxProfileComposerPage() {
       const existing = rates.filter((r) => r.id);
       if (isEdit && existing.length > 0) {
         for (let i = 0; i < existing.length; i++) {
+          const rate = existing[i];
+          if (!rate?.id) continue;
           await apiClient.patch(
-            `/api/v1/tax-profiles/${profileId}/rates/${existing[i].id}`,
+            `/api/v1/tax-profiles/${profileId}/rates/${rate.id}`,
             { ordinal: 1000 + i },
           );
         }
@@ -211,7 +213,7 @@ export function TaxProfileComposerPage() {
           liability_account_id: r.liability_account_id,
           compound_on_previous: r.compound_on_previous,
         };
-        await api.post(`/api/v1/tax-profiles/${profileId}/rates`, body);
+        await apiClient.post(`/api/v1/tax-profiles/${profileId}/rates`, body);
       }
 
       navigate(`/tax-profiles/${profileId}`);

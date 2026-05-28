@@ -4513,6 +4513,109 @@
         "title": "BudgetUpsertRequest",
         "type": "object"
       },
+      "BudgetVarianceResponse": {
+        "properties": {
+          "cogs_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Cogs Rows",
+            "type": "array"
+          },
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "division_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Division Id"
+          },
+          "operating_expense_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Operating Expense Rows",
+            "type": "array"
+          },
+          "period_id": {
+            "format": "uuid",
+            "title": "Period Id",
+            "type": "string"
+          },
+          "period_name": {
+            "title": "Period Name",
+            "type": "string"
+          },
+          "revenue_rows": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
+            },
+            "title": "Revenue Rows",
+            "type": "array"
+          },
+          "total_cogs_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cogs Actual",
+            "type": "string"
+          },
+          "total_cogs_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Cogs Budget",
+            "type": "string"
+          },
+          "total_operating_expense_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Operating Expense Actual",
+            "type": "string"
+          },
+          "total_operating_expense_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Operating Expense Budget",
+            "type": "string"
+          },
+          "total_revenue_actual": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Revenue Actual",
+            "type": "string"
+          },
+          "total_revenue_budget": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Revenue Budget",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "period_name",
+          "date_from",
+          "date_to",
+          "revenue_rows",
+          "cogs_rows",
+          "operating_expense_rows",
+          "total_revenue_budget",
+          "total_revenue_actual",
+          "total_cogs_budget",
+          "total_cogs_actual",
+          "total_operating_expense_budget",
+          "total_operating_expense_actual"
+        ],
+        "title": "BudgetVarianceResponse",
+        "type": "object"
+      },
       "BudgetVarianceRow": {
         "properties": {
           "account_code": {
@@ -4653,6 +4756,28 @@
           "variance"
         ],
         "title": "BudgetVarianceRowResponse",
+        "type": "object"
+      },
+      "BudgetVarianceSummaryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetVarianceRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "period_id": {
+            "format": "uuid",
+            "title": "Period Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "items"
+        ],
+        "title": "BudgetVarianceSummaryResponse",
         "type": "object"
       },
       "BulkSettingUpdateRequest": {
@@ -20112,6 +20237,18 @@
             "title": "Name",
             "type": "string"
           },
+          "pieces_per_unit": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pieces Per Unit"
+          },
           "place_of_purchase": {
             "anyOf": [
               {
@@ -20250,6 +20387,17 @@
             "title": "Per Location On Hand",
             "type": "object"
           },
+          "pieces_per_unit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pieces Per Unit"
+          },
           "place_of_purchase": {
             "anyOf": [
               {
@@ -20360,6 +20508,18 @@
               }
             ],
             "title": "Name"
+          },
+          "pieces_per_unit": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pieces Per Unit"
           },
           "place_of_purchase": {
             "anyOf": [
@@ -23334,131 +23494,6 @@
         ],
         "title": "_DiscoverFromPrinterRequest",
         "type": "object"
-      },
-      "app__schemas__budget_variance__BudgetVarianceResponse": {
-        "properties": {
-          "cogs_rows": {
-            "items": {
-              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
-            },
-            "title": "Cogs Rows",
-            "type": "array"
-          },
-          "date_from": {
-            "format": "date",
-            "title": "Date From",
-            "type": "string"
-          },
-          "date_to": {
-            "format": "date",
-            "title": "Date To",
-            "type": "string"
-          },
-          "division_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Division Id"
-          },
-          "operating_expense_rows": {
-            "items": {
-              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
-            },
-            "title": "Operating Expense Rows",
-            "type": "array"
-          },
-          "period_id": {
-            "format": "uuid",
-            "title": "Period Id",
-            "type": "string"
-          },
-          "period_name": {
-            "title": "Period Name",
-            "type": "string"
-          },
-          "revenue_rows": {
-            "items": {
-              "$ref": "#/components/schemas/BudgetVarianceRowResponse"
-            },
-            "title": "Revenue Rows",
-            "type": "array"
-          },
-          "total_cogs_actual": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Cogs Actual",
-            "type": "string"
-          },
-          "total_cogs_budget": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Cogs Budget",
-            "type": "string"
-          },
-          "total_operating_expense_actual": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Operating Expense Actual",
-            "type": "string"
-          },
-          "total_operating_expense_budget": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Operating Expense Budget",
-            "type": "string"
-          },
-          "total_revenue_actual": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Revenue Actual",
-            "type": "string"
-          },
-          "total_revenue_budget": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Total Revenue Budget",
-            "type": "string"
-          }
-        },
-        "required": [
-          "period_id",
-          "period_name",
-          "date_from",
-          "date_to",
-          "revenue_rows",
-          "cogs_rows",
-          "operating_expense_rows",
-          "total_revenue_budget",
-          "total_revenue_actual",
-          "total_cogs_budget",
-          "total_cogs_actual",
-          "total_operating_expense_budget",
-          "total_operating_expense_actual"
-        ],
-        "title": "BudgetVarianceResponse",
-        "type": "object"
-      },
-      "app__schemas__budgets__BudgetVarianceResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/BudgetVarianceRow"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "period_id": {
-            "format": "uuid",
-            "title": "Period Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "period_id",
-          "items"
-        ],
-        "title": "BudgetVarianceResponse",
-        "type": "object"
       }
     },
     "securitySchemes": {
@@ -23766,7 +23801,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__schemas__budgets__BudgetVarianceResponse"
+                  "$ref": "#/components/schemas/BudgetVarianceSummaryResponse"
                 }
               }
             },
@@ -42473,7 +42508,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__schemas__budget_variance__BudgetVarianceResponse"
+                  "$ref": "#/components/schemas/BudgetVarianceResponse"
                 }
               }
             },

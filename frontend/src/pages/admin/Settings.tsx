@@ -101,8 +101,6 @@ const EDITABLE_SETTINGS: SettingDef[] = [
   },
 ];
 
-const EDITABLE_KEYS = new Set(EDITABLE_SETTINGS.map((s) => s.key));
-
 function asString(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string") return v;

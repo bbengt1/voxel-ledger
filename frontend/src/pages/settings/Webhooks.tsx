@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
+import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
@@ -205,7 +206,7 @@ function DeliveriesTab() {
   }, [refresh]);
 
   async function replay(id: string) {
-    await api.post(`/api/v1/webhooks/deliveries/${id}/replay`, undefined);
+    await apiClient.post(`/api/v1/webhooks/deliveries/${id}/replay`);
     await refresh();
   }
 

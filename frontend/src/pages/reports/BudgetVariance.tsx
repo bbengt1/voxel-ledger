@@ -107,7 +107,7 @@ export function BudgetVariancePage() {
 
   useEffect(() => {
     api
-      .get("/api/v1/accounting-periods")
+      .get("/api/v1/accounting/periods")
       .then((res) => {
         const items = (res.data as { items?: AccountingPeriod[] }).items ?? [];
         setPeriods(items);

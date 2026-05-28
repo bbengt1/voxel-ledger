@@ -128,6 +128,7 @@ export function RecordPaymentPage() {
         amount,
         method,
         received_at: new Date(receivedAt).toISOString(),
+        deposit_to_undeposited: false,
       };
       if (reference.trim()) body.reference = reference.trim();
       if (notes.trim()) body.notes = notes.trim();

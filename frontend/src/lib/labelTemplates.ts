@@ -106,7 +106,7 @@ export const LABEL_TEMPLATES: readonly LabelTemplate[] = [
   },
 ];
 
-export const DEFAULT_LABEL_TEMPLATE: LabelTemplate = LABEL_TEMPLATES[0];
+export const DEFAULT_LABEL_TEMPLATE: LabelTemplate = LABEL_TEMPLATES[0]!;
 
 export function findTemplate(id: string | null | undefined): LabelTemplate {
   if (!id) return DEFAULT_LABEL_TEMPLATE;

@@ -13,7 +13,6 @@ import {
   type AccountTreeNode,
   allIds,
   filterTree,
-  findNode,
   flatten,
 } from "@/components/accounting/AccountTree";
 import { Button } from "@/components/ui/Button";

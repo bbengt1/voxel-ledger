@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { api } from "@/api/typed";
+import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { AccountPicker } from "@/components/ar/AccountPicker";
 import { Button } from "@/components/ui/Button";
@@ -42,8 +42,8 @@ export function AssetDetailPage() {
   const [submitting, setSubmitting] = useState(false);
 
   function loadAsset() {
-    api
-      .get(`/api/v1/fixed-assets/${id}`)
+    apiClient
+      .get<AssetResponse>(`/api/v1/fixed-assets/${id}`)
       .then((res) => setAsset(res.data))
       .catch((err: unknown) => {
         const detail = (err as { response?: { data?: { detail?: string } } }).response
@@ -55,8 +55,8 @@ export function AssetDetailPage() {
   useEffect(() => {
     if (!id) return;
     loadAsset();
-    api
-      .get(`/api/v1/fixed-assets/${id}/depreciation-schedule`)
+    apiClient
+      .get<ScheduleResponse>(`/api/v1/fixed-assets/${id}/depreciation-schedule`)
       .then((res) => setSchedule(res.data))
       .catch(() => {
         /* non-fatal */
@@ -89,7 +89,7 @@ export function AssetDetailPage() {
 
     setSubmitting(true);
     try {
-      await api.post(`/api/v1/fixed-assets/${id}/dispose`, body);
+      await apiClient.post(`/api/v1/fixed-assets/${id}/dispose`, body);
       loadAsset();
       setTab("schedule");
     } catch (err: unknown) {

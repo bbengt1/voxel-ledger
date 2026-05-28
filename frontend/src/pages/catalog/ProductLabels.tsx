@@ -318,7 +318,7 @@ export function ProductLabelsPage() {
               variant="ghost"
               onClick={clearAll}
               disabled={
-                rows.length === 1 && !rows[0].productId
+                rows.length === 1 && !rows[0]?.productId
               }
               data-testid="labels-clear-all"
             >

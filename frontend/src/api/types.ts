@@ -7507,6 +7507,46 @@ export interface components {
              */
             period_id: string;
         };
+        /** BudgetVarianceResponse */
+        BudgetVarianceResponse: {
+            /** Cogs Rows */
+            cogs_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Division Id */
+            division_id?: string | null;
+            /** Operating Expense Rows */
+            operating_expense_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /**
+             * Period Id
+             * Format: uuid
+             */
+            period_id: string;
+            /** Period Name */
+            period_name: string;
+            /** Revenue Rows */
+            revenue_rows: components["schemas"]["BudgetVarianceRowResponse"][];
+            /** Total Cogs Actual */
+            total_cogs_actual: string;
+            /** Total Cogs Budget */
+            total_cogs_budget: string;
+            /** Total Operating Expense Actual */
+            total_operating_expense_actual: string;
+            /** Total Operating Expense Budget */
+            total_operating_expense_budget: string;
+            /** Total Revenue Actual */
+            total_revenue_actual: string;
+            /** Total Revenue Budget */
+            total_revenue_budget: string;
+        };
         /** BudgetVarianceRow */
         BudgetVarianceRow: {
             /** Account Code */
@@ -7557,6 +7597,16 @@ export interface components {
             variance: string;
             /** Variance Pct */
             variance_pct?: string | null;
+        };
+        /** BudgetVarianceSummaryResponse */
+        BudgetVarianceSummaryResponse: {
+            /** Items */
+            items: components["schemas"]["BudgetVarianceRow"][];
+            /**
+             * Period Id
+             * Format: uuid
+             */
+            period_id: string;
         };
         /**
          * BulkSettingUpdateRequest
@@ -14251,56 +14301,6 @@ export interface components {
              */
             printer_id: string;
         };
-        /** BudgetVarianceResponse */
-        app__schemas__budget_variance__BudgetVarianceResponse: {
-            /** Cogs Rows */
-            cogs_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Operating Expense Rows */
-            operating_expense_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /**
-             * Period Id
-             * Format: uuid
-             */
-            period_id: string;
-            /** Period Name */
-            period_name: string;
-            /** Revenue Rows */
-            revenue_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /** Total Cogs Actual */
-            total_cogs_actual: string;
-            /** Total Cogs Budget */
-            total_cogs_budget: string;
-            /** Total Operating Expense Actual */
-            total_operating_expense_actual: string;
-            /** Total Operating Expense Budget */
-            total_operating_expense_budget: string;
-            /** Total Revenue Actual */
-            total_revenue_actual: string;
-            /** Total Revenue Budget */
-            total_revenue_budget: string;
-        };
-        /** BudgetVarianceResponse */
-        app__schemas__budgets__BudgetVarianceResponse: {
-            /** Items */
-            items: components["schemas"]["BudgetVarianceRow"][];
-            /**
-             * Period Id
-             * Format: uuid
-             */
-            period_id: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -14458,7 +14458,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__budgets__BudgetVarianceResponse"];
+                    "application/json": components["schemas"]["BudgetVarianceSummaryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -24866,7 +24866,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__schemas__budget_variance__BudgetVarianceResponse"];
+                    "application/json": components["schemas"]["BudgetVarianceResponse"];
                 };
             };
             /** @description Validation Error */

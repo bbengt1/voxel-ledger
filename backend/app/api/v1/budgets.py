@@ -22,7 +22,7 @@ from app.schemas.budgets import (
     BudgetListResponse,
     BudgetResponse,
     BudgetUpsertRequest,
-    BudgetVarianceResponse,
+    BudgetVarianceSummaryResponse,
 )
 from app.schemas.budgets import (
     BudgetVarianceRow as BudgetVarianceRowSchema,
@@ -129,14 +129,14 @@ async def list_budgets(
     return BudgetListResponse(items=[_to_response(r) for r in rows])
 
 
-@router.get("/variance", response_model=BudgetVarianceResponse)
+@router.get("/variance", response_model=BudgetVarianceSummaryResponse)
 async def variance(
     session: Annotated[AsyncSession, Depends(get_session)],
     _actor: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
     period_id: Annotated[uuid.UUID, Query()],
     account_id: Annotated[uuid.UUID | None, Query()] = None,
     division_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> BudgetVarianceResponse:
+) -> BudgetVarianceSummaryResponse:
     try:
         rows = await BudgetsService.variance(
             period_id,
@@ -146,7 +146,7 @@ async def variance(
         )
     except budgets_service.BudgetsServiceError as exc:
         raise _map_error(exc) from None
-    return BudgetVarianceResponse(
+    return BudgetVarianceSummaryResponse(
         period_id=period_id,
         items=[
             BudgetVarianceRowSchema(

@@ -65,6 +65,6 @@ class BudgetVarianceRow(BaseModel):
     variance_pct: Decimal
 
 
-class BudgetVarianceResponse(BaseModel):
+class BudgetVarianceSummaryResponse(BaseModel):
     period_id: uuid.UUID
     items: list[BudgetVarianceRow]

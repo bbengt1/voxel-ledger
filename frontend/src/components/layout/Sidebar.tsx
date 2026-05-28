@@ -183,7 +183,9 @@ export function Sidebar() {
     for (const section of visibleSections) {
       if (
         section.items.some(
-          (item) => item.href !== "#" && pathname.startsWith(item.href.split("?")[0]),
+          (item) =>
+            item.href !== "#" &&
+            pathname.startsWith(item.href.split("?")[0] ?? item.href),
         )
       ) {
         return section.label;

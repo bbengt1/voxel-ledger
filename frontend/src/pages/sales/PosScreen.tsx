@@ -330,7 +330,7 @@ export function PosScreenPage() {
   async function setCartTaxProfile(profileId: string) {
     if (!cart) return;
     try {
-      const res = await apiClient.post<PosCartResponse>(
+      const res = await apiClient.post<PosCart>(
         `/api/v1/pos/carts/${cart.id}/tax-profile`,
         { tax_profile_id: profileId || null },
       );
@@ -348,7 +348,7 @@ export function PosScreenPage() {
     setSearchOpen(false);
     setSearchValue("");
     try {
-      const res = await apiClient.post<PosCartResponse>(
+      const res = await apiClient.post<PosCart>(
         `/api/v1/pos/carts/${cart.id}/add-product`,
         { product_id: productId, quantity: "1" },
       );

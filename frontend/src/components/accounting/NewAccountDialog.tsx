@@ -28,12 +28,12 @@ interface Props {
   onClose: () => void;
   onCreated: (account: AccountResponse) => void;
   /** Pre-fill the Name field. */
-  seedName?: string;
+  seedName?: string | undefined;
   /** Pre-select an account type. Locks the dropdown when a parent is
    * also seeded since type follows the parent. */
-  seedType?: AccountType;
+  seedType?: AccountType | undefined;
   /** Pre-select a parent account. */
-  seedParentId?: string;
+  seedParentId?: string | undefined;
 }
 
 export function NewAccountDialog({

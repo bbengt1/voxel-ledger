@@ -12,14 +12,14 @@ type AccountResponse = components["schemas"]["AccountResponse"];
 interface Props {
   value: string;
   onChange: (id: string) => void;
-  filterType?: AccountResponse["type"];
-  id?: string;
-  disabled?: boolean;
-  placeholder?: string;
+  filterType?: AccountResponse["type"] | undefined;
+  id?: string | undefined;
+  disabled?: boolean | undefined;
+  placeholder?: string | undefined;
   /** Bump to force a refetch — useful after a sibling "Create account"
    * flow so a freshly-created account shows up in the options. */
-  refreshKey?: number;
-  "data-testid"?: string;
+  refreshKey?: number | undefined;
+  "data-testid"?: string | undefined;
 }
 
 export function AccountPicker({

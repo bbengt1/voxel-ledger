@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { api } from "@/api/typed";
+import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -41,10 +41,10 @@ export function SettlementBoardPage() {
 
   const reload = useCallback(() => {
     if (!id) return;
-    api
-      .get(`/api/v1/settlements/${id}`)
+    apiClient
+      .get<SettlementWithLines>(`/api/v1/settlements/${id}`)
       .then((res) => {
-        const data = res.data as SettlementWithLines;
+        const data = res.data;
         setSettlement(data.settlement);
         setLines(data.lines);
       })
@@ -63,7 +63,7 @@ export function SettlementBoardPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/api/v1/settlements/${id}/match-now`, {});
+      await apiClient.post(`/api/v1/settlements/${id}/match-now`, {});
       reload();
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } }).response
@@ -78,7 +78,7 @@ export function SettlementBoardPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/api/v1/settlements/${id}/post`, {});
+      await apiClient.post(`/api/v1/settlements/${id}/post`, {});
       reload();
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } }).response
@@ -92,7 +92,7 @@ export function SettlementBoardPage() {
   async function unmatchLine(lineId: string) {
     setBusy(true);
     try {
-      await api.post(`/api/v1/settlements/${id}/lines/${lineId}/unmatch`, {});
+      await apiClient.post(`/api/v1/settlements/${id}/lines/${lineId}/unmatch`, {});
       reload();
     } finally {
       setBusy(false);
@@ -102,7 +102,7 @@ export function SettlementBoardPage() {
   async function ignoreLine(lineId: string) {
     setBusy(true);
     try {
-      await api.post(`/api/v1/settlements/${id}/lines/${lineId}/ignore`, {});
+      await apiClient.post(`/api/v1/settlements/${id}/lines/${lineId}/ignore`, {});
       reload();
     } finally {
       setBusy(false);
@@ -117,7 +117,7 @@ export function SettlementBoardPage() {
     if (manualSaleId) body["sale_id"] = manualSaleId;
     if (manualRefundId) body["refund_id"] = manualRefundId;
     try {
-      await api.post(
+      await apiClient.post(
         `/api/v1/settlements/${id}/lines/${selectedLineId}/match`,
         body,
       );

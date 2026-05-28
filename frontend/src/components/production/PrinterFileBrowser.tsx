@@ -74,7 +74,7 @@ export function PrinterFileBrowser({ open, onClose, onPicked }: Props) {
         if (cancelled) return;
         const eligible = res.data.items.filter((p) => !!p.moonraker_url);
         setPrinters(eligible);
-        if (eligible.length > 0 && !printerId) setPrinterId(eligible[0].id);
+        if (eligible[0] && !printerId) setPrinterId(eligible[0].id);
       })
       .catch(() => {
         if (!cancelled) setError("Could not load printers.");
