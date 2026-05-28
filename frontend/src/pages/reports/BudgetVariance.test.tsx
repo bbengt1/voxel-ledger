@@ -47,7 +47,7 @@ describe("<BudgetVariancePage />", () => {
   });
 
   it("auto-selects the first period and renders variance rows", async () => {
-    mock.onGet("/api/v1/accounting-periods").reply(200, {
+    mock.onGet("/api/v1/accounting/periods").reply(200, {
       items: [
         {
           id: PERIOD_ID,

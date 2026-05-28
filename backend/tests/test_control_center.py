@@ -113,9 +113,7 @@ async def test_aggregates_each_section(client, app_session: AsyncSession) -> Non
 
 
 @pytest.mark.asyncio
-async def test_ws_health_reads_monitor_when_present(
-    client, app_session: AsyncSession
-) -> None:
+async def test_ws_health_reads_monitor_when_present(client, app_session: AsyncSession) -> None:
     """When the printer monitor is alive and has a fresh state, the
     Control Center should reflect ``connected=True`` with the
     monitor's most-recent ``last_seen_at``.

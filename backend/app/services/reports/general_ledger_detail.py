@@ -39,9 +39,7 @@ from app.models.journal_line import JournalLine
 _QUANTUM = Decimal("0.01")
 _ZERO = Decimal("0")
 
-_DR_NORMAL: frozenset[str] = frozenset(
-    {AccountType.ASSET.value, AccountType.EXPENSE.value}
-)
+_DR_NORMAL: frozenset[str] = frozenset({AccountType.ASSET.value, AccountType.EXPENSE.value})
 
 
 def _q(value: Decimal) -> Decimal:
@@ -121,16 +119,12 @@ async def build(
     account_uuid: uuid.UUID | None = None
     if account_id is not None:
         account_uuid = (
-            account_id
-            if isinstance(account_id, uuid.UUID)
-            else uuid.UUID(str(account_id))
+            account_id if isinstance(account_id, uuid.UUID) else uuid.UUID(str(account_id))
         )
     division_uuid: uuid.UUID | None = None
     if division_id is not None:
         division_uuid = (
-            division_id
-            if isinstance(division_id, uuid.UUID)
-            else uuid.UUID(str(division_id))
+            division_id if isinstance(division_id, uuid.UUID) else uuid.UUID(str(division_id))
         )
 
     base_je_filter = and_(
@@ -222,9 +216,7 @@ async def build(
 
     sections: list[LedgerSection] = []
     for acct in accounts:
-        actual_type = (
-            acct.type.value if hasattr(acct.type, "value") else acct.type
-        )
+        actual_type = acct.type.value if hasattr(acct.type, "value") else acct.type
         opening_dr, opening_cr = opening_sums.get(acct.id, (_ZERO, _ZERO))
         opening_balance = _signed_delta(actual_type, opening_dr, opening_cr)
 
@@ -233,9 +225,7 @@ async def build(
         period_cr = _ZERO
         rendered_lines: list[LedgerLine] = []
         for row in lines_by_account.get(acct.id, []):
-            (_acct_id, je_id, entry_number, posted_at, description, dr, cr, _line_no) = (
-                row
-            )
+            (_acct_id, je_id, entry_number, posted_at, description, dr, cr, _line_no) = row
             dr_dec = Decimal(str(dr or 0))
             cr_dec = Decimal(str(cr or 0))
             period_dr += dr_dec

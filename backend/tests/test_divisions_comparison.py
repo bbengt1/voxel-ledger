@@ -35,18 +35,14 @@ async def _post_je(
         for i, (acct_id, dr, cr, div) in enumerate(lines, start=1)
     ]
     return await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=description, posted_at=posted_at, lines=jls
-        ),
+        journal_service.JournalEntryInput(description=description, posted_at=posted_at, lines=jls),
         session=session,
         actor_user_id=actor_user_id,
         _internal_skip_approval_check=True,
     )
 
 
-async def _seed_division(
-    session: AsyncSession, *, code: str, name: str
-) -> Division:
+async def _seed_division(session: AsyncSession, *, code: str, name: str) -> Division:
     div = Division(id=uuid.uuid4(), code=code, name=name)
     session.add(div)
     await session.flush()
@@ -130,9 +126,7 @@ async def test_side_by_side_columns_per_division_plus_unallocated(
     # Revenue per column:
     assert report.total_revenue[str(div_a.id)] == Decimal("100.00")
     assert report.total_revenue[str(div_b.id)] == Decimal("250.00")
-    assert report.total_revenue[
-        report_service.UNALLOCATED_COLUMN_ID
-    ] == Decimal("30.00")
+    assert report.total_revenue[report_service.UNALLOCATED_COLUMN_ID] == Decimal("30.00")
     # Only Alpha had expense.
     alpha_opex = report.total_operating_expenses[str(div_a.id)]
     bravo_opex = report.total_operating_expenses[str(div_b.id)]
@@ -142,15 +136,11 @@ async def test_side_by_side_columns_per_division_plus_unallocated(
     # under operating expenses.
     assert report.net_income[str(div_a.id)] == Decimal("60.00")
     assert report.net_income[str(div_b.id)] == Decimal("250.00")
-    assert report.net_income[
-        report_service.UNALLOCATED_COLUMN_ID
-    ] == Decimal("30.00")
+    assert report.net_income[report_service.UNALLOCATED_COLUMN_ID] == Decimal("30.00")
 
 
 @pytest.mark.asyncio
-async def test_archived_divisions_excluded(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_archived_divisions_excluded(client: AsyncClient, app_session: AsyncSession) -> None:
     user = await seed_owner(app_session)
     bank = await seed_account(app_session, code="1000", name="Bank", type="asset")
     rev = await seed_account(app_session, code="4000", name="Rev", type="revenue")
@@ -193,9 +183,7 @@ async def test_csv_includes_every_column_and_totals(
     )
     await app_session.commit()
 
-    report = await report_service.build(
-        app_session, date_from=today.date(), date_to=today.date()
-    )
+    report = await report_service.build(app_session, date_from=today.date(), date_to=today.date())
     csv_body = report_service.to_csv(report)
     assert "TOTAL REVENUE" in csv_body
     assert "NET INCOME" in csv_body
@@ -205,9 +193,7 @@ async def test_csv_includes_every_column_and_totals(
 
 
 @pytest.mark.asyncio
-async def test_endpoint_smoke(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_endpoint_smoke(client: AsyncClient, app_session: AsyncSession) -> None:
     from app.models.auth import Role
 
     from tests._sales_helpers import token_for

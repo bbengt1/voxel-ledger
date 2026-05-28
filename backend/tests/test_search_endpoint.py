@@ -50,9 +50,7 @@ async def test_search_finds_a_product_by_name(
     )
     assert r.status_code == 200, r.text
     items = r.json()["items"]
-    assert any(
-        i["kind"] == "product" and "Round" in i["label"] for i in items
-    ), items
+    assert any(i["kind"] == "product" and "Round" in i["label"] for i in items), items
 
 
 @pytest.mark.asyncio

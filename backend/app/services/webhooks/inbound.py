@@ -52,9 +52,7 @@ from app.services.settings.service import SettingsService
 # Providers we accept signatures for. Anything outside these returns
 # 404 from the router (before any DB writes).
 CARRIER_PROVIDERS: frozenset[str] = frozenset({"easypost", "shipstation"})
-MARKETPLACE_PROVIDERS: frozenset[str] = frozenset(
-    {"ebay", "etsy", "shopify", "amazon"}
-)
+MARKETPLACE_PROVIDERS: frozenset[str] = frozenset({"ebay", "etsy", "shopify", "amazon"})
 
 
 # ---------------------------------------------------------------------------
@@ -95,9 +93,7 @@ async def _resolve_secret(
 ) -> str:
     secret = await SettingsService.get(_setting_key(kind, provider), session=session)
     if not secret:
-        raise MissingSecretError(
-            f"no shared secret configured at {_setting_key(kind, provider)!r}"
-        )
+        raise MissingSecretError(f"no shared secret configured at {_setting_key(kind, provider)!r}")
     return str(secret)
 
 
@@ -129,9 +125,7 @@ def verify_shipstation(*, secret: str, body: bytes, headers: dict[str, str]) -> 
         raise InvalidSignatureError("signature mismatch")
 
 
-def verify_marketplace_generic(
-    *, secret: str, body: bytes, headers: dict[str, str]
-) -> None:
+def verify_marketplace_generic(*, secret: str, body: bytes, headers: dict[str, str]) -> None:
     """All marketplace providers we ship today use a single header
     convention: ``X-Marketplace-Signature: sha256=<hex>``.
 

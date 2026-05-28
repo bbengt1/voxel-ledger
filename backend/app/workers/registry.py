@@ -108,9 +108,7 @@ async def _upsert_state(
                 existing.last_processed = processed
             await session.commit()
     except Exception:
-        log.warning(
-            "worker.run_state_write_failed", extra={"job": job_name}, exc_info=True
-        )
+        log.warning("worker.run_state_write_failed", extra={"job": job_name}, exc_info=True)
 
 
 # ---------------------------------------------------------------------------

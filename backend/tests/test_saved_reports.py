@@ -32,9 +32,7 @@ async def _token(client: AsyncClient, session: AsyncSession, *, email: str, role
 async def test_create_list_roundtrip_filters_intact(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    token = await _token(
-        client, app_session, email="sr-rt@example.com", role=Role.BOOKKEEPER
-    )
+    token = await _token(client, app_session, email="sr-rt@example.com", role=Role.BOOKKEEPER)
     hdrs = {"Authorization": f"Bearer {token}"}
 
     filters = {
@@ -70,9 +68,7 @@ async def test_create_list_roundtrip_filters_intact(
 
 
 @pytest.mark.asyncio
-async def test_per_user_isolation(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_per_user_isolation(client: AsyncClient, app_session: AsyncSession) -> None:
     """User A cannot see, read, or delete User B's saved reports."""
     token_a = await _token(client, app_session, email="a@example.com", role=Role.BOOKKEEPER)
     token_b = await _token(client, app_session, email="b@example.com", role=Role.BOOKKEEPER)
@@ -108,9 +104,7 @@ async def test_per_user_isolation(
     assert delete_b.status_code == 404
 
     # A's row still alive.
-    rows = (
-        await app_session.execute(select(SavedReport))
-    ).scalars().all()
+    rows = (await app_session.execute(select(SavedReport))).scalars().all()
     assert len(rows) == 1
 
 
@@ -118,9 +112,7 @@ async def test_per_user_isolation(
 async def test_duplicate_name_per_kind_rejected_per_user(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    token = await _token(
-        client, app_session, email="dup@example.com", role=Role.BOOKKEEPER
-    )
+    token = await _token(client, app_session, email="dup@example.com", role=Role.BOOKKEEPER)
     hdrs = {"Authorization": f"Bearer {token}"}
     body = {"name": "Same", "report_kind": "income_statement", "filters": {}}
     first = await client.post("/api/v1/saved-reports", headers=hdrs, json=body)
@@ -139,12 +131,8 @@ async def test_duplicate_name_per_kind_rejected_per_user(
 
 
 @pytest.mark.asyncio
-async def test_update_and_delete(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
-    token = await _token(
-        client, app_session, email="upd@example.com", role=Role.BOOKKEEPER
-    )
+async def test_update_and_delete(client: AsyncClient, app_session: AsyncSession) -> None:
+    token = await _token(client, app_session, email="upd@example.com", role=Role.BOOKKEEPER)
     hdrs = {"Authorization": f"Bearer {token}"}
     create = await client.post(
         "/api/v1/saved-reports",

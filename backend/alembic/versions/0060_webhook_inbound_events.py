@@ -77,9 +77,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_webhook_inbound_event_kind_status", table_name="webhook_inbound_event"
-    )
+    op.drop_index("ix_webhook_inbound_event_kind_status", table_name="webhook_inbound_event")
     op.drop_table("webhook_inbound_event")
 
     bind = op.get_bind()

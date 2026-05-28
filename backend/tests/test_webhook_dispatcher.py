@@ -101,9 +101,7 @@ async def test_enqueue_fans_out_to_matching_active_subscriptions(
 
 
 @pytest.mark.asyncio
-async def test_wildcard_subscription_matches_any_event(
-    client, app_session: AsyncSession
-) -> None:
+async def test_wildcard_subscription_matches_any_event(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session, event_types=["*"])
     await app_session.commit()
 
@@ -147,9 +145,7 @@ async def test_deliver_2xx_marks_delivered_and_signs_payload(
 
 
 @pytest.mark.asyncio
-async def test_deliver_5xx_reschedules_with_backoff(
-    client, app_session: AsyncSession
-) -> None:
+async def test_deliver_5xx_reschedules_with_backoff(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
     await _append_test_event(app_session)
@@ -180,9 +176,7 @@ async def test_deliver_5xx_reschedules_with_backoff(
 
 
 @pytest.mark.asyncio
-async def test_deliver_4xx_marks_failed_no_retry(
-    client, app_session: AsyncSession
-) -> None:
+async def test_deliver_4xx_marks_failed_no_retry(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
     await _append_test_event(app_session)
@@ -198,9 +192,7 @@ async def test_deliver_4xx_marks_failed_no_retry(
 
 
 @pytest.mark.asyncio
-async def test_deliver_429_is_retryable(
-    client, app_session: AsyncSession
-) -> None:
+async def test_deliver_429_is_retryable(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
     await _append_test_event(app_session)
@@ -218,9 +210,7 @@ async def test_deliver_429_is_retryable(
 
 
 @pytest.mark.asyncio
-async def test_deliver_dead_letters_after_24h(
-    client, app_session: AsyncSession
-) -> None:
+async def test_deliver_dead_letters_after_24h(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
     await _append_test_event(app_session)
@@ -260,9 +250,7 @@ def test_backoff_doubles_and_caps() -> None:
 
 
 @pytest.mark.asyncio
-async def test_replay_resets_to_pending_and_now(
-    client, app_session: AsyncSession
-) -> None:
+async def test_replay_resets_to_pending_and_now(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
     await _append_test_event(app_session)
@@ -285,9 +273,7 @@ async def test_replay_resets_to_pending_and_now(
 
 
 @pytest.mark.asyncio
-async def test_run_pending_processes_due_only(
-    client, app_session: AsyncSession
-) -> None:
+async def test_run_pending_processes_due_only(client, app_session: AsyncSession) -> None:
     await _make_sub(app_session)
     await app_session.commit()
 
@@ -297,8 +283,10 @@ async def test_run_pending_processes_due_only(
     await app_session.commit()
 
     deliveries = (
-        await app_session.execute(select(WebhookDelivery).order_by(WebhookDelivery.created_at))
-    ).scalars().all()
+        (await app_session.execute(select(WebhookDelivery).order_by(WebhookDelivery.created_at)))
+        .scalars()
+        .all()
+    )
     assert len(deliveries) == 2
     # Push one delivery into the future.
     deliveries[1].next_attempt_at = datetime.now(UTC) + timedelta(hours=1)
@@ -308,9 +296,7 @@ async def test_run_pending_processes_due_only(
         return httpx.Response(200)
 
     async with _client_returning(handler) as http:
-        result = await dispatcher.run_pending(
-            session=app_session, client=http, max_per_run=10
-        )
+        result = await dispatcher.run_pending(session=app_session, client=http, max_per_run=10)
     assert result.delivered == 1
     assert result.retried == 0
 
@@ -333,9 +319,7 @@ async def _seed_owner_via_api(client, app_session: AsyncSession, *, email: str) 
         bcrypt_rounds=4,
     )
     await app_session.commit()
-    login = await client.post(
-        "/api/v1/auth/login", json={"email": email, "password": "pw-correct"}
-    )
+    login = await client.post("/api/v1/auth/login", json={"email": email, "password": "pw-correct"})
     return login.json()["access_token"]
 
 
@@ -397,8 +381,6 @@ async def test_endpoints_create_get_replay(client, app_session: AsyncSession) ->
     delivery_id = deliveries.json()[0]["id"]
 
     # Replay round-trip.
-    replay = await client.post(
-        f"/api/v1/webhooks/deliveries/{delivery_id}/replay", headers=hdrs
-    )
+    replay = await client.post(f"/api/v1/webhooks/deliveries/{delivery_id}/replay", headers=hdrs)
     assert replay.status_code == 200
     assert replay.json()["last_status"] == "pending"

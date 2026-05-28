@@ -289,10 +289,10 @@ def test_per_printer_cost_params_replace_flat_machine_rate() -> None:
 
     Math (no rounding to Grok's $0.50/hr — uses the actual derived rate):
 
-    - filament = 296.67 × $17.99/1000 = $5.336213
-    - electricity = (885/60) × (127/1000) × $0.17 = $0.318504
-    - preheat = (18/60) × (140/1000) × $0.17 = $0.007140
-    - depreciation = 14.75 × ($699 / (5×300)) = 14.75 × $0.466 = $6.873500
+    - filament = 296.67 * $17.99/1000 = $5.336213
+    - electricity = (885/60) * (127/1000) * $0.17 = $0.318504
+    - preheat = (18/60) * (140/1000) * $0.17 = $0.007140
+    - depreciation = 14.75 * ($699 / (5*300)) = 14.75 * $0.466 = $6.873500
     - subtotal direct = $12.535357
     - failure 10% = $1.253536 → direct $13.788893
     - overhead 0% → total = $13.79
@@ -335,9 +335,10 @@ def test_per_printer_cost_params_replace_flat_machine_rate() -> None:
     assert result.electricity_cost == Decimal("0.32")
     assert result.preheat_cost == Decimal("0.01")
     assert result.depreciation_cost == Decimal("6.87")
-    # machine = electricity + preheat + depreciation = 0.318504 + 0.007140 + 6.8735 = 7.199144 → 7.20
+    # machine = electricity + preheat + depreciation
+    # = 0.318504 + 0.007140 + 6.8735 = 7.199144 -> 7.20
     assert result.machine_cost == Decimal("7.20")
-    # failure adj = (5.336213 + 0.318504 + 0.00714 + 6.8735) × 0.10 = 1.253536 → 1.25
+    # failure adj = (5.336213 + 0.318504 + 0.00714 + 6.8735) * 0.10 = 1.253536 → 1.25
     assert result.failure_adjustment_cost == Decimal("1.25")
     # total = 12.535357 + 1.253536 = 13.788893 → 13.79
     assert result.total_cost == Decimal("13.79")
@@ -368,7 +369,7 @@ def test_printer_without_full_cost_params_falls_back_to_flat_rate() -> None:
         power_cost_per_kwh=Decimal("0.17"),
     )
     result = calculate(inputs, ctx)
-    # Flat-rate path: 1h × $4 = $4.00.
+    # Flat-rate path: 1h * $4 = $4.00.
     assert result.machine_cost == Decimal("4.00")
     assert result.electricity_cost == Decimal("0.00")
     assert result.preheat_cost == Decimal("0.00")
@@ -396,7 +397,7 @@ def test_failure_rate_applies_to_flat_rate_path_too() -> None:
         failure_rate=Decimal("0.10"),
     )
     result = calculate(inputs, ctx)
-    # 10g × $1 = $10 material. Failure adj 10% = $1.00. Total $11.00.
+    # 10g * $1 = $10 material. Failure adj 10% = $1.00. Total $11.00.
     assert result.material_cost == Decimal("10.00")
     assert result.failure_adjustment_cost == Decimal("1.00")
     assert result.total_cost == Decimal("11.00")

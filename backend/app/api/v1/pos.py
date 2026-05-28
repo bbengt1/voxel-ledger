@@ -90,9 +90,7 @@ def _to_response(cart: PosCart) -> PosCartResponse:
     )
 
 
-async def _to_response_with_tax(
-    cart: PosCart, *, session: AsyncSession
-) -> PosCartResponse:
+async def _to_response_with_tax(cart: PosCart, *, session: AsyncSession) -> PosCartResponse:
     """Build the cart response and overlay a tax preview when the cart's
     channel carries a ``tax_profile_id``. Computes the tax from the
     after-discount ``total`` using the existing :func:`compute_line_tax`
@@ -105,9 +103,7 @@ async def _to_response_with_tax(
     profile_id = cart.tax_profile_id
     if profile_id is None:
         channel = (
-            await session.execute(
-                select(SalesChannel).where(SalesChannel.id == cart.channel_id)
-            )
+            await session.execute(select(SalesChannel).where(SalesChannel.id == cart.channel_id))
         ).scalar_one_or_none()
         if channel is None:
             return response
@@ -123,9 +119,7 @@ async def _to_response_with_tax(
     ).scalar_one_or_none()
     if profile is None or not profile.is_active or not profile.rates:
         return response
-    per_rate = tax_service.compute_line_tax(
-        line_subtotal=response.total, rates=list(profile.rates)
-    )
+    per_rate = tax_service.compute_line_tax(line_subtotal=response.total, rates=list(profile.rates))
     response.tax_amount = sum((amt for _, amt in per_rate), start=Decimal("0"))
     response.tax_profile_id = profile.id
     response.tax_profile_name = profile.name

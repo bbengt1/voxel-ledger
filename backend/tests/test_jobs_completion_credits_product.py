@@ -39,7 +39,7 @@ async def test_complete_credits_product_on_hand(
     product = await seed_product(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
 
-    # 1 plate × 2 parts/set, quantity_ordered=2 ⇒ 1 set required.
+    # 1 plate * 2 parts/set, quantity_ordered=2 ⇒ 1 set required.
     create = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
@@ -61,12 +61,12 @@ async def test_complete_credits_product_on_hand(
     plate_id = create.json()["plates"][0]["id"]
 
     # Walk the state machine and record one plate run before completing.
-    assert (await client.post(
-        f"/api/v1/jobs/{job_id}/submit", headers=auth_header(owner)
-    )).status_code == 200
-    assert (await client.post(
-        f"/api/v1/jobs/{job_id}/start", headers=auth_header(owner)
-    )).status_code == 200
+    assert (
+        await client.post(f"/api/v1/jobs/{job_id}/submit", headers=auth_header(owner))
+    ).status_code == 200
+    assert (
+        await client.post(f"/api/v1/jobs/{job_id}/start", headers=auth_header(owner))
+    ).status_code == 200
     record = await client.post(
         f"/api/v1/jobs/{job_id}/plates/{plate_id}/record-run",
         headers=auth_header(owner),
@@ -80,9 +80,7 @@ async def test_complete_credits_product_on_hand(
     )
     assert before == 0
 
-    complete = await client.post(
-        f"/api/v1/jobs/{job_id}/complete", headers=auth_header(owner)
-    )
+    complete = await client.post(f"/api/v1/jobs/{job_id}/complete", headers=auth_header(owner))
     assert complete.status_code == 200, complete.text
     assert complete.json()["state"] == "completed"
 
@@ -122,9 +120,7 @@ async def test_complete_with_zero_pieces_skips_inventory_write(
     )
     job_id = create.json()["id"]
     for action in ("submit", "start", "complete"):
-        r = await client.post(
-            f"/api/v1/jobs/{job_id}/{action}", headers=auth_header(owner)
-        )
+        r = await client.post(f"/api/v1/jobs/{job_id}/{action}", headers=auth_header(owner))
         assert r.status_code == 200, (action, r.text)
 
     on_hand = await inventory_alerts.total_on_hand_for_entity(

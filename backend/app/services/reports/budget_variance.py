@@ -111,9 +111,7 @@ async def _resolve_cogs_account_ids(session: AsyncSession) -> frozenset[uuid.UUI
     return frozenset(out)
 
 
-def _variance_pct(
-    *, account_type: str, budget: Decimal, actual: Decimal
-) -> Decimal | None:
+def _variance_pct(*, account_type: str, budget: Decimal, actual: Decimal) -> Decimal | None:
     """``actual - budget`` expressed as a percentage of budget.
 
     For revenue (Cr-normal) "good" variance is positive (we beat the
@@ -139,15 +137,11 @@ async def build(
     division_uuid: uuid.UUID | None = None
     if division_id is not None:
         division_uuid = (
-            division_id
-            if isinstance(division_id, uuid.UUID)
-            else uuid.UUID(str(division_id))
+            division_id if isinstance(division_id, uuid.UUID) else uuid.UUID(str(division_id))
         )
 
     period = (
-        await session.execute(
-            select(AccountingPeriod).where(AccountingPeriod.id == period_id)
-        )
+        await session.execute(select(AccountingPeriod).where(AccountingPeriod.id == period_id))
     ).scalar_one_or_none()
     if period is None:
         raise ValueError(f"accounting period {period_id} not found")
@@ -172,8 +166,7 @@ async def build(
         # division + the catch-all NULL).
         pass
     budgets: dict[uuid.UUID, Decimal] = {
-        row[0]: Decimal(str(row[1] or 0))
-        for row in (await session.execute(budget_stmt)).all()
+        row[0]: Decimal(str(row[1] or 0)) for row in (await session.execute(budget_stmt)).all()
     }
 
     # ----- Actuals: signed activity per account within the period
@@ -243,9 +236,7 @@ async def build(
     )
 
     for acct in accounts:
-        actual_type = (
-            acct.type.value if hasattr(acct.type, "value") else acct.type
-        )
+        actual_type = acct.type.value if hasattr(acct.type, "value") else acct.type
         dr, cr = actuals_raw.get(acct.id, (_ZERO, _ZERO))
         if actual_type == AccountType.REVENUE.value:
             actual = cr - dr
@@ -266,9 +257,7 @@ async def build(
             budget=_q(budget),
             actual=_q(actual),
             variance=_q(variance),
-            variance_pct=_variance_pct(
-                account_type=actual_type, budget=budget, actual=actual
-            ),
+            variance_pct=_variance_pct(account_type=actual_type, budget=budget, actual=actual),
         )
 
         if section == "revenue":
@@ -359,10 +348,7 @@ def to_csv(report: BudgetVarianceReport) -> str:
             "",
             str(report.total_operating_expense_budget),
             str(report.total_operating_expense_actual),
-            str(
-                report.total_operating_expense_actual
-                - report.total_operating_expense_budget
-            ),
+            str(report.total_operating_expense_actual - report.total_operating_expense_budget),
             "",
         ]
     )

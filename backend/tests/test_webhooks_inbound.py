@@ -94,9 +94,7 @@ def test_verify_easypost_rejects_bad_signature() -> None:
 
 def test_verify_easypost_missing_header() -> None:
     with pytest.raises(inbound_service.InvalidSignatureError):
-        inbound_service.verify_easypost(
-            secret=CARRIER_SECRET, body=b"x", headers={}
-        )
+        inbound_service.verify_easypost(secret=CARRIER_SECRET, body=b"x", headers={})
 
 
 # ---------------------------------------------------------------------------
@@ -119,9 +117,7 @@ async def test_carrier_bad_signature_returns_401(
 
 
 @pytest.mark.asyncio
-async def test_carrier_unknown_provider_404(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_carrier_unknown_provider_404(client: AsyncClient, app_session: AsyncSession) -> None:
     await _seed_secrets(app_session)
     resp = await client.post(
         "/api/v1/webhooks/inbound/carriers/madeup",
@@ -186,12 +182,16 @@ async def test_carrier_idempotent_on_external_event_id(
 
     # Only one row exists.
     rows = (
-        await app_session.execute(
-            select(WebhookInboundEvent).where(
-                WebhookInboundEvent.external_event_id == "evt_dup"
+        (
+            await app_session.execute(
+                select(WebhookInboundEvent).where(
+                    WebhookInboundEvent.external_event_id == "evt_dup"
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1
 
 
@@ -233,9 +233,7 @@ async def test_carrier_applies_to_matching_shipment(
     # test of :func:`apply_tracking_update` below.
     row = (
         await app_session.execute(
-            select(WebhookInboundEvent).where(
-                WebhookInboundEvent.external_event_id == "evt_apply"
-            )
+            select(WebhookInboundEvent).where(WebhookInboundEvent.external_event_id == "evt_apply")
         )
     ).scalar_one()
     assert row.status == WebhookInboundStatus.APPLIED
@@ -276,9 +274,7 @@ async def test_apply_tracking_update_unit(app_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_marketplace_stages_event(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_marketplace_stages_event(client: AsyncClient, app_session: AsyncSession) -> None:
     await _seed_secrets(app_session)
     body = json.dumps(
         {
@@ -302,9 +298,7 @@ async def test_marketplace_stages_event(
 
     row = (
         await app_session.execute(
-            select(WebhookInboundEvent).where(
-                WebhookInboundEvent.external_event_id == "mp_evt_1"
-            )
+            select(WebhookInboundEvent).where(WebhookInboundEvent.external_event_id == "mp_evt_1")
         )
     ).scalar_one()
     assert row.payload["order_id"] == "ORDER-1"
@@ -323,9 +317,7 @@ async def test_marketplace_unknown_provider_404(
 
 
 @pytest.mark.asyncio
-async def test_missing_secret_returns_401(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_missing_secret_returns_401(client: AsyncClient, app_session: AsyncSession) -> None:
     # No secrets seeded - even a "valid" signature is rejected because
     # the server has no key to verify against.
     body = _easypost_body()

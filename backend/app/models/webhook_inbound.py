@@ -37,9 +37,7 @@ class WebhookInboundStatus(enum.StrEnum):
 
 
 WEBHOOK_INBOUND_KIND_VALUES: tuple[str, ...] = tuple(m.value for m in WebhookInboundKind)
-WEBHOOK_INBOUND_STATUS_VALUES: tuple[str, ...] = tuple(
-    m.value for m in WebhookInboundStatus
-)
+WEBHOOK_INBOUND_STATUS_VALUES: tuple[str, ...] = tuple(m.value for m in WebhookInboundStatus)
 
 
 WEBHOOK_INBOUND_KIND_ENUM = SAEnum(
@@ -70,9 +68,7 @@ class WebhookInboundEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    kind: Mapped[WebhookInboundKind] = mapped_column(
-        WEBHOOK_INBOUND_KIND_ENUM, nullable=False
-    )
+    kind: Mapped[WebhookInboundKind] = mapped_column(WEBHOOK_INBOUND_KIND_ENUM, nullable=False)
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     external_event_id: Mapped[str] = mapped_column(String(128), nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(
@@ -90,9 +86,7 @@ class WebhookInboundEvent(Base):
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    applied_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

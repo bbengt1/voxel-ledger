@@ -132,9 +132,7 @@ class StatusUpdate:
     bed_temp: float | None = None
 
     @classmethod
-    def from_moonraker(
-        cls, *, printer_id: uuid.UUID, payload: dict[str, Any]
-    ) -> StatusUpdate:
+    def from_moonraker(cls, *, printer_id: uuid.UUID, payload: dict[str, Any]) -> StatusUpdate:
         print_stats = payload.get("print_stats") or {}
         display = payload.get("display_status") or {}
         extruder = payload.get("extruder") or {}
@@ -146,9 +144,7 @@ class StatusUpdate:
         progress = display.get("progress")
         if progress is None:
             progress = virt.get("progress")
-        progress_pct = (
-            float(progress) * 100.0 if isinstance(progress, int | float) else None
-        )
+        progress_pct = float(progress) * 100.0 if isinstance(progress, int | float) else None
         elapsed = print_stats.get("print_duration")
         elapsed_seconds = int(elapsed) if isinstance(elapsed, int | float) else None
         return cls(
@@ -220,9 +216,7 @@ class MoonrakerWsClient:
         self.ws_url = ws_url
         self.api_key = api_key
         self._on_status = on_status
-        self._connect_factory: WsClientFactory = (
-            connect_factory or _default_connect_factory
-        )
+        self._connect_factory: WsClientFactory = connect_factory or _default_connect_factory
         self._rng = rng or random.Random()
         self._task: asyncio.Task[None] | None = None
         self._stopping = False
@@ -233,9 +227,7 @@ class MoonrakerWsClient:
         if self._task is not None and not self._task.done():
             return
         self._stopping = False
-        self._task = asyncio.create_task(
-            self._run(), name=f"moonraker-ws-{self.printer_id}"
-        )
+        self._task = asyncio.create_task(self._run(), name=f"moonraker-ws-{self.printer_id}")
 
     async def stop(self) -> None:
         self._stopping = True
@@ -258,9 +250,7 @@ class MoonrakerWsClient:
         try:
             while not self._stopping:
                 try:
-                    headers = (
-                        {"X-Api-Key": self.api_key} if self.api_key else None
-                    )
+                    headers = {"X-Api-Key": self.api_key} if self.api_key else None
                     ws = await self._connect_factory(
                         self.ws_url,
                         headers=headers,
@@ -364,9 +354,7 @@ class MoonrakerWsClient:
         params = msg.get("params") or []
         if not params or not isinstance(params[0], dict):
             return
-        update = StatusUpdate.from_moonraker(
-            printer_id=self.printer_id, payload=params[0]
-        )
+        update = StatusUpdate.from_moonraker(printer_id=self.printer_id, payload=params[0])
         self.status = WsStatus(
             connected=True,
             last_event_at=update.received_at,
@@ -376,9 +364,7 @@ class MoonrakerWsClient:
         try:
             await self._on_status(update)
         except Exception:
-            log.exception(
-                "moonraker_ws.on_status_failed printer_id=%s", self.printer_id
-            )
+            log.exception("moonraker_ws.on_status_failed printer_id=%s", self.printer_id)
 
     async def _sleep_with_jitter(self, seconds: float) -> None:
         if seconds <= 0:

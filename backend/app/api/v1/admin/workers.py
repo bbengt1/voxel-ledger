@@ -32,9 +32,7 @@ async def list_worker_states(
 ) -> list[WorkerRunStateRead]:
     """Return one row per registered worker, including jobs that have
     never run (status=null). Sorted by job name for stable display."""
-    rows = (
-        await session.execute(select(WorkerRunState))
-    ).scalars().all()
+    rows = (await session.execute(select(WorkerRunState))).scalars().all()
     state_by_name = {row.job_name: row for row in rows}
 
     out: list[WorkerRunStateRead] = []
@@ -48,9 +46,7 @@ async def list_worker_states(
                 last_started_at=state.last_started_at if state else None,
                 last_finished_at=state.last_finished_at if state else None,
                 last_status=(
-                    state.last_status.value
-                    if state and state.last_status is not None
-                    else None
+                    state.last_status.value if state and state.last_status is not None else None
                 ),
                 last_error=state.last_error if state else None,
                 last_processed=state.last_processed if state else 0,

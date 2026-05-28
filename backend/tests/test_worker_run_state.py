@@ -30,9 +30,7 @@ async def _clear_state(app_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_successful_run_records_ok_state(
-    client, app_session: AsyncSession
-) -> None:
+async def test_successful_run_records_ok_state(client, app_session: AsyncSession) -> None:
     async def job(_session: AsyncSession) -> None:
         return
 
@@ -54,9 +52,7 @@ async def test_successful_run_records_ok_state(
 
 
 @pytest.mark.asyncio
-async def test_failing_run_records_failed_state(
-    client, app_session: AsyncSession
-) -> None:
+async def test_failing_run_records_failed_state(client, app_session: AsyncSession) -> None:
     async def job(_session: AsyncSession) -> None:
         raise RuntimeError("kaboom")
 
@@ -76,9 +72,7 @@ async def test_failing_run_records_failed_state(
 
 
 @pytest.mark.asyncio
-async def test_subsequent_success_clears_error(
-    client, app_session: AsyncSession
-) -> None:
+async def test_subsequent_success_clears_error(client, app_session: AsyncSession) -> None:
     state = {"raise": True}
 
     async def job(_session: AsyncSession) -> None:
@@ -102,9 +96,7 @@ async def test_subsequent_success_clears_error(
 
 
 @pytest.mark.asyncio
-async def test_admin_endpoint_lists_all_registered_jobs(
-    client, app_session: AsyncSession
-) -> None:
+async def test_admin_endpoint_lists_all_registered_jobs(client, app_session: AsyncSession) -> None:
     """Endpoint should list every registered job, including those that
     have never run (state row absent)."""
     from app.models.auth import Role
@@ -115,9 +107,7 @@ async def test_admin_endpoint_lists_all_registered_jobs(
 
     # Pre-existing jobs (ai_insights_runner, etc.) are already in the
     # registry — just hit the endpoint and assert the shape.
-    resp = await client.get(
-        "/api/v1/admin/workers", headers={"Authorization": f"Bearer {token}"}
-    )
+    resp = await client.get("/api/v1/admin/workers", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert isinstance(body, list)
@@ -129,9 +119,7 @@ async def test_admin_endpoint_lists_all_registered_jobs(
 
 
 @pytest.mark.asyncio
-async def test_admin_endpoint_role_matrix(
-    client, app_session: AsyncSession
-) -> None:
+async def test_admin_endpoint_role_matrix(client, app_session: AsyncSession) -> None:
     from app.models.auth import Role
 
     from tests._sales_helpers import token_for

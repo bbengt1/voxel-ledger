@@ -80,13 +80,17 @@ async def _pending_approvals(session: AsyncSession) -> Section:
         ).scalar_one()
     )
     rows = (
-        await session.execute(
-            select(ApprovalRequest)
-            .where(ApprovalRequest.state == ApprovalState.PENDING)
-            .order_by(ApprovalRequest.updated_at.desc())
-            .limit(SAMPLE_LIMIT)
+        (
+            await session.execute(
+                select(ApprovalRequest)
+                .where(ApprovalRequest.state == ApprovalState.PENDING)
+                .order_by(ApprovalRequest.updated_at.desc())
+                .limit(SAMPLE_LIMIT)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sample = [
         {
             "id": str(r.id),
@@ -122,13 +126,17 @@ async def _overdue_invoices(session: AsyncSession) -> AmountSection:
     )
     count, total = (await session.execute(count_q)).one()
     rows = (
-        await session.execute(
-            select(Invoice)
-            .where(Invoice.state == InvoiceState.OVERDUE)
-            .order_by(Invoice.updated_at.desc())
-            .limit(SAMPLE_LIMIT)
+        (
+            await session.execute(
+                select(Invoice)
+                .where(Invoice.state == InvoiceState.OVERDUE)
+                .order_by(Invoice.updated_at.desc())
+                .limit(SAMPLE_LIMIT)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sample = [
         {
             "id": str(r.id),
@@ -152,13 +160,17 @@ async def _overdue_bills(session: AsyncSession) -> AmountSection:
     )
     count, total = (await session.execute(count_q)).one()
     rows = (
-        await session.execute(
-            select(Bill)
-            .where(Bill.state == BillState.OVERDUE)
-            .order_by(Bill.updated_at.desc())
-            .limit(SAMPLE_LIMIT)
+        (
+            await session.execute(
+                select(Bill)
+                .where(Bill.state == BillState.OVERDUE)
+                .order_by(Bill.updated_at.desc())
+                .limit(SAMPLE_LIMIT)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sample = [
         {
             "id": str(r.id),
@@ -186,19 +198,21 @@ async def _failed_jobs(session: AsyncSession) -> Section:
 
     cutoff = datetime.now(UTC) - timedelta(hours=24)
     rows = (
-        await session.execute(
-            select(WorkerRunState)
-            .where(WorkerRunState.last_status == WorkerRunStatus.FAILED)
-            .where(WorkerRunState.last_finished_at >= cutoff)
-            .order_by(WorkerRunState.last_finished_at.desc())
+        (
+            await session.execute(
+                select(WorkerRunState)
+                .where(WorkerRunState.last_status == WorkerRunStatus.FAILED)
+                .where(WorkerRunState.last_finished_at >= cutoff)
+                .order_by(WorkerRunState.last_finished_at.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sample = [
         {
             "job_name": r.job_name,
-            "last_finished_at": (
-                r.last_finished_at.isoformat() if r.last_finished_at else None
-            ),
+            "last_finished_at": (r.last_finished_at.isoformat() if r.last_finished_at else None),
             "last_error": (r.last_error or "")[:160] or None,
             "duration_ms": r.last_duration_ms,
         }
@@ -218,13 +232,17 @@ async def _webhook_dlq(session: AsyncSession) -> Section:
         ).scalar_one()
     )
     rows = (
-        await session.execute(
-            select(WebhookDelivery)
-            .where(WebhookDelivery.last_status == WebhookDeliveryStatus.DEAD_LETTER)
-            .order_by(WebhookDelivery.updated_at.desc())
-            .limit(SAMPLE_LIMIT)
+        (
+            await session.execute(
+                select(WebhookDelivery)
+                .where(WebhookDelivery.last_status == WebhookDeliveryStatus.DEAD_LETTER)
+                .order_by(WebhookDelivery.updated_at.desc())
+                .limit(SAMPLE_LIMIT)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     sample = [
         {
             "id": str(r.id),
@@ -254,9 +272,7 @@ async def _ws_health() -> WsHealth:
     if instance is None:
         return WsHealth(moonraker_ws_connected=False, last_event_at=None)
     connected, last_event_at = instance.get_ws_health()
-    return WsHealth(
-        moonraker_ws_connected=connected, last_event_at=last_event_at
-    )
+    return WsHealth(moonraker_ws_connected=connected, last_event_at=last_event_at)
 
 
 # ---------------------------------------------------------------------------

@@ -35,9 +35,7 @@ class DepositSlipState(enum.StrEnum):
     RECONCILED = "reconciled"
 
 
-DEPOSIT_SLIP_STATE_VALUES: tuple[str, ...] = tuple(
-    m.value for m in DepositSlipState
-)
+DEPOSIT_SLIP_STATE_VALUES: tuple[str, ...] = tuple(m.value for m in DepositSlipState)
 
 
 DEPOSIT_SLIP_STATE_ENUM = SAEnum(
@@ -50,9 +48,7 @@ DEPOSIT_SLIP_STATE_ENUM = SAEnum(
 
 class DepositSlip(Base):
     __tablename__ = "deposit_slip"
-    __table_args__ = (
-        Index("ix_deposit_slip_bank_state", "bank_account_id", "state"),
-    )
+    __table_args__ = (Index("ix_deposit_slip_bank_state", "bank_account_id", "state"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     slip_number: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)

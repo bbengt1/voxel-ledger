@@ -77,9 +77,7 @@ def _delivery_to_read(row: WebhookDelivery) -> WebhookDeliveryRead:
         event_type=row.event_type,
         payload=row.payload or {},
         attempt_count=row.attempt_count,
-        last_status=row.last_status.value
-        if hasattr(row.last_status, "value")
-        else row.last_status,  # type: ignore[arg-type]
+        last_status=row.last_status.value if hasattr(row.last_status, "value") else row.last_status,  # type: ignore[arg-type]
         last_response_code=row.last_response_code,
         last_error=row.last_error,
         next_attempt_at=row.next_attempt_at,

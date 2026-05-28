@@ -40,9 +40,7 @@ async def seed() -> int:
     factory = make_session_factory(engine)
     try:
         async with factory() as session:
-            count = (
-                await session.execute(select(func.count()).select_from(User))
-            ).scalar_one()
+            count = (await session.execute(select(func.count()).select_from(User))).scalar_one()
             if count and count > 0:
                 print("owner already exists (user table non-empty); nothing to do.")
                 return 0

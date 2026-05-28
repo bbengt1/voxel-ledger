@@ -109,9 +109,9 @@ def _payload_for_event(event: Event) -> dict[str, Any]:
 
 
 def _canonical_body(payload: dict[str, Any]) -> bytes:
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def sign_payload(secret: str, body: bytes) -> str:
@@ -164,10 +164,14 @@ async def _active_subscriptions_for_event_type(
     session: AsyncSession, event_type: str
 ) -> list[WebhookSubscription]:
     rows = (
-        await session.execute(
-            select(WebhookSubscription).where(WebhookSubscription.is_active.is_(True))
+        (
+            await session.execute(
+                select(WebhookSubscription).where(WebhookSubscription.is_active.is_(True))
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     out: list[WebhookSubscription] = []
     for sub in rows:
         types = sub.event_types or []
@@ -232,8 +236,11 @@ def _classify(
     if response_code is not None and 400 <= response_code < 500 and response_code != 429:
         return WebhookDeliveryStatus.FAILED
     # Retryable: 5xx / 429 / network error / timeout.
-    age = (now - delivery.created_at.replace(tzinfo=UTC) if delivery.created_at.tzinfo is None
-           else now - delivery.created_at)
+    age = (
+        now - delivery.created_at.replace(tzinfo=UTC)
+        if delivery.created_at.tzinfo is None
+        else now - delivery.created_at
+    )
     if age.total_seconds() >= MAX_TOTAL_RETRY_SECONDS:
         return WebhookDeliveryStatus.DEAD_LETTER
     return WebhookDeliveryStatus.PENDING
@@ -254,18 +261,14 @@ async def deliver(
     """
     now = now or datetime.now(UTC)
     row = (
-        await session.execute(
-            select(WebhookDelivery).where(WebhookDelivery.id == delivery_id)
-        )
+        await session.execute(select(WebhookDelivery).where(WebhookDelivery.id == delivery_id))
     ).scalar_one_or_none()
     if row is None:
         raise WebhookNotFoundError(str(delivery_id))
 
     sub = (
         await session.execute(
-            select(WebhookSubscription).where(
-                WebhookSubscription.id == row.subscription_id
-            )
+            select(WebhookSubscription).where(WebhookSubscription.id == row.subscription_id)
         )
     ).scalar_one_or_none()
     if sub is None or not sub.is_active:
@@ -295,9 +298,7 @@ async def deliver(
     http_client = client or httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS)
     try:
         try:
-            resp = await http_client.post(
-                sub.target_url, content=body, headers=headers
-            )
+            resp = await http_client.post(sub.target_url, content=body, headers=headers)
             response_code = resp.status_code
             if response_code >= 400:
                 # Capture a short snippet for the operator. Never trust
@@ -315,9 +316,7 @@ async def deliver(
     row.attempt_count += 1
     row.last_response_code = response_code
     row.last_error = error
-    new_status = _classify(
-        delivery=row, response_code=response_code, error=error, now=now
-    )
+    new_status = _classify(delivery=row, response_code=response_code, error=error, now=now)
     row.last_status = new_status
     if new_status == WebhookDeliveryStatus.PENDING:
         row.next_attempt_at = next_backoff(row, now=now, rng=rng)
@@ -332,9 +331,7 @@ async def deliver(
 
 async def replay(delivery_id: uuid.UUID, *, session: AsyncSession) -> WebhookDelivery:
     row = (
-        await session.execute(
-            select(WebhookDelivery).where(WebhookDelivery.id == delivery_id)
-        )
+        await session.execute(select(WebhookDelivery).where(WebhookDelivery.id == delivery_id))
     ).scalar_one_or_none()
     if row is None:
         raise WebhookNotFoundError(str(delivery_id))
@@ -351,9 +348,7 @@ async def replay(delivery_id: uuid.UUID, *, session: AsyncSession) -> WebhookDel
 # ---------------------------------------------------------------------------
 
 
-async def _pending_due(
-    session: AsyncSession, *, now: datetime, limit: int
-) -> list[uuid.UUID]:
+async def _pending_due(session: AsyncSession, *, now: datetime, limit: int) -> list[uuid.UUID]:
     stmt = (
         select(WebhookDelivery.id)
         .where(WebhookDelivery.last_status == WebhookDeliveryStatus.PENDING)
@@ -423,9 +418,7 @@ async def run_pending(
     finally:
         if owns_client:
             await http_client.aclose()
-    return RunPendingResult(
-        delivered=delivered, retried=retried, failed=failed, dead_lettered=dead
-    )
+    return RunPendingResult(delivered=delivered, retried=retried, failed=failed, dead_lettered=dead)
 
 
 # ---------------------------------------------------------------------------
@@ -473,13 +466,9 @@ async def list_deliveries(
     return list((await session.execute(stmt)).scalars().all())
 
 
-async def get_delivery(
-    session: AsyncSession, delivery_id: uuid.UUID
-) -> WebhookDelivery:
+async def get_delivery(session: AsyncSession, delivery_id: uuid.UUID) -> WebhookDelivery:
     row = (
-        await session.execute(
-            select(WebhookDelivery).where(WebhookDelivery.id == delivery_id)
-        )
+        await session.execute(select(WebhookDelivery).where(WebhookDelivery.id == delivery_id))
     ).scalar_one_or_none()
     if row is None:
         raise WebhookNotFoundError(str(delivery_id))

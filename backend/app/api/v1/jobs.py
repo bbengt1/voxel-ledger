@@ -484,10 +484,8 @@ async def discover_from_printer(
             )
             resp.raise_for_status()
             meta = resp.json().get("result") or {}
-    except Exception as exc:  # noqa: BLE001 — upstream is opaque
-        raise HTTPException(
-            status_code=502, detail=f"moonraker fetch failed: {exc}"
-        ) from None
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"moonraker fetch failed: {exc}") from None
 
     # Moonraker timing is seconds → minutes (rounded up).
     estimated = meta.get("estimated_time")
@@ -495,14 +493,12 @@ async def discover_from_printer(
         int((float(estimated) + 59.0) // 60.0) if isinstance(estimated, int | float) else 0
     )
 
-    # Filament: prefer per-extruder weights; fall back to total mm × density.
+    # Filament: prefer per-extruder weights; fall back to total mm * density.
     grams_by_slot: dict[str, Decimal] = {}
     weights = meta.get("filament_weight")
     names_raw = meta.get("filament_name") or ""
     # Moonraker concatenates filament names with ``;`` (per extruder).
-    names: list[str] = (
-        [s.strip(' "') for s in str(names_raw).split(";")] if names_raw else []
-    )
+    names: list[str] = [s.strip(' "') for s in str(names_raw).split(";")] if names_raw else []
     if isinstance(weights, list):
         for idx, weight in enumerate(weights):
             if not isinstance(weight, int | float) or weight <= 0:
@@ -515,7 +511,9 @@ async def discover_from_printer(
     # without per-object counts. Default to 1 if absent.
     parts_per_set_raw = meta.get("object_count")
     parts_per_set = (
-        int(parts_per_set_raw) if isinstance(parts_per_set_raw, int | float) and parts_per_set_raw > 0 else 1
+        int(parts_per_set_raw)
+        if isinstance(parts_per_set_raw, int | float) and parts_per_set_raw > 0
+        else 1
     )
 
     return DiscoveredPlateResponse(

@@ -33,9 +33,7 @@ class WorkerRunStatus(enum.StrEnum):
     RUNNING = "running"
 
 
-WORKER_RUN_STATUS_VALUES: tuple[str, ...] = tuple(
-    m.value for m in WorkerRunStatus
-)
+WORKER_RUN_STATUS_VALUES: tuple[str, ...] = tuple(m.value for m in WorkerRunStatus)
 
 
 WORKER_RUN_STATUS_ENUM = SAEnum(
@@ -57,9 +55,7 @@ class WorkerRunState(Base):
     )
 
     job_name: Mapped[str] = mapped_column(String(128), primary_key=True)
-    last_started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_finished_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -70,9 +66,7 @@ class WorkerRunState(Base):
     last_processed: Mapped[int] = mapped_column(
         Integer(), nullable=False, default=0, server_default="0"
     )
-    last_duration_ms: Mapped[int | None] = mapped_column(
-        Integer(), nullable=True
-    )
+    last_duration_ms: Mapped[int | None] = mapped_column(Integer(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -36,9 +36,7 @@ async def _post_je(
         for i, (acct_id, dr, cr) in enumerate(lines, start=1)
     ]
     return await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=description, posted_at=posted_at, lines=jls
-        ),
+        journal_service.JournalEntryInput(description=description, posted_at=posted_at, lines=jls),
         session=session,
         actor_user_id=actor_user_id,
         _internal_skip_approval_check=True,
@@ -79,12 +77,8 @@ async def test_variance_with_budget_and_actual(
     period = (await app_session.execute(select(AccountingPeriod))).scalars().first()
     assert period is not None
 
-    await _seed_budget(
-        app_session, account_id=rev.id, period_id=period.id, amount="200.00"
-    )
-    await _seed_budget(
-        app_session, account_id=opex.id, period_id=period.id, amount="100.00"
-    )
+    await _seed_budget(app_session, account_id=rev.id, period_id=period.id, amount="200.00")
+    await _seed_budget(app_session, account_id=opex.id, period_id=period.id, amount="100.00")
     await app_session.commit()
 
     today = datetime.now(UTC)
@@ -120,9 +114,7 @@ async def test_variance_with_budget_and_actual(
 
 
 @pytest.mark.asyncio
-async def test_zero_budget_yields_null_pct(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_zero_budget_yields_null_pct(client: AsyncClient, app_session: AsyncSession) -> None:
     """When budget == 0 we can't divide; variance_pct must be None."""
     user = await seed_owner(app_session)
     bank = await seed_account(app_session, code="1000", name="Bank", type="asset")
@@ -167,17 +159,13 @@ async def test_account_with_no_activity_and_no_budget_excluded(
 
 
 @pytest.mark.asyncio
-async def test_csv_round_trip(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_csv_round_trip(client: AsyncClient, app_session: AsyncSession) -> None:
     user = await seed_owner(app_session)
     bank = await seed_account(app_session, code="1000", name="Bank", type="asset")
     rev = await seed_account(app_session, code="4000", name="Sales", type="revenue")
     period = (await app_session.execute(select(AccountingPeriod))).scalars().first()
     assert period is not None
-    await _seed_budget(
-        app_session, account_id=rev.id, period_id=period.id, amount="100.00"
-    )
+    await _seed_budget(app_session, account_id=rev.id, period_id=period.id, amount="100.00")
     await app_session.commit()
 
     today = datetime.now(UTC)
@@ -199,9 +187,7 @@ async def test_csv_round_trip(
 
 
 @pytest.mark.asyncio
-async def test_endpoint_smoke(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_endpoint_smoke(client: AsyncClient, app_session: AsyncSession) -> None:
     from datetime import date as date_cls
 
     from app.models.accounting_period import AccountingPeriodState

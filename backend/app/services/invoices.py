@@ -1328,13 +1328,10 @@ async def write_off(
         )
 
     if bad_debt_account_id is None:
-        resolved = await SettingsService.get(
-            "ar.default_bad_debt_account_id", session=session
-        )
+        resolved = await SettingsService.get("ar.default_bad_debt_account_id", session=session)
         if resolved is None:
             raise MissingArPostingAccountError(
-                "set 'ar.default_bad_debt_account_id' or pass "
-                "bad_debt_account_id explicitly"
+                "set 'ar.default_bad_debt_account_id' or pass " "bad_debt_account_id explicitly"
             )
         bad_debt_account_id = (
             resolved if isinstance(resolved, uuid.UUID) else uuid.UUID(str(resolved))
@@ -1347,8 +1344,7 @@ async def write_off(
     je = await journal_service.post(
         journal_service.JournalEntryInput(
             description=(
-                f"Write-off of invoice {invoice.invoice_number}"
-                + (f": {reason}" if reason else "")
+                f"Write-off of invoice {invoice.invoice_number}" + (f": {reason}" if reason else "")
             ),
             posted_at=when,
             lines=[

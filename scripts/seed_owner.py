@@ -28,6 +28,5 @@ if _BACKEND.exists() and str(_BACKEND) not in sys.path:
 # `app.seed.owner.load_settings`; this shim mirrors the same binding.)
 from app.seed.owner import load_settings, main, seed  # noqa: E402,F401
 
-
 if __name__ == "__main__":
     raise SystemExit(main())

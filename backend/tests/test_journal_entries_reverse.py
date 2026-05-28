@@ -87,9 +87,7 @@ async def test_cannot_reverse_twice(session: AsyncSession, engine) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reversal_of_reversal_is_allowed_and_flagged(
-    session: AsyncSession, engine
-) -> None:
+async def test_reversal_of_reversal_is_allowed_and_flagged(session: AsyncSession, engine) -> None:
     """Per Parity #231 the workflow allows reversing a reversal
     (an adjusting entry can itself be later adjusted). The event
     payload carries ``reversal_of_reversal=true`` so the audit log
@@ -102,9 +100,7 @@ async def test_reversal_of_reversal_is_allowed_and_flagged(
     original = await _balanced_pair(session, owner, cash, revenue)
     reversal = await svc.reverse(original.id, session=session, actor_user_id=owner.id)
     # Reversing the reversal must succeed.
-    second_reversal = await svc.reverse(
-        reversal.id, session=session, actor_user_id=owner.id
-    )
+    second_reversal = await svc.reverse(reversal.id, session=session, actor_user_id=owner.id)
     assert second_reversal.reversal_of_entry_id == reversal.id
 
 
@@ -131,9 +127,7 @@ async def test_reversed_event_is_balance_noop(session: AsyncSession, engine) -> 
 
 
 @pytest.mark.asyncio
-async def test_reverse_with_explicit_posted_at(
-    session: AsyncSession, engine
-) -> None:
+async def test_reverse_with_explicit_posted_at(session: AsyncSession, engine) -> None:
     """Bookkeepers typically back-date or forward-date a reversal to
     the first day of the next open period. The service accepts an
     explicit ``posted_at`` and uses it on the reversal entry."""

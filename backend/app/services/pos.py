@@ -555,9 +555,7 @@ async def _resolve_effective_tax_profile_id(
     if cart.tax_profile_id is not None:
         return cart.tax_profile_id
     channel = (
-        await session.execute(
-            select(SalesChannel).where(SalesChannel.id == cart.channel_id)
-        )
+        await session.execute(select(SalesChannel).where(SalesChannel.id == cart.channel_id))
     ).scalar_one_or_none()
     return channel.tax_profile_id if channel is not None else None
 
@@ -586,9 +584,7 @@ async def _compute_cart_tax(
     ).scalar_one_or_none()
     if profile is None or not profile.is_active or not profile.rates:
         return None
-    per_rate = tax_service.compute_line_tax(
-        line_subtotal=subtotal, rates=list(profile.rates)
-    )
+    per_rate = tax_service.compute_line_tax(line_subtotal=subtotal, rates=list(profile.rates))
     return _q(sum((amt for _, amt in per_rate), start=Decimal("0")))
 
 
@@ -606,14 +602,10 @@ async def set_cart_tax_profile(
     _ensure_open(cart)
     if tax_profile_id is not None:
         profile = (
-            await session.execute(
-                select(TaxProfile).where(TaxProfile.id == tax_profile_id)
-            )
+            await session.execute(select(TaxProfile).where(TaxProfile.id == tax_profile_id))
         ).scalar_one_or_none()
         if profile is None or not profile.is_active:
-            raise PosServiceError(
-                f"tax profile {tax_profile_id} not found or inactive"
-            )
+            raise PosServiceError(f"tax profile {tax_profile_id} not found or inactive")
     cart.tax_profile_id = tax_profile_id
     await session.flush()
     await _emit(

@@ -471,11 +471,7 @@ async def general_ledger_detail_report(
         return PlainTextResponse(
             content=body,
             media_type="text/csv",
-            headers={
-                "Content-Disposition": (
-                    'attachment; filename="general-ledger-detail.csv"'
-                )
-            },
+            headers={"Content-Disposition": ('attachment; filename="general-ledger-detail.csv"')},
         )
 
     return LedgerDetailResponse(
@@ -540,11 +536,7 @@ async def divisions_comparison_report(
         return PlainTextResponse(
             content=body,
             media_type="text/csv",
-            headers={
-                "Content-Disposition": (
-                    'attachment; filename="divisions-comparison.csv"'
-                )
-            },
+            headers={"Content-Disposition": ('attachment; filename="divisions-comparison.csv"')},
         )
 
     def _row(r) -> ComparisonRowResponse:
@@ -560,9 +552,7 @@ async def divisions_comparison_report(
         date_from=report.date_from,
         date_to=report.date_to,
         columns=[
-            ComparisonColumnResponse(
-                division_id=c.division_id, code=c.code, label=c.label
-            )
+            ComparisonColumnResponse(division_id=c.division_id, code=c.code, label=c.label)
             for c in report.columns
         ],
         revenue_rows=[_row(r) for r in report.revenue_rows],
@@ -600,11 +590,7 @@ async def budget_variance_report(
         return PlainTextResponse(
             content=body,
             media_type="text/csv",
-            headers={
-                "Content-Disposition": (
-                    'attachment; filename="budget-variance.csv"'
-                )
-            },
+            headers={"Content-Disposition": ('attachment; filename="budget-variance.csv"')},
         )
 
     def _row(r) -> BudgetVarianceRowResponse:

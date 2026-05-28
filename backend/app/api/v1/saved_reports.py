@@ -140,18 +140,14 @@ async def update_saved_report(
         await session.flush()
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(
-            status_code=409, detail="name conflicts with another preset"
-        ) from None
+        raise HTTPException(status_code=409, detail="name conflicts with another preset") from None
     await session.refresh(row, ["updated_at"])
     response = _to_read(row)
     await session.commit()
     return response
 
 
-@router.delete(
-    "/{saved_report_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None
-)
+@router.delete("/{saved_report_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_saved_report(
     saved_report_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_session)],

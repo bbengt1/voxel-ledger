@@ -116,9 +116,7 @@ class Adapter:
 async def _load_customers(session: AsyncSession, ids: list[uuid.UUID]) -> list[Customer]:
     if not ids:
         return []
-    rows = (
-        await session.execute(select(Customer).where(Customer.id.in_(ids)))
-    ).scalars().all()
+    rows = (await session.execute(select(Customer).where(Customer.id.in_(ids)))).scalars().all()
     return list(rows)
 
 
@@ -126,9 +124,7 @@ def _summarise_customer(c: Customer) -> dict[str, Any]:
     return {"id": str(c.id), "display_name": c.display_name, "state": c.state.value}
 
 
-async def _customer_blocker(
-    session: AsyncSession, c: Customer, action: str
-) -> str | None:
+async def _customer_blocker(session: AsyncSession, c: Customer, action: str) -> str | None:
     if action == "archive":
         if c.state == CustomerState.ARCHIVED:
             return "already archived"
@@ -175,11 +171,7 @@ CUSTOMER_ADAPTER = Adapter(
 async def _load_vendors(session: AsyncSession, ids: list[uuid.UUID]) -> list[Vendor]:
     if not ids:
         return []
-    return list(
-        (
-            await session.execute(select(Vendor).where(Vendor.id.in_(ids)))
-        ).scalars().all()
-    )
+    return list((await session.execute(select(Vendor).where(Vendor.id.in_(ids)))).scalars().all())
 
 
 def _summarise_vendor(v: Vendor) -> dict[str, Any]:
@@ -233,11 +225,7 @@ VENDOR_ADAPTER = Adapter(
 async def _load_products(session: AsyncSession, ids: list[uuid.UUID]) -> list[Product]:
     if not ids:
         return []
-    return list(
-        (
-            await session.execute(select(Product).where(Product.id.in_(ids)))
-        ).scalars().all()
-    )
+    return list((await session.execute(select(Product).where(Product.id.in_(ids)))).scalars().all())
 
 
 def _summarise_product(p: Product) -> dict[str, Any]:
@@ -250,9 +238,7 @@ def _summarise_product(p: Product) -> dict[str, Any]:
     }
 
 
-async def _product_blocker(
-    session: AsyncSession, p: Product, action: str
-) -> str | None:
+async def _product_blocker(session: AsyncSession, p: Product, action: str) -> str | None:
     _ = session  # unused for products
     if action == "archive":
         return "already archived" if p.is_archived else None
@@ -299,11 +285,7 @@ PRODUCT_ADAPTER = Adapter(
 async def _load_invoices(session: AsyncSession, ids: list[uuid.UUID]) -> list[Invoice]:
     if not ids:
         return []
-    return list(
-        (
-            await session.execute(select(Invoice).where(Invoice.id.in_(ids)))
-        ).scalars().all()
-    )
+    return list((await session.execute(select(Invoice).where(Invoice.id.in_(ids)))).scalars().all())
 
 
 def _summarise_invoice(inv: Invoice) -> dict[str, Any]:
@@ -315,9 +297,7 @@ def _summarise_invoice(inv: Invoice) -> dict[str, Any]:
     }
 
 
-async def _invoice_blocker(
-    session: AsyncSession, inv: Invoice, action: str
-) -> str | None:
+async def _invoice_blocker(session: AsyncSession, inv: Invoice, action: str) -> str | None:
     _ = session
     if action == "mark_void":
         if inv.state == InvoiceState.VOID:
@@ -351,11 +331,7 @@ INVOICE_ADAPTER = Adapter(
 async def _load_bills(session: AsyncSession, ids: list[uuid.UUID]) -> list[Bill]:
     if not ids:
         return []
-    return list(
-        (
-            await session.execute(select(Bill).where(Bill.id.in_(ids)))
-        ).scalars().all()
-    )
+    return list((await session.execute(select(Bill).where(Bill.id.in_(ids)))).scalars().all())
 
 
 def _summarise_bill(b: Bill) -> dict[str, Any]:

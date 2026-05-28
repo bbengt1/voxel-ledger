@@ -312,9 +312,7 @@ def _parse_bambu_3mf(xml_text: str) -> DiscoveredPlate:
     # plate. Bambu reports them with ``skipped="false"`` when they
     # actually print; treat any non-skipped object as part of the set.
     objects = [
-        o
-        for o in plate.findall("object")
-        if (o.get("skipped") or "false").lower() != "true"
+        o for o in plate.findall("object") if (o.get("skipped") or "false").lower() != "true"
     ]
     if objects:
         parts_per_set = max(parts_per_set, len(objects))
@@ -371,13 +369,10 @@ def _parse_prusa_3mf_config(text: str) -> DiscoveredPlate:
         elif key.startswith("filament used [g]"):
             for idx, item in enumerate(value.split(",")):
                 grams_by_slot[f"slot_{idx}"] = _coerce_decimal(item.strip())
-        elif key == "objects_info" or key == "object_count":
-            if value.isdigit() and int(value) > 0:
-                parts_per_set = max(parts_per_set, int(value))
+        elif key in ("objects_info", "object_count") and value.isdigit() and int(value) > 0:
+            parts_per_set = max(parts_per_set, int(value))
     if minutes == 0 and not grams_by_slot:
-        raise MalformedSidecarError(
-            "PrusaSlicer 3MF config had no print time or filament data"
-        )
+        raise MalformedSidecarError("PrusaSlicer 3MF config had no print time or filament data")
     return DiscoveredPlate(
         print_minutes=minutes,
         filament_grams_by_material=grams_by_slot,
@@ -386,9 +381,7 @@ def _parse_prusa_3mf_config(text: str) -> DiscoveredPlate:
     )
 
 
-def parse_3mf(
-    file_bytes: bytes, *, source_filename: str | None = None
-) -> DiscoveredPlate:
+def parse_3mf(file_bytes: bytes, *, source_filename: str | None = None) -> DiscoveredPlate:
     """Parse a sliced 3MF archive into a :class:`DiscoveredPlate`.
 
     Raises :class:`UnknownSidecarFormatError` for an unsliced 3MF (no
@@ -421,9 +414,7 @@ def parse_3mf(
     )
 
 
-def parse_job_artifact(
-    file_bytes: bytes, *, source_filename: str | None = None
-) -> DiscoveredPlate:
+def parse_job_artifact(file_bytes: bytes, *, source_filename: str | None = None) -> DiscoveredPlate:
     """Dispatch by content: ``.3mf`` (zip) vs ``.gcode.json`` (JSON).
 
     Callers should hand the raw upload bytes to this function rather

@@ -72,17 +72,23 @@ async def test_write_off_zeroes_outstanding_and_posts_bad_debt_je(
 
     # JE landed: one DR on bad-debt for the outstanding, one CR on AR.
     write_off_je = (
-        await app_session.execute(
-            select(JournalEntry).where(
-                JournalEntry.description.like("Write-off of invoice%")
+        (
+            await app_session.execute(
+                select(JournalEntry).where(JournalEntry.description.like("Write-off of invoice%"))
             )
         )
-    ).scalars().one()
+        .scalars()
+        .one()
+    )
     lines = (
-        await app_session.execute(
-            select(JournalLine).where(JournalLine.entry_id == write_off_je.id)
+        (
+            await app_session.execute(
+                select(JournalLine).where(JournalLine.entry_id == write_off_je.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     by_account = {ln.account_id: ln for ln in lines}
     bad_debt_line = by_account[bad_debt.id]
     assert bad_debt_line.debit > 0 and bad_debt_line.credit == 0
@@ -93,10 +99,10 @@ async def test_write_off_zeroes_outstanding_and_posts_bad_debt_je(
 
     # Event emitted with the right payload + audit excerpt keys.
     written = (
-        await app_session.execute(
-            select(Event).where(Event.type == "ar.InvoiceWrittenOff")
-        )
-    ).scalars().one()
+        (await app_session.execute(select(Event).where(Event.type == "ar.InvoiceWrittenOff")))
+        .scalars()
+        .one()
+    )
     assert written.payload["invoice_id"] == invoice_id
     assert written.payload["bad_debt_account_id"] == str(bad_debt.id)
     assert written.payload["journal_entry_id"] == str(write_off_je.id)
@@ -126,10 +132,9 @@ async def test_cannot_write_off_paid_invoice(
     # Force into a state where write-off is illegal by setting paid
     # directly on the row (avoids needing the full payment flow).
     from app.models.invoice import Invoice
+
     inv = (
-        await app_session.execute(
-            select(Invoice).where(Invoice.id == uuid.UUID(invoice_id))
-        )
+        await app_session.execute(select(Invoice).where(Invoice.id == uuid.UUID(invoice_id)))
     ).scalar_one()
     inv.state = InvoiceState.PAID
     inv.amount_outstanding = Decimal("0")
@@ -145,9 +150,7 @@ async def test_cannot_write_off_paid_invoice(
 
 
 @pytest.mark.asyncio
-async def test_write_off_role_matrix(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_write_off_role_matrix(client: AsyncClient, app_session: AsyncSession) -> None:
     """Sales role cannot write off."""
     owner = await token_for(Role.OWNER, client, app_session)
     sales = await token_for(Role.SALES, client, app_session)
@@ -197,8 +200,8 @@ async def test_write_off_uses_setting_when_account_not_passed(
     )
     assert resp.status_code == 200
     written = (
-        await app_session.execute(
-            select(Event).where(Event.type == "ar.InvoiceWrittenOff")
-        )
-    ).scalars().one()
+        (await app_session.execute(select(Event).where(Event.type == "ar.InvoiceWrittenOff")))
+        .scalars()
+        .one()
+    )
     assert written.payload["bad_debt_account_id"] == str(bad_debt.id)

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -28,6 +28,9 @@ function renderSidebar() {
 describe("<Sidebar /> admin gating", () => {
   beforeEach(() => {
     useAuthStore.getState().clearSession();
+    // Sidebar persists its expanded section in sessionStorage; clear
+    // between tests so each case starts from the default state.
+    window.sessionStorage.clear();
   });
 
   it.each<Role>(["owner", "bookkeeper"])(
@@ -35,6 +38,10 @@ describe("<Sidebar /> admin gating", () => {
     (role) => {
       withRole(role);
       renderSidebar();
+      // Sidebar uses an accordion: only one section is expanded at a
+      // time. Open the Admin section explicitly so the Users link
+      // renders into the DOM.
+      fireEvent.click(screen.getByTestId("sidebar-section-admin"));
       expect(screen.getByRole("link", { name: /users/i })).toBeInTheDocument();
     },
   );

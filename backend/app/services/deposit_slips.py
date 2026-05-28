@@ -125,32 +125,31 @@ async def build_slip(
 
     # Single fetch + assert eligibility per payment.
     payments = (
-        await session.execute(
-            select(Payment).where(Payment.id.in_(payment_ids))
-        )
-    ).scalars().all()
+        (await session.execute(select(Payment).where(Payment.id.in_(payment_ids)))).scalars().all()
+    )
     found = {p.id: p for p in payments}
     missing = [pid for pid in payment_ids if pid not in found]
     if missing:
-        raise DepositSlipInvalidPaymentsError(
-            f"payments not found: {missing}"
-        )
+        raise DepositSlipInvalidPaymentsError(f"payments not found: {missing}")
 
     for p in found.values():
         if not bool(p.deposit_to_undeposited):
             raise DepositSlipInvalidPaymentsError(
-                f"payment {p.payment_number} is not flagged "
-                "deposit_to_undeposited"
+                f"payment {p.payment_number} is not flagged " "deposit_to_undeposited"
             )
 
     # Already on another slip?
     already = (
-        await session.execute(
-            select(DepositSlipItem.payment_id).where(
-                DepositSlipItem.payment_id.in_(payment_ids)
+        (
+            await session.execute(
+                select(DepositSlipItem.payment_id).where(
+                    DepositSlipItem.payment_id.in_(payment_ids)
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if already:
         raise DepositSlipInvalidPaymentsError(
             f"payments already on a deposit slip: {list(already)}"
@@ -195,9 +194,7 @@ async def build_slip(
         _internal_skip_approval_check=True,
     )
     if not isinstance(je, JournalEntry):
-        raise DepositSlipServiceError(
-            "deposit-slip JE generated an approval request unexpectedly"
-        )
+        raise DepositSlipServiceError("deposit-slip JE generated an approval request unexpectedly")
 
     slip = DepositSlip(
         id=slip_id,
@@ -273,11 +270,7 @@ async def get_slip(session: AsyncSession, slip_id: uuid.UUID) -> DepositSlip:
 
 async def list_slips(session: AsyncSession) -> list[DepositSlip]:
     return list(
-        (
-            await session.execute(
-                select(DepositSlip).order_by(DepositSlip.deposit_date.desc())
-            )
-        )
+        (await session.execute(select(DepositSlip).order_by(DepositSlip.deposit_date.desc())))
         .scalars()
         .all()
     )

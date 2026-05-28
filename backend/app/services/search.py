@@ -407,7 +407,7 @@ async def search(session: AsyncSession, query: str) -> list[dict[str, Any]]:
     ):
         try:
             buckets[kind] = await fn(session, pattern)
-        except Exception:  # noqa: BLE001
+        except Exception:
             # One broken kind shouldn't sink the whole search.
             buckets[kind] = []
 

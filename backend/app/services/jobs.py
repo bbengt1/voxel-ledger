@@ -329,9 +329,7 @@ async def duplicate(
         grams: dict[uuid.UUID, Decimal] = {}
         for k, v in (plate.print_grams_by_material or {}).items():
             grams[uuid.UUID(str(k))] = Decimal(str(v))
-        printer_ids = [
-            uuid.UUID(str(p)) for p in (plate.assigned_printer_ids or [])
-        ]
+        printer_ids = [uuid.UUID(str(p)) for p in (plate.assigned_printer_ids or [])]
         plate_inputs.append(
             PlateInput(
                 name=plate.name,

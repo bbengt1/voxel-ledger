@@ -61,9 +61,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_worker_run_state_status_finished", table_name="worker_run_state"
-    )
+    op.drop_index("ix_worker_run_state_status_finished", table_name="worker_run_state")
     op.drop_table("worker_run_state")
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":

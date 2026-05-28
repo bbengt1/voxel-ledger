@@ -47,12 +47,8 @@ async def get_control_center(
             amount_total=cc.overdue_bills.amount_total,
             sample=cc.overdue_bills.sample,
         ),
-        failed_jobs=SectionRead(
-            count=cc.failed_jobs.count, sample=cc.failed_jobs.sample
-        ),
-        webhook_dlq=SectionRead(
-            count=cc.webhook_dlq.count, sample=cc.webhook_dlq.sample
-        ),
+        failed_jobs=SectionRead(count=cc.failed_jobs.count, sample=cc.failed_jobs.sample),
+        webhook_dlq=SectionRead(count=cc.webhook_dlq.count, sample=cc.webhook_dlq.sample),
         ws_health=WsHealthRead(
             moonraker_ws_connected=cc.ws_health.moonraker_ws_connected,
             last_event_at=cc.ws_health.last_event_at,

@@ -33,9 +33,7 @@ async def _seed_customer(
     return c
 
 
-async def _seed_vendor(
-    session: AsyncSession, *, name: str = "Vend", number: str = "V-1"
-) -> Vendor:
+async def _seed_vendor(session: AsyncSession, *, name: str = "Vend", number: str = "V-1") -> Vendor:
     v = Vendor(
         id=uuid.uuid4(),
         vendor_number=number,
@@ -88,15 +86,11 @@ async def _seed_open_invoice(
 
 
 @pytest.mark.asyncio
-async def test_customer_archive_preview_surfaces_blocker(
-    client, app_session: AsyncSession
-) -> None:
+async def test_customer_archive_preview_surfaces_blocker(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     c_clean = await _seed_customer(app_session, name="Clean", number="C-CLEAN")
     c_blocked = await _seed_customer(app_session, name="Blocked", number="C-BLOCKED")
-    await _seed_open_invoice(
-        app_session, customer_id=c_blocked.id, user_id=user.id
-    )
+    await _seed_open_invoice(app_session, customer_id=c_blocked.id, user_id=user.id)
     await app_session.commit()
 
     result = await service.preview(
@@ -112,15 +106,11 @@ async def test_customer_archive_preview_surfaces_blocker(
 
 
 @pytest.mark.asyncio
-async def test_customer_archive_commit_applies_and_skips(
-    client, app_session: AsyncSession
-) -> None:
+async def test_customer_archive_commit_applies_and_skips(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     c_clean = await _seed_customer(app_session, name="Clean", number="C-CLEAN")
     c_blocked = await _seed_customer(app_session, name="Blocked", number="C-BLOCKED")
-    await _seed_open_invoice(
-        app_session, customer_id=c_blocked.id, user_id=user.id
-    )
+    await _seed_open_invoice(app_session, customer_id=c_blocked.id, user_id=user.id)
     await app_session.commit()
 
     result = await service.commit(
@@ -140,9 +130,7 @@ async def test_customer_archive_commit_applies_and_skips(
 
 
 @pytest.mark.asyncio
-async def test_product_set_category_requires_param(
-    client, app_session: AsyncSession
-) -> None:
+async def test_product_set_category_requires_param(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     p = await _seed_product(app_session)
     await app_session.commit()
@@ -159,9 +147,7 @@ async def test_product_set_category_requires_param(
 
 
 @pytest.mark.asyncio
-async def test_product_set_category_applies(
-    client, app_session: AsyncSession
-) -> None:
+async def test_product_set_category_applies(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     p1 = await _seed_product(app_session, sku="A")
     p2 = await _seed_product(app_session, sku="B")
@@ -200,9 +186,7 @@ async def test_unknown_action_raises(client, app_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_audit_row_records_ids_not_pii(
-    client, app_session: AsyncSession
-) -> None:
+async def test_audit_row_records_ids_not_pii(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     c = await _seed_customer(app_session, name="PII-SENSITIVE", number="C-PII")
     await app_session.commit()
@@ -229,9 +213,7 @@ async def test_audit_row_records_ids_not_pii(
 
 
 @pytest.mark.asyncio
-async def test_bill_mark_void_blocks_non_draft(
-    client, app_session: AsyncSession
-) -> None:
+async def test_bill_mark_void_blocks_non_draft(client, app_session: AsyncSession) -> None:
     user = await seed_user(app_session)
     vendor = await _seed_vendor(app_session)
     draft = Bill(

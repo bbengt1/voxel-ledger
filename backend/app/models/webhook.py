@@ -40,9 +40,7 @@ class WebhookDeliveryStatus(enum.StrEnum):
     DEAD_LETTER = "dead_letter"
 
 
-WEBHOOK_DELIVERY_STATUS_VALUES: tuple[str, ...] = tuple(
-    m.value for m in WebhookDeliveryStatus
-)
+WEBHOOK_DELIVERY_STATUS_VALUES: tuple[str, ...] = tuple(m.value for m in WebhookDeliveryStatus)
 
 
 WEBHOOK_DELIVERY_STATUS_ENUM = SAEnum(

@@ -33,8 +33,8 @@ from app.api.v1.cost_calc import router as cost_calc_router
 from app.api.v1.custom_fields import router as custom_fields_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.dashboard import router as dashboard_router
-from app.api.v1.depreciation_runs import router as depreciation_runs_router
 from app.api.v1.deposit_slips import router as deposit_slips_router
+from app.api.v1.depreciation_runs import router as depreciation_runs_router
 from app.api.v1.divisions import router as divisions_router
 from app.api.v1.email_messages import router as email_messages_router
 from app.api.v1.email_messages import statements_router as statements_router

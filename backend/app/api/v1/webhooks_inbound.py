@@ -71,9 +71,7 @@ async def inbound_marketplace(
             session=session, provider=provider, body=body, headers=headers
         )
     except inbound_service.UnknownProviderError:
-        raise HTTPException(
-            status_code=404, detail="unknown marketplace provider"
-        ) from None
+        raise HTTPException(status_code=404, detail="unknown marketplace provider") from None
     except (
         inbound_service.InvalidSignatureError,
         inbound_service.MissingSecretError,

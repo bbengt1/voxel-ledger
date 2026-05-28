@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
 from decimal import Decimal
 from pathlib import Path
 
@@ -65,9 +67,6 @@ def test_rejects_empty() -> None:
 # 3MF support
 # ---------------------------------------------------------------------------
 
-import io
-import zipfile
-
 
 def _make_3mf(members: dict[str, str]) -> bytes:
     """Build an in-memory 3MF zip with the given member paths."""
@@ -99,9 +98,7 @@ _BAMBU_SLICE_INFO_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 def test_parses_bambu_3mf() -> None:
     data = _make_3mf({"Metadata/slice_info.config": _BAMBU_SLICE_INFO_XML})
-    result = job_discovery.parse_job_artifact(
-        data, source_filename="round_light.3mf"
-    )
+    result = job_discovery.parse_job_artifact(data, source_filename="round_light.3mf")
     assert result.source_format == "bambu_3mf"
     # 24224 seconds → 404 minutes (Bambu rounds via integer math; the
     # sidecar parser rounds half-up to match).
@@ -116,13 +113,10 @@ def test_parses_bambu_3mf() -> None:
 
 def test_parses_prusaslicer_3mf() -> None:
     config = (
-        "; estimated printing time (normal mode) = 1h 23m 45s\n"
-        "; filament used [g] = 42.5,7.25\n"
+        "; estimated printing time (normal mode) = 1h 23m 45s\n" "; filament used [g] = 42.5,7.25\n"
     )
     data = _make_3mf({"Metadata/Slic3r_PE.config": config})
-    result = job_discovery.parse_job_artifact(
-        data, source_filename="thing.3mf"
-    )
+    result = job_discovery.parse_job_artifact(data, source_filename="thing.3mf")
     assert result.source_format == "prusaslicer_3mf"
     assert result.print_minutes == 83
     assert result.filament_grams_by_material["slot_0"] == Decimal("42.5")

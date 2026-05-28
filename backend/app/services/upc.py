@@ -38,11 +38,7 @@ def compute_check_digit(eleven_digits: str) -> str:
 
 
 def is_valid_upc_a(value: str) -> bool:
-    return (
-        len(value) == 12
-        and value.isdigit()
-        and compute_check_digit(value[:11]) == value[-1]
-    )
+    return len(value) == 12 and value.isdigit() and compute_check_digit(value[:11]) == value[-1]
 
 
 def build_internal_upc_a(serial: int) -> str:
@@ -63,7 +59,7 @@ def _serial_from_internal_upc(value: str | None) -> int | None:
         return None
     if not is_valid_upc_a(value):
         return None
-    return int(value[len(INTERNAL_UPC_PREFIX):11])
+    return int(value[len(INTERNAL_UPC_PREFIX) : 11])
 
 
 async def allocate_unique_upc(session: AsyncSession) -> str:
@@ -92,9 +88,7 @@ async def allocate_unique_upc(session: AsyncSession) -> str:
         if candidate not in existing:
             return candidate
 
-    raise UpcGenerationError(
-        "no internal UPC-A values remain in the 04 namespace"
-    )
+    raise UpcGenerationError("no internal UPC-A values remain in the 04 namespace")
 
 
 __all__ = [

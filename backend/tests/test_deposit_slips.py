@@ -27,9 +27,7 @@ from tests._invoices_helpers import (
 
 
 async def _seed_undeposited_account(session: AsyncSession) -> Account:
-    acct = Account(
-        id=uuid.uuid4(), code="1101", name="Undeposited funds", type="asset"
-    )
+    acct = Account(id=uuid.uuid4(), code="1101", name="Undeposited funds", type="asset")
     session.add(acct)
     await session.flush()
     await SettingsService.set(
@@ -127,15 +125,9 @@ async def test_payment_with_flag_debits_undeposited(
 
     # The apply-payment JE should have one debit on the undeposited
     # account, NOT the bank account.
-    lines = (
-        await app_session.execute(select(JournalLine))
-    ).scalars().all()
-    debits_on_undeposited = sum(
-        ln.debit for ln in lines if ln.account_id == undeposited.id
-    )
-    debits_on_bank = sum(
-        ln.debit for ln in lines if ln.account_id == bank.id
-    )
+    lines = (await app_session.execute(select(JournalLine))).scalars().all()
+    debits_on_undeposited = sum(ln.debit for ln in lines if ln.account_id == undeposited.id)
+    debits_on_bank = sum(ln.debit for ln in lines if ln.account_id == bank.id)
     assert debits_on_undeposited >= Decimal("100.000000")
     assert debits_on_bank == Decimal("0")
     _ = payment_id
@@ -186,10 +178,10 @@ async def test_build_slip_consolidates_payments(
     je_id = slip.posting_journal_entry_id
     assert je_id is not None
     slip_lines = (
-        await app_session.execute(
-            select(JournalLine).where(JournalLine.entry_id == je_id)
-        )
-    ).scalars().all()
+        (await app_session.execute(select(JournalLine).where(JournalLine.entry_id == je_id)))
+        .scalars()
+        .all()
+    )
     by_account = {ln.account_id: ln for ln in slip_lines}
     assert by_account[bank.id].debit == Decimal("150.000000")
     assert by_account[bank.id].credit == Decimal("0")
@@ -198,17 +190,19 @@ async def test_build_slip_consolidates_payments(
 
     # Slip items recorded per payment.
     items = (
-        await app_session.execute(
-            select(DepositSlipItem).where(DepositSlipItem.deposit_slip_id == slip_id)
+        (
+            await app_session.execute(
+                select(DepositSlipItem).where(DepositSlipItem.deposit_slip_id == slip_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(items) == 3
 
     # Audit event recorded.
     evt = (
-        await app_session.execute(
-            select(Event).where(Event.type == "ar.DepositSlipBuilt")
-        )
+        await app_session.execute(select(Event).where(Event.type == "ar.DepositSlipBuilt"))
     ).scalar_one()
     assert evt.payload["slip_number"] == body["slip_number"]
     assert Decimal(evt.payload["total"]) == Decimal("150.000000")
@@ -236,13 +230,9 @@ async def test_cannot_re_add_payment_to_a_second_slip(
         "bank_account_id": str(bank.id),
         "deposit_date": datetime.now(UTC).date().isoformat(),
     }
-    first = await client.post(
-        "/api/v1/deposit-slips", headers=auth_header(owner), json=body
-    )
+    first = await client.post("/api/v1/deposit-slips", headers=auth_header(owner), json=body)
     assert first.status_code == 201
-    second = await client.post(
-        "/api/v1/deposit-slips", headers=auth_header(owner), json=body
-    )
+    second = await client.post("/api/v1/deposit-slips", headers=auth_header(owner), json=body)
     assert second.status_code == 400
     assert "already on a deposit slip" in second.text
 
@@ -273,9 +263,7 @@ async def test_payment_without_flag_does_not_show_as_undeposited(
         deposit_to_undeposited=False,
     )
 
-    resp = await client.get(
-        "/api/v1/deposit-slips/undeposited", headers=auth_header(owner)
-    )
+    resp = await client.get("/api/v1/deposit-slips/undeposited", headers=auth_header(owner))
     assert resp.status_code == 200
     ids = {row["id"] for row in resp.json()}
     assert flagged in ids

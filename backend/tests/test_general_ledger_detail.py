@@ -254,9 +254,7 @@ async def test_csv_round_trip(client: AsyncClient, app_session: AsyncSession) ->
 
 
 @pytest.mark.asyncio
-async def test_endpoint_returns_json(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_endpoint_returns_json(client: AsyncClient, app_session: AsyncSession) -> None:
     from app.models.auth import Role
 
     from tests._sales_helpers import token_for
@@ -290,9 +288,7 @@ async def test_endpoint_returns_json(
 
 
 @pytest.mark.asyncio
-async def test_endpoint_csv_format(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
+async def test_endpoint_csv_format(client: AsyncClient, app_session: AsyncSession) -> None:
     from app.models.auth import Role
 
     from tests._sales_helpers import token_for

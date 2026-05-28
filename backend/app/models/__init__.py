@@ -92,16 +92,16 @@ from app.models.customer_credit import (
     CustomerCreditKind,
     CustomerCreditTransaction,
 )
-from app.models.depreciation_schedule import (
-    DEPRECIATION_ENTRY_STATE_VALUES,
-    DepreciationEntryState,
-    DepreciationScheduleEntry,
-)
 from app.models.deposit_slip import (
     DEPOSIT_SLIP_STATE_VALUES,
     DepositSlip,
     DepositSlipItem,
     DepositSlipState,
+)
+from app.models.depreciation_schedule import (
+    DEPRECIATION_ENTRY_STATE_VALUES,
+    DepreciationEntryState,
+    DepreciationScheduleEntry,
 )
 from app.models.division import Division
 from app.models.email_message import (

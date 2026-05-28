@@ -172,13 +172,13 @@ async def _default_probe(url: str, api_key: str | None) -> ProbeResult:
         elif raw_speed is not None:
             speed_mm_s = raw_speed / 60.0
 
-    # Flow ≈ live_extruder_velocity × π × (filament_radius_mm)² with
+    # Flow ~= live_extruder_velocity * pi * (filament_radius_mm)^2 with
     # 1.75 mm filament (r=0.875). live_extruder_velocity is mm/s of
     # filament; convert to mm³/s of plastic.
     extruder_vel = _as_float(motion.get("live_extruder_velocity"))
     flow_mm3_s = None
     if extruder_vel is not None:
-        # π × 0.875² ≈ 2.4053 mm² cross-section for 1.75 mm filament.
+        # pi * 0.875^2 ~= 2.4053 mm^2 cross-section for 1.75 mm filament.
         flow_mm3_s = extruder_vel * 2.4053
 
     filament_used_mm = _as_float(print_stats.get("filament_used"))
@@ -380,9 +380,7 @@ class PrinterMonitor:
     def get_state(self, printer_id: uuid.UUID) -> PrinterState | None:
         return self._states.get(printer_id)
 
-    def get_ws_health(
-        self, *, freshness_seconds: float = 30.0
-    ) -> tuple[bool, datetime | None]:
+    def get_ws_health(self, *, freshness_seconds: float = 30.0) -> tuple[bool, datetime | None]:
         """Aggregate "is any printer's status fresh?" + the most-recent
         ``last_seen_at`` across all monitored printers.
 
@@ -488,9 +486,7 @@ class PrinterMonitor:
                 },
                 speed_mm_s=result.speed_mm_s if result.ok else prev.speed_mm_s,
                 flow_mm3_s=result.flow_mm3_s if result.ok else prev.flow_mm3_s,
-                filament_used_mm=(
-                    result.filament_used_mm if result.ok else prev.filament_used_mm
-                ),
+                filament_used_mm=(result.filament_used_mm if result.ok else prev.filament_used_mm),
                 current_layer=result.current_layer if result.ok else prev.current_layer,
                 total_layers=result.total_layers if result.ok else prev.total_layers,
                 last_seen_at=datetime.now(UTC) if result.ok else prev.last_seen_at,

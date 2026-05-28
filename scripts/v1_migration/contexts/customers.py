@@ -78,9 +78,7 @@ async def migrate(ctx: MigrationContext) -> MigrationResult:
 
         existing = (
             await ctx.v2_session.execute(
-                select(Customer).where(
-                    Customer.customer_number == mapped["customer_number"]
-                )
+                select(Customer).where(Customer.customer_number == mapped["customer_number"])
             )
         ).scalar_one_or_none()
         if existing is not None:
@@ -141,6 +139,4 @@ def _read_v1_customers(v1_session: Any) -> list[dict[str, Any]]:
     """
     if isinstance(v1_session, dict):
         return list(v1_session.get("customers") or [])
-    raise NotImplementedError(
-        "Wire _read_v1_customers to the real v1 connection at cutover."
-    )
+    raise NotImplementedError("Wire _read_v1_customers to the real v1 connection at cutover.")

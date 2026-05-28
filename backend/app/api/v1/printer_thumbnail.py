@@ -55,9 +55,7 @@ def _pick_largest_thumbnail(thumbnails: list[dict[str, Any]]) -> dict[str, Any] 
     return sized[0]
 
 
-async def _load_printer_or_404(
-    session: AsyncSession, printer_id: uuid.UUID
-) -> Printer:
+async def _load_printer_or_404(session: AsyncSession, printer_id: uuid.UUID) -> Printer:
     try:
         printer = await printers_service.get(session, printer_id)
     except printers_service.PrinterNotFoundError:
@@ -125,18 +123,15 @@ async def get_gcode_thumbnail(
             if "/" in target_filename:
                 gcode_dir = target_filename.rsplit("/", 1)[0] + "/"
             thumb_url = (
-                f"{moonraker_base}/server/files/gcodes/"
-                f"{gcode_dir}{chosen['relative_path']}"
+                f"{moonraker_base}/server/files/gcodes/" f"{gcode_dir}{chosen['relative_path']}"
             )
             thumb_resp = await client.get(thumb_url, headers=headers)
             thumb_resp.raise_for_status()
             body = thumb_resp.content
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001 — upstream is opaque
-        raise HTTPException(
-            status_code=502, detail=f"moonraker fetch failed: {exc}"
-        ) from None
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"moonraker fetch failed: {exc}") from None
 
     return Response(
         content=body,
@@ -169,10 +164,8 @@ async def list_gcode_files(
             )
             resp.raise_for_status()
             payload = resp.json().get("result") or []
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(
-            status_code=502, detail=f"moonraker fetch failed: {exc}"
-        ) from None
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"moonraker fetch failed: {exc}") from None
 
     items = [
         {
@@ -181,8 +174,7 @@ async def list_gcode_files(
             "modified": entry.get("modified"),
         }
         for entry in payload
-        if isinstance(entry, dict)
-        and (entry.get("path") or entry.get("filename"))
+        if isinstance(entry, dict) and (entry.get("path") or entry.get("filename"))
     ]
     # Newest first; Moonraker returns modified as a unix timestamp.
     items.sort(key=lambda r: r.get("modified") or 0, reverse=True)
@@ -215,8 +207,6 @@ async def get_gcode_metadata(
             )
             resp.raise_for_status()
             data = resp.json().get("result") or {}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(
-            status_code=502, detail=f"moonraker fetch failed: {exc}"
-        ) from None
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"moonraker fetch failed: {exc}") from None
     return data

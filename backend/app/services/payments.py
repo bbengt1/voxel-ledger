@@ -193,9 +193,7 @@ async def _resolve_undeposited_account(session: AsyncSession) -> uuid.UUID:
     ``MissingArPostingAccountError`` when unset — the caller asked
     for the undeposited workflow and we can't service it.
     """
-    raw = await SettingsService.get(
-        "ar.undeposited_funds_account_id", session=session
-    )
+    raw = await SettingsService.get("ar.undeposited_funds_account_id", session=session)
     if raw is None:
         raise MissingArPostingAccountError(
             "set 'ar.undeposited_funds_account_id' or omit "

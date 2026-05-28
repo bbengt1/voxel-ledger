@@ -219,25 +219,19 @@ async def build(
 
     # 4. Build per-section rows.
     column_ids = [c.division_id for c in columns]
-    report = DivisionsComparisonReport(
-        date_from=date_from, date_to=date_to, columns=columns
-    )
+    report = DivisionsComparisonReport(date_from=date_from, date_to=date_to, columns=columns)
     for col_id in column_ids:
         report.total_revenue[col_id] = _ZERO
         report.total_cogs[col_id] = _ZERO
         report.total_operating_expenses[col_id] = _ZERO
 
     for acct in accounts:
-        actual_type = (
-            acct.type.value if hasattr(acct.type, "value") else acct.type
-        )
+        actual_type = acct.type.value if hasattr(acct.type, "value") else acct.type
         bucket = per_acct.get(acct.id, {})
         amounts: dict[str, Decimal] = {}
         for col_id in column_ids:
             dr, cr = bucket.get(f"{col_id}__raw", (_ZERO, _ZERO))
-            amount = (
-                cr - dr if actual_type == AccountType.REVENUE.value else dr - cr
-            )
+            amount = cr - dr if actual_type == AccountType.REVENUE.value else dr - cr
             amounts[col_id] = _q(amount)
 
         if not any(v != _ZERO for v in amounts.values()):

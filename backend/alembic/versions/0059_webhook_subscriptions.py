@@ -125,9 +125,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_webhook_delivery_next_attempt", table_name="webhook_delivery")
-    op.drop_index(
-        "ix_webhook_delivery_subscription_status", table_name="webhook_delivery"
-    )
+    op.drop_index("ix_webhook_delivery_subscription_status", table_name="webhook_delivery")
     op.drop_table("webhook_delivery")
     op.drop_index("ix_webhook_subscription_active", table_name="webhook_subscription")
     op.drop_table("webhook_subscription")

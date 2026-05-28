@@ -124,20 +124,14 @@ async def emit_backfill_event(
 # ---------------------------------------------------------------------------
 
 
-async def check_preconditions(
-    *, v2_session: AsyncSession, allow_prod: bool = False
-) -> None:
+async def check_preconditions(*, v2_session: AsyncSession, allow_prod: bool = False) -> None:
     """Raise MigrationError if the target DB is unsuitable.
 
     Today's contract: v2 must be **empty** (no events). The
     ``--allow-prod`` flag is required to run against a non-localhost
     DSN (operator opt-in for the live cutover).
     """
-    count = int(
-        (
-            await v2_session.execute(select(func.count()).select_from(Event))
-        ).scalar_one()
-    )
+    count = int((await v2_session.execute(select(func.count()).select_from(Event))).scalar_one())
     if count > 0:
         raise MigrationError(
             f"v2 event log is not empty ({count} events). Migration is "
@@ -151,8 +145,7 @@ async def check_preconditions(
         host = bind.url.host or ""
         if host not in {"", "localhost", "127.0.0.1", "db"}:
             raise MigrationError(
-                f"refusing to run against non-local host {host!r} without "
-                "--allow-prod"
+                f"refusing to run against non-local host {host!r} without " "--allow-prod"
             )
 
 

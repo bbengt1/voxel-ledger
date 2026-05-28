@@ -45,9 +45,7 @@ async def test_customers_migrates_and_emits_backfill_event(
             },
         ]
     }
-    ctx = framework.MigrationContext(
-        v1_session=v1_payload, v2_session=app_session, dry_run=False
-    )
+    ctx = framework.MigrationContext(v1_session=v1_payload, v2_session=app_session, dry_run=False)
     result = await customers_ctx.migrate(ctx)
     await app_session.commit()
 
@@ -57,19 +55,19 @@ async def test_customers_migrates_and_emits_backfill_event(
     assert result.ok
 
     rows = (
-        await app_session.execute(
-            select(Customer).order_by(Customer.customer_number)
-        )
-    ).scalars().all()
+        (await app_session.execute(select(Customer).order_by(Customer.customer_number)))
+        .scalars()
+        .all()
+    )
     assert [c.customer_number for c in rows] == ["C-V1-1", "C-V1-2"]
     assert rows[0].payment_terms_days == 45
     assert rows[1].state == CustomerState.ARCHIVED
 
     events = (
-        await app_session.execute(
-            select(Event).where(Event.type == "ar.CustomerCreated")
-        )
-    ).scalars().all()
+        (await app_session.execute(select(Event).where(Event.type == "ar.CustomerCreated")))
+        .scalars()
+        .all()
+    )
     assert len(events) == 2
     assert all(e.schema_version == 0 for e in events)
     # occurred_at uses the v1 row timestamp when available.
@@ -81,9 +79,7 @@ async def test_customers_migrates_and_emits_backfill_event(
 @pytest.mark.asyncio
 async def test_customers_is_idempotent(client, app_session: AsyncSession) -> None:
     v1_payload = {"customers": [{"customer_number": "C-V1-IDEM", "display_name": "Same"}]}
-    ctx = framework.MigrationContext(
-        v1_session=v1_payload, v2_session=app_session, dry_run=False
-    )
+    ctx = framework.MigrationContext(v1_session=v1_payload, v2_session=app_session, dry_run=False)
     r1 = await customers_ctx.migrate(ctx)
     await app_session.commit()
     r2 = await customers_ctx.migrate(ctx)
@@ -93,10 +89,10 @@ async def test_customers_is_idempotent(client, app_session: AsyncSession) -> Non
     assert r2.rows_out == 0
     assert r2.rows_skipped == 1
     rows = (
-        await app_session.execute(
-            select(Customer).where(Customer.customer_number == "C-V1-IDEM")
-        )
-    ).scalars().all()
+        (await app_session.execute(select(Customer).where(Customer.customer_number == "C-V1-IDEM")))
+        .scalars()
+        .all()
+    )
     assert len(rows) == 1
 
 
@@ -133,22 +129,18 @@ async def test_dry_run_rolls_back(client, app_session: AsyncSession) -> None:
     # Roll the test session back so it sees a fresh transaction state.
     await app_session.rollback()
     rows = (
-        await app_session.execute(
-            select(Customer).where(Customer.customer_number == "C-DRY")
-        )
-    ).scalars().all()
+        (await app_session.execute(select(Customer).where(Customer.customer_number == "C-DRY")))
+        .scalars()
+        .all()
+    )
     assert rows == []
 
 
 @pytest.mark.asyncio
-async def test_preconditions_refuse_non_empty_event_log(
-    client, app_session: AsyncSession
-) -> None:
+async def test_preconditions_refuse_non_empty_event_log(client, app_session: AsyncSession) -> None:
     # Seed one event by running a real append.
     v1_payload = {"customers": [{"customer_number": "C-PRE", "display_name": "Pre"}]}
-    ctx = framework.MigrationContext(
-        v1_session=v1_payload, v2_session=app_session, dry_run=False
-    )
+    ctx = framework.MigrationContext(v1_session=v1_payload, v2_session=app_session, dry_run=False)
     await customers_ctx.migrate(ctx)
     await app_session.commit()
 
