@@ -18,7 +18,7 @@ permissions:
 jobs:
   backend:
     name: Backend (lint, type-check, test)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     timeout-minutes: 25
 
     # Ephemeral Postgres for integration tests that opt in via the
@@ -81,7 +81,7 @@ jobs:
 
   frontend:
     name: Frontend (lint, type-check, test, build)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     timeout-minutes: 15
 
     steps:
@@ -116,7 +116,7 @@ jobs:
 
   codegen-drift:
     name: Codegen drift (openapi.json + types.ts)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     needs: backend
     timeout-minutes: 10
 
@@ -167,7 +167,7 @@ jobs:
 
   pitr-drill:
     name: PITR drill (pg_dump round-trip + parity)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     timeout-minutes: 10
     needs: backend
 
@@ -226,7 +226,7 @@ jobs:
 
   pitr-drill-full:
     name: PITR drill (WAL-archive + base + replay, end-to-end)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     timeout-minutes: 10
     needs: backend
 
@@ -240,7 +240,7 @@ jobs:
 
   loadtests-smoke:
     name: Load tests (smoke, perf-budget enforcement)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     timeout-minutes: 15
     needs: backend
 
@@ -307,9 +307,12 @@ jobs:
 
       - name: Install k6
         run: |
-          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69 || true
+          # Install into a runner-writable path; no sudo needed (self-hosted
+          # runner does not have passwordless sudo).
+          mkdir -p "$RUNNER_TEMP/bin"
           curl -sL https://github.com/grafana/k6/releases/download/v0.54.0/k6-v0.54.0-linux-amd64.tar.gz \
-            | tar -xz --strip-components=1 -C /usr/local/bin k6-v0.54.0-linux-amd64/k6
+            | tar -xz --strip-components=1 -C "$RUNNER_TEMP/bin" k6-v0.54.0-linux-amd64/k6
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Run k6 budgets
         run: |
