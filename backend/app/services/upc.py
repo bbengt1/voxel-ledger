@@ -1,77 +1,107 @@
-"""UPC-A generator (#249-followup).
+"""Internal UPC-A generator.
 
-Mints a fresh 12-digit UPC-A code: 11 random digits + a mod-10 check
-digit. The allocator retries against the products table until it finds
-a value not already in use, so callers get a UPC that the partial
-unique index ``ux_product_upc_not_null`` will accept.
+Mints deterministic UPC-A codes in the company-internal namespace
+``04xxxxxxxxx`` + check digit (12 digits total). The allocator looks
+at the highest existing serial under the ``04`` prefix and assigns
+``max + 1`` — sequential, no randomness, no retry budget.
 
 The check digit follows the GS1 UPC-A algorithm:
-
-  - sum the digits in odd positions (1st, 3rd, ..., 11th) and multiply
-    by 3,
-  - add the digits in even positions (2nd, 4th, ..., 10th),
-  - the check digit is the smallest value that, added to the running
-    total, makes it a multiple of 10 — i.e. ``(10 - total % 10) % 10``.
+  - sum digits in odd positions (1st, 3rd, ..., 11th), multiply by 3,
+  - add digits in even positions (2nd, 4th, ..., 10th),
+  - check digit = ``(10 - total % 10) % 10``.
 """
 
 from __future__ import annotations
-
-import secrets
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product import Product
 
+INTERNAL_UPC_PREFIX = "04"
+_SERIAL_DIGITS = 9
+_MAX_SERIAL = (10**_SERIAL_DIGITS) - 1
+
 
 class UpcGenerationError(Exception):
-    """Raised when the allocator exhausts its retry budget without
-    finding an unused UPC. With ~10^11 candidate codes a collision in
-    the configured retries is essentially impossible — this is a
-    defence-in-depth signal, not an expected error."""
+    """Raised when the ``04``-prefixed serial space is exhausted."""
 
 
 def compute_check_digit(eleven_digits: str) -> str:
     """Return the GS1 UPC-A check digit for an 11-digit base."""
     if len(eleven_digits) != 11 or not eleven_digits.isdigit():
         raise ValueError("base must be exactly 11 digits")
-    odd_sum = sum(int(d) for d in eleven_digits[::2])  # positions 1,3,5,7,9,11
-    even_sum = sum(int(d) for d in eleven_digits[1::2])  # positions 2,4,6,8,10
+    odd_sum = sum(int(d) for d in eleven_digits[::2])
+    even_sum = sum(int(d) for d in eleven_digits[1::2])
     total = odd_sum * 3 + even_sum
     return str((10 - total % 10) % 10)
 
 
-def generate_upc_a() -> str:
-    """Return a single random UPC-A (12 digits, check-digit included)."""
-    base = "".join(str(secrets.randbelow(10)) for _ in range(11))
-    return base + compute_check_digit(base)
+def is_valid_upc_a(value: str) -> bool:
+    return (
+        len(value) == 12
+        and value.isdigit()
+        and compute_check_digit(value[:11]) == value[-1]
+    )
 
 
-async def _upc_in_use(session: AsyncSession, upc: str) -> bool:
-    stmt = select(Product.id).where(Product.upc == upc)
-    return (await session.execute(stmt)).scalar_one_or_none() is not None
+def build_internal_upc_a(serial: int) -> str:
+    """Build the UPC-A for a given serial under the internal prefix."""
+    if serial < 1 or serial > _MAX_SERIAL:
+        raise ValueError("internal UPC serial is outside the supported range")
+    first_eleven = f"{INTERNAL_UPC_PREFIX}{serial:0{_SERIAL_DIGITS}d}"
+    return first_eleven + compute_check_digit(first_eleven)
 
 
-async def allocate_unique_upc(session: AsyncSession, *, max_attempts: int = 10) -> str:
-    """Mint a UPC-A guaranteed not to collide with an existing product.
+def _serial_from_internal_upc(value: str | None) -> int | None:
+    if (
+        not value
+        or len(value) != 12
+        or not value.startswith(INTERNAL_UPC_PREFIX)
+        or not value.isdigit()
+    ):
+        return None
+    if not is_valid_upc_a(value):
+        return None
+    return int(value[len(INTERNAL_UPC_PREFIX):11])
 
-    Each candidate is checked against the products table; the retry
-    loop terminates on the first miss. ``max_attempts`` caps the loop
-    for safety — at 10^11 candidates a single retry is already
-    overwhelmingly likely to succeed.
+
+async def allocate_unique_upc(session: AsyncSession) -> str:
+    """Mint the next unused internal UPC-A.
+
+    Scans existing products whose UPC starts with ``04`` (including
+    archived ones, so reserved serials stay reserved), then issues
+    ``max(serial) + 1``. If a hand-assigned UPC has claimed that slot,
+    the next free serial is returned.
     """
-    for _ in range(max_attempts):
-        candidate = generate_upc_a()
-        if not await _upc_in_use(session, candidate):
+    result = await session.execute(
+        select(Product.upc).where(Product.upc.like(f"{INTERNAL_UPC_PREFIX}%"))
+    )
+    existing = {upc for upc in result.scalars().all() if upc}
+    max_serial = max(
+        (
+            serial
+            for serial in (_serial_from_internal_upc(upc) for upc in existing)
+            if serial is not None
+        ),
+        default=0,
+    )
+
+    for serial in range(max_serial + 1, _MAX_SERIAL + 1):
+        candidate = build_internal_upc_a(serial)
+        if candidate not in existing:
             return candidate
+
     raise UpcGenerationError(
-        f"could not allocate a unique UPC after {max_attempts} attempts"
+        "no internal UPC-A values remain in the 04 namespace"
     )
 
 
 __all__ = [
+    "INTERNAL_UPC_PREFIX",
     "UpcGenerationError",
     "allocate_unique_upc",
+    "build_internal_upc_a",
     "compute_check_digit",
-    "generate_upc_a",
+    "is_valid_upc_a",
 ]

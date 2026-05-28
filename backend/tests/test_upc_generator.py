@@ -1,4 +1,4 @@
-"""Tests for the UPC-A generator service + endpoint."""
+"""Tests for the internal UPC-A generator service + endpoint."""
 
 from __future__ import annotations
 
@@ -60,13 +60,27 @@ def test_check_digit_rejects_non_11_digit_input() -> None:
         upc_service.compute_check_digit("abcdefghijk")
 
 
-def test_generate_upc_a_returns_12_digits_with_valid_checksum() -> None:
-    for _ in range(50):
-        upc = upc_service.generate_upc_a()
-        assert len(upc) == 12
-        assert upc.isdigit()
-        # Recomputing the check digit on the first 11 must yield the 12th.
-        assert upc_service.compute_check_digit(upc[:11]) == upc[11]
+def test_build_internal_upc_a_format_and_checksum() -> None:
+    upc = upc_service.build_internal_upc_a(1)
+    assert upc.startswith(upc_service.INTERNAL_UPC_PREFIX)
+    assert len(upc) == 12
+    assert upc.isdigit()
+    assert upc[2:11] == "000000001"
+    assert upc_service.compute_check_digit(upc[:11]) == upc[11]
+
+
+def test_build_internal_upc_a_rejects_out_of_range() -> None:
+    with pytest.raises(ValueError):
+        upc_service.build_internal_upc_a(0)
+    with pytest.raises(ValueError):
+        upc_service.build_internal_upc_a(10**9)
+
+
+def test_is_valid_upc_a() -> None:
+    assert upc_service.is_valid_upc_a("036000291452")
+    assert not upc_service.is_valid_upc_a("036000291451")
+    assert not upc_service.is_valid_upc_a("12345")
+    assert not upc_service.is_valid_upc_a("abcdefghijkl")
 
 
 # ---------------------------------------------------------------------------
@@ -75,45 +89,51 @@ def test_generate_upc_a_returns_12_digits_with_valid_checksum() -> None:
 
 
 @pytest.mark.asyncio
-async def test_allocate_unique_upc_avoids_existing_value(
-    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+async def test_allocate_unique_upc_starts_at_serial_one(
+    session: AsyncSession,
 ) -> None:
-    """When the first candidate collides, the allocator retries."""
-    session.add(
-        Product(
-            sku="PROD-2026-0001",
-            upc="123456789012",
-            name="taken",
-            unit_price=Decimal("1.00"),
-        )
-    )
-    await session.commit()
-
-    candidates = iter(["123456789012", "999999999993"])
-    monkeypatch.setattr(upc_service, "generate_upc_a", lambda: next(candidates))
-
-    allocated = await upc_service.allocate_unique_upc(session)
-    assert allocated == "999999999993"
+    """Empty table → first issued serial is 1."""
+    upc = await upc_service.allocate_unique_upc(session)
+    assert upc == upc_service.build_internal_upc_a(1)
 
 
 @pytest.mark.asyncio
-async def test_allocate_unique_upc_raises_when_attempts_exhausted(
-    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+async def test_allocate_unique_upc_uses_max_plus_one(
+    session: AsyncSession,
 ) -> None:
+    """Existing 04-prefixed UPCs at serials 1 and 5 → next is 6 (MAX+1)."""
+    for serial in (1, 5):
+        session.add(
+            Product(
+                sku=f"PROD-{serial:04d}",
+                upc=upc_service.build_internal_upc_a(serial),
+                name=f"p{serial}",
+                unit_price=Decimal("1.00"),
+            )
+        )
+    await session.commit()
+
+    upc = await upc_service.allocate_unique_upc(session)
+    assert upc == upc_service.build_internal_upc_a(6)
+
+
+@pytest.mark.asyncio
+async def test_allocate_unique_upc_ignores_non_internal_upcs(
+    session: AsyncSession,
+) -> None:
+    """UPCs outside the 04 namespace must not affect the serial counter."""
     session.add(
         Product(
-            sku="PROD-2026-0001",
-            upc="111111111117",
-            name="taken",
+            sku="PROD-EXT",
+            upc="123456789012",
+            name="external",
             unit_price=Decimal("1.00"),
         )
     )
     await session.commit()
 
-    monkeypatch.setattr(upc_service, "generate_upc_a", lambda: "111111111117")
-
-    with pytest.raises(upc_service.UpcGenerationError):
-        await upc_service.allocate_unique_upc(session, max_attempts=3)
+    upc = await upc_service.allocate_unique_upc(session)
+    assert upc == upc_service.build_internal_upc_a(1)
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +142,7 @@ async def test_allocate_unique_upc_raises_when_attempts_exhausted(
 
 
 @pytest.mark.asyncio
-async def test_generate_upc_endpoint_returns_valid_upc(
+async def test_generate_upc_endpoint_returns_valid_internal_upc(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     token = await _token_for(Role.OWNER, client, app_session)
@@ -135,6 +155,7 @@ async def test_generate_upc_endpoint_returns_valid_upc(
     upc = payload["upc"]
     assert len(upc) == 12
     assert upc.isdigit()
+    assert upc.startswith(upc_service.INTERNAL_UPC_PREFIX)
     assert upc_service.compute_check_digit(upc[:11]) == upc[11]
 
 
