@@ -19,7 +19,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Index, Numeric, String, func, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Index, Integer, Numeric, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -42,6 +42,10 @@ class Supply(Base):
             sqlite_where=text("is_archived = 0"),
             postgresql_where=text("is_archived = false"),
         ),
+        CheckConstraint(
+            "pieces_per_unit IS NULL OR pieces_per_unit >= 1",
+            name="ck_supply_pieces_per_unit_positive",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -55,6 +59,11 @@ class Supply(Base):
     item_number: Mapped[str | None] = mapped_column(String(128), nullable=True)
     # Where this supply is reordered from (Amazon, eBay, Home Depot, …).
     place_of_purchase: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+    # Operator-supplied count of individual pieces inside each purchase
+    # unit (e.g. ``unit="box"``, ``pieces_per_unit=100`` for a box of
+    # 100). NULL = unspecified (fall back to "1 unit = 1 piece" in the UI).
+    pieces_per_unit: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Phase 3.3: low-stock alert threshold. NULL = no alert configured.
     low_stock_threshold: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)

@@ -13109,6 +13109,8 @@ export interface components {
             low_stock_threshold?: number | string | null;
             /** Name */
             name: string;
+            /** Pieces Per Unit */
+            pieces_per_unit?: number | null;
             /** Place Of Purchase */
             place_of_purchase?: string | null;
             /** Unit */
@@ -13153,6 +13155,8 @@ export interface components {
             per_location_on_hand?: {
                 [key: string]: string;
             };
+            /** Pieces Per Unit */
+            pieces_per_unit?: number | null;
             /** Place Of Purchase */
             place_of_purchase?: string | null;
             /**
@@ -13187,6 +13191,8 @@ export interface components {
             low_stock_threshold?: number | string | null;
             /** Name */
             name?: string | null;
+            /** Pieces Per Unit */
+            pieces_per_unit?: number | null;
             /** Place Of Purchase */
             place_of_purchase?: string | null;
             /** Unit */

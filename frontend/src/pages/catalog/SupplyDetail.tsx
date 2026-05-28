@@ -35,6 +35,7 @@ export function SupplyDetailPage() {
   const [vendor, setVendor] = useState("");
   const [itemNumber, setItemNumber] = useState("");
   const [placeOfPurchase, setPlaceOfPurchase] = useState("");
+  const [piecesPerUnit, setPiecesPerUnit] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -46,6 +47,9 @@ export function SupplyDetailPage() {
     setVendor(s.vendor ?? "");
     setItemNumber(s.item_number ?? "");
     setPlaceOfPurchase(s.place_of_purchase ?? "");
+    setPiecesPerUnit(
+      s.pieces_per_unit == null ? "" : String(s.pieces_per_unit),
+    );
   }
 
   useEffect(() => {
@@ -87,6 +91,17 @@ export function SupplyDetailPage() {
       body["vendor"] = vendor.trim() || null;
       body["item_number"] = itemNumber.trim() || null;
       body["place_of_purchase"] = placeOfPurchase.trim() || null;
+      if (piecesPerUnit.trim()) {
+        const n = Number.parseInt(piecesPerUnit.trim(), 10);
+        if (!Number.isFinite(n) || n < 1) {
+          setSaveMsg("Pieces per unit must be a whole number ≥ 1.");
+          setSaving(false);
+          return;
+        }
+        body["pieces_per_unit"] = n;
+      } else {
+        body["pieces_per_unit"] = null;
+      }
       const res = await apiClient.patch<SupplyResponse>(
         `/api/v1/supplies/${id}`,
         body,
@@ -151,6 +166,25 @@ export function SupplyDetailPage() {
             {supply.unit_cost}/{supply.unit}
           </span>
         </p>
+        {supply.pieces_per_unit ? (
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="pieces-per-unit-breakdown"
+          >
+            1 {supply.unit} = {supply.pieces_per_unit} piece
+            {supply.pieces_per_unit === 1 ? "" : "s"} ·{" "}
+            {Math.trunc(Number(supply.total_on_hand))} {supply.unit}
+            {" "}on hand ({Math.trunc(Number(supply.total_on_hand)) *
+              supply.pieces_per_unit}{" "}
+            piece
+            {Math.trunc(Number(supply.total_on_hand)) *
+              supply.pieces_per_unit ===
+            1
+              ? ""
+              : "s"}
+            )
+          </p>
+        ) : null}
       </header>
 
       <OnHandSection
@@ -215,6 +249,31 @@ export function SupplyDetailPage() {
               placeholder="Vendor SKU, ASIN, etc."
               data-testid="item-number-input"
             />
+          </label>
+          <label className="block text-sm">
+            Pieces per unit (optional)
+            <Input
+              className="mt-1"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min={1}
+              step={1}
+              value={piecesPerUnit}
+              onChange={(e) =>
+                setPiecesPerUnit(e.target.value.replace(/[^0-9]/g, ""))
+              }
+              placeholder="e.g. 100"
+              data-testid="pieces-per-unit-input"
+            />
+            {piecesPerUnit.trim() && unit.trim() ? (
+              <p
+                className="mt-1 text-xs text-muted-foreground"
+                data-testid="pieces-per-unit-preview"
+              >
+                1 {unit.trim()} = {piecesPerUnit.trim()} piece
+                {piecesPerUnit.trim() === "1" ? "" : "s"}
+              </p>
+            ) : null}
           </label>
           <label className="block text-sm">
             Place of purchase

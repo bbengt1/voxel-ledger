@@ -79,6 +79,7 @@ class SupplyCreatedPayload(_CatalogPayloadBase):
     unit: str
     unit_cost: str  # Decimal serialized as canonical string
     vendor: str | None = None
+    pieces_per_unit: int | None = None
 
 
 class SupplyUpdatedPayload(_CatalogPayloadBase):

@@ -102,6 +102,13 @@ export function OnHandSection({
     return m;
   }, [locations]);
 
+  const isWholeUnit = entityKind === "supply";
+
+  function formatQty(qty: string | number): string {
+    if (isWholeUnit) return String(Math.trunc(Number(qty)));
+    return String(qty);
+  }
+
   const rows = useMemo(() => {
     const entries = Object.entries(perLocationOnHand ?? {});
     return entries
@@ -150,7 +157,7 @@ export function OnHandSection({
         <div>
           <h2 className="text-sm font-semibold">On hand</h2>
           <p className="text-2xl font-semibold" data-testid="on-hand-total">
-            {totalOnHand} {unit}
+            {formatQty(totalOnHand)} {unit}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -220,7 +227,7 @@ export function OnHandSection({
               <tr key={r.id} className="border-b border-border/50">
                 <td className="py-1 pr-2">{r.name}</td>
                 <td className="py-1 pr-2 text-right tabular-nums">
-                  {r.qty} {unit}
+                  {formatQty(r.qty)} {unit}
                 </td>
               </tr>
             ))}

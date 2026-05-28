@@ -18,6 +18,7 @@ export function SupplyCreatePage() {
   const [vendor, setVendor] = useState("");
   const [itemNumber, setItemNumber] = useState("");
   const [placeOfPurchase, setPlaceOfPurchase] = useState("");
+  const [piecesPerUnit, setPiecesPerUnit] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +38,15 @@ export function SupplyCreatePage() {
       if (itemNumber.trim()) body["item_number"] = itemNumber.trim();
       if (placeOfPurchase.trim())
         body["place_of_purchase"] = placeOfPurchase.trim();
+      if (piecesPerUnit.trim()) {
+        const n = Number.parseInt(piecesPerUnit.trim(), 10);
+        if (!Number.isFinite(n) || n < 1) {
+          setError("Pieces per unit must be a whole number ≥ 1.");
+          setSubmitting(false);
+          return;
+        }
+        body["pieces_per_unit"] = n;
+      }
       if (lowStockThreshold.trim())
         body["low_stock_threshold"] = lowStockThreshold.trim();
       const res = await apiClient.post<SupplyResponse>(
@@ -119,6 +129,29 @@ export function SupplyCreatePage() {
               <option key={p} value={p} />
             ))}
           </datalist>
+        </label>
+        <label className="block text-sm">
+          Pieces per unit (optional)
+          <Input
+            className="mt-1"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            min={1}
+            step={1}
+            value={piecesPerUnit}
+            onChange={(e) => setPiecesPerUnit(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="e.g. 100"
+            data-testid="pieces-per-unit-input"
+          />
+          {piecesPerUnit.trim() && unit.trim() ? (
+            <p
+              className="mt-1 text-xs text-muted-foreground"
+              data-testid="pieces-per-unit-preview"
+            >
+              1 {unit.trim()} = {piecesPerUnit.trim()} piece
+              {piecesPerUnit.trim() === "1" ? "" : "s"}
+            </p>
+          ) : null}
         </label>
         <label className="block text-sm">
           Low-stock threshold (optional)

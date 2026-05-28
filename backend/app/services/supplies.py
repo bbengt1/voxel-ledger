@@ -132,6 +132,7 @@ async def create(
     actor_user_id: uuid.UUID | None,
     item_number: str | None = None,
     place_of_purchase: str | None = None,
+    pieces_per_unit: int | None = None,
     low_stock_threshold: Decimal | None = None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Supply:
@@ -153,6 +154,9 @@ async def create(
 
     normalized_cf = await cf_service.validate_payload("supply", custom_fields, session=session)
 
+    if pieces_per_unit is not None and pieces_per_unit < 1:
+        raise SuppliesServiceError("pieces_per_unit must be >= 1")
+
     supply = Supply(
         name=name,
         unit=unit,
@@ -160,6 +164,7 @@ async def create(
         vendor=vendor_norm,
         item_number=item_number_norm,
         place_of_purchase=place_norm,
+        pieces_per_unit=pieces_per_unit,
         low_stock_threshold=low_stock_threshold,
         is_archived=False,
         custom_fields=normalized_cf,
@@ -177,6 +182,7 @@ async def create(
             "unit": supply.unit,
             "unit_cost": str(supply.unit_cost),
             "vendor": supply.vendor,
+            "pieces_per_unit": supply.pieces_per_unit,
         },
         actor_user_id=actor_user_id,
     )
@@ -198,6 +204,7 @@ _EDITABLE_FIELDS = (
     "vendor",
     "item_number",
     "place_of_purchase",
+    "pieces_per_unit",
     "low_stock_threshold",
 )
 

@@ -130,6 +130,7 @@ export function SuppliesListPage() {
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Name</th>
             <th className="py-2 pr-2">Unit</th>
+            <th className="py-2 pr-2">Pieces / unit</th>
             <th className="py-2 pr-2">Unit cost</th>
             <th className="py-2 pr-2">Vendor</th>
             <th className="py-2 pr-2">On hand</th>
@@ -139,13 +140,13 @@ export function SuppliesListPage() {
         <tbody>
           {loading && items.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+              <td colSpan={7} className="py-4 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : items.length === 0 ? (
             <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
+              <td colSpan={7} className="py-4 text-center text-muted-foreground">
                 No supplies match the current filters.
               </td>
             </tr>
@@ -161,9 +162,19 @@ export function SuppliesListPage() {
                   </Link>
                 </td>
                 <td className="py-2 pr-2">{s.unit}</td>
+                <td className="py-2 pr-2" data-testid="pieces-per-unit-cell">
+                  {s.pieces_per_unit ?? "—"}
+                </td>
                 <td className="py-2 pr-2">{s.unit_cost}</td>
                 <td className="py-2 pr-2">{s.vendor ?? "—"}</td>
-                <td className="py-2 pr-2">{s.total_on_hand}</td>
+                <td className="py-2 pr-2" data-testid="on-hand-cell">
+                  {Math.trunc(Number(s.total_on_hand))} {s.unit}
+                  {s.pieces_per_unit
+                    ? ` (${
+                        Math.trunc(Number(s.total_on_hand)) * s.pieces_per_unit
+                      } pieces)`
+                    : ""}
+                </td>
                 <td className="py-2 pr-2">
                   {s.is_archived ? "Archived" : "Active"}
                 </td>
