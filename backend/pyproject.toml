@@ -49,10 +49,13 @@ include = ["app*"]
 # running it from the host venv. Keep both copies in sync.
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q"
+# Benchmark tests are hardware-sensitive (an informative budget on one
+# host trips up another). Default to skipping them; opt in with
+# `pytest -m benchmark` when you actually want to measure perf.
+addopts = "-ra -q -m 'not benchmark'"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "integration: requires a real Postgres (testcontainers or a running compose stack)",
-    "benchmark: smoke-level perf check; informational only",
+    "benchmark: smoke-level perf check; informational only — opt in via `pytest -m benchmark`",
 ]

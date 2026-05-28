@@ -44,7 +44,12 @@ exclude = ["print-sales-v2", "frontend", "ops", "docs"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q"
+# `-m "not benchmark"` enforces the marker contract documented below:
+# perf-smoke tests are opt-in via `pytest -m benchmark`. They're
+# hardware-sensitive (a tight budget is informative on dev laptops but
+# trips up slower CI runners) and rarely the right thing to gate routine
+# pushes on.
+addopts = "-ra -q -m 'not benchmark'"
 testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 markers = [
