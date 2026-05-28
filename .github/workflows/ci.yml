@@ -54,7 +54,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Set up Python (self-hosted: system python3.12 via venv)
+      - name: Set up Python (self-hosted; system python3.12 in venv)
         shell: bash
         run: |
           python3.12 -m venv "$RUNNER_TEMP/venv"
@@ -130,7 +130,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Set up Python (self-hosted: system python3.12 via venv)
+      - name: Set up Python (self-hosted; system python3.12 in venv)
         shell: bash
         run: |
           python3.12 -m venv "$RUNNER_TEMP/venv"
@@ -196,7 +196,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Set up Python (self-hosted: system python3.12 via venv)
+      - name: Set up Python (self-hosted; system python3.12 in venv)
         shell: bash
         run: |
           python3.12 -m venv "$RUNNER_TEMP/venv"
@@ -269,7 +269,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      - name: Set up Python (self-hosted: system python3.12 via venv)
+      - name: Set up Python (self-hosted; system python3.12 in venv)
         shell: bash
         run: |
           python3.12 -m venv "$RUNNER_TEMP/venv"
