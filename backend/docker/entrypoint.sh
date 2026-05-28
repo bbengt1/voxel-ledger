@@ -15,5 +15,17 @@ else
     alembic upgrade head
 fi
 
+# Idempotent: app.seed.owner is a no-op if the user table is non-empty.
+# Only runs when OWNER_EMAIL and OWNER_PASSWORD are set; SKIP_SEED_OWNER=1
+# is an escape hatch for unusual recovery scenarios.
+if [ "${SKIP_SEED_OWNER:-0}" = "1" ]; then
+    echo "[entrypoint] SKIP_SEED_OWNER=1 — skipping owner seed"
+elif [ -n "${OWNER_EMAIL:-}" ] && [ -n "${OWNER_PASSWORD:-}" ]; then
+    echo "[entrypoint] running owner seed (idempotent)"
+    python -m app.seed.owner
+else
+    echo "[entrypoint] OWNER_EMAIL/OWNER_PASSWORD not set; skipping owner seed"
+fi
+
 echo "[entrypoint] launching: $*"
 exec "$@"

@@ -1,7 +1,8 @@
-"""scripts.seed_owner — idempotent owner bootstrap.
+"""app.seed.owner — idempotent owner bootstrap.
 
 Uses a file-backed SQLite so the schema survives the engine.dispose() the
-seed script performs in its finally block.
+seed script performs in its finally block. The repo-root shim at
+`scripts/seed_owner.py` re-exports the same `seed()` function for dev/CI.
 """
 
 from __future__ import annotations
@@ -40,9 +41,9 @@ async def test_seed_creates_owner_on_empty_table(
     tmp_path: Path,
 ) -> None:
     settings = await _setup(tmp_path)
-    monkeypatch.setattr("scripts.seed_owner.load_settings", lambda: settings)
+    monkeypatch.setattr("app.seed.owner.load_settings", lambda: settings)
 
-    from scripts.seed_owner import seed
+    from app.seed.owner import seed
 
     rc = await seed()
     assert rc == 0
@@ -85,8 +86,8 @@ async def test_seed_is_noop_on_populated_table(
     finally:
         await engine.dispose()
 
-    monkeypatch.setattr("scripts.seed_owner.load_settings", lambda: settings)
-    from scripts.seed_owner import seed
+    monkeypatch.setattr("app.seed.owner.load_settings", lambda: settings)
+    from app.seed.owner import seed
 
     rc = await seed()
     assert rc == 0
