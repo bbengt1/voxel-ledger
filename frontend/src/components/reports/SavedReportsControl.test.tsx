@@ -95,6 +95,12 @@ describe("<SavedReportsControl />", () => {
     const select = (await screen.findByTestId(
       "saved-reports-select",
     )) as HTMLSelectElement;
+    // findByTestId resolves on element existence; presets load in a
+    // useEffect after first render, so wait for the option itself before
+    // selecting. (Race only surfaces on slower runners.)
+    await waitFor(() =>
+      expect(select.querySelector('option[value="p-1"]')).not.toBeNull(),
+    );
     await user.selectOptions(select, "p-1");
     await waitFor(() => expect(onLoad).toHaveBeenCalled());
     expect(onLoad.mock.calls[0]![0]).toEqual({

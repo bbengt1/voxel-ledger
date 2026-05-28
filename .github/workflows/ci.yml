@@ -20,7 +20,7 @@ jobs:
   backend:
     name: Backend (lint, type-check, test)
     runs-on: [self-hosted, linux, docker]
-    timeout-minutes: 25
+    timeout-minutes: 60
 
     # Ephemeral Postgres for integration tests that opt in via the
     # `integration` pytest marker. Unit tests use in-memory SQLite by
@@ -81,7 +81,7 @@ jobs:
   frontend:
     name: Frontend (lint, type-check, test, build)
     runs-on: [self-hosted, linux, docker]
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -117,7 +117,7 @@ jobs:
     name: Codegen drift (openapi.json + types.ts)
     runs-on: [self-hosted, linux, docker]
     needs: backend
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     # The backend export script reads these for settings validation.
     env:
@@ -165,7 +165,7 @@ jobs:
   pitr-drill:
     name: PITR drill (pg_dump round-trip + parity)
     runs-on: [self-hosted, linux, docker]
-    timeout-minutes: 10
+    timeout-minutes: 25
     needs: backend
 
     services:
@@ -222,7 +222,7 @@ jobs:
   pitr-drill-full:
     name: PITR drill (WAL-archive + base + replay, end-to-end)
     runs-on: [self-hosted, linux, docker]
-    timeout-minutes: 10
+    timeout-minutes: 25
     needs: backend
 
     steps:
@@ -236,7 +236,7 @@ jobs:
   loadtests-smoke:
     name: Load tests (smoke, perf-budget enforcement)
     runs-on: [self-hosted, linux, docker]
-    timeout-minutes: 15
+    timeout-minutes: 30
     needs: backend
 
     services:
