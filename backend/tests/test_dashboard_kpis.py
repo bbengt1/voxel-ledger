@@ -185,7 +185,10 @@ async def test_aggregates_all_tiles(client: AsyncClient, app_session: AsyncSessi
     assert kpis.low_stock_alert_count == 0
     assert kpis.net_income_mtd == Decimal("100.00")
     assert kpis.net_income_ytd == Decimal("100.00")
-    assert kpis.as_of == date.today()
+    # Production builds `as_of` from `datetime.now(UTC).date()` — compare
+    # against the same source, not local `date.today()`, or this silently
+    # fails near midnight UTC when local and UTC are on different days.
+    assert kpis.as_of == datetime.now(UTC).date()
 
 
 @pytest.mark.asyncio
