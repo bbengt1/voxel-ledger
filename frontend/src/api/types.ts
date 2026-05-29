@@ -10398,10 +10398,20 @@ export interface components {
             material_type: string;
             /** Name */
             name: string;
+            /** Spool Weight Grams */
+            spool_weight_grams: number | string;
         };
         /**
          * MaterialDetailResponse
          * @description Material + the most recent 10 receipts (newest first).
+         *
+         *     ``weighted_avg_cost_per_gram`` mirrors ``current_cost_per_gram``
+         *     (already a running weighted average maintained by the
+         *     ``material_cost`` projection from the receipt stream). v1 caveat:
+         *     this is the all-time receipts weighted average, not a true
+         *     moving-average that re-baselines on consumption — fine for a small
+         *     catalog where receipts dominate inventory turnover.
+         *     ``on_hand_value = total_on_hand * weighted_avg_cost_per_gram``.
          */
         MaterialDetailResponse: {
             /** Brand */
@@ -10434,22 +10444,25 @@ export interface components {
             material_type: string;
             /** Name */
             name: string;
+            /** On Hand Value */
+            on_hand_value?: string;
             /** Per Location On Hand */
             per_location_on_hand?: {
                 [key: string]: string;
             };
             /** Recent Receipts */
             recent_receipts?: components["schemas"]["MaterialReceiptResponse"][];
-            /**
-             * Total On Hand
-             * @default 0
-             */
-            total_on_hand: string;
+            /** Spool Weight Grams */
+            spool_weight_grams: string;
+            /** Total On Hand */
+            total_on_hand?: string;
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
+            /** Weighted Avg Cost Per Gram */
+            weighted_avg_cost_per_gram?: string;
         };
         /** MaterialListResponse */
         MaterialListResponse: {
@@ -10458,16 +10471,34 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
-        /** MaterialReceiptCreateRequest */
+        /**
+         * MaterialReceiptCreateRequest
+         * @description Spool-centric receipt entry (#11).
+         *
+         *     The operator records purchased material as a whole number of spools
+         *     plus an optional partial-spool ``extra_grams`` measurement and a
+         *     ``price_per_spool``. The service derives total grams and total cost
+         *     from these fields and the parent material's ``spool_weight_grams``.
+         *
+         *     Cross-field rules:
+         *     - ``spools + extra_grams > 0`` (a zero-quantity receipt is a no-op).
+         *     - ``extra_grams < spool_weight_grams`` (an "extra" can't exceed one
+         *       full spool; that case should be recorded as another whole spool).
+         */
         MaterialReceiptCreateRequest: {
-            /** Grams */
-            grams: number | string;
+            /**
+             * Extra Grams
+             * @default 0
+             */
+            extra_grams: number | string;
             /** Notes */
             notes?: string | null;
+            /** Price Per Spool */
+            price_per_spool: number | string;
             /** Reference */
             reference?: string | null;
-            /** Total Cost */
-            total_cost: number | string;
+            /** Spools */
+            spools: number;
             /** Vendor */
             vendor?: string | null;
         };
@@ -10544,11 +10575,10 @@ export interface components {
             per_location_on_hand?: {
                 [key: string]: string;
             };
-            /**
-             * Total On Hand
-             * @default 0
-             */
-            total_on_hand: string;
+            /** Spool Weight Grams */
+            spool_weight_grams: string;
+            /** Total On Hand */
+            total_on_hand?: string;
             /**
              * Updated At
              * Format: date-time
@@ -10576,6 +10606,8 @@ export interface components {
             material_type?: string | null;
             /** Name */
             name?: string | null;
+            /** Spool Weight Grams */
+            spool_weight_grams?: number | string | null;
         };
         /** MeResponse */
         MeResponse: {

@@ -39,6 +39,7 @@ export function MaterialDetailPage() {
   const [materialType, setMaterialType] = useState("");
   const [color, setColor] = useState("");
   const [density, setDensity] = useState("");
+  const [spoolWeight, setSpoolWeight] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function MaterialDetailPage() {
     setMaterialType(m.material_type);
     setColor(m.color ?? "");
     setDensity(m.density_g_per_cm3 ?? "");
+    setSpoolWeight(m.spool_weight_grams ?? "");
   }
 
   useEffect(() => {
@@ -90,6 +92,9 @@ export function MaterialDetailPage() {
       body["brand"] = brand.trim() || null;
       body["color"] = color.trim() || null;
       body["density_g_per_cm3"] = density.trim() || null;
+      if (spoolWeight.trim()) {
+        body["spool_weight_grams"] = spoolWeight.trim();
+      }
       const res = await apiClient.patch<MaterialResponse>(
         `/api/v1/materials/${id}`,
         body,
@@ -171,16 +176,31 @@ export function MaterialDetailPage() {
         <p className="text-sm text-muted-foreground">
           {material.is_archived ? "Archived" : "Active"} ·{" "}
           <span data-testid="cost-per-gram">
-            Cost {material.current_cost_per_gram}/g
+            Weighted-avg cost ${material.weighted_avg_cost_per_gram ?? "0.00"}/g
+          </span>{" "}
+          ·{" "}
+          <span data-testid="on-hand-value">
+            On-hand value ${material.on_hand_value ?? "0.00"}
           </span>
         </p>
       </header>
+
+      {Number(material.spool_weight_grams ?? "0") <= 0 ? (
+        <div
+          role="alert"
+          data-testid="spool-weight-banner"
+          className="rounded border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          This material has no spool weight set. Set a spool weight below
+          before recording any receipts.
+        </div>
+      ) : null}
 
       <OnHandSection
         entityKind="material"
         entityId={material.id}
         entityName={material.name}
-        totalOnHand={material.total_on_hand}
+        totalOnHand={material.total_on_hand ?? "0.00"}
         perLocationOnHand={material.per_location_on_hand ?? null}
         unit="g"
         lowStockThreshold={material.low_stock_threshold_grams ?? null}
@@ -244,6 +264,20 @@ export function MaterialDetailPage() {
               onChange={(e) => setDensity(e.target.value)}
             />
           </label>
+          <label className="block text-sm">
+            Spool weight (g)
+            <Input
+              className="mt-1"
+              inputMode="decimal"
+              value={spoolWeight}
+              onChange={(e) => setSpoolWeight(e.target.value)}
+              data-testid="spool-weight-input"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Required before recording receipts. Used to convert spool counts
+              to grams.
+            </span>
+          </label>
           <div className="flex gap-2">
             <Button onClick={save} disabled={saving} data-testid="save-btn">
               {saving ? "Saving…" : "Save"}
@@ -269,6 +303,7 @@ export function MaterialDetailPage() {
           <Button
             onClick={() => setReceiptOpen(true)}
             data-testid="open-receipt-modal"
+            disabled={Number(material.spool_weight_grams ?? "0") <= 0}
           >
             Record receipt
           </Button>
@@ -331,6 +366,7 @@ export function MaterialDetailPage() {
       <ReceiptModal
         open={receiptOpen}
         materialId={id ?? ""}
+        spoolWeightGrams={Number(material.spool_weight_grams ?? "0")}
         onClose={() => setReceiptOpen(false)}
         onRecorded={onReceiptRecorded}
       />

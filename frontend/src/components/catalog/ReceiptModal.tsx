@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
@@ -16,13 +16,26 @@ type MaterialResponse = components["schemas"]["MaterialResponse"];
 interface Props {
   open: boolean;
   materialId: string;
+  spoolWeightGrams: number;
   onClose: () => void;
   onRecorded: (updated: MaterialResponse) => void;
 }
 
-export function ReceiptModal({ open, materialId, onClose, onRecorded }: Props) {
-  const [grams, setGrams] = useState("");
-  const [totalCost, setTotalCost] = useState("");
+function round2(value: number): string {
+  if (!Number.isFinite(value)) return "0.00";
+  return value.toFixed(2);
+}
+
+export function ReceiptModal({
+  open,
+  materialId,
+  spoolWeightGrams,
+  onClose,
+  onRecorded,
+}: Props) {
+  const [spools, setSpools] = useState("");
+  const [extraGrams, setExtraGrams] = useState("");
+  const [pricePerSpool, setPricePerSpool] = useState("");
   const [vendor, setVendor] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -30,22 +43,41 @@ export function ReceiptModal({ open, materialId, onClose, onRecorded }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
-    setGrams("");
-    setTotalCost("");
+    setSpools("");
+    setExtraGrams("");
+    setPricePerSpool("");
     setVendor("");
     setReference("");
     setNotes("");
     setError(null);
   }
 
+  const preview = useMemo(() => {
+    const s = Math.trunc(Number(spools) || 0);
+    const extra = Number(extraGrams) || 0;
+    const price = Number(pricePerSpool) || 0;
+    if (spoolWeightGrams <= 0) return null;
+    const grams = s * spoolWeightGrams + extra;
+    const totalCost = price * (s + extra / spoolWeightGrams);
+    if (grams <= 0) return null;
+    return { grams, totalCost };
+  }, [spools, extraGrams, pricePerSpool, spoolWeightGrams]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
+      const s = Math.trunc(Number(spools) || 0);
+      if (s < 0 || !Number.isInteger(s)) {
+        setError("Spools must be a non-negative whole number.");
+        setSubmitting(false);
+        return;
+      }
       const body: Record<string, unknown> = {
-        grams: grams.trim(),
-        total_cost: totalCost.trim(),
+        spools: s,
+        extra_grams: extraGrams.trim() || "0",
+        price_per_spool: pricePerSpool.trim() || "0",
       };
       if (vendor.trim()) body["vendor"] = vendor.trim();
       if (reference.trim()) body["reference"] = reference.trim();
@@ -80,32 +112,57 @@ export function ReceiptModal({ open, materialId, onClose, onRecorded }: Props) {
       <DialogContent>
         <DialogTitle>Record receipt</DialogTitle>
         <DialogDescription>
-          Adds grams to inventory and updates the running weighted-average
-          cost per gram.
+          Enter the number of spools (whole), any extra grams measured from a
+          partial spool, and the price per spool. Adds to inventory and
+          updates the running weighted-average cost per gram.
         </DialogDescription>
         <form className="mt-4 space-y-3" onSubmit={onSubmit}>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              Spools
+              <Input
+                className="mt-1"
+                inputMode="numeric"
+                value={spools}
+                onChange={(e) => setSpools(e.target.value)}
+                required
+                data-testid="receipt-spools"
+              />
+            </label>
+            <label className="block text-sm">
+              Extra grams (optional)
+              <Input
+                className="mt-1"
+                inputMode="decimal"
+                value={extraGrams}
+                onChange={(e) => setExtraGrams(e.target.value)}
+                data-testid="receipt-extra-grams"
+              />
+            </label>
+          </div>
           <label className="block text-sm">
-            Grams
+            Price per spool ($)
             <Input
               className="mt-1"
               inputMode="decimal"
-              value={grams}
-              onChange={(e) => setGrams(e.target.value)}
+              value={pricePerSpool}
+              onChange={(e) => setPricePerSpool(e.target.value)}
               required
-              data-testid="receipt-grams"
+              data-testid="receipt-price-per-spool"
             />
           </label>
-          <label className="block text-sm">
-            Total cost
-            <Input
-              className="mt-1"
-              inputMode="decimal"
-              value={totalCost}
-              onChange={(e) => setTotalCost(e.target.value)}
-              required
-              data-testid="receipt-total-cost"
-            />
-          </label>
+          {preview ? (
+            <p className="text-xs text-muted-foreground" data-testid="receipt-preview">
+              Total:{" "}
+              <span className="font-medium tabular-nums">
+                {round2(preview.grams)} g
+              </span>{" "}
+              @ ${round2(Number(pricePerSpool) || 0)}/spool →{" "}
+              <span className="font-medium tabular-nums">
+                ${round2(preview.totalCost)}
+              </span>
+            </p>
+          ) : null}
           <label className="block text-sm">
             Vendor
             <Input

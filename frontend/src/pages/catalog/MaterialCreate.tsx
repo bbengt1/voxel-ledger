@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/Input";
 import { useMaterialTypes } from "@/lib/materialTypes";
 
 type MaterialResponse = components["schemas"]["MaterialResponse"];
-type InventoryLocationResponse =
-  components["schemas"]["InventoryLocationResponse"];
 
 export function MaterialCreatePage() {
   const navigate = useNavigate();
@@ -27,32 +25,10 @@ export function MaterialCreatePage() {
   // Initial-stock helper: total grams = spools × weight/spool.
   const [spools, setSpools] = useState("");
   const [weightPerSpool, setWeightPerSpool] = useState("");
-  const [stockLocationId, setStockLocationId] = useState("");
-  const [locations, setLocations] = useState<InventoryLocationResponse[]>([]);
-
   const materialTypes = useMaterialTypes();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiClient
-      .get<{ items: InventoryLocationResponse[] }>(
-        "/api/v1/inventory/locations",
-        { params: { is_archived: "false" } },
-      )
-      .then((res) => {
-        if (cancelled) return;
-        setLocations(res.data.items);
-      })
-      .catch(() => {
-        if (!cancelled) setLocations([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const totalGrams = useMemo(() => {
     const s = Number(spools);
@@ -67,9 +43,16 @@ export function MaterialCreatePage() {
     setSubmitting(true);
     setError(null);
     try {
+      const spoolWeightNum = Number(weightPerSpool);
+      if (!Number.isFinite(spoolWeightNum) || spoolWeightNum <= 0) {
+        setError("Spool weight (g) is required and must be greater than zero.");
+        setSubmitting(false);
+        return;
+      }
       const body: Record<string, unknown> = {
         name,
         material_type: materialType,
+        spool_weight_grams: weightPerSpool,
       };
       if (brand.trim()) body["brand"] = brand.trim();
       if (color.trim()) body["color"] = color.trim();
@@ -80,19 +63,17 @@ export function MaterialCreatePage() {
       );
       const materialId = res.data.id;
 
-      // Optional initial-stock receipt. Only fired when the operator
-      // entered spools + weight/spool + location. A failure here doesn't
-      // unwind the material — we navigate anyway and show the error so
-      // they can record the receipt manually from the detail page.
-      if (totalGrams !== null && stockLocationId) {
+      // Optional initial-stock receipt as a spool-centric receipt. Only
+      // fired when the operator entered a spool count (location is
+      // resolved server-side from the default receiving setting).
+      const spoolsNum = Number(spools);
+      if (Number.isFinite(spoolsNum) && spoolsNum > 0) {
         try {
-          await apiClient.post("/api/v1/inventory/transactions", {
-            kind: "receipt",
-            entity_kind: "material",
-            entity_id: materialId,
-            location_id: stockLocationId,
-            quantity: totalGrams.toString(),
-            reason: `Initial stock: ${spools} spool(s) × ${weightPerSpool} g`,
+          await apiClient.post(`/api/v1/materials/${materialId}/receipts`, {
+            spools: Math.trunc(spoolsNum),
+            extra_grams: "0",
+            price_per_spool: "0",
+            reference: "Initial stock",
           });
         } catch (recvErr: unknown) {
           const detail =
@@ -209,16 +190,31 @@ export function MaterialCreatePage() {
             onChange={(e) => setDensity(e.target.value)}
           />
         </label>
+        <label className="block text-sm">
+          Spool weight (g)
+          <Input
+            className="mt-1"
+            inputMode="decimal"
+            value={weightPerSpool}
+            onChange={(e) => setWeightPerSpool(e.target.value)}
+            required
+            data-testid="weight-per-spool-input"
+          />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            Every receipt is recorded as a number of spools at this weight.
+          </span>
+        </label>
 
         <fieldset className="rounded border border-border p-3">
           <legend className="px-1 text-xs uppercase text-muted-foreground">
             Initial stock (optional)
           </legend>
           <p className="text-xs text-muted-foreground">
-            If you have stock on hand, enter spool counts to post an opening
-            receipt automatically.
+            If you already have stock on hand, enter the spool count to post
+            an opening receipt automatically. Price defaults to $0 — record a
+            priced receipt from the detail page if needed.
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-1 gap-3">
             <label className="block text-sm">
               Number of spools
               <Input
@@ -229,43 +225,13 @@ export function MaterialCreatePage() {
                 data-testid="spools-input"
               />
             </label>
-            <label className="block text-sm">
-              Weight per spool (g)
-              <Input
-                className="mt-1"
-                inputMode="decimal"
-                value={weightPerSpool}
-                onChange={(e) => setWeightPerSpool(e.target.value)}
-                data-testid="weight-per-spool-input"
-              />
-            </label>
           </div>
-          <label className="mt-3 block text-sm">
-            Receiving location
-            <select
-              className="mt-1 block w-full rounded border border-input bg-background px-2 py-1 text-sm"
-              value={stockLocationId}
-              onChange={(e) => setStockLocationId(e.target.value)}
-              data-testid="stock-location"
-            >
-              <option value="">Select a location…</option>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </label>
           {totalGrams !== null ? (
             <p className="mt-2 text-xs" data-testid="total-grams-preview">
               <span className="text-muted-foreground">Total: </span>
-              <span className="font-medium tabular-nums">{totalGrams} g</span>
-              {!stockLocationId ? (
-                <span className="text-muted-foreground">
-                  {" "}
-                  · pick a location to record on save
-                </span>
-              ) : null}
+              <span className="font-medium tabular-nums">
+                {totalGrams.toFixed(2)} g
+              </span>
             </p>
           ) : null}
         </fieldset>

@@ -12347,17 +12347,31 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "spool_weight_grams": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Spool Weight Grams"
           }
         },
         "required": [
           "name",
-          "material_type"
+          "material_type",
+          "spool_weight_grams"
         ],
         "title": "MaterialCreateRequest",
         "type": "object"
       },
       "MaterialDetailResponse": {
-        "description": "Material + the most recent 10 receipts (newest first).",
+        "description": "Material + the most recent 10 receipts (newest first).\n\n``weighted_avg_cost_per_gram`` mirrors ``current_cost_per_gram``\n(already a running weighted average maintained by the\n``material_cost`` projection from the receipt stream). v1 caveat:\nthis is the all-time receipts weighted average, not a true\nmoving-average that re-baselines on consumption — fine for a small\ncatalog where receipts dominate inventory turnover.\n``on_hand_value = total_on_hand * weighted_avg_cost_per_gram``.",
         "properties": {
           "brand": {
             "anyOf": [
@@ -12437,13 +12451,15 @@
             "title": "Name",
             "type": "string"
           },
+          "on_hand_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "On Hand Value",
+            "type": "string"
+          },
           "per_location_on_hand": {
             "additionalProperties": {
               "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
               "type": "string"
-            },
-            "propertyNames": {
-              "format": "uuid"
             },
             "title": "Per Location On Hand",
             "type": "object"
@@ -12455,8 +12471,12 @@
             "title": "Recent Receipts",
             "type": "array"
           },
+          "spool_weight_grams": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Spool Weight Grams",
+            "type": "string"
+          },
           "total_on_hand": {
-            "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total On Hand",
             "type": "string"
@@ -12465,12 +12485,18 @@
             "format": "date-time",
             "title": "Updated At",
             "type": "string"
+          },
+          "weighted_avg_cost_per_gram": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Weighted Avg Cost Per Gram",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
           "material_type",
+          "spool_weight_grams",
           "current_cost_per_gram",
           "is_archived",
           "created_at",
@@ -12507,11 +12533,12 @@
         "type": "object"
       },
       "MaterialReceiptCreateRequest": {
+        "description": "Spool-centric receipt entry (#11).\n\nThe operator records purchased material as a whole number of spools\nplus an optional partial-spool ``extra_grams`` measurement and a\n``price_per_spool``. The service derives total grams and total cost\nfrom these fields and the parent material's ``spool_weight_grams``.\n\nCross-field rules:\n- ``spools + extra_grams > 0`` (a zero-quantity receipt is a no-op).\n- ``extra_grams < spool_weight_grams`` (an \"extra\" can't exceed one\n  full spool; that case should be recorded as another whole spool).",
         "properties": {
-          "grams": {
+          "extra_grams": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0.0,
+                "minimum": 0.0,
                 "type": "number"
               },
               {
@@ -12519,7 +12546,8 @@
                 "type": "string"
               }
             ],
-            "title": "Grams"
+            "default": "0",
+            "title": "Extra Grams"
           },
           "notes": {
             "anyOf": [
@@ -12531,6 +12559,19 @@
               }
             ],
             "title": "Notes"
+          },
+          "price_per_spool": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Price Per Spool"
           },
           "reference": {
             "anyOf": [
@@ -12544,18 +12585,10 @@
             ],
             "title": "Reference"
           },
-          "total_cost": {
-            "anyOf": [
-              {
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              }
-            ],
-            "title": "Total Cost"
+          "spools": {
+            "minimum": 0.0,
+            "title": "Spools",
+            "type": "integer"
           },
           "vendor": {
             "anyOf": [
@@ -12571,8 +12604,8 @@
           }
         },
         "required": [
-          "grams",
-          "total_cost"
+          "spools",
+          "price_per_spool"
         ],
         "title": "MaterialReceiptCreateRequest",
         "type": "object"
@@ -12766,14 +12799,15 @@
               "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
               "type": "string"
             },
-            "propertyNames": {
-              "format": "uuid"
-            },
             "title": "Per Location On Hand",
             "type": "object"
           },
+          "spool_weight_grams": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Spool Weight Grams",
+            "type": "string"
+          },
           "total_on_hand": {
-            "default": "0",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total On Hand",
             "type": "string"
@@ -12788,6 +12822,7 @@
           "id",
           "name",
           "material_type",
+          "spool_weight_grams",
           "current_cost_per_gram",
           "is_archived",
           "created_at",
@@ -12892,6 +12927,22 @@
               }
             ],
             "title": "Name"
+          },
+          "spool_weight_grams": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spool Weight Grams"
           }
         },
         "title": "MaterialUpdateRequest",

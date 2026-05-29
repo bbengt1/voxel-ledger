@@ -23,6 +23,9 @@ function aMaterial(
   overrides: Partial<{
     current_cost_per_gram: string;
     total_on_hand: string;
+    weighted_avg_cost_per_gram: string;
+    on_hand_value: string;
+    spool_weight_grams: string;
   }> = {},
 ) {
   return {
@@ -32,8 +35,11 @@ function aMaterial(
     material_type: "PLA",
     color: "red",
     density_g_per_cm3: "1.24",
-    current_cost_per_gram: "0.000000",
-    total_on_hand: "0.000000",
+    spool_weight_grams: "1000.00",
+    current_cost_per_gram: "0.00",
+    weighted_avg_cost_per_gram: "0.00",
+    on_hand_value: "0.00",
+    total_on_hand: "0.00",
     per_location_on_hand: {},
     low_stock_threshold_grams: null,
     is_archived: false,
@@ -106,15 +112,19 @@ describe("<MaterialDetailPage />", () => {
       .onPost(`/api/v1/materials/${MID}/receipts`)
       .reply(201, {
         ...aMaterial({
-          current_cost_per_gram: "20.000000",
-          total_on_hand: "1000.000000",
+          current_cost_per_gram: "20.00",
+          weighted_avg_cost_per_gram: "20.00",
+          on_hand_value: "20000.00",
+          total_on_hand: "1000.00",
         }),
       })
       .onGet(`/api/v1/materials/${MID}`)
       .reply(200, {
         ...aMaterial({
-          current_cost_per_gram: "20.000000",
-          total_on_hand: "1000.000000",
+          current_cost_per_gram: "20.00",
+          weighted_avg_cost_per_gram: "20.00",
+          on_hand_value: "20000.00",
+          total_on_hand: "1000.00",
         }),
       });
 
@@ -122,17 +132,13 @@ describe("<MaterialDetailPage />", () => {
     await screen.findByText("Active", { exact: false });
     const user = userEvent.setup();
     await user.click(screen.getByTestId("open-receipt-modal"));
-    await user.type(screen.getByTestId("receipt-grams"), "1000");
-    await user.type(screen.getByTestId("receipt-total-cost"), "20000.00");
+    await user.type(screen.getByTestId("receipt-spools"), "1");
+    await user.type(screen.getByTestId("receipt-price-per-spool"), "20000.00");
     await user.click(screen.getByTestId("receipt-submit"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("cost-per-gram")).toHaveTextContent(
-        "20.000000",
-      );
-      expect(screen.getByTestId("on-hand-total")).toHaveTextContent(
-        "1000.000000",
-      );
+      expect(screen.getByTestId("cost-per-gram")).toHaveTextContent("20.00");
+      expect(screen.getByTestId("on-hand-total")).toHaveTextContent("1000.00");
     });
   });
 
@@ -156,19 +162,19 @@ describe("<MaterialDetailPage />", () => {
     mock.onGet(`/api/v1/materials/${MID}`).reply(
       200,
       aMaterial({
-        total_on_hand: "500.000000",
+        total_on_hand: "500.00",
       }),
     );
     // axios-mock-adapter doesn't preserve the second override above for
     // nested objects, so re-assert per_location explicitly:
     mock.onGet(`/api/v1/materials/${MID}`).reply(200, {
-      ...aMaterial({ total_on_hand: "500.000000" }),
-      per_location_on_hand: { "loc-1": "500.000000" },
+      ...aMaterial({ total_on_hand: "500.00" }),
+      per_location_on_hand: { "loc-1": "500.00" },
     });
 
     renderPage();
     const total = await screen.findByTestId("on-hand-total");
-    expect(total).toHaveTextContent("500.000000");
+    expect(total).toHaveTextContent("500.00");
     await waitFor(() => {
       expect(screen.getByTestId("onhand-per-location")).toHaveTextContent(
         "Workshop",
