@@ -48,7 +48,7 @@ async def _seed_world(client: AsyncClient, owner_h):
         await client.post(
             "/api/v1/materials",
             headers=owner_h,
-            json={"name": "PLA", "brand": "A", "material_type": "PLA"},
+            json={"name": "PLA", "brand": "A", "material_type": "PLA", "spool_weight_grams": 1000},
         )
     ).json()
     return loc, mat
@@ -153,7 +153,7 @@ async def test_transfer_role_matrix(
         await client.post(
             "/api/v1/materials",
             headers=_h(owner),
-            json={"name": "PLA", "brand": "A", "material_type": "PLA"},
+            json={"name": "PLA", "brand": "A", "material_type": "PLA", "spool_weight_grams": 1000},
         )
     ).json()
 

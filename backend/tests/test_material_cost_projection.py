@@ -53,6 +53,7 @@ async def test_weighted_average_three_receipts(session: AsyncSession, engine) ->
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
 
@@ -108,6 +109,7 @@ async def test_first_receipt_seeds_cost(session: AsyncSession, engine) -> None:
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await receipts_service.record(

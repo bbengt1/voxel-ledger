@@ -75,6 +75,7 @@ async def test_archived_entity_rejected(session: AsyncSession, engine) -> None:
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await materials_service.archive(session, material_id=mat.id, actor_user_id=None)
@@ -102,6 +103,7 @@ async def test_archived_location_rejected(session: AsyncSession, engine) -> None
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await locations_service.archive(session, location_id=loc.id, actor_user_id=None)

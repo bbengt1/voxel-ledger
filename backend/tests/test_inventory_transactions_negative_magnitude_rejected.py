@@ -27,6 +27,7 @@ async def _seed(session):
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     return loc, mat
@@ -101,7 +102,7 @@ async def test_endpoint_returns_400_for_negative(client, app_session) -> None:
         await client.post(
             "/api/v1/materials",
             headers=h,
-            json={"name": "PLA", "brand": "A", "material_type": "PLA"},
+            json={"name": "PLA", "brand": "A", "material_type": "PLA", "spool_weight_grams": 1000},
         )
     ).json()
     r = await client.post(

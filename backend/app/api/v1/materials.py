@@ -58,6 +58,7 @@ async def _build_material_response(session: AsyncSession, material: Material) ->
         material_type=material.material_type,
         color=material.color,
         density_g_per_cm3=material.density_g_per_cm3,
+        spool_weight_grams=material.spool_weight_grams,
         current_cost_per_gram=material.current_cost_per_gram,
         total_on_hand=total,
         per_location_on_hand=per_location,
@@ -101,6 +102,7 @@ async def create_material(
             material_type=payload.material_type,
             color=payload.color,
             density_g_per_cm3=payload.density_g_per_cm3,
+            spool_weight_grams=payload.spool_weight_grams,
             low_stock_threshold_grams=payload.low_stock_threshold_grams,
             actor_user_id=actor.id,
             custom_fields=payload.custom_fields,
@@ -158,9 +160,13 @@ async def get_material(
         ) from None
     receipts = await materials_service.get_recent_receipts(session, material_id, limit=10)
     base = await _build_material_response(session, material)
+    weighted_avg = material.current_cost_per_gram or Decimal("0")
+    on_hand_value = base.total_on_hand * weighted_avg
     return MaterialDetailResponse(
         **base.model_dump(),
         recent_receipts=[_to_receipt_response(r) for r in receipts],
+        weighted_avg_cost_per_gram=weighted_avg,
+        on_hand_value=on_hand_value,
     )
 
 
@@ -256,11 +262,12 @@ async def record_receipt(
     actor: Annotated[User, Depends(require_role("owner", "production"))],
 ) -> MaterialResponse:
     try:
-        await receipts_service.record(
+        await receipts_service.record_from_spools(
             session,
             material_id=material_id,
-            grams=payload.grams,
-            total_cost=payload.total_cost,
+            spools=payload.spools,
+            extra_grams=payload.extra_grams,
+            price_per_spool=payload.price_per_spool,
             vendor=payload.vendor,
             reference=payload.reference,
             notes=payload.notes,
@@ -270,6 +277,14 @@ async def record_receipt(
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="material not found"
+        ) from None
+    except (
+        receipts_service.SpoolWeightNotConfiguredError,
+        receipts_service.InvalidExtraGramsError,
+    ) as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from None
     except (
         receipts_service.InvalidGramsError,

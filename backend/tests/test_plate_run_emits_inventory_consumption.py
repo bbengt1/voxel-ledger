@@ -32,6 +32,7 @@ async def test_plate_run_drains_materials(
         material_type="PLA",
         color="black",
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await app_session.commit()
@@ -110,6 +111,7 @@ async def test_plate_run_with_multiple_runs_delta(
         material_type="PLA",
         color="red",
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await app_session.commit()

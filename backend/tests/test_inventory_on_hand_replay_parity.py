@@ -44,6 +44,7 @@ async def test_inventory_on_hand_replay_parity(engine) -> None:
             material_type="PLA",
             color=None,
             density_g_per_cm3=None,
+            spool_weight_grams=Decimal("1000"),
             actor_user_id=None,
         )
         sup = await supplies_service.create(

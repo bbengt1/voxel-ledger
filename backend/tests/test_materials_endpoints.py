@@ -67,6 +67,7 @@ async def test_create_role_matrix(
         json={
             "name": f"PLA {role.value}",
             "material_type": "PLA",
+            "spool_weight_grams": 1000,
         },
     )
     assert r.status_code == expected, r.text
@@ -98,14 +99,15 @@ async def test_create_get_patch_archive_unarchive_happy_path(
             "name": "Standard PLA",
             "brand": "Polymaker",
             "material_type": "PLA",
+            "spool_weight_grams": 1000,
             "color": "red",
             "density_g_per_cm3": "1.24",
         },
     )
     assert create.status_code == 201, create.text
     mid = create.json()["id"]
-    assert create.json()["current_cost_per_gram"] == "0.000000"
-    assert create.json()["total_on_hand"] == "0"
+    assert create.json()["current_cost_per_gram"] == "0.00"
+    assert create.json()["total_on_hand"] == "0.00"
     assert create.json()["per_location_on_hand"] == {}
 
     # GET
@@ -151,7 +153,7 @@ async def test_archive_owner_only(
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
 
@@ -182,14 +184,14 @@ async def test_record_receipt_role_matrix(
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": f"PLA-{role.value}", "material_type": "PLA"},
+        json={"name": f"PLA-{role.value}", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
     token = owner if role == Role.OWNER else await _token_for(role, client, app_session)
     r = await client.post(
         f"/api/v1/materials/{mid}/receipts",
         headers=_h(token),
-        json={"grams": "1000", "total_cost": "20.00"},
+        json={"spools": 1, "extra_grams": "0", "price_per_spool": "20.00"},
     )
     assert r.status_code == expected, r.text
 
@@ -203,18 +205,18 @@ async def test_record_receipt_updates_cost_in_response(
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
     r = await client.post(
         f"/api/v1/materials/{mid}/receipts",
         headers=_h(owner),
-        json={"grams": "1000", "total_cost": "20000.00"},
+        json={"spools": 1, "extra_grams": "0", "price_per_spool": "20000.00"},
     )
     assert r.status_code == 201, r.text
     body = r.json()
-    assert body["current_cost_per_gram"] == "20.000000"
-    assert body["total_on_hand"] == "1000.000000"
+    assert body["current_cost_per_gram"] == "20.00"
+    assert body["total_on_hand"] == "1000.00"
 
 
 @pytest.mark.asyncio
@@ -225,21 +227,21 @@ async def test_record_receipt_validation_400(
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
-    # grams <= 0 → 422 (Pydantic catches via gt=0)
+    # zero quantity → 422 (model validator)
     r = await client.post(
         f"/api/v1/materials/{mid}/receipts",
         headers=_h(owner),
-        json={"grams": "0", "total_cost": "1.00"},
+        json={"spools": 0, "extra_grams": "0", "price_per_spool": "1.00"},
     )
     assert r.status_code in (400, 422), r.text
-    # negative total cost
+    # negative price → 422 (Pydantic Field(ge=0))
     r = await client.post(
         f"/api/v1/materials/{mid}/receipts",
         headers=_h(owner),
-        json={"grams": "1", "total_cost": "-1.00"},
+        json={"spools": 1, "extra_grams": "0", "price_per_spool": "-1.00"},
     )
     assert r.status_code in (400, 422), r.text
 
@@ -251,14 +253,14 @@ async def test_list_receipts_pagination(client: AsyncClient, app_session: AsyncS
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
     for _ in range(3):
         await client.post(
             f"/api/v1/materials/{mid}/receipts",
             headers=_h(owner),
-            json={"grams": "100", "total_cost": "5.00"},
+            json={"spools": 1, "extra_grams": "0", "price_per_spool": "5.00"},
         )
 
     page = await client.get(f"/api/v1/materials/{mid}/receipts?limit=2", headers=_h(owner))
@@ -277,7 +279,12 @@ async def test_list_search_and_archived_filter(
         await client.post(
             "/api/v1/materials",
             headers=_h(owner),
-            json={"name": name, "material_type": "PLA", "color": color},
+            json={
+                "name": name,
+                "material_type": "PLA",
+                "color": color,
+                "spool_weight_grams": 1000,
+            },
         )
     r = await client.get("/api/v1/materials?search=red", headers=_h(owner))
     assert r.status_code == 200
@@ -288,7 +295,7 @@ async def test_list_search_and_archived_filter(
     create = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "Ghost", "material_type": "PETG"},
+        json={"name": "Ghost", "material_type": "PETG", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
     await client.post(f"/api/v1/materials/{mid}/archive", headers=_h(owner))
@@ -305,6 +312,7 @@ async def test_create_duplicate_active_triple_400(
         "name": "PLA",
         "brand": "X",
         "material_type": "PLA",
+        "spool_weight_grams": 1000,
         "color": "red",
     }
     r1 = await client.post("/api/v1/materials", headers=_h(owner), json=body)

@@ -25,6 +25,7 @@ async def test_create_material_happy_path(session: AsyncSession, engine) -> None
         material_type="PLA",
         color="black",
         density_g_per_cm3=Decimal("1.24"),
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await session.commit()
@@ -64,6 +65,7 @@ async def test_create_duplicate_active_triple_rejected(session: AsyncSession, en
         material_type="PLA",
         color="red",
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     with pytest.raises(materials_service.DuplicateMaterialError):
@@ -74,6 +76,7 @@ async def test_create_duplicate_active_triple_rejected(session: AsyncSession, en
             material_type="PLA",
             color="red",
             density_g_per_cm3=None,
+            spool_weight_grams=Decimal("1000"),
             actor_user_id=None,
         )
 
@@ -90,6 +93,7 @@ async def test_update_emits_diff_payload(session: AsyncSession, engine) -> None:
         material_type="PLA",
         color="red",
         density_g_per_cm3=Decimal("1.24"),
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await materials_service.update(
@@ -129,6 +133,7 @@ async def test_update_noop_emits_nothing(session: AsyncSession, engine) -> None:
         material_type="PLA",
         color="red",
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await materials_service.update(
@@ -159,6 +164,7 @@ async def test_archive_unarchive(session: AsyncSession, engine) -> None:
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await materials_service.archive(session, material_id=m.id, actor_user_id=None)
@@ -191,6 +197,7 @@ async def test_unarchive_blocked_by_active_duplicate(session: AsyncSession, engi
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await materials_service.archive(session, material_id=m1.id, actor_user_id=None)
@@ -202,6 +209,7 @@ async def test_unarchive_blocked_by_active_duplicate(session: AsyncSession, engi
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     with pytest.raises(materials_service.DuplicateMaterialError):
@@ -221,6 +229,7 @@ async def test_list_pagination_and_search(session: AsyncSession, engine) -> None
             material_type="PLA",
             color=color,
             density_g_per_cm3=None,
+            spool_weight_grams=Decimal("1000"),
             actor_user_id=None,
         )
     page = await materials_service.list_materials(session, limit=2)

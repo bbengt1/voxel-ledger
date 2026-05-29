@@ -24,7 +24,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Numeric, String, func, text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Numeric, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -36,6 +36,12 @@ _CUSTOM_FIELDS_TYPE = JSON().with_variant(JSONB(), "postgresql")
 
 class Material(Base):
     __tablename__ = "material"
+    __table_args__ = (
+        CheckConstraint(
+            "spool_weight_grams >= 0",
+            name="ck_material_spool_weight_grams_non_negative",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
@@ -45,6 +51,19 @@ class Material(Base):
     color: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     density_g_per_cm3: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+
+    # Spool-centric inventory model: every receipt is entered as
+    # (spools * spool_weight) + extra_grams. ``spool_weight_grams = 0``
+    # is permitted at the DB layer purely for backwards compatibility
+    # with rows created before this feature shipped — the API rejects
+    # creating new materials with 0, and rejects receipts against a
+    # material whose spool weight is 0. Backfill via the UI.
+    spool_weight_grams: Mapped[Decimal] = mapped_column(
+        Numeric(18, 6),
+        nullable=False,
+        default=Decimal("0"),
+        server_default=text("0"),
+    )
 
     # Read-side caches. Recomputed by the ``material_cost`` projection;
     # never written by service code. Defaults are zero so a freshly

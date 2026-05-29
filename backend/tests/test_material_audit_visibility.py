@@ -39,6 +39,7 @@ async def test_material_created_appears_in_audit_log(
             "brand": "Polymaker",
             "material_type": "PLA",
             "color": "black",
+            "spool_weight_grams": 1000,
         },
     )
     assert create.status_code == 201, create.text
@@ -92,7 +93,7 @@ async def test_material_received_excerpt_omits_notes(
     create = await client.post(
         "/api/v1/materials",
         headers=h,
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = create.json()["id"]
 
@@ -100,8 +101,9 @@ async def test_material_received_excerpt_omits_notes(
         f"/api/v1/materials/{mid}/receipts",
         headers=h,
         json={
-            "grams": "1000",
-            "total_cost": "20.00",
+            "spools": 1,
+            "extra_grams": "0",
+            "price_per_spool": "20.00",
             "vendor": "ACME",
             "notes": "credit card ending 1234",
         },

@@ -52,6 +52,19 @@ class InvalidTotalCostError(MaterialReceiptsServiceError):
     pass
 
 
+class SpoolWeightNotConfiguredError(MaterialReceiptsServiceError):
+    """The parent material has ``spool_weight_grams == 0``; the
+    spool-based receipt entry can't compute totals until the weight is
+    set. Router maps to HTTP 422.
+    """
+
+
+class InvalidExtraGramsError(MaterialReceiptsServiceError):
+    """``extra_grams`` was >= ``spool_weight_grams``; that case should be
+    recorded as another whole spool instead.
+    """
+
+
 class InvalidCursorError(MaterialReceiptsServiceError):
     pass
 
@@ -224,6 +237,73 @@ async def record(
     )
 
     return receipt
+
+
+async def record_from_spools(
+    session: AsyncSession,
+    *,
+    material_id: uuid.UUID,
+    spools: int,
+    extra_grams: Decimal,
+    price_per_spool: Decimal,
+    vendor: str | None = None,
+    reference: str | None = None,
+    notes: str | None = None,
+    actor_user_id: uuid.UUID | None,
+) -> MaterialReceipt:
+    """Spool-centric entry point (#11).
+
+    Looks up the parent material's ``spool_weight_grams`` and computes:
+
+        grams       = spools * spool_weight_grams + extra_grams
+        total_cost  = price_per_spool * (spools + extra_grams / spool_weight_grams)
+
+    then delegates to :func:`record`. The event payload stored in the
+    log is unchanged (still ``grams`` + ``total_cost``) so the event
+    store and downstream projections stay binary-compatible.
+    """
+    if not isinstance(extra_grams, Decimal):
+        extra_grams = Decimal(str(extra_grams))
+    if not isinstance(price_per_spool, Decimal):
+        price_per_spool = Decimal(str(price_per_spool))
+
+    material = (
+        await session.execute(select(Material).where(Material.id == material_id))
+    ).scalar_one_or_none()
+    if material is None:
+        raise MaterialNotFoundError(str(material_id))
+
+    spool_weight = material.spool_weight_grams or Decimal("0")
+    if spool_weight <= 0:
+        raise SpoolWeightNotConfiguredError(
+            "material has no spool_weight_grams set; backfill the value before recording receipts"
+        )
+    if extra_grams >= spool_weight:
+        raise InvalidExtraGramsError(
+            "extra_grams must be less than the material's spool_weight_grams"
+        )
+    if spools == 0 and extra_grams <= 0:
+        raise InvalidGramsError("receipt must include at least one spool or some extra_grams")
+
+    spools_dec = Decimal(spools)
+    grams = spools_dec * spool_weight + extra_grams
+    # Numeric(18, 6) storage; quantize at the service boundary so the
+    # value round-trips identically through the DB and the projection.
+    _STORAGE_QUANTUM = Decimal("0.000001")
+    total_cost = (price_per_spool * (spools_dec + (extra_grams / spool_weight))).quantize(
+        _STORAGE_QUANTUM, rounding=ROUND_HALF_UP
+    )
+
+    return await record(
+        session,
+        material_id=material_id,
+        grams=grams,
+        total_cost=total_cost,
+        vendor=vendor,
+        reference=reference,
+        notes=notes,
+        actor_user_id=actor_user_id,
+    )
 
 
 @dataclass

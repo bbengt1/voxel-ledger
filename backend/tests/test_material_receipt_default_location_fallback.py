@@ -37,6 +37,7 @@ async def test_fallback_to_lowest_code_workshop_when_setting_unset(
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await receipts_service.record(
@@ -83,6 +84,7 @@ async def test_setting_overrides_fallback(session: AsyncSession, engine) -> None
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     await receipts_service.record(
@@ -115,6 +117,7 @@ async def test_raises_when_no_workshop_and_no_setting(session: AsyncSession, eng
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     with pytest.raises(receipts_service.InventoryConfigError):

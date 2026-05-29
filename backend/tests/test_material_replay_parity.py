@@ -52,6 +52,7 @@ async def test_material_cost_replay_parity(engine) -> None:
                 material_type=name.split("-")[0],
                 color=None,
                 density_g_per_cm3=None,
+                spool_weight_grams=Decimal("1000"),
                 actor_user_id=None,
             )
             material_ids.append(m.id)

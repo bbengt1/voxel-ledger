@@ -34,6 +34,7 @@ async def test_receipt_creates_both_rows_and_emits_both_events(
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
 

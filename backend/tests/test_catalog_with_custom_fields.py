@@ -58,6 +58,7 @@ async def test_material_round_trip_with_custom_field(
             "name": "PLA Bright Red",
             "material_type": "PLA",
             "custom_fields": {"supplier_code": "ACME-123"},
+            "spool_weight_grams": 1000,
         },
     )
     assert mat.status_code == 201, mat.text
@@ -101,7 +102,7 @@ async def test_required_missing_returns_400(client: AsyncClient, app_session: As
     mat = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA Sand", "material_type": "PLA"},
+        json={"name": "PLA Sand", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     assert mat.status_code == 400, mat.text
 

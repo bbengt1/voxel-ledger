@@ -62,6 +62,7 @@ async def test_low_stock_alert_surfaces_material(
             "name": "PLA",
             "material_type": "PLA",
             "low_stock_threshold_grams": "100",
+            "spool_weight_grams": 1000,
         },
     )
     assert mat.status_code == 201, mat.text
@@ -71,7 +72,7 @@ async def test_low_stock_alert_surfaces_material(
     rec = await client.post(
         f"/api/v1/materials/{mid}/receipts",
         headers=_h(owner),
-        json={"grams": "50", "total_cost": "10.00"},
+        json={"spools": 0, "extra_grams": "50", "price_per_spool": "200.00"},
     )
     assert rec.status_code == 201, rec.text
 
@@ -94,7 +95,7 @@ async def test_material_without_threshold_does_not_appear(
     mat = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     assert mat.status_code == 201
     alerts = await client.get("/api/v1/inventory/alerts/low-stock", headers=_h(owner))
@@ -127,6 +128,7 @@ async def test_alerts_sorted_by_deficit_desc(
                 "name": "PLA-A",
                 "material_type": "PLA",
                 "low_stock_threshold_grams": "1000",
+                "spool_weight_grams": 1000,
             },
         )
     ).json()["id"]
@@ -138,18 +140,19 @@ async def test_alerts_sorted_by_deficit_desc(
                 "name": "PLA-B",
                 "material_type": "PLA",
                 "low_stock_threshold_grams": "200",
+                "spool_weight_grams": 1000,
             },
         )
     ).json()["id"]
     await client.post(
         f"/api/v1/materials/{m1}/receipts",
         headers=_h(owner),
-        json={"grams": "100", "total_cost": "1.00"},
+        json={"spools": 0, "extra_grams": "100", "price_per_spool": "10.00"},
     )
     await client.post(
         f"/api/v1/materials/{m2}/receipts",
         headers=_h(owner),
-        json={"grams": "100", "total_cost": "1.00"},
+        json={"spools": 0, "extra_grams": "100", "price_per_spool": "10.00"},
     )
     body = (await client.get("/api/v1/inventory/alerts/low-stock", headers=_h(owner))).json()
     items = body["items"]
@@ -185,7 +188,7 @@ async def test_on_hand_endpoint_returns_rows_and_summaries(
     mat = await client.post(
         "/api/v1/materials",
         headers=_h(owner),
-        json={"name": "PLA", "material_type": "PLA"},
+        json={"name": "PLA", "material_type": "PLA", "spool_weight_grams": 1000},
     )
     mid = mat.json()["id"]
     # Adjustment to seed an on-hand row.

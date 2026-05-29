@@ -132,6 +132,7 @@ async def create(
     material_type: str,
     color: str | None,
     density_g_per_cm3: Decimal | None,
+    spool_weight_grams: Decimal,
     actor_user_id: uuid.UUID | None,
     low_stock_threshold_grams: Decimal | None = None,
     custom_fields: dict[str, Any] | None = None,
@@ -154,6 +155,7 @@ async def create(
         material_type=material_type,
         color=color_norm,
         density_g_per_cm3=density_g_per_cm3,
+        spool_weight_grams=spool_weight_grams,
         current_cost_per_gram=Decimal("0"),
         low_stock_threshold_grams=low_stock_threshold_grams,
         is_archived=False,
@@ -204,6 +206,7 @@ _EDITABLE_FIELDS = (
     "material_type",
     "color",
     "density_g_per_cm3",
+    "spool_weight_grams",
     "low_stock_threshold_grams",
 )
 

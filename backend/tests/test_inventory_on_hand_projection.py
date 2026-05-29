@@ -28,6 +28,7 @@ async def _seed(session):
         material_type="PLA",
         color=None,
         density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
         actor_user_id=None,
     )
     return mat, loc1, loc2
