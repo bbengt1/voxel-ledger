@@ -104,7 +104,9 @@ async def calculate_cost(
                 ],
                 quantity_ordered=payload.inputs.quantity_ordered,
             )
-            result = await CostEngineService.calculate_for_inputs(inputs, session=session)
+            result = await CostEngineService.calculate_for_inputs(
+                inputs, session=session, product_id=payload.product_id
+            )
     except JobNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from None
     except MissingRateConfigError as exc:
