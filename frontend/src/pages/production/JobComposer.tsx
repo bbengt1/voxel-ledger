@@ -193,10 +193,16 @@ export function JobComposerPage() {
   }, [plates, quantityOrdered]);
 
   // Debounced calculate call. We watch a JSON-stringified hash so the
-  // dependency comparison is stable across new identical payloads.
+  // dependency comparison is stable across new identical payloads. The
+  // selected product is part of the hash because it changes the cost
+  // (its BOM supplies roll into the estimate), so picking a different
+  // product must re-trigger the calc even when the plates are unchanged.
   const calcHash = useMemo(
-    () => (calcInputs ? JSON.stringify(calcInputs) : ""),
-    [calcInputs],
+    () =>
+      calcInputs
+        ? JSON.stringify({ inputs: calcInputs, productId: product?.id ?? null })
+        : "",
+    [calcInputs, product],
   );
 
   // Track the in-flight request so a newer one can short-circuit the old.
@@ -214,7 +220,12 @@ export function JobComposerPage() {
       setCalcLoading(true);
       setCalcError(null);
       apiClient
-        .post<CalcResult>("/api/v1/jobs/calculate", { inputs: calcInputs })
+        .post<CalcResult>("/api/v1/jobs/calculate", {
+          inputs: calcInputs,
+          // Folds the product's BOM supplies into the draft estimate.
+          // Omitted when no product is picked yet.
+          product_id: product?.id,
+        })
         .then((res) => {
           if (id !== lastRequestId.current) return;
           setCalcResult(res.data);

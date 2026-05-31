@@ -24,16 +24,25 @@ class CalcInputsPayload(BaseModel):
 
 
 class CalcRequest(BaseModel):
-    """POST body. Exactly one of ``job_id`` or ``inputs`` must be set."""
+    """POST body. Exactly one of ``job_id`` or ``inputs`` must be set.
+
+    ``product_id`` is optional and only meaningful with ``inputs`` — it
+    lets the composer fold the product's BOM supplies into a draft's live
+    cost before the job is saved. With ``job_id`` the product is derived
+    from the job, so passing ``product_id`` there is rejected as ambiguous.
+    """
 
     job_id: uuid.UUID | None = None
     inputs: CalcInputsPayload | None = None
+    product_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _exactly_one(self) -> CalcRequest:
         present = sum(1 for v in (self.job_id, self.inputs) if v is not None)
         if present != 1:
             raise ValueError("exactly one of `job_id` or `inputs` is required")
+        if self.product_id is not None and self.inputs is None:
+            raise ValueError("`product_id` is only valid alongside `inputs`")
         return self
 
 

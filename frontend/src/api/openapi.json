@@ -4887,7 +4887,7 @@
         "type": "object"
       },
       "CalcRequest": {
-        "description": "POST body. Exactly one of ``job_id`` or ``inputs`` must be set.",
+        "description": "POST body. Exactly one of ``job_id`` or ``inputs`` must be set.\n\n``product_id`` is optional and only meaningful with ``inputs`` — it\nlets the composer fold the product's BOM supplies into a draft's live\ncost before the job is saved. With ``job_id`` the product is derived\nfrom the job, so passing ``product_id`` there is rejected as ambiguous.",
         "properties": {
           "inputs": {
             "anyOf": [
@@ -4910,6 +4910,18 @@
               }
             ],
             "title": "Job Id"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
           }
         },
         "title": "CalcRequest",

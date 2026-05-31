@@ -124,6 +124,23 @@ def _as_decimal(value: Any) -> Decimal:
     return Decimal(str(value))
 
 
+def _supply_cost_per_piece(supply: Supply) -> Decimal:
+    """Cost of a single *piece* of a supply.
+
+    A supply's ``unit_cost`` is the price of one purchasable *unit* (e.g.
+    a box). ``pieces_per_unit`` says how many usable pieces that unit
+    holds (e.g. 100 screws per box). BOM quantities are expressed in
+    pieces, so cost-per-piece is ``unit_cost / pieces_per_unit``. When
+    ``pieces_per_unit`` is unset or non-positive we treat one unit as one
+    piece (matches the UI's documented "1 unit = 1 piece" fallback).
+    """
+    unit_cost = _as_decimal(supply.unit_cost)
+    ppu = supply.pieces_per_unit
+    if ppu and ppu > 0:
+        return (unit_cost / Decimal(ppu)).quantize(_COST_QUANTUM, rounding=ROUND_HALF_UP)
+    return unit_cost
+
+
 async def _emit(
     session: AsyncSession,
     *,
@@ -177,7 +194,7 @@ async def _load_component(
         ).scalar_one_or_none()
         if row is None:
             raise ComponentNotFoundError(f"supply {component_id} not found")
-        return row.name, _as_decimal(row.unit_cost), bool(row.is_archived)
+        return row.name, _supply_cost_per_piece(row), bool(row.is_archived)
     if component_kind == COMPONENT_KIND_PRODUCT:
         row = (
             await session.execute(select(Product).where(Product.id == component_id))
@@ -688,7 +705,60 @@ async def compute_cost_tree(
     return node
 
 
+async def supply_line_costs_per_piece(
+    session: AsyncSession,
+    *,
+    product_id: uuid.UUID,
+) -> dict[uuid.UUID, Decimal]:
+    """Per-finished-piece supply cost from a product's *direct* BOM.
+
+    Returns ``{supply_id: quantity * cost_per_piece}`` for every direct
+    ``supply`` component of ``product_id`` — the non-printed parts (screws,
+    magnets, inserts, packaging) added on top of the printed plates. Used
+    by the cost engine to populate ``CalcContext.supply_unit_cost``.
+
+    Scope (v1): only the product's own direct supply items. Materials in a
+    BOM are skipped — filament is costed from plates, and a BOM material
+    would double-count. Sub-product (assembly) supplies are not flattened
+    here; nested rollups remain :func:`compute_cost_tree`'s job. Archived
+    supplies are still included — pricing an existing job shouldn't depend
+    on whether a part was later archived.
+    """
+    rows = list(
+        (
+            await session.execute(
+                select(ProductBomItem)
+                .where(
+                    ProductBomItem.parent_product_id == product_id,
+                    ProductBomItem.component_kind == COMPONENT_KIND_SUPPLY,
+                )
+                .order_by(ProductBomItem.created_at, ProductBomItem.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    line_costs: dict[uuid.UUID, Decimal] = {}
+    for row in rows:
+        supply = (
+            await session.execute(select(Supply).where(Supply.id == row.component_id))
+        ).scalar_one_or_none()
+        if supply is None:
+            # A dangling reference shouldn't sink the whole calc; treat as
+            # zero (mirrors the cost engine's missing-material handling).
+            continue
+        per_piece = _supply_cost_per_piece(supply)
+        line = (_as_decimal(row.quantity) * per_piece).quantize(
+            _COST_QUANTUM, rounding=ROUND_HALF_UP
+        )
+        # A supply can legitimately appear on multiple BOM lines; sum them.
+        line_costs[row.component_id] = line_costs.get(row.component_id, Decimal("0")) + line
+    return line_costs
+
+
 __all__ = [
+    "DEFAULT_MAX_DEPTH",
     "ArchivedTargetError",
     "BomCycleError",
     "BomDepthLimitError",
@@ -697,18 +767,18 @@ __all__ = [
     "ComponentNotFoundError",
     "CostTreeComponent",
     "CostTreeNode",
-    "DEFAULT_MAX_DEPTH",
     "InvalidComponentKindError",
     "InvalidQuantityError",
     "ProductNotFoundError",
     "ResolvedBomItem",
+    "_ancestors_of",
+    "_products_containing_component",
+    "_walks_back_to",
     "add_component",
     "compute_cost_tree",
     "get_bom",
     "get_item",
     "remove_component",
+    "supply_line_costs_per_piece",
     "update_component_quantity",
-    "_ancestors_of",
-    "_products_containing_component",
-    "_walks_back_to",
 ]

@@ -423,16 +423,16 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
             )
         )
 
-    # Supplies aren't tied to individual plates today — the calc context
-    # carries any supply costs the service decides to roll in. For now,
-    # the per-unit supply cost dict is summed straight through (callers
-    # whose proposal has no supplies attached will pass an empty dict,
-    # which yields zero). Quantity-scaled supply costs can be wired in
-    # via the service in a follow-up without changing this signature.
-    total_supply = _ZERO
-    for unit_cost in ctx.supply_unit_cost.values():
-        total_supply += unit_cost
-    total_supply = _q6(total_supply)
+    # Supplies are the non-printed parts a product's BOM adds on top of
+    # its printed plates (screws, magnets, packaging). The context carries
+    # each as a *per-finished-piece* line cost; we scale by the number of
+    # pieces produced so the supply total tracks output the same way
+    # material does. An empty dict (no product linked) yields zero.
+    pieces_total = Decimal(pieces_per_set * sets_required)
+    supply_per_piece = _ZERO
+    for line_cost in ctx.supply_unit_cost.values():
+        supply_per_piece += line_cost
+    total_supply = _q6(supply_per_piece * pieces_total)
 
     direct_costs_pre_failure = total_material + total_supply + total_labor + total_machine
     failure_adjustment = _q6(direct_costs_pre_failure * ctx.failure_rate)
@@ -441,9 +441,9 @@ def calculate(inputs: CalcInputs, ctx: CalcContext) -> CalcResult:
 
     total_cost = _q6(direct_costs + total_overhead)
 
-    # Cost per piece is total / pieces produced. Pieces produced =
-    # pieces_per_set * sets_required (one full set per sets_required).
-    pieces_total = Decimal(pieces_per_set * sets_required)
+    # Cost per piece is total / pieces produced. ``pieces_total`` (=
+    # pieces_per_set * sets_required, one full set per sets_required) was
+    # computed above for supply scaling.
     cost_per_piece_raw = total_cost / pieces_total if pieces_total > 0 else _ZERO
     cost_per_piece = _q6(cost_per_piece_raw)
 

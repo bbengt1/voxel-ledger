@@ -7665,11 +7665,18 @@ export interface components {
         /**
          * CalcRequest
          * @description POST body. Exactly one of ``job_id`` or ``inputs`` must be set.
+         *
+         *     ``product_id`` is optional and only meaningful with ``inputs`` — it
+         *     lets the composer fold the product's BOM supplies into a draft's live
+         *     cost before the job is saved. With ``job_id`` the product is derived
+         *     from the job, so passing ``product_id`` there is rejected as ambiguous.
          */
         CalcRequest: {
             inputs?: components["schemas"]["CalcInputsPayload"] | null;
             /** Job Id */
             job_id?: string | null;
+            /** Product Id */
+            product_id?: string | null;
         };
         /** CalcResultResponse */
         CalcResultResponse: {

@@ -11,16 +11,18 @@ The service is responsible for assembling a :class:`CalcContext` from:
      Rate row carries the default.
   3. Per-material ``current_cost_per_gram`` from the materials catalog
      (maintained by the ``material_cost`` projection).
-  4. Per-supply ``unit_cost`` from the supplies catalog.
+  4. Per-piece supply cost from the linked product's direct BOM supply
+     components (``app.services.bom.supply_line_costs_per_piece``).
 
 The settings registry stores ``overhead_percent`` and ``default_margin_percent``
 as a percentage out of 100 (e.g. ``Decimal("15.00")`` means 15%). The
 calculator expects them as decimal fractions (e.g. ``Decimal("0.15")``),
 so the service performs that conversion at the boundary.
 
-Performance: the loader batches all material / supply / rate lookups so
-the round trip is bounded — three SELECTs against material, supply, and
-rate respectively, plus the settings reads (each cached).
+Performance: the loader batches material and rate lookups; supplies are
+resolved from the linked product's direct BOM (one SELECT for the BOM
+rows plus one per distinct supply component — bounded by a product's
+parts count), plus the settings reads (each cached).
 """
 
 from __future__ import annotations
@@ -35,7 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.material import Material
 from app.models.printer import Printer
 from app.models.rate import Rate, RateKind
-from app.models.supply import Supply
+from app.services import bom as bom_service
 from app.services.cost_engine.calculator import (
     CalcContext,
     CalcInputs,
@@ -78,18 +80,6 @@ async def _load_material_costs(
         await session.execute(
             select(Material.id, Material.current_cost_per_gram).where(Material.id.in_(id_list))
         )
-    ).all()
-    return {row[0]: row[1] for row in rows}
-
-
-async def _load_supply_costs(
-    session: AsyncSession, ids: Iterable[uuid.UUID]
-) -> dict[uuid.UUID, Decimal]:
-    id_list = list({i for i in ids})
-    if not id_list:
-        return {}
-    rows = (
-        await session.execute(select(Supply.id, Supply.unit_cost).where(Supply.id.in_(id_list)))
     ).all()
     return {row[0]: row[1] for row in rows}
 
@@ -234,8 +224,20 @@ class CostEngineService:
     """Async context-loader + delegator over the pure calculator."""
 
     @staticmethod
-    async def load_context(*, session: AsyncSession, plate_inputs: list[PlateInput]) -> CalcContext:
-        """Snapshot every cost input needed to calculate ``plate_inputs``."""
+    async def load_context(
+        *,
+        session: AsyncSession,
+        plate_inputs: list[PlateInput],
+        product_id: uuid.UUID | None = None,
+    ) -> CalcContext:
+        """Snapshot every cost input needed to calculate ``plate_inputs``.
+
+        ``product_id``, when given, pulls the product's direct BOM supply
+        components in as a per-finished-piece supply cost. The calculator
+        scales that by the number of pieces produced. Callers with no
+        product (the standalone calculator / raw ``inputs`` path) omit it
+        and get no supply cost — unchanged behavior.
+        """
         material_ids: set[uuid.UUID] = set()
         for p in plate_inputs:
             material_ids.update(p.print_grams_by_material.keys())
@@ -248,10 +250,15 @@ class CostEngineService:
         for mid in material_ids:
             material_costs.setdefault(mid, _ZERO)
 
-        # Supplies: today no plate carries supply usage, so we just
-        # resolve an empty dict. Hook is here for the future when supply
-        # consumption per job becomes a first-class input.
+        # Supplies: the non-printed parts a product's BOM adds on top of
+        # its printed plates (screws, magnets, packaging). Resolved to a
+        # per-piece line cost keyed by supply id; empty when no product is
+        # linked. The calculator multiplies by pieces produced.
         supply_costs: dict[uuid.UUID, Decimal] = {}
+        if product_id is not None:
+            supply_costs = await bom_service.supply_line_costs_per_piece(
+                session, product_id=product_id
+            )
 
         rates = await _load_all_rates(session)
         labor_rate = await _resolve_labor_rate(rates, session)
@@ -281,9 +288,20 @@ class CostEngineService:
         )
 
     @staticmethod
-    async def calculate_for_inputs(inputs: CalcInputs, *, session: AsyncSession) -> CalcResult:
-        """Load context + run the pure calculator."""
-        ctx = await CostEngineService.load_context(session=session, plate_inputs=inputs.plates)
+    async def calculate_for_inputs(
+        inputs: CalcInputs,
+        *,
+        session: AsyncSession,
+        product_id: uuid.UUID | None = None,
+    ) -> CalcResult:
+        """Load context + run the pure calculator.
+
+        ``product_id`` rolls the product's BOM supplies into the cost; omit
+        it for a product-less proposal.
+        """
+        ctx = await CostEngineService.load_context(
+            session=session, plate_inputs=inputs.plates, product_id=product_id
+        )
         return calculate(inputs, ctx)
 
     @staticmethod
@@ -310,7 +328,9 @@ class CostEngineService:
             plates=plate_inputs,
             quantity_ordered=job.quantity_ordered,
         )
-        return await CostEngineService.calculate_for_inputs(inputs, session=session)
+        return await CostEngineService.calculate_for_inputs(
+            inputs, session=session, product_id=job.product_id
+        )
 
 
 __all__ = [
