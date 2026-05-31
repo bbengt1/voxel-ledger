@@ -59,6 +59,7 @@ import { TrialBalancePage } from "@/pages/reports/TrialBalance";
 // --- 10.8b imports (sales / inventory reports) ---
 import { InventoryValuationPage } from "@/pages/reports/InventoryValuation";
 import { SalesByPeriodPage } from "@/pages/reports/SalesByPeriod";
+import { CostCalculatorPage } from "@/pages/production/CostCalculator";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -502,6 +503,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <JobDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/cost-calculator"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CostCalculatorPage />
             </AppShell>
           </RequireAuth>
         }
