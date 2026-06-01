@@ -404,6 +404,43 @@ async def test_job_completion_costs_the_part_lot(
 
 
 @pytest.mark.asyncio
+async def test_part_transactions_list_and_filter(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    """Part ledger rows serialize + filter via the read API (#267 Phase 6b)."""
+    owner = await _token(Role.OWNER, client, app_session)
+    _product_id, part_id, _supply_id = await _assembly_product(app_session)
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("3"),
+        unit_cost=Decimal("1.50"),
+    )
+
+    # List filtered to part — would 500 before the read-literal widening.
+    listed = await client.get(
+        "/api/v1/inventory/transactions",
+        headers=_h(owner),
+        params={"entity_kind": "part", "entity_id": str(part_id)},
+    )
+    assert listed.status_code == 200, listed.text
+    items = listed.json()["items"]
+    assert any(i["entity_kind"] == "part" for i in items)
+
+    # On-hand read endpoint accepts the part kind.
+    oh = await client.get(
+        "/api/v1/inventory/on-hand",
+        headers=_h(owner),
+        params={"entity_kind": "part", "entity_id": str(part_id)},
+    )
+    assert oh.status_code == 200, oh.text
+    summaries = oh.json()["summaries"]
+    assert summaries and Decimal(str(summaries[0]["total_on_hand"])) == Decimal("3")
+
+
+@pytest.mark.asyncio
 async def test_build_requires_existing_product(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:

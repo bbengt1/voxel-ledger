@@ -289,6 +289,7 @@ export function TransactionsListPage() {
               <option value="material">Material</option>
               <option value="supply">Supply</option>
               <option value="product">Product</option>
+              <option value="part">Part</option>
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">

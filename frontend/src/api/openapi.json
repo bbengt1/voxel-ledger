@@ -10484,7 +10484,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Entity Kind",
             "type": "string"
@@ -10509,6 +10510,18 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "linked_build_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Build Id"
           },
           "linked_job_id": {
             "anyOf": [
@@ -12723,7 +12736,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Entity Kind",
             "type": "string"
@@ -13671,7 +13685,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Entity Kind",
             "type": "string"
@@ -13708,7 +13723,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Entity Kind",
             "type": "string"
@@ -34681,7 +34697,8 @@
                   "enum": [
                     "material",
                     "supply",
-                    "product"
+                    "product",
+                    "part"
                   ],
                   "type": "string"
                 },
@@ -35124,7 +35141,8 @@
                   "enum": [
                     "material",
                     "supply",
-                    "product"
+                    "product",
+                    "part"
                   ],
                   "type": "string"
                 },
@@ -35217,7 +35235,8 @@
                   "enum": [
                     "material",
                     "supply",
-                    "product"
+                    "product",
+                    "part"
                   ],
                   "type": "string"
                 },

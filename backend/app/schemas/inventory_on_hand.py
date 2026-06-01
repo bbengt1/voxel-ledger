@@ -9,7 +9,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-EntityKindLiteral = Literal["material", "supply", "product"]
+# Includes ``part`` (assembly-line epic #267): jobs credit part stock and
+# builds consume it, so part on-hand must be queryable + serializable.
+EntityKindLiteral = Literal["material", "supply", "product", "part"]
 
 
 class OnHandRowResponse(BaseModel):

@@ -40,6 +40,10 @@ InventoryTransactionResponseKindLiteral = Literal[
     "sale_consumption",
 ]
 InventoryEntityKindLiteral = Literal["material", "supply", "product"]
+# Read-side literal — includes ``part`` so part ledger rows (written by
+# jobs/builds, epic #267) serialize + filter. Manual create/transfer stay
+# narrow (parts move via jobs/builds, not manual transactions).
+InventoryEntityKindReadLiteral = Literal["material", "supply", "product", "part"]
 
 
 class InventoryTransactionCreate(BaseModel):
@@ -80,7 +84,7 @@ class InventoryTransactionResponse(BaseModel):
     occurred_at: datetime
     created_at: datetime
     kind: InventoryTransactionResponseKindLiteral
-    entity_kind: InventoryEntityKindLiteral
+    entity_kind: InventoryEntityKindReadLiteral
     entity_id: uuid.UUID
     location_id: uuid.UUID
     # Signed magnitude — the service has already applied direction.
@@ -90,6 +94,7 @@ class InventoryTransactionResponse(BaseModel):
     transfer_pair_id: uuid.UUID | None = None
     linked_job_id: uuid.UUID | None = None
     linked_sale_id: uuid.UUID | None = None
+    linked_build_id: uuid.UUID | None = None
     actor_user_id: uuid.UUID | None = None
     reason: str | None = None
 

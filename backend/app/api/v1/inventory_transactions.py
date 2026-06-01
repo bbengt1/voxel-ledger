@@ -24,7 +24,7 @@ from app.core.db import get_session
 from app.models.auth import User
 from app.models.inventory_transaction import InventoryTransaction
 from app.schemas.inventory_transactions import (
-    InventoryEntityKindLiteral,
+    InventoryEntityKindReadLiteral,
     InventoryTransactionCreate,
     InventoryTransactionKindLiteral,
     InventoryTransactionListResponse,
@@ -141,7 +141,7 @@ async def create_transfer(
 async def list_transactions(
     session: Annotated[AsyncSession, Depends(get_session)],
     _actor: Annotated[User, Depends(get_current_user)],
-    entity_kind: Annotated[InventoryEntityKindLiteral | None, Query()] = None,
+    entity_kind: Annotated[InventoryEntityKindReadLiteral | None, Query()] = None,
     entity_id: Annotated[uuid.UUID | None, Query()] = None,
     location_id: Annotated[uuid.UUID | None, Query()] = None,
     kind: Annotated[InventoryTransactionKindLiteral | None, Query()] = None,

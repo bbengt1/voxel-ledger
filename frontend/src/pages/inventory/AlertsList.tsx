@@ -24,6 +24,9 @@ const ENTITY_LABEL: Record<EntityKind, string> = {
   material: "M",
   supply: "S",
   product: "P",
+  // Parts have no low-stock threshold today, so they never appear in
+  // alerts — but the map must cover the widened entity-kind union.
+  part: "Pt",
 };
 
 export function AlertsListPage() {
