@@ -12,6 +12,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityImage } from "@/components/catalog/EntityImage";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
+import { PartOnHandSection } from "@/components/inventory/PartOnHandSection";
 import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -293,6 +294,8 @@ export function PartDetailPage() {
           </span>
         </p>
       </header>
+
+      {id ? <PartOnHandSection partId={id} /> : null}
 
       <section
         className="space-y-2 rounded-lg border border-border p-4"

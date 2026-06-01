@@ -10019,7 +10019,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /**
              * Id
              * Format: uuid
@@ -10030,6 +10030,8 @@ export interface components {
              * @enum {string}
              */
             kind: "production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out" | "production_consumption" | "sale_consumption";
+            /** Linked Build Id */
+            linked_build_id?: string | null;
             /** Linked Job Id */
             linked_job_id?: string | null;
             /** Linked Sale Id */
@@ -10843,7 +10845,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /** Entity Name */
             entity_name: string;
             /** Threshold */
@@ -11185,7 +11187,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /**
              * Location Id
              * Format: uuid
@@ -11208,7 +11210,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /** Per Location */
             per_location?: {
                 [key: string]: string;
@@ -20640,7 +20642,7 @@ export interface operations {
     list_low_stock_alerts_api_v1_inventory_alerts_low_stock_get: {
         parameters: {
             query?: {
-                entity_kind?: ("material" | "supply" | "product") | null;
+                entity_kind?: ("material" | "supply" | "product" | "part") | null;
                 location_id?: string | null;
             };
             header?: never;
@@ -20868,7 +20870,7 @@ export interface operations {
     list_on_hand_api_v1_inventory_on_hand_get: {
         parameters: {
             query?: {
-                entity_kind?: ("material" | "supply" | "product") | null;
+                entity_kind?: ("material" | "supply" | "product" | "part") | null;
                 entity_id?: string | null;
                 location_id?: string | null;
             };
@@ -20901,7 +20903,7 @@ export interface operations {
     list_transactions_api_v1_inventory_transactions_get: {
         parameters: {
             query?: {
-                entity_kind?: ("material" | "supply" | "product") | null;
+                entity_kind?: ("material" | "supply" | "product" | "part") | null;
                 entity_id?: string | null;
                 location_id?: string | null;
                 kind?: ("production_in" | "sale_out" | "adjustment" | "return_in" | "waste" | "receipt" | "transfer_in" | "transfer_out") | null;
