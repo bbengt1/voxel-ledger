@@ -63,6 +63,9 @@ import { TrialBalancePage } from "@/pages/reports/TrialBalance";
 import { InventoryValuationPage } from "@/pages/reports/InventoryValuation";
 import { SalesByPeriodPage } from "@/pages/reports/SalesByPeriod";
 import { CostCalculatorPage } from "@/pages/production/CostCalculator";
+import { BuildComposerPage } from "@/pages/production/BuildComposer";
+import { BuildDetailPage } from "@/pages/production/BuildDetail";
+import { BuildsListPage } from "@/pages/production/BuildsList";
 import { JobComposerPage } from "@/pages/production/JobComposer";
 import { JobDetailPage } from "@/pages/production/JobDetail";
 import { JobsListPage } from "@/pages/production/JobsList";
@@ -536,6 +539,36 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <JobDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/builds"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BuildsListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/builds/new"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BuildComposerPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/production/builds/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <BuildDetailPage />
             </AppShell>
           </RequireAuth>
         }
