@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.services import materials as materials_service
+from app.services import parts as parts_service
 from app.services import products as products_service
 from app.services import supplies as supplies_service
 from app.services.auth import create_user
@@ -37,7 +37,10 @@ def _h(token: str) -> dict[str, str]:
 
 
 async def _seed(client: AsyncClient, app_session: AsyncSession):
-    """Returns (owner_token, product_id, material_id, supply_id)."""
+    """Returns (owner_token, product_id, part_id, supply_id).
+
+    Epic #267 Phase 3: product BOMs are assembled from parts + supplies.
+    """
     owner = await _token_for(Role.OWNER, client, app_session)
 
     p = await products_service.create(
@@ -47,14 +50,12 @@ async def _seed(client: AsyncClient, app_session: AsyncSession):
         unit_price=Decimal("10"),
         actor_user_id=None,
     )
-    m = await materials_service.create(
+    part = await parts_service.create(
         app_session,
-        name="PLA-A",
-        brand="X",
-        material_type="PLA",
-        color=None,
-        density_g_per_cm3=None,
-        spool_weight_grams=Decimal("1000"),
+        name="Body",
+        print_minutes=0,
+        setup_minutes=0,
+        parts_per_run=1,
         actor_user_id=None,
     )
     s = await supplies_service.create(
@@ -66,7 +67,7 @@ async def _seed(client: AsyncClient, app_session: AsyncSession):
         actor_user_id=None,
     )
     await app_session.commit()
-    return owner, p.id, m.id, s.id
+    return owner, p.id, part.id, s.id
 
 
 @pytest.mark.asyncio
@@ -91,15 +92,15 @@ async def test_unauthenticated_get_bom_401(client: AsyncClient) -> None:
 async def test_add_component_role_matrix(
     client: AsyncClient, app_session: AsyncSession, role: Role, expected: int
 ) -> None:
-    owner, pid, mid, _sid = await _seed(client, app_session)
+    owner, pid, part_id, _sid = await _seed(client, app_session)
     token = owner if role == Role.OWNER else await _token_for(role, client, app_session)
     r = await client.post(
         f"/api/v1/products/{pid}/bom",
         headers=_h(token),
         json={
-            "component_kind": "material",
-            "component_id": str(mid),
-            "quantity": "100",
+            "component_kind": "part",
+            "component_id": str(part_id),
+            "quantity": "2",
         },
     )
     assert r.status_code == expected, r.text
@@ -123,20 +124,19 @@ async def test_list_bom_visible_to_every_authenticated_role(
 async def test_create_update_delete_happy_path(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    owner, pid, mid, sid = await _seed(client, app_session)
+    owner, pid, part_id, sid = await _seed(client, app_session)
 
-    # Add a material component.
+    # Add a part component.
     r = await client.post(
         f"/api/v1/products/{pid}/bom",
         headers=_h(owner),
-        json={"component_kind": "material", "component_id": str(mid), "quantity": "100"},
+        json={"component_kind": "part", "component_id": str(part_id), "quantity": "2"},
     )
     assert r.status_code == 201, r.text
     body = r.json()
     item_id = body["id"]
-    assert body["component_kind"] == "material"
-    # Material has zero cost initially (no receipts), so resolved_unit_cost
-    # is 0 — but it's not None.
+    assert body["component_kind"] == "part"
+    # The part has a computed cost (0.00 here — no recipe), not None.
     assert body["resolved_unit_cost"] is not None
 
     # Add a supply component.

@@ -22,6 +22,7 @@ from app.models.product import Product
 from app.schemas.products import (
     ProductCreateRequest,
     ProductListResponse,
+    ProductMaterialRollupResponse,
     ProductResponse,
     ProductUpdateRequest,
 )
@@ -71,6 +72,7 @@ async def _to_response(session: AsyncSession, product: Product) -> ProductRespon
         unit_cost_cached=product.unit_cost_cached,
         weight_grams=product.weight_grams,
         category=product.category,
+        assembly_minutes=product.assembly_minutes,
         total_on_hand=total,
         per_location_on_hand=per_location,
         low_stock_threshold=product.low_stock_threshold,
@@ -98,6 +100,7 @@ async def create_product(
             weight_grams=payload.weight_grams,
             category=payload.category,
             low_stock_threshold=payload.low_stock_threshold,
+            assembly_minutes=payload.assembly_minutes,
             actor_user_id=actor.id,
             custom_fields=payload.custom_fields,
         )
@@ -205,6 +208,26 @@ async def get_product(
             status_code=status.HTTP_404_NOT_FOUND, detail="product not found"
         ) from None
     return await _to_response(session, product)
+
+
+@router.get("/{product_id}/materials", response_model=ProductMaterialRollupResponse)
+async def get_product_materials(
+    product_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(get_current_user)],
+) -> ProductMaterialRollupResponse:
+    """Derived material usage to build one product, aggregated from its
+    parts (epic #267 Phase 3). Read-only."""
+    try:
+        await products_service.get(session, product_id)
+    except products_service.ProductNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="product not found"
+        ) from None
+    rollup = await bom_service.material_rollup_for_product(session, product_id=product_id)
+    return ProductMaterialRollupResponse(
+        materials={str(mid): str(grams) for mid, grams in rollup.items()}
+    )
 
 
 @router.patch("/{product_id}", response_model=ProductResponse)

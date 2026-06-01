@@ -4177,7 +4177,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Component Kind",
             "type": "string"
@@ -4226,7 +4227,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Component Kind",
             "type": "string"
@@ -5525,7 +5527,8 @@
             "enum": [
               "material",
               "supply",
-              "product"
+              "product",
+              "part"
             ],
             "title": "Component Kind",
             "type": "string"
@@ -15461,6 +15464,12 @@
       },
       "ProductCreateRequest": {
         "properties": {
+          "assembly_minutes": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Assembly Minutes",
+            "type": "integer"
+          },
           "bom_items": {
             "anyOf": [
               {
@@ -15622,8 +15631,27 @@
         "title": "ProductListResponse",
         "type": "object"
       },
+      "ProductMaterialRollupResponse": {
+        "description": "Derived material usage to build one product, by grams. Keys are\nmaterial ids (as strings); values are grams (canonical decimal strings).",
+        "properties": {
+          "materials": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Materials",
+            "type": "object"
+          }
+        },
+        "title": "ProductMaterialRollupResponse",
+        "type": "object"
+      },
       "ProductResponse": {
         "properties": {
+          "assembly_minutes": {
+            "default": 0,
+            "title": "Assembly Minutes",
+            "type": "integer"
+          },
           "category": {
             "anyOf": [
               {
@@ -15763,6 +15791,18 @@
       "ProductUpdateRequest": {
         "description": "PATCH-style: only fields the caller wants to change.",
         "properties": {
+          "assembly_minutes": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assembly Minutes"
+          },
           "category": {
             "anyOf": [
               {
@@ -41024,6 +41064,55 @@
           }
         ],
         "summary": "Upload Product Image",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/materials": {
+      "get": {
+        "description": "Derived material usage to build one product, aggregated from its\nparts (epic #267 Phase 3). Read-only.",
+        "operationId": "get_product_materials_api_v1_products__product_id__materials_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductMaterialRollupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Product Materials",
         "tags": [
           "products"
         ]

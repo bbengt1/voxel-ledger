@@ -1,18 +1,26 @@
-"""Multi-level cost rollup with material-receipt propagation."""
+"""Product cost rollup from parts + supplies, with PartCostChanged
+propagation (assembly-line epic #267 Phase 3).
+
+A product's cost = Σ(part.unit_cost_cached x qty) + Σ(supply per-piece x
+qty) + assembly labor (a plain sum — parts already carry their overhead).
+When a material's cost moves, the part recomputes (Phase 2a) and the
+resulting ``PartCostChanged`` propagates to every product using that part.
+"""
 
 from __future__ import annotations
 
 from decimal import Decimal
 
 import pytest
-from app.events.types import catalog as catalog_events
 from app.models import Base
-from app.models.event import Event
+from app.models.part import Part
 from app.models.product import Product
+from app.models.supply import Supply
 from app.services import bom as bom_service
 from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
+from app.services import parts as parts_service
 from app.services import products as products_service
 from app.services import supplies as supplies_service
 from sqlalchemy import select
@@ -20,14 +28,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 @pytest.mark.asyncio
-async def test_multi_level_cost_rollup(engine) -> None:
+async def test_product_cost_rolls_up_parts_and_supplies(engine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-    # Seed: material M @ $20/g, supply S @ $5/ea.
     async with factory() as s:
-        # Phase 3.2: receipts need a fallback receiving location.
         await locations_service.create(
             s, name="Receiving", code="RX", kind="workshop", actor_user_id=None
         )
@@ -47,78 +53,62 @@ async def test_multi_level_cost_rollup(engine) -> None:
             grams=Decimal("1000"),
             total_cost=Decimal("20000"),
             actor_user_id=None,
-        )
+        )  # $20/g
         supply = await supplies_service.create(
+            s, name="S", unit="ea", unit_cost=Decimal("5"), vendor=None, actor_user_id=None
+        )
+        # A part that prints 100 g of M per run (1 part/run).
+        part = await parts_service.create(
             s,
-            name="S",
-            unit="ea",
-            unit_cost=Decimal("5"),
-            vendor=None,
+            name="Widget body",
+            print_minutes=0,
+            setup_minutes=0,
+            parts_per_run=1,
+            print_grams_by_material={m.id: Decimal("100")},
             actor_user_id=None,
         )
-        p1 = await products_service.create(
-            s,
-            name="P1",
-            description=None,
-            unit_price=Decimal("100"),
-            actor_user_id=None,
-        )
-        p2 = await products_service.create(
-            s,
-            name="P2",
-            description=None,
-            unit_price=Decimal("200"),
-            actor_user_id=None,
+        product = await products_service.create(
+            s, name="Widget", description=None, unit_price=Decimal("100"), actor_user_id=None
         )
         await s.commit()
+        product_id, part_id, supply_id = product.id, part.id, supply.id
 
-    # Build P1 = 100g M + 2 S; P2 = 1 P1 + 50g M.
+    # Product = 2 x part + 3 x supply (no assembly labor).
     async with factory() as s:
         await bom_service.add_component(
             s,
-            parent_product_id=p1.id,
-            component_kind="material",
-            component_id=m.id,
-            quantity=Decimal("100"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p1.id,
-            component_kind="supply",
-            component_id=supply.id,
+            parent_product_id=product_id,
+            component_kind="part",
+            component_id=part_id,
             quantity=Decimal("2"),
             actor_user_id=None,
         )
         await bom_service.add_component(
             s,
-            parent_product_id=p2.id,
-            component_kind="product",
-            component_id=p1.id,
-            quantity=Decimal("1"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p2.id,
-            component_kind="material",
-            component_id=m.id,
-            quantity=Decimal("50"),
+            parent_product_id=product_id,
+            component_kind="supply",
+            component_id=supply_id,
+            quantity=Decimal("3"),
             actor_user_id=None,
         )
         await s.commit()
 
     async with factory() as s:
-        p1_row = (await s.execute(select(Product).where(Product.id == p1.id))).scalar_one()
-        p2_row = (await s.execute(select(Product).where(Product.id == p2.id))).scalar_one()
-        assert p1_row.unit_cost_cached == Decimal("2010.000000")
-        assert p2_row.unit_cost_cached == Decimal("3010.000000")
+        part_cost = (
+            await s.execute(select(Part.unit_cost_cached).where(Part.id == part_id))
+        ).scalar_one()
+        supply_cost = (
+            await s.execute(select(Supply.unit_cost).where(Supply.id == supply_id))
+        ).scalar_one()
+        product_cost = (
+            await s.execute(select(Product.unit_cost_cached).where(Product.id == product_id))
+        ).scalar_one()
+        # Plain sum: 2 parts + 3 supplies, no extra overhead (decision #2).
+        assert part_cost is not None
+        assert product_cost == (Decimal("2") * part_cost + Decimal("3") * supply_cost)
 
-    # Record a second receipt that brings cost-per-gram to $25.
-    # Weighted avg: (1000*20 + R*25) / (1000+R) = 25 => R must be very
-    # large; instead, give a clean weighted shift via a receipt with
-    # known math. Use a receipt of 1000g at total_cost = 30000 — then
-    # avg = (20000 + 30000) / 2000 = 25.
+    # Material cost moves → part recomputes → PartCostChanged → product
+    # recomputes. avg = (20000 + 30000) / 2000 = $25/g.
     async with factory() as s:
         await receipts_service.record(
             s,
@@ -130,23 +120,11 @@ async def test_multi_level_cost_rollup(engine) -> None:
         await s.commit()
 
     async with factory() as s:
-        p1_row = (await s.execute(select(Product).where(Product.id == p1.id))).scalar_one()
-        p2_row = (await s.execute(select(Product).where(Product.id == p2.id))).scalar_one()
-        # 100 * 25 + 2 * 5 = 2510.
-        assert p1_row.unit_cost_cached == Decimal("2510.000000")
-        # 2510 + 50 * 25 = 3760.
-        assert p2_row.unit_cost_cached == Decimal("3760.000000")
-
-    # ProductCostChanged events were emitted for both p1 and p2 at least
-    # twice (once at BOM build, once at receipt).
-    async with factory() as s:
-        rows = (
-            await s.execute(
-                select(Event.aggregate_id).where(
-                    Event.type == catalog_events.TYPE_PRODUCT_COST_CHANGED
-                )
-            )
-        ).all()
-        agg_ids = {r[0] for r in rows}
-        assert p1.id in agg_ids
-        assert p2.id in agg_ids
+        new_part_cost = (
+            await s.execute(select(Part.unit_cost_cached).where(Part.id == part_id))
+        ).scalar_one()
+        new_product_cost = (
+            await s.execute(select(Product.unit_cost_cached).where(Product.id == product_id))
+        ).scalar_one()
+        assert new_part_cost > part_cost  # material got more expensive
+        assert new_product_cost == (Decimal("2") * new_part_cost + Decimal("3") * supply_cost)

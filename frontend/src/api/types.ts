@@ -3975,6 +3975,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/{product_id}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Product Materials
+         * @description Derived material usage to build one product, aggregated from its
+         *     parts (epic #267 Phase 3). Read-only.
+         */
+        get: operations["get_product_materials_api_v1_products__product_id__materials_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/{product_id}/unarchive": {
         parameters: {
             query?: never;
@@ -7551,7 +7572,7 @@ export interface components {
              * Component Kind
              * @enum {string}
              */
-            component_kind: "material" | "supply" | "product";
+            component_kind: "material" | "supply" | "product" | "part";
             /** Notes */
             notes?: string | null;
             /** Quantity */
@@ -7568,7 +7589,7 @@ export interface components {
              * Component Kind
              * @enum {string}
              */
-            component_kind: "material" | "supply" | "product";
+            component_kind: "material" | "supply" | "product" | "part";
             /**
              * Id
              * Format: uuid
@@ -8094,7 +8115,7 @@ export interface components {
              * Component Kind
              * @enum {string}
              */
-            component_kind: "material" | "supply" | "product";
+            component_kind: "material" | "supply" | "product" | "part";
             /** Line Cost */
             line_cost?: string | null;
             /** Quantity */
@@ -11658,6 +11679,11 @@ export interface components {
         };
         /** ProductCreateRequest */
         ProductCreateRequest: {
+            /**
+             * Assembly Minutes
+             * @default 0
+             */
+            assembly_minutes: number;
             /** Bom Items */
             bom_items?: components["schemas"]["BomItemCreate"][] | null;
             /** Category */
@@ -11688,8 +11714,24 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /**
+         * ProductMaterialRollupResponse
+         * @description Derived material usage to build one product, by grams. Keys are
+         *     material ids (as strings); values are grams (canonical decimal strings).
+         */
+        ProductMaterialRollupResponse: {
+            /** Materials */
+            materials?: {
+                [key: string]: string;
+            };
+        };
         /** ProductResponse */
         ProductResponse: {
+            /**
+             * Assembly Minutes
+             * @default 0
+             */
+            assembly_minutes: number;
             /** Category */
             category?: string | null;
             /**
@@ -11744,6 +11786,8 @@ export interface components {
          * @description PATCH-style: only fields the caller wants to change.
          */
         ProductUpdateRequest: {
+            /** Assembly Minutes */
+            assembly_minutes?: number | null;
             /** Category */
             category?: string | null;
             /** Custom Fields */
@@ -24225,6 +24269,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_materials_api_v1_products__product_id__materials_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductMaterialRollupResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -105,108 +105,81 @@ async def test_bom_replay_parity(engine) -> None:
         await s.commit()
 
     # Build: leaf = 50g M + 4 bag; mid = 1 leaf + 25g M; top = 2 mid + 1 bag.
+    # Rows inserted directly: new product BOMs only accept part/supply (epic
+    # #267 decision #3), but compute_cost_tree still rebuilds from any
+    # legacy-shaped material/supply/product topology — which is exactly the
+    # replay-parity invariant under test.
     async with factory() as s:
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_leaf.id,
-            component_kind="material",
-            component_id=m.id,
-            quantity=Decimal("50"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_leaf.id,
-            component_kind="supply",
-            component_id=sup.id,
-            quantity=Decimal("4"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_mid.id,
-            component_kind="product",
-            component_id=p_leaf.id,
-            quantity=Decimal("1"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_mid.id,
-            component_kind="material",
-            component_id=m.id,
-            quantity=Decimal("25"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_top.id,
-            component_kind="product",
-            component_id=p_mid.id,
-            quantity=Decimal("2"),
-            actor_user_id=None,
-        )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_top.id,
-            component_kind="supply",
-            component_id=sup.id,
-            quantity=Decimal("1"),
-            actor_user_id=None,
-        )
+        for parent_id, kind, comp_id, qty in [
+            (p_leaf.id, "material", m.id, "50"),
+            (p_leaf.id, "supply", sup.id, "4"),
+            (p_mid.id, "product", p_leaf.id, "1"),
+            (p_mid.id, "material", m.id, "25"),
+            (p_top.id, "product", p_mid.id, "2"),
+            (p_top.id, "supply", sup.id, "1"),
+        ]:
+            s.add(
+                ProductBomItem(
+                    parent_product_id=parent_id,
+                    component_kind=kind,
+                    component_id=comp_id,
+                    quantity=Decimal(qty),
+                )
+            )
         await s.commit()
 
-    async with factory() as s:
-        rows = (await s.execute(select(Product).order_by(Product.id))).scalars().all()
-        before = {r.id: r.unit_cost_cached for r in rows}
+    # Topological recompute (children first) of unit_cost_cached from the
+    # BOM topology via compute_cost_tree — the source of truth the rollup
+    # projection uses.
+    async def _rebuild() -> dict:
+        async with factory() as s:
+            adjacency_rows = (
+                await s.execute(
+                    select(ProductBomItem.parent_product_id, ProductBomItem.component_id).where(
+                        ProductBomItem.component_kind == COMPONENT_KIND_PRODUCT
+                    )
+                )
+            ).all()
+            product_ids = list((await s.execute(select(Product.id))).scalars().all())
+
+        children_of: dict = {p: set() for p in product_ids}
+        for parent, child in adjacency_rows:
+            children_of.setdefault(parent, set()).add(child)
+
+        order: list = []
+        seen: set = set()
+
+        def _visit(node) -> None:
+            if node in seen:
+                return
+            seen.add(node)
+            for ch in children_of.get(node, ()):
+                _visit(ch)
+            order.append(node)
+
+        for pid in product_ids:
+            _visit(pid)
+
+        async with factory() as s:
+            for pid in order:
+                tree = await bom_service.compute_cost_tree(s, product_id=pid)
+                await s.execute(
+                    update(Product)
+                    .where(Product.id == pid)
+                    .values(unit_cost_cached=tree.total_cost)
+                )
+            await s.commit()
+        async with factory() as s:
+            rows = (await s.execute(select(Product).order_by(Product.id))).scalars().all()
+            return {r.id: r.unit_cost_cached for r in rows}
+
+    # First build → snapshot, wipe, rebuild again → must match exactly.
+    before = await _rebuild()
     assert all(v is not None for v in before.values())
 
-    # Wipe the cached column on every product.
     async with factory() as s:
         await s.execute(update(Product).values(unit_cost_cached=None))
         await s.commit()
 
-    # Rebuild: process products in leaf-first order so sub-product costs
-    # are settled before parents read them.
-    async with factory() as s:
-        adjacency_rows = (
-            await s.execute(
-                select(ProductBomItem.parent_product_id, ProductBomItem.component_id).where(
-                    ProductBomItem.component_kind == COMPONENT_KIND_PRODUCT
-                )
-            )
-        ).all()
-        product_ids = list((await s.execute(select(Product.id))).scalars().all())
-
-    children_of: dict = {p: set() for p in product_ids}
-    for parent, child in adjacency_rows:
-        children_of.setdefault(parent, set()).add(child)
-
-    # Topological sort: children first.
-    order: list = []
-    seen: set = set()
-
-    def _visit(node) -> None:
-        if node in seen:
-            return
-        seen.add(node)
-        for ch in children_of.get(node, ()):
-            _visit(ch)
-        order.append(node)
-
-    for pid in product_ids:
-        _visit(pid)
-
-    async with factory() as s:
-        for pid in order:
-            tree = await bom_service.compute_cost_tree(s, product_id=pid)
-            await s.execute(
-                update(Product).where(Product.id == pid).values(unit_cost_cached=tree.total_cost)
-            )
-        await s.commit()
-
-    async with factory() as s:
-        rows = (await s.execute(select(Product).order_by(Product.id))).scalars().all()
-        after = {r.id: r.unit_cost_cached for r in rows}
-
+    after = await _rebuild()
     assert after == before

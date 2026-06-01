@@ -25,6 +25,8 @@ class ProductResponse(BaseModel):
     unit_cost_cached: Decimal | None = None
     weight_grams: Decimal | None = None
     category: str | None = None
+    # Assembly-line epic #267 Phase 3: minutes to assemble one product.
+    assembly_minutes: int = 0
     # Phase 3.3: on-hand from ``inventory_on_hand``.
     total_on_hand: Decimal = Field(default=Decimal("0"))
     per_location_on_hand: dict[uuid.UUID, Decimal] = Field(default_factory=dict)
@@ -46,6 +48,7 @@ class ProductCreateRequest(BaseModel):
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
     low_stock_threshold: Decimal | None = Field(default=None, ge=0)
+    assembly_minutes: int = Field(default=0, ge=0)
     custom_fields: dict[str, Any] | None = None
     # Optional bill-of-materials to attach at creation time. Each item is
     # added in the same transaction so the product's rolled-up
@@ -64,7 +67,15 @@ class ProductUpdateRequest(BaseModel):
     weight_grams: Decimal | None = Field(default=None, ge=0)
     category: str | None = Field(default=None, max_length=64)
     low_stock_threshold: Decimal | None = Field(default=None, ge=0)
+    assembly_minutes: int | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
+
+
+class ProductMaterialRollupResponse(BaseModel):
+    """Derived material usage to build one product, by grams. Keys are
+    material ids (as strings); values are grams (canonical decimal strings)."""
+
+    materials: dict[str, str] = Field(default_factory=dict)
 
 
 class ProductListResponse(BaseModel):

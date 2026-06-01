@@ -135,6 +135,7 @@ async def create(
     weight_grams: Decimal | None = None,
     category: str | None = None,
     low_stock_threshold: Decimal | None = None,
+    assembly_minutes: int = 0,
     actor_user_id: uuid.UUID | None,
     custom_fields: dict[str, Any] | None = None,
 ) -> Product:
@@ -171,6 +172,7 @@ async def create(
         weight_grams=weight_grams,
         category=category_norm,
         low_stock_threshold=low_stock_threshold,
+        assembly_minutes=assembly_minutes,
         is_archived=False,
         custom_fields=normalized_cf,
     )
@@ -224,6 +226,7 @@ _EDITABLE_FIELDS = (
     "weight_grams",
     "category",
     "low_stock_threshold",
+    "assembly_minutes",
 )
 
 
