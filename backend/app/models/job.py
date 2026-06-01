@@ -63,8 +63,14 @@ class Job(Base):
 
     job_number: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
 
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("product.id", ondelete="RESTRICT"), nullable=False
+    # Assembly-line epic #267 Phase 4: a job produces a Part. ``product_id``
+    # is now nullable (legacy product-jobs; backfilled to a part in Phase 7),
+    # and ``part_id`` is the part a new job makes. Exactly one is set.
+    product_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("product.id", ondelete="RESTRICT"), nullable=True
+    )
+    part_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("part.id", ondelete="RESTRICT"), nullable=True
     )
     customer_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
 

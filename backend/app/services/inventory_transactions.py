@@ -51,6 +51,7 @@ from app.events.types import inventory as inventory_events
 from app.models.inventory_location import InventoryLocation
 from app.models.inventory_transaction import (
     ENTITY_KIND_MATERIAL,
+    ENTITY_KIND_PART,
     ENTITY_KIND_PRODUCT,
     ENTITY_KIND_SUPPLY,
     INVENTORY_ENTITY_KIND_VALUES,
@@ -61,6 +62,7 @@ from app.models.inventory_transaction import (
     InventoryTransaction,
 )
 from app.models.material import Material
+from app.models.part import Part
 from app.models.product import Product
 from app.models.supply import Supply
 from app.schemas.events import EventCreate
@@ -160,6 +162,7 @@ _ENTITY_MODELS: dict[str, type] = {
     ENTITY_KIND_MATERIAL: Material,
     ENTITY_KIND_SUPPLY: Supply,
     ENTITY_KIND_PRODUCT: Product,
+    ENTITY_KIND_PART: Part,
 }
 
 

@@ -131,7 +131,9 @@ class JobPlateSummary(_ProductionPayloadBase):
 class JobCreatedPayload(_ProductionPayloadBase):
     job_id: uuid.UUID
     job_number: str
-    product_id: uuid.UUID
+    # Epic #267 Phase 4: a job targets a part OR (legacy) a product.
+    product_id: uuid.UUID | None = None
+    part_id: uuid.UUID | None = None
     quantity_ordered: int
     plates: list[JobPlateSummary]
 
