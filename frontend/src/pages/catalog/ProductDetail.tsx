@@ -76,6 +76,43 @@ export function ProductDetailPage() {
     }
   }
 
+  /** Pull an image off the clipboard and upload it. Tries the async
+   * Clipboard API (button click); the section's onPaste handler covers
+   * the Ctrl/Cmd+V path, which also works over plain HTTP where
+   * `clipboard.read()` may be blocked. */
+  async function onPasteButton() {
+    setSaveMsg(null);
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (type) {
+          const blob = await item.getType(type);
+          const ext = type.split("/")[1] ?? "png";
+          await onUploadImage(
+            new File([blob], `pasted.${ext}`, { type }),
+          );
+          return;
+        }
+      }
+      setSaveMsg("No image found on the clipboard.");
+    } catch {
+      setSaveMsg(
+        "Couldn't read the clipboard — copy an image, then click into this box and press Ctrl/Cmd+V.",
+      );
+    }
+  }
+
+  function onPasteImage(e: React.ClipboardEvent) {
+    const file = Array.from(e.clipboardData.items)
+      .find((it) => it.type.startsWith("image/"))
+      ?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      void onUploadImage(file);
+    }
+  }
+
   async function onGenerateUpc() {
     setGeneratingUpc(true);
     try {
@@ -246,30 +283,60 @@ export function ProductDetailPage() {
           />
           {canWrite ? (
             <div className="space-y-2 text-sm">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                disabled={imageBusy}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void onUploadImage(f);
-                  e.target.value = "";
-                }}
-                data-testid="product-image-input"
-              />
+              {/* Paste target: click to focus, then Ctrl/Cmd+V. This path
+                  works even over plain HTTP where the async Clipboard API
+                  is blocked. */}
+              <div
+                role="button"
+                tabIndex={0}
+                onPaste={onPasteImage}
+                className="cursor-text rounded border border-dashed border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                data-testid="product-image-paste-zone"
+              >
+                Click here and press Ctrl/Cmd+V to paste an image
+              </div>
+              <label className="block">
+                <span className="text-xs text-muted-foreground">
+                  …or choose a file (uploading replaces the current image)
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={imageBusy}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onUploadImage(f);
+                    e.target.value = "";
+                  }}
+                  data-testid="product-image-input"
+                  className="mt-1 block text-sm"
+                />
+              </label>
               <p className="text-xs text-muted-foreground">
                 PNG, JPEG, or WEBP. Shown on the product page and in POS.
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={imageBusy}
-                onClick={() => void onRemoveImage()}
-                data-testid="product-image-remove"
-              >
-                Remove image
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={imageBusy}
+                  onClick={() => void onPasteButton()}
+                  data-testid="product-image-paste-btn"
+                >
+                  Paste from clipboard
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={imageBusy}
+                  onClick={() => void onRemoveImage()}
+                  data-testid="product-image-remove"
+                >
+                  Remove image
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>
