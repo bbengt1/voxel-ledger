@@ -64,6 +64,7 @@ from app.models.bill_payment import (
     BillPaymentState,
 )
 from app.models.budget import Budget
+from app.models.build import BUILD_STATE_VALUES, Build, BuildState
 from app.models.camera import CAMERA_KIND_VALUES, Camera, CameraKind
 from app.models.credit_note import (
     CREDIT_NOTE_STATE_VALUES,
@@ -338,6 +339,9 @@ __all__ = [
     "BillPaymentState",
     "BillState",
     "Budget",
+    "BUILD_STATE_VALUES",
+    "Build",
+    "BuildState",
     "CAMERA_KIND_VALUES",
     "CUSTOM_FIELD_ENTITY_TYPES",
     "Camera",

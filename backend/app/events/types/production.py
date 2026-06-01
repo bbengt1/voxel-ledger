@@ -267,3 +267,49 @@ register_event(TYPE_PRODUCTION_ORDER_COMPLETED, ProductionOrderStateChangePayloa
 register_event(TYPE_PRODUCTION_ORDER_ARCHIVED, ProductionOrderStateChangePayload)
 register_event(TYPE_JOB_ADDED_TO_ORDER, JobAddedToOrderPayload)
 register_event(TYPE_JOB_REMOVED_FROM_ORDER, JobRemovedFromOrderPayload)
+
+
+# ---------------------------------------------------------------------------
+# Build / assembly (assembly-line epic #267, Phase 5)
+# ---------------------------------------------------------------------------
+
+AGGREGATE_TYPE_BUILD: str = "build"
+
+
+class BuildConsumedComponent(_ProductionPayloadBase):
+    """One part/supply consumed by a completed Build."""
+
+    entity_kind: str
+    entity_id: uuid.UUID
+    quantity: str
+
+
+class BuildCreatedPayload(_ProductionPayloadBase):
+    build_id: uuid.UUID
+    build_number: str
+    product_id: uuid.UUID
+    quantity: int
+    assembly_minutes: int
+
+
+class BuildCompletedPayload(_ProductionPayloadBase):
+    build_id: uuid.UUID
+    product_id: uuid.UUID
+    quantity: int
+    location_id: uuid.UUID
+    unit_cost: str | None = None
+    total_cost: str | None = None
+    consumed: list[BuildConsumedComponent]
+
+
+class BuildCancelledPayload(_ProductionPayloadBase):
+    build_id: uuid.UUID
+
+
+TYPE_BUILD_CREATED = "production.BuildCreated"
+TYPE_BUILD_COMPLETED = "production.BuildCompleted"
+TYPE_BUILD_CANCELLED = "production.BuildCancelled"
+
+register_event(TYPE_BUILD_CREATED, BuildCreatedPayload)
+register_event(TYPE_BUILD_COMPLETED, BuildCompletedPayload)
+register_event(TYPE_BUILD_CANCELLED, BuildCancelledPayload)
