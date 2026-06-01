@@ -29,6 +29,7 @@ const SECTIONS: NavSection[] = [
     label: "Catalog",
     items: [
       { label: "Products", href: "/catalog/products" },
+      { label: "Parts", href: "/catalog/parts" },
       { label: "Materials", href: "/catalog/materials" },
       { label: "Supplies", href: "/catalog/supplies" },
       { label: "Rates", href: "/catalog/rates" },
