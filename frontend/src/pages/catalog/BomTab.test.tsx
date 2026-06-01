@@ -93,17 +93,18 @@ describe("<BomTab />", () => {
     expect(screen.queryByTestId("bom-add-btn")).not.toBeInTheDocument();
   });
 
-  it("renders a cycle error inline above the add form", async () => {
+  it("renders an add error inline above the add form", async () => {
     setOwner();
     mock
       .onGet(`/api/v1/products/${PID}/bom`)
       .reply(200, { items: [], total_cost: null });
-    mock.onGet(/\/api\/v1\/materials/).reply(200, {
-      items: [{ id: "m1", name: "PLA-A" }],
+    // Add form defaults to the "part" kind → searches the parts catalog.
+    mock.onGet(/\/api\/v1\/parts/).reply(200, {
+      items: [{ id: "p1", name: "Bracket" }],
     });
     mock
       .onPost(`/api/v1/products/${PID}/bom`)
-      .reply(400, { detail: "BOM cycle detected: would create cycle (...)" });
+      .reply(400, { detail: "component part:p1 is archived" });
     renderTab();
     const user = userEvent.setup();
     await user.click(await screen.findByTestId("bom-add-btn"));
@@ -115,11 +116,11 @@ describe("<BomTab />", () => {
     );
     const select = screen.getByTestId("bom-add-component") as HTMLSelectElement;
     await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
-    await user.selectOptions(select, "m1");
-    await user.type(screen.getByTestId("bom-add-qty"), "100");
+    await user.selectOptions(select, "p1");
+    await user.type(screen.getByTestId("bom-add-qty"), "2");
     await user.click(screen.getByTestId("bom-add-submit"));
     await waitFor(() =>
-      expect(screen.getByTestId("bom-add-error").textContent).toMatch(/cycle/i),
+      expect(screen.getByTestId("bom-add-error").textContent).toMatch(/archived/i),
     );
   });
 
