@@ -118,7 +118,13 @@ export function PosScreenPage() {
   // calls /carts/{id}/add-product to drop it in the cart.
   const [searchValue, setSearchValue] = useState("");
   const [searchResults, setSearchResults] = useState<
-    { id: string; sku: string; name: string; unit_price: string }[]
+    {
+      id: string;
+      sku: string;
+      name: string;
+      unit_price: string;
+      upc: string | null;
+    }[]
   >([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -344,6 +350,28 @@ export function PosScreenPage() {
     }
   }
 
+  /** Click handler for a search result: load the product's UPC into the
+   * scan box and submit it through the same path as a physical scan, so
+   * the cashier sees the code and the cart line is identical to scanning.
+   * Products without a UPC fall back to adding by product id. */
+  function pickFromSearch(p: (typeof searchResults)[number]) {
+    if (!cart) {
+      setScanError("Start a sale before adding products.");
+      return;
+    }
+    setSearchOpen(false);
+    setSearchValue("");
+    if (p.upc) {
+      setScanValue(p.upc);
+      submitScan(p.upc);
+      // Clear the box after the scan is queued, mirroring onScanSubmit.
+      setScanValue("");
+    } else {
+      void addProductFromSearch(p.id);
+    }
+    requestAnimationFrame(() => scanInputRef.current?.focus());
+  }
+
   async function addProductFromSearch(productId: string) {
     if (!cart) return;
     setSearchOpen(false);
@@ -556,7 +584,7 @@ export function PosScreenPage() {
                           // Prevent the input from blurring before the
                           // click handler fires (mousedown precedes blur).
                           e.preventDefault();
-                          void addProductFromSearch(p.id);
+                          pickFromSearch(p);
                         }}
                         className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-sm hover:bg-accent"
                         data-testid={`pos-search-pick-${p.id}`}
