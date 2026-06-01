@@ -149,4 +149,20 @@ describe("<ProductDetailPage />", () => {
       );
     });
   });
+
+  it("renders the derived material rollup (from parts)", async () => {
+    setOwner();
+    mock.onGet(`/api/v1/products/${PID}`).reply(200, aProduct());
+    mock.onGet(`/api/v1/products/${PID}/bom`).reply(200, { items: [], total_cost: null });
+    mock.onGet(`/api/v1/products/${PID}/materials`).reply(200, {
+      materials: { "mat-1": "150.000000" },
+    });
+    mock.onGet("/api/v1/materials").reply(200, {
+      items: [{ id: "mat-1", name: "PLA Black" }],
+    });
+    renderPage();
+    const section = await screen.findByTestId("material-rollup-section");
+    await waitFor(() => expect(section).toHaveTextContent("PLA Black"));
+    expect(section).toHaveTextContent("150.00");
+  });
 });

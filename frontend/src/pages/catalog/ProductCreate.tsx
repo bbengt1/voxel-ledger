@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 
 type ProductResponse = components["schemas"]["ProductResponse"];
 
-type ComponentKind = "material" | "supply" | "product";
+type ComponentKind = "part" | "supply";
 
 interface BomRow {
   key: string;
@@ -23,7 +23,7 @@ let _bomKey = 0;
 const nextBomKey = () => `b${++_bomKey}`;
 const emptyBomRow = (): BomRow => ({
   key: nextBomKey(),
-  kind: "material",
+  kind: "part",
   search: "",
   options: [],
   componentId: "",
@@ -34,12 +34,7 @@ async function searchComponentOptions(
   kind: ComponentKind,
   search: string,
 ): Promise<{ id: string; name: string }[]> {
-  const endpoint =
-    kind === "material"
-      ? "/api/v1/materials"
-      : kind === "supply"
-        ? "/api/v1/supplies"
-        : "/api/v1/products";
+  const endpoint = kind === "part" ? "/api/v1/parts" : "/api/v1/supplies";
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   params.set("limit", "20");
@@ -60,6 +55,7 @@ export function ProductCreatePage() {
   const [unitPrice, setUnitPrice] = useState("");
   const [weight, setWeight] = useState("");
   const [category, setCategory] = useState("");
+  const [assemblyMinutes, setAssemblyMinutes] = useState("0");
 
   const [bomRows, setBomRows] = useState<BomRow[]>([]);
 
@@ -110,6 +106,8 @@ export function ProductCreatePage() {
       if (upc.trim()) body["upc"] = upc.trim();
       if (description.trim()) body["description"] = description.trim();
       if (weight.trim()) body["weight_grams"] = weight.trim();
+      const am = Number.parseInt(assemblyMinutes, 10);
+      if (Number.isFinite(am) && am > 0) body["assembly_minutes"] = am;
       if (category.trim()) body["category"] = category.trim();
       // Only include complete BOM rows (component picked + positive qty).
       const bomItems = bomRows
@@ -216,6 +214,21 @@ export function ProductCreatePage() {
           />
         </label>
         <label className="block text-sm">
+          Assembly minutes
+          <Input
+            className="mt-1"
+            type="number"
+            min={0}
+            value={assemblyMinutes}
+            onChange={(e) => setAssemblyMinutes(e.target.value)}
+            data-testid="assembly-minutes-input"
+          />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            Labor to assemble one product from its parts. Added to the
+            rolled-up cost at the labor rate.
+          </span>
+        </label>
+        <label className="block text-sm">
           Category
           <Input
             className="mt-1"
@@ -249,9 +262,8 @@ export function ProductCreatePage() {
                   }}
                   data-testid={`bom-kind-${idx}`}
                 >
-                  <option value="material">Material</option>
+                  <option value="part">Part</option>
                   <option value="supply">Supply</option>
-                  <option value="product">Product</option>
                 </select>
                 <div className="space-y-1">
                   <Input

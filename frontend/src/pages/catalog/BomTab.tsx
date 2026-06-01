@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useAuthStore } from "@/store/useAuthStore";
 
-type ComponentKind = "material" | "supply" | "product";
+type ComponentKind = "part" | "supply";
 
 type BomItem = {
   id: string;
@@ -39,12 +39,7 @@ async function searchOptions(
   kind: ComponentKind,
   search: string,
 ): Promise<LookupOption[]> {
-  const endpoint =
-    kind === "material"
-      ? "/api/v1/materials"
-      : kind === "supply"
-        ? "/api/v1/supplies"
-        : "/api/v1/products";
+  const endpoint = kind === "part" ? "/api/v1/parts" : "/api/v1/supplies";
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   params.set("limit", "20");
@@ -77,7 +72,7 @@ export function BomTab({
   const [listError, setListError] = useState<string | null>(null);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [kind, setKind] = useState<ComponentKind>("material");
+  const [kind, setKind] = useState<ComponentKind>("part");
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<LookupOption[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -330,9 +325,8 @@ export function BomTab({
               }}
               data-testid="bom-add-kind"
             >
-              <option value="material">Material</option>
+              <option value="part">Part</option>
               <option value="supply">Supply</option>
-              <option value="product">Product (sub-assembly)</option>
             </select>
           </label>
           <label className="block text-sm">

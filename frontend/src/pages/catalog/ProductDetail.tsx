@@ -37,12 +37,45 @@ export function ProductDetailPage() {
   const [weight, setWeight] = useState("");
   const [category, setCategory] = useState("");
   const [upc, setUpc] = useState("");
+  const [assemblyMinutes, setAssemblyMinutes] = useState("0");
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [generatingUpc, setGeneratingUpc] = useState(false);
   const [imageKey, setImageKey] = useState(0);
   const [imageBusy, setImageBusy] = useState(false);
+
+  // Derived material rollup (grams from the product's parts), with names
+  // resolved from the materials catalog. Refetched when the BOM changes.
+  const [materialRollup, setMaterialRollup] = useState<Record<string, string>>({});
+  const [materialNames, setMaterialNames] = useState<Record<string, string>>({});
+  const [materialsKey, setMaterialsKey] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    Promise.all([
+      apiClient.get<{ materials: Record<string, string> }>(
+        `/api/v1/products/${id}/materials`,
+      ),
+      apiClient.get<{ items: { id: string; name: string }[] }>("/api/v1/materials", {
+        params: { is_archived: "false" },
+      }),
+    ])
+      .then(([rollupRes, matRes]) => {
+        if (cancelled) return;
+        setMaterialRollup(rollupRes.data.materials ?? {});
+        const names: Record<string, string> = {};
+        for (const m of matRes.data.items) names[m.id] = m.name;
+        setMaterialNames(names);
+      })
+      .catch(() => {
+        /* non-fatal */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, materialsKey]);
 
   async function onUploadImage(file: File) {
     if (!id) return;
@@ -137,6 +170,7 @@ export function ProductDetailPage() {
     setWeight(p.weight_grams ?? "");
     setCategory(p.category ?? "");
     setUpc(p.upc ?? "");
+    setAssemblyMinutes(String(p.assembly_minutes ?? 0));
   }
 
   useEffect(() => {
@@ -178,6 +212,8 @@ export function ProductDetailPage() {
       body["upc"] = upc.trim() || null;
       body["weight_grams"] = weight.trim() || null;
       body["category"] = category.trim() || null;
+      const am = Number.parseInt(assemblyMinutes, 10);
+      body["assembly_minutes"] = Number.isFinite(am) && am > 0 ? am : 0;
       const res = await apiClient.patch<ProductResponse>(
         `/api/v1/products/${id}`,
         body,
@@ -409,6 +445,17 @@ export function ProductDetailPage() {
               onChange={(e) => setCategory(e.target.value)}
             />
           </label>
+          <label className="block text-sm">
+            Assembly minutes
+            <Input
+              className="mt-1"
+              type="number"
+              min={0}
+              value={assemblyMinutes}
+              onChange={(e) => setAssemblyMinutes(e.target.value)}
+              data-testid="assembly-minutes-input"
+            />
+          </label>
           <div className="flex gap-2">
             <Button onClick={save} disabled={saving} data-testid="save-btn">
               {saving ? "Saving…" : "Save"}
@@ -437,13 +484,46 @@ export function ProductDetailPage() {
           onChanged={() => {
             if (!id) return;
             // The BOM rollup recomputes server-side; re-fetch so the
-            // header's rolled-up Cost reflects the change without a reload.
+            // header's rolled-up Cost (and material rollup) reflect the
+            // change without a reload.
             apiClient
               .get<ProductResponse>(`/api/v1/products/${id}`)
               .then((res) => setProduct(res.data))
               .catch(() => {});
+            setMaterialsKey((k) => k + 1);
           }}
         />
+      </section>
+
+      <section
+        className="space-y-2 border-t border-border pt-4"
+        data-testid="material-rollup-section"
+      >
+        <h2 className="text-sm font-semibold">Materials (from parts)</h2>
+        {Object.keys(materialRollup).length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No material usage — add parts to this product's BOM.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <th className="py-1 pr-2">Material</th>
+                <th className="py-1 pr-2 text-right">Grams / product</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(materialRollup).map(([mid, grams]) => (
+                <tr key={mid} className="border-b border-border/50">
+                  <td className="py-1 pr-2">{materialNames[mid] ?? mid}</td>
+                  <td className="py-1 pr-2 text-right tabular-nums">
+                    {Number(grams).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       {isOwner ? (
