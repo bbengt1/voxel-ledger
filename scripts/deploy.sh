@@ -88,8 +88,17 @@ fi
 step 5 "compose up -d --build"
 "${COMPOSE}" up -d --build
 
-# --- 6. Poll /health. --------------------------------------------------------
-step 6 "wait for ${HEALTH_URL}"
+# --- 6. Restart nginx so it re-resolves upstreams. ---------------------------
+# When ``up -d --build`` recreates the backend/frontend containers they get
+# fresh IPs, but the long-running nginx container caches the old ones in its
+# resolver and serves 502s until restarted. A restart forces re-resolution.
+# Tolerated as non-fatal: if nginx isn't part of this stack the health poll
+# below is the real gate.
+step 6 "restart nginx (clear stale upstreams)"
+"${COMPOSE}" restart nginx || warn "nginx restart skipped/failed; continuing to health check"
+
+# --- 7. Poll /health. --------------------------------------------------------
+step 7 "wait for ${HEALTH_URL}"
 deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
 attempt=0
 until curl -fsS -o /dev/null "${HEALTH_URL}"; do
@@ -103,8 +112,8 @@ until curl -fsS -o /dev/null "${HEALTH_URL}"; do
 done
 log "health check passed after ${attempt} attempt(s)"
 
-# --- 7. Final state snapshot. ------------------------------------------------
-step 7 "compose ps"
+# --- 8. Final state snapshot. ------------------------------------------------
+step 8 "compose ps"
 "${COMPOSE}" ps
 
 CURRENT_STEP="(done)"
