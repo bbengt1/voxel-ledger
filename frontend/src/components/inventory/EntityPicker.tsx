@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/api/typed";
 import { Input } from "@/components/ui/Input";
 
-export type EntityKind = "material" | "supply" | "product";
+export type EntityKind = "material" | "supply" | "product" | "part";
 
 export interface EntityOption {
   id: string;
@@ -33,6 +33,7 @@ const DEBOUNCE_MS = 200;
 function endpointFor(kind: EntityKind) {
   if (kind === "material") return "/api/v1/materials" as const;
   if (kind === "supply") return "/api/v1/supplies" as const;
+  if (kind === "part") return "/api/v1/parts" as const;
   return "/api/v1/products" as const;
 }
 
@@ -40,7 +41,9 @@ function labelFor(
   kind: EntityKind,
   item: { id: string; name: string; sku?: string | null },
 ): string {
-  if (kind === "product" && item.sku) return `${item.name} (${item.sku})`;
+  if ((kind === "product" || kind === "part") && item.sku) {
+    return `${item.name} (${item.sku})`;
+  }
   return item.name;
 }
 

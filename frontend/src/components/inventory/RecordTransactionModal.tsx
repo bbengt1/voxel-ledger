@@ -186,7 +186,9 @@ export function RecordTransactionModal({
     try {
       const body: InventoryTransactionCreate = {
         kind,
-        entity_kind: entityKind,
+        // The kind selector only offers material/supply/product; parts are
+        // produced via jobs, not manual transactions (epic #267).
+        entity_kind: entityKind as InventoryTransactionCreate["entity_kind"],
         entity_id: entity.id,
         location_id: locationId,
         quantity: quantity.trim(),

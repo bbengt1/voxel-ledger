@@ -123,7 +123,8 @@ export function TransferStockModal({
     setError(null);
     try {
       const body: InventoryTransferCreate = {
-        entity_kind: entityKind,
+        // Parts are produced via jobs, not transferred via this modal.
+        entity_kind: entityKind as InventoryTransferCreate["entity_kind"],
         entity_id: entity.id,
         from_location_id: fromId,
         to_location_id: toId,
