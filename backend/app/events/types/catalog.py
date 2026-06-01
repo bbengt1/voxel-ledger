@@ -25,6 +25,7 @@ AGGREGATE_TYPE: str = "material"
 AGGREGATE_TYPE_SUPPLY: str = "supply"
 AGGREGATE_TYPE_RATE: str = "rate"
 PRODUCT_AGGREGATE_TYPE: str = "product"
+PART_AGGREGATE_TYPE: str = "part"
 
 
 class _CatalogPayloadBase(BaseModel):
@@ -249,3 +250,46 @@ register_event(TYPE_BOM_COMPONENT_ADDED, BomComponentAddedPayload)
 register_event(TYPE_BOM_COMPONENT_REMOVED, BomComponentRemovedPayload)
 register_event(TYPE_BOM_COMPONENT_QUANTITY_CHANGED, BomComponentQuantityChangedPayload)
 register_event(TYPE_PRODUCT_COST_CHANGED, ProductCostChangedPayload)
+
+
+# --- Parts (assembly-line epic #267, Phase 1) ---
+#
+# A part is a printed unit (made of materials) that products are assembled
+# from. ``unit_cost_cached`` rollup + product wiring land in later phases;
+# Phase 1 only carries the catalog lifecycle events.
+
+
+class _PartPayloadBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PartCreatedPayload(_PartPayloadBase):
+    part_id: uuid.UUID
+    sku: str
+    name: str
+
+
+class PartUpdatedPayload(_PartPayloadBase):
+    part_id: uuid.UUID
+    before: dict[str, Any]
+    after: dict[str, Any]
+
+
+class PartArchivedPayload(_PartPayloadBase):
+    part_id: uuid.UUID
+
+
+class PartUnarchivedPayload(_PartPayloadBase):
+    part_id: uuid.UUID
+
+
+TYPE_PART_CREATED = "catalog.PartCreated"
+TYPE_PART_UPDATED = "catalog.PartUpdated"
+TYPE_PART_ARCHIVED = "catalog.PartArchived"
+TYPE_PART_UNARCHIVED = "catalog.PartUnarchived"
+
+
+register_event(TYPE_PART_CREATED, PartCreatedPayload)
+register_event(TYPE_PART_UPDATED, PartUpdatedPayload)
+register_event(TYPE_PART_ARCHIVED, PartArchivedPayload)
+register_event(TYPE_PART_UNARCHIVED, PartUnarchivedPayload)

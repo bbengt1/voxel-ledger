@@ -157,6 +157,7 @@ from app.models.late_fee_policy import (
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
+from app.models.part import Part
 from app.models.payment import (
     PAYMENT_METHOD_VALUES,
     PAYMENT_STATE_VALUES,
@@ -415,6 +416,7 @@ __all__ = [
     "Note",
     "PRINTER_EVENT_KIND_VALUES",
     "PRINTER_TYPE_VALUES",
+    "Part",
     "Plate",
     "POS_CART_STATE_VALUES",
     "PosCart",

@@ -52,6 +52,7 @@ from app.api.v1.journal_entries import router as journal_entries_router
 from app.api.v1.late_fee_policies import router as late_fee_policies_router
 from app.api.v1.materials import router as materials_router
 from app.api.v1.notes import router as notes_router
+from app.api.v1.parts import router as parts_router
 from app.api.v1.payments import (
     credit_notes_router,
     customers_credit_router,
@@ -117,6 +118,7 @@ api_router.include_router(jobs_router)
 api_router.include_router(journal_entries_router)
 api_router.include_router(materials_router)
 api_router.include_router(notes_router)
+api_router.include_router(parts_router)
 api_router.include_router(printers_router)
 api_router.include_router(printer_state_router)
 api_router.include_router(printer_thumbnail_router)
