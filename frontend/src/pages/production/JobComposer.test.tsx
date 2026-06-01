@@ -17,8 +17,25 @@ function setProduction() {
   });
 }
 
-const PRODUCT_ID = "11111111-1111-1111-1111-111111111111";
+const PART_ID = "11111111-1111-1111-1111-111111111111";
 const MATERIAL_ID = "22222222-2222-2222-2222-222222222222";
+
+const PART = {
+  id: PART_ID,
+  name: "Bracket",
+  sku: "P-1",
+  description: null,
+  parts_per_run: 4,
+  print_minutes: 60,
+  setup_minutes: 10,
+  print_grams_by_material: { [MATERIAL_ID]: "25" },
+  assigned_printer_ids: [],
+  unit_cost_cached: "1.50",
+  is_archived: false,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  custom_fields: null,
+};
 
 function renderPage() {
   return render(
@@ -44,45 +61,9 @@ describe("<JobComposerPage />", () => {
     // Stable list endpoints.
     mock.onGet("/api/v1/printers").reply(200, { items: [], next_cursor: null });
     mock
-      .onGet("/api/v1/materials")
-      .reply(200, {
-        items: [
-          {
-            id: MATERIAL_ID,
-            name: "PLA Black",
-            kind: "filament",
-            unit: "g",
-            unit_price: "0.025",
-            is_archived: false,
-            created_at: "2026-01-01T00:00:00Z",
-            updated_at: "2026-01-01T00:00:00Z",
-            custom_fields: null,
-          },
-        ],
-        next_cursor: null,
-      });
-    mock
-      .onGet("/api/v1/products")
-      .reply(200, {
-        items: [
-          {
-            id: PRODUCT_ID,
-            name: "Widget",
-            sku: "W-1",
-            unit_price: "5.00",
-            is_archived: false,
-            created_at: "2026-01-01T00:00:00Z",
-            updated_at: "2026-01-01T00:00:00Z",
-            description: null,
-            category: null,
-            upc: null,
-            low_stock_threshold: null,
-            weight_grams: null,
-            custom_fields: null,
-          },
-        ],
-        next_cursor: null,
-      });
+      .onGet("/api/v1/parts")
+      .reply(200, { items: [PART], next_cursor: null });
+    mock.onGet(`/api/v1/parts/${PART_ID}`).reply(200, PART);
     setProduction();
   });
 
@@ -90,6 +71,20 @@ describe("<JobComposerPage />", () => {
     mock.restore();
     vi.useRealTimers();
   });
+
+  async function pickPart(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByTestId("job-part-picker-input"));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`job-part-picker-option-${PART_ID}`),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId(`job-part-picker-option-${PART_ID}`));
+    // Recipe (from the GET /parts/:id fetch) confirms the detail loaded.
+    await waitFor(() => {
+      expect(screen.getByTestId("job-part-recipe")).toBeInTheDocument();
+    });
+  }
 
   it("debounces calculate calls and renders the cost panel total", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -118,20 +113,10 @@ describe("<JobComposerPage />", () => {
 
     renderPage();
 
-    // Fill required header fields.
+    await pickPart(user);
+
     await user.clear(screen.getByTestId("job-qty-input"));
     await user.type(screen.getByTestId("job-qty-input"), "4");
-
-    // Fill plate 0.
-    await user.clear(screen.getByTestId("plate-print-minutes-0"));
-    await user.type(screen.getByTestId("plate-print-minutes-0"), "60");
-
-    // Type grams — this is the headline interaction; nothing should fire
-    // until the debounce window elapses.
-    await user.type(screen.getByTestId("plate-0-grams-0"), "25");
-
-    // Before debounce: no calc has fired yet for the latest input.
-    expect(calcCalls.length).toBe(0);
 
     // Advance debounce window.
     await act(async () => {
@@ -142,11 +127,16 @@ describe("<JobComposerPage />", () => {
       expect(screen.getByTestId("cost-total")).toHaveTextContent("$2.10");
     });
 
-    // Exactly one calculate call should have fired despite multiple keypresses.
     expect(calcCalls.length).toBeGreaterThanOrEqual(1);
+    // The calc payload carries the part recipe as a single plate.
+    const last = calcCalls[calcCalls.length - 1] as {
+      inputs: { plates: Array<{ parts_per_set: number }> };
+    };
+    expect(last.inputs.plates).toHaveLength(1);
+    expect(last.inputs.plates[0]?.parts_per_set).toBe(4);
   });
 
-  it("submits the job and navigates to its detail page", async () => {
+  it("submits the job with part_id and navigates to its detail page", async () => {
     const user = userEvent.setup();
     mock.onPost("/api/v1/jobs/calculate").reply(200, {
       pieces_per_set: 1,
@@ -163,9 +153,10 @@ describe("<JobComposerPage />", () => {
     });
     mock.onPost("/api/v1/jobs").reply((config) => {
       const body = JSON.parse(config.data as string);
-      expect(body.product_id).toBe(PRODUCT_ID);
+      expect(body.part_id).toBe(PART_ID);
       expect(body.quantity_ordered).toBe(2);
-      expect(body.plates).toHaveLength(1);
+      expect(body.product_id).toBeUndefined();
+      expect(body.plates).toBeUndefined();
       return [
         201,
         {
@@ -175,7 +166,7 @@ describe("<JobComposerPage />", () => {
           quantity_ordered: 2,
           pieces_produced: 0,
           priority: 0,
-          product_id: PRODUCT_ID,
+          part_id: PART_ID,
           actor_user_id: "u",
           plates: [],
           created_at: "2026-01-01T00:00:00Z",
@@ -186,21 +177,10 @@ describe("<JobComposerPage />", () => {
 
     renderPage();
 
-    // Open product picker and pick the only result.
-    await user.click(screen.getByTestId("job-product-picker-input"));
-    await waitFor(() => {
-      expect(
-        screen.getByTestId(`job-product-picker-option-${PRODUCT_ID}`),
-      ).toBeInTheDocument();
-    });
-    await user.click(
-      screen.getByTestId(`job-product-picker-option-${PRODUCT_ID}`),
-    );
+    await pickPart(user);
 
     await user.clear(screen.getByTestId("job-qty-input"));
     await user.type(screen.getByTestId("job-qty-input"), "2");
-    await user.clear(screen.getByTestId("plate-print-minutes-0"));
-    await user.type(screen.getByTestId("plate-print-minutes-0"), "30");
 
     await user.click(screen.getByTestId("save-draft-btn"));
 
