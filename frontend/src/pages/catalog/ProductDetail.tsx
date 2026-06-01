@@ -51,7 +51,9 @@ export function ProductDetailPage() {
     try {
       const form = new FormData();
       form.append("file", file);
-      await apiClient.post(`/api/v1/products/${id}/image`, form);
+      await apiClient.post(`/api/v1/products/${id}/image`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setImageKey((k) => k + 1);
     } catch (err: unknown) {
       const detail =
