@@ -30,6 +30,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -331,6 +332,33 @@ class CostEngineService:
         return await CostEngineService.calculate_for_inputs(
             inputs, session=session, product_id=job.product_id
         )
+
+    @staticmethod
+    async def calculate_for_part(part: Any, *, session: AsyncSession) -> CalcResult:
+        """Cost one finished part from its print recipe (epic #267 Phase 2).
+
+        A Part is a single "plate": one run yields ``parts_per_run`` pieces,
+        so ``quantity_ordered = parts_per_run`` gives ``sets_required = 1`` and
+        ``cost_per_piece`` is the per-part cost (material + labor + machine +
+        overhead + failure buffer; no margin, no supplies).
+        """
+        grams_map: dict[uuid.UUID, Decimal] = {}
+        for k, v in (part.print_grams_by_material or {}).items():
+            grams_map[uuid.UUID(str(k))] = Decimal(str(v))
+        printer_ids = [uuid.UUID(str(p)) for p in (part.assigned_printer_ids or [])]
+        inputs = CalcInputs(
+            plates=[
+                PlateInput(
+                    parts_per_set=part.parts_per_run,
+                    print_minutes=part.print_minutes,
+                    print_grams_by_material=grams_map,
+                    setup_minutes=part.setup_minutes,
+                    assigned_printer_ids=printer_ids,
+                )
+            ],
+            quantity_ordered=part.parts_per_run,
+        )
+        return await CostEngineService.calculate_for_inputs(inputs, session=session)
 
 
 __all__ = [

@@ -16,6 +16,7 @@ from app.projections import (
     email_dispatcher,  # noqa: F401
     inventory_on_hand,  # noqa: F401
     material_cost,  # noqa: F401
+    part_cost,  # noqa: F401
     product_cost,  # noqa: F401
     settings_cache,  # noqa: F401
     test_event_projection,  # noqa: F401

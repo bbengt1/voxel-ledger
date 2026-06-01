@@ -15,8 +15,11 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
+from app.api.v1.cost_calc import _result_to_response
 from app.core.db import get_session
 from app.models.auth import User
+from app.projections import part_cost as part_cost_projection
+from app.schemas.cost_calc import CalcResultResponse
 from app.schemas.parts import (
     PartCreateRequest,
     PartListResponse,
@@ -25,6 +28,7 @@ from app.schemas.parts import (
 )
 from app.services import entity_images
 from app.services import parts as parts_service
+from app.services.cost_engine.service import CostEngineService, MissingRateConfigError
 
 router = APIRouter(prefix="/parts", tags=["parts"])
 
@@ -62,6 +66,18 @@ async def create_part(
     return PartResponse.model_validate(part)
 
 
+@router.post("/recompute-costs")
+async def recompute_part_costs(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner"))],
+) -> dict[str, int]:
+    """Recompute every part's cached cost. Use after changing labor/machine/
+    overhead rates, which the event-driven projection doesn't track."""
+    count = await part_cost_projection.recompute_all(session, actor_user_id=actor.id)
+    await session.commit()
+    return {"recomputed": count}
+
+
 @router.get("", response_model=PartListResponse)
 async def list_parts(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -96,6 +112,26 @@ async def get_part(
             status_code=status.HTTP_404_NOT_FOUND, detail="part not found"
         ) from None
     return PartResponse.model_validate(part)
+
+
+@router.get("/{part_id}/cost", response_model=CalcResultResponse)
+async def get_part_cost(
+    part_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(get_current_user)],
+) -> CalcResultResponse:
+    """Live cost breakdown (material/labor/machine/overhead) for the part."""
+    try:
+        part = await parts_service.get(session, part_id)
+    except parts_service.PartNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="part not found"
+        ) from None
+    try:
+        result = await CostEngineService.calculate_for_part(part, session=session)
+    except MissingRateConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    return _result_to_response(result)
 
 
 @router.patch("/{part_id}", response_model=PartResponse)
