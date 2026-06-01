@@ -234,6 +234,7 @@ async def _emit_recorded(
         "transfer_pair_id": (str(tx.transfer_pair_id) if tx.transfer_pair_id is not None else None),
         "linked_job_id": (str(tx.linked_job_id) if tx.linked_job_id is not None else None),
         "linked_sale_id": (str(tx.linked_sale_id) if tx.linked_sale_id is not None else None),
+        "linked_build_id": (str(tx.linked_build_id) if tx.linked_build_id is not None else None),
         "reason": tx.reason,
     }
     await event_store.append(
@@ -269,6 +270,7 @@ async def record(
     unit_cost: Decimal | None = None,
     linked_job_id: uuid.UUID | None = None,
     linked_sale_id: uuid.UUID | None = None,
+    linked_build_id: uuid.UUID | None = None,
     transfer_pair_id: uuid.UUID | None = None,
 ) -> InventoryTransaction:
     """Insert one transaction row and emit ``TransactionRecorded``.
@@ -306,6 +308,7 @@ async def record(
         transfer_pair_id=transfer_pair_id,
         linked_job_id=linked_job_id,
         linked_sale_id=linked_sale_id,
+        linked_build_id=linked_build_id,
         actor_user_id=actor_user_id,
         reason=reason,
     )

@@ -1304,6 +1304,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/builds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Builds */
+        get: operations["list_builds_api_v1_builds_get"];
+        put?: never;
+        /** Create Build */
+        post: operations["create_build_api_v1_builds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/builds/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Build
+         * @description Pre-flight a proposed build: required parts/supplies, on-hand
+         *     availability, shortfalls, and live cost. Read-only — touches no
+         *     inventory.
+         */
+        post: operations["preview_build_api_v1_builds_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/builds/{build_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Build */
+        get: operations["get_build_api_v1_builds__build_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Build */
+        patch: operations["update_build_api_v1_builds__build_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/builds/{build_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Build */
+        post: operations["cancel_build_api_v1_builds__build_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/builds/{build_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Build */
+        post: operations["complete_build_api_v1_builds__build_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/builds/{build_id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Build Plan
+         * @description Live availability + cost for an existing build (e.g. to show
+         *     shortfalls on a draft before completing).
+         */
+        get: operations["get_build_plan_api_v1_builds__build_id__plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/control-center": {
         parameters: {
             query?: never;
@@ -7805,6 +7918,160 @@ export interface components {
              * Format: uuid
              */
             period_id: string;
+        };
+        /** BuildCreate */
+        BuildCreate: {
+            /** Assembly Minutes */
+            assembly_minutes?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** BuildListResponse */
+        BuildListResponse: {
+            /** Items */
+            items: components["schemas"]["BuildResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /**
+         * BuildPlanLine
+         * @description One required part/supply for a build, with availability.
+         */
+        BuildPlanLine: {
+            /**
+             * Component Id
+             * Format: uuid
+             */
+            component_id: string;
+            /**
+             * Component Kind
+             * @enum {string}
+             */
+            component_kind: "part" | "supply";
+            /** Line Cost */
+            line_cost?: string | null;
+            /** Name */
+            name: string;
+            /** On Hand */
+            on_hand: string;
+            /** Quantity Per Product */
+            quantity_per_product: string;
+            /** Required Quantity */
+            required_quantity: string;
+            /** Sufficient */
+            sufficient: boolean;
+            /** Unit Cost */
+            unit_cost?: string | null;
+        };
+        /**
+         * BuildPlanResponse
+         * @description Pre-flight for a proposed build: required components + cost.
+         *
+         *     ``can_build`` is true only when every line has enough on-hand at the
+         *     resolved consumption location.
+         */
+        BuildPlanResponse: {
+            /** Assembly Labor Cost */
+            assembly_labor_cost?: string | null;
+            /** Assembly Minutes */
+            assembly_minutes: number;
+            /**
+             * Can Build
+             * @default false
+             */
+            can_build: boolean;
+            /** Component Cost */
+            component_cost?: string | null;
+            /** Lines */
+            lines?: components["schemas"]["BuildPlanLine"][];
+            /** Location Id */
+            location_id?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Total Cost */
+            total_cost?: string | null;
+            /** Unit Cost */
+            unit_cost?: string | null;
+        };
+        /** BuildPreviewRequest */
+        BuildPreviewRequest: {
+            /** Assembly Minutes */
+            assembly_minutes?: number | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** BuildResponse */
+        BuildResponse: {
+            /**
+             * Actor User Id
+             * Format: uuid
+             */
+            actor_user_id: string;
+            /** Assembly Minutes */
+            assembly_minutes: number;
+            /** Build Number */
+            build_number: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Location Id */
+            location_id?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "draft" | "completed" | "cancelled";
+            /** Total Cost Cached */
+            total_cost_cached?: string | null;
+            /** Unit Cost Cached */
+            unit_cost_cached?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** BuildUpdate */
+        BuildUpdate: {
+            /** Assembly Minutes */
+            assembly_minutes?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /** Quantity */
+            quantity?: number | null;
         };
         /**
          * BulkSettingUpdateRequest
@@ -17600,6 +17867,266 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BillResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_builds_api_v1_builds_get: {
+        parameters: {
+            query?: {
+                state?: string | null;
+                product_id?: string | null;
+                search?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_build_api_v1_builds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_build_api_v1_builds_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildPlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_build_api_v1_builds__build_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_build_api_v1_builds__build_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_build_api_v1_builds__build_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_build_api_v1_builds__build_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_build_plan_api_v1_builds__build_id__plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildPlanResponse"];
                 };
             };
             /** @description Validation Error */

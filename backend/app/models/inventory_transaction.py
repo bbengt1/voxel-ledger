@@ -176,9 +176,13 @@ class InventoryTransaction(Base):
     total_cost_at_transaction: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
 
     transfer_pair_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
-    # Phase 5 / 6 hooks. No FK yet — those tables don't exist.
+    # Phase 5 / 6 hooks. No FK — keeps the ledger decoupled from those tables.
     linked_job_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
     linked_sale_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    # Assembly-line epic #267 Phase 5: groups the consume-parts/supplies +
+    # credit-product rows produced by a single Build (analogue of
+    # ``transfer_pair_id`` for transfers).
+    linked_build_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
 
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("user.id", ondelete="SET NULL"), nullable=True

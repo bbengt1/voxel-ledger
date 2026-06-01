@@ -27,6 +27,7 @@ from app.api.v1.billable_expenses import router as billable_expenses_router
 from app.api.v1.bills import router as bills_router
 from app.api.v1.bom import router as bom_router
 from app.api.v1.budgets import router as budgets_router
+from app.api.v1.builds import router as builds_router
 from app.api.v1.cameras import router as cameras_router
 from app.api.v1.control_center import router as control_center_router
 from app.api.v1.cost_calc import router as cost_calc_router
@@ -125,6 +126,7 @@ api_router.include_router(printer_thumbnail_router)
 api_router.include_router(cameras_router)
 api_router.include_router(products_router)
 api_router.include_router(production_orders_router)
+api_router.include_router(builds_router)
 api_router.include_router(bom_router)
 api_router.include_router(rates_router)
 api_router.include_router(sales_channels_router)

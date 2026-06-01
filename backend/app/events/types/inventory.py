@@ -117,6 +117,7 @@ class TransactionRecordedPayload(_InventoryPayloadBase):
     transfer_pair_id: uuid.UUID | None = None
     linked_job_id: uuid.UUID | None = None
     linked_sale_id: uuid.UUID | None = None
+    linked_build_id: uuid.UUID | None = None
     reason: str | None = None
 
 
