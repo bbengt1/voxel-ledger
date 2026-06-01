@@ -113,6 +113,7 @@ async def _seed_stock(
     entity_id: uuid.UUID,
     location_id: uuid.UUID,
     quantity: Decimal,
+    unit_cost: Decimal | None = None,
 ) -> None:
     await inventory_tx_service.record(
         session,
@@ -121,6 +122,7 @@ async def _seed_stock(
         entity_id=entity_id,
         location_id=location_id,
         quantity=quantity,
+        unit_cost=unit_cost,
         actor_user_id=None,
         reason="test seed",
     )
@@ -269,6 +271,136 @@ async def test_build_cancel_makes_no_inventory_motion(
     done = await client.post(f"/api/v1/builds/{build_id}/complete", headers=_h(owner))
     assert done.status_code == 409, done.text
     assert await _on_hand(app_session, "product", product_id) == Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_build_values_parts_at_fifo_lot_cost(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    """The product credited by a build is valued at the actual ledger lot
+    cost of the parts it consumes + supplies + labor (#267 Phase 6a)."""
+    from app.models.inventory_transaction import InventoryTransaction
+    from sqlalchemy import and_
+
+    owner = await _token(Role.OWNER, client, app_session)
+    product_id, part_id, supply_id = await _assembly_product(app_session)
+    # Part lot costed at $2.00/ea; supply per-piece = 10/100 = $0.10.
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("5"),
+        unit_cost=Decimal("2.00"),
+    )
+    await _seed_stock(
+        app_session,
+        entity_kind="supply",
+        entity_id=supply_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("20"),
+        unit_cost=Decimal("0.10"),
+    )
+
+    create = await client.post(
+        "/api/v1/builds",
+        headers=_h(owner),
+        json={"product_id": str(product_id), "quantity": 1},
+    )
+    build_id = create.json()["id"]
+    done = await client.post(f"/api/v1/builds/{build_id}/complete", headers=_h(owner))
+    assert done.status_code == 200, done.text
+    body = done.json()
+    # 1 part @ $2.00 + 2 supplies @ $0.10 = $2.20; assembly_minutes 0 → no labor.
+    assert Decimal(body["unit_cost_cached"]) == Decimal("2.20")
+    assert Decimal(body["total_cost_cached"]) == Decimal("2.20")
+
+    # The product production_in row carries that unit cost.
+    row = (
+        await app_session.execute(
+            select(InventoryTransaction).where(
+                and_(
+                    InventoryTransaction.entity_kind == "product",
+                    InventoryTransaction.entity_id == product_id,
+                    InventoryTransaction.kind == "production_in",
+                    InventoryTransaction.linked_build_id == uuid.UUID(build_id),
+                )
+            )
+        )
+    ).scalar_one()
+    assert Decimal(str(row.unit_cost_at_transaction)) == Decimal("2.20")
+
+
+@pytest.mark.asyncio
+async def test_job_completion_costs_the_part_lot(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    """A part-job credits part stock with a per-piece unit cost so the lot
+    is costed for downstream FIFO (#267 Phase 6a)."""
+    from app.models.inventory_transaction import InventoryTransaction
+    from app.services import material_receipts as receipts_service
+
+    owner = await _token(Role.OWNER, client, app_session)
+    # Build a costed part: 50 g of $0.02/g filament → material cost in the
+    # part recipe gives a non-zero per-piece cost.
+    m = await materials_service.create(
+        app_session,
+        name=f"PLA {uuid.uuid4().hex[:6]}",
+        brand=None,
+        material_type="PLA",
+        color=None,
+        density_g_per_cm3=None,
+        spool_weight_grams=Decimal("1000"),
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    await receipts_service.record(
+        app_session,
+        material_id=m.id,
+        grams=Decimal("1000"),
+        total_cost=Decimal("20"),
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    part = await parts_service.create(
+        app_session,
+        name="Bracket",
+        print_minutes=60,
+        setup_minutes=0,
+        parts_per_run=1,
+        print_grams_by_material={m.id: Decimal("50")},
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    create = await client.post(
+        "/api/v1/jobs",
+        headers=_h(owner),
+        json={"part_id": str(part.id), "quantity_ordered": 1},
+    )
+    job_id = create.json()["id"]
+    plate_id = create.json()["plates"][0]["id"]
+    await client.post(f"/api/v1/jobs/{job_id}/submit", headers=_h(owner))
+    await client.post(f"/api/v1/jobs/{job_id}/start", headers=_h(owner))
+    await client.post(
+        f"/api/v1/jobs/{job_id}/plates/{plate_id}/record-run",
+        headers=_h(owner),
+        json={"runs_completed_delta": 1},
+    )
+    await client.post(f"/api/v1/jobs/{job_id}/complete", headers=_h(owner))
+
+    row = (
+        await app_session.execute(
+            select(InventoryTransaction).where(
+                InventoryTransaction.entity_kind == "part",
+                InventoryTransaction.entity_id == part.id,
+                InventoryTransaction.kind == "production_in",
+            )
+        )
+    ).scalar_one()
+    # Part lot carries a positive per-piece cost (>= the $1.00 material).
+    assert row.unit_cost_at_transaction is not None
+    assert Decimal(str(row.unit_cost_at_transaction)) >= Decimal("1.00")
 
 
 @pytest.mark.asyncio

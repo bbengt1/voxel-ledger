@@ -8,6 +8,9 @@ catalog table for its ``entity_kind`` to pull the unit cost:
 * ``supply.unit_cost``
 * ``product.unit_cost_cached`` (nullable — null cost yields a zero
   valuation row so the operator can spot un-rolled-up BOMs)
+* ``part.unit_cost_cached`` (nullable; assembly-line epic #267 Phase 6a —
+  parts are printed intermediates that builds consume, so their WIP
+  value belongs in total inventory)
 
 The ``inventory_on_hand`` table is a running projection and doesn't
 store historical balances, so ``as_of`` only filters the catalog cost
@@ -32,10 +35,12 @@ from app.models.inventory_location import InventoryLocation
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import (
     ENTITY_KIND_MATERIAL,
+    ENTITY_KIND_PART,
     ENTITY_KIND_PRODUCT,
     ENTITY_KIND_SUPPLY,
 )
 from app.models.material import Material
+from app.models.part import Part
 from app.models.product import Product
 from app.models.supply import Supply
 
@@ -89,7 +94,9 @@ async def _load_costs(
     materials: set[uuid.UUID],
     supplies: set[uuid.UUID],
     products: set[uuid.UUID],
+    parts: set[uuid.UUID],
 ) -> tuple[
+    dict[uuid.UUID, tuple[str, str | None, Decimal]],
     dict[uuid.UUID, tuple[str, str | None, Decimal]],
     dict[uuid.UUID, tuple[str, str | None, Decimal]],
     dict[uuid.UUID, tuple[str, str | None, Decimal]],
@@ -98,6 +105,7 @@ async def _load_costs(
     out_m: dict[uuid.UUID, tuple[str, str | None, Decimal]] = {}
     out_s: dict[uuid.UUID, tuple[str, str | None, Decimal]] = {}
     out_p: dict[uuid.UUID, tuple[str, str | None, Decimal]] = {}
+    out_part: dict[uuid.UUID, tuple[str, str | None, Decimal]] = {}
 
     if materials:
         for m in (
@@ -128,7 +136,16 @@ async def _load_costs(
                 getattr(p, "sku", None),
                 Decimal(str(p.unit_cost_cached or 0)),
             )
-    return out_m, out_s, out_p
+    if parts:
+        for pt in (
+            (await session.execute(select(Part).where(Part.id.in_(parts)))).scalars().all()
+        ):
+            out_part[pt.id] = (
+                pt.name,
+                pt.sku,
+                Decimal(str(pt.unit_cost_cached or 0)),
+            )
+    return out_m, out_s, out_p, out_part
 
 
 async def build(
@@ -154,11 +171,13 @@ async def build(
     materials = {r.entity_id for r in on_hand_rows if r.entity_kind == ENTITY_KIND_MATERIAL}
     supplies = {r.entity_id for r in on_hand_rows if r.entity_kind == ENTITY_KIND_SUPPLY}
     products = {r.entity_id for r in on_hand_rows if r.entity_kind == ENTITY_KIND_PRODUCT}
-    out_m, out_s, out_p = await _load_costs(
+    parts = {r.entity_id for r in on_hand_rows if r.entity_kind == ENTITY_KIND_PART}
+    out_m, out_s, out_p, out_part = await _load_costs(
         session,
         materials=materials,
         supplies=supplies,
         products=products,
+        parts=parts,
     )
 
     location_ids = {r.location_id for r in on_hand_rows}
@@ -177,6 +196,8 @@ async def build(
             meta = out_s.get(row.entity_id)
         elif kind == ENTITY_KIND_PRODUCT:
             meta = out_p.get(row.entity_id)
+        elif kind == ENTITY_KIND_PART:
+            meta = out_part.get(row.entity_id)
         else:
             continue
         if meta is None:

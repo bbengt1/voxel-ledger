@@ -484,8 +484,45 @@ async def complete(
     if shortfalls:
         raise InsufficientStockError(shortfalls)
 
+    # Lazy import to avoid pulling the COGS service (and its sales deps)
+    # into the builds module at load time.
+    from app.services.cogs import service as cogs_service
+
     consumed: list[dict[str, str]] = []
+    # Actual component cost of this run. Parts are valued at their real
+    # FIFO ledger lot cost (epic #267 Phase 6a); supplies at per-piece.
+    component_total = Decimal("0")
     for line in plan.lines:
+        if line.component_kind == COMPONENT_KIND_PART:
+            # FIFO cost basis for the part, location-scoped. NULL lot
+            # costs fall back to the part's cached cost (decision #3).
+            fifo_total = await cogs_service.cost_consumption(
+                session,
+                entity_kind=COMPONENT_KIND_PART,
+                entity_id=line.component_id,
+                quantity=line.required_quantity,
+                location_id=location_id,
+                fallback_unit_cost=line.unit_cost,
+            )
+            eff_unit = (
+                (fifo_total / line.required_quantity).quantize(
+                    _COST_QUANTUM, rounding=ROUND_HALF_UP
+                )
+                if line.required_quantity > 0
+                else Decimal("0")
+            )
+            line_total = fifo_total
+            consume_unit_cost: Decimal | None = eff_unit
+        else:
+            # Supplies: per-piece cached cost (Phase 6a scopes FIFO to
+            # parts; supplies keep the existing per-piece basis).
+            consume_unit_cost = line.unit_cost
+            line_total = (
+                line.line_cost
+                if line.line_cost is not None
+                else Decimal("0")
+            )
+
         await inventory_tx_service.record(
             session,
             kind="production_consumption",
@@ -494,10 +531,11 @@ async def complete(
             location_id=location_id,
             quantity=line.required_quantity,
             actor_user_id=actor_user_id,
-            unit_cost=line.unit_cost,
+            unit_cost=consume_unit_cost,
             linked_build_id=build.id,
             reason=f"build {build.build_number} consumed",
         )
+        component_total = component_total + line_total
         consumed.append(
             {
                 "entity_kind": line.component_kind,
@@ -506,7 +544,19 @@ async def complete(
             }
         )
 
-    # Credit the finished product.
+    # Roll the actuals up: components (parts at FIFO + supplies) + the
+    # build's assembly labor → product unit cost.
+    assembly_labor = plan.assembly_labor_cost or Decimal("0")
+    total_cost = (component_total + assembly_labor).quantize(
+        _MONEY_QUANTUM, rounding=ROUND_HALF_UP
+    )
+    unit_cost = (
+        (total_cost / Decimal(build.quantity)).quantize(_MONEY_QUANTUM, rounding=ROUND_HALF_UP)
+        if build.quantity > 0
+        else Decimal("0")
+    )
+
+    # Credit the finished product at the true consumed cost.
     await inventory_tx_service.record(
         session,
         kind="production_in",
@@ -515,15 +565,15 @@ async def complete(
         location_id=location_id,
         quantity=Decimal(build.quantity),
         actor_user_id=actor_user_id,
-        unit_cost=plan.unit_cost,
+        unit_cost=unit_cost,
         linked_build_id=build.id,
         reason=f"build {build.build_number} completed",
     )
 
     build.state = BuildState.COMPLETED
     build.location_id = location_id
-    build.unit_cost_cached = plan.unit_cost
-    build.total_cost_cached = plan.total_cost
+    build.unit_cost_cached = unit_cost
+    build.total_cost_cached = total_cost
     await session.flush()
 
     await _emit(
@@ -535,8 +585,8 @@ async def complete(
             "product_id": str(product.id),
             "quantity": build.quantity,
             "location_id": str(location_id),
-            "unit_cost": str(plan.unit_cost) if plan.unit_cost is not None else None,
-            "total_cost": str(plan.total_cost) if plan.total_cost is not None else None,
+            "unit_cost": str(unit_cost),
+            "total_cost": str(total_cost),
             "consumed": consumed,
         },
         actor_user_id=actor_user_id,
