@@ -183,7 +183,7 @@ async def get_job(
     return _job_to_response(job)
 
 
-_PATCH_IMMUTABLE_KEYS = ("product_id", "quantity_ordered")
+_PATCH_IMMUTABLE_KEYS = ("product_id",)
 
 
 @router.patch("/{job_id}", response_model=JobResponse)
@@ -362,6 +362,10 @@ async def update_plate(
         await session.rollback()
         raise HTTPException(status_code=404, detail="plate not found on this job")
     await session.commit()
+    # ``updated_at`` uses ``onupdate=func.now()``; after the UPDATE the
+    # attribute is expired, so reload in the async context before building
+    # the response (the sync serializer can't trigger a lazy load).
+    await session.refresh(plate)
     return _plate_to_response(plate)
 
 
@@ -412,6 +416,10 @@ async def assign_printer(
         await session.rollback()
         raise HTTPException(status_code=404, detail="plate not found on this job")
     await session.commit()
+    # ``updated_at`` uses ``onupdate=func.now()``; after the UPDATE the
+    # attribute is expired, so reload in the async context before building
+    # the response (the sync serializer can't trigger a lazy load).
+    await session.refresh(plate)
     return _plate_to_response(plate)
 
 
@@ -440,6 +448,10 @@ async def unassign_printer(
         await session.rollback()
         raise HTTPException(status_code=404, detail="plate not found on this job")
     await session.commit()
+    # ``updated_at`` uses ``onupdate=func.now()``; after the UPDATE the
+    # attribute is expired, so reload in the async context before building
+    # the response (the sync serializer can't trigger a lazy load).
+    await session.refresh(plate)
     return _plate_to_response(plate)
 
 

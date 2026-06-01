@@ -78,15 +78,17 @@ class JobCreate(BaseModel):
 
 
 class JobUpdate(BaseModel):
-    """Only ``priority``, ``due_at``, ``notes`` are editable post-create.
+    """Editable post-create: ``priority``, ``due_at``, ``notes`` and
+    ``quantity_ordered`` — while the job is non-terminal.
 
-    ``product_id`` and ``quantity_ordered`` are immutable; the service
-    rejects them with 400.
+    ``product_id`` is immutable; the service rejects it with 400.
+    Completed/cancelled jobs are read-only.
     """
 
     priority: int | None = None
     due_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=4096)
+    quantity_ordered: int | None = Field(default=None, gt=0)
 
 
 class JobResponse(BaseModel):

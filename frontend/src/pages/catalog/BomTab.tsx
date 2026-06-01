@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/api/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type ComponentKind = "material" | "supply" | "product";
@@ -53,8 +54,19 @@ async function searchOptions(
   return res.data.items;
 }
 
-export function BomTab({ productId }: { productId: string }) {
+export function BomTab({
+  productId,
+  onChanged,
+}: {
+  productId: string;
+  /** Fired after a BOM mutation lands so the parent can refresh the
+   * product's rolled-up cost (``unit_cost_cached``). */
+  onChanged?: () => void;
+}) {
   const role = useAuthStore((s) => s.user?.role);
+  const currency = useCurrency();
+  const fmtCost = (s: string | null): string =>
+    s === null ? "—" : formatCurrency(s, currency);
   const canEdit = role
     ? (CAN_EDIT_ROLES as readonly string[]).includes(role)
     : false;
@@ -129,6 +141,7 @@ export function BomTab({ productId }: { productId: string }) {
       setNotes("");
       setSearch("");
       await refresh();
+      onChanged?.();
     } catch (err: unknown) {
       setAddError(extractDetail(err, "Failed to add component."));
     } finally {
@@ -143,6 +156,7 @@ export function BomTab({ productId }: { productId: string }) {
       });
       setEditingId(null);
       await refresh();
+      onChanged?.();
     } catch (err: unknown) {
       setListError(extractDetail(err, "Failed to update quantity."));
     }
@@ -153,6 +167,7 @@ export function BomTab({ productId }: { productId: string }) {
       await apiClient.delete(`/api/v1/products/${productId}/bom/${itemId}`);
       setDeletingId(null);
       await refresh();
+      onChanged?.();
     } catch (err: unknown) {
       setListError(extractDetail(err, "Failed to delete component."));
     }
@@ -213,10 +228,10 @@ export function BomTab({ productId }: { productId: string }) {
                   )}
                 </td>
                 <td className="py-1 pr-2 text-right">
-                  {it.resolved_unit_cost ?? "—"}
+                  {fmtCost(it.resolved_unit_cost)}
                 </td>
                 <td className="py-1 pr-2 text-right">
-                  {it.line_cost ?? "—"}
+                  {fmtCost(it.line_cost)}
                 </td>
                 {canEdit ? (
                   <td className="py-1 text-right">
@@ -287,7 +302,7 @@ export function BomTab({ productId }: { productId: string }) {
         <strong>Rolled-up cost: </strong>
         {totalCost === null
           ? "Cost unknown — some components missing cost data"
-          : totalCost}
+          : formatCurrency(totalCost, currency)}
       </aside>
 
       {showAdd && canEdit ? (

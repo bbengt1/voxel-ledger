@@ -9,6 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.bom import BomItemCreate
+
 
 class ProductResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -45,6 +47,10 @@ class ProductCreateRequest(BaseModel):
     category: str | None = Field(default=None, max_length=64)
     low_stock_threshold: Decimal | None = Field(default=None, ge=0)
     custom_fields: dict[str, Any] | None = None
+    # Optional bill-of-materials to attach at creation time. Each item is
+    # added in the same transaction so the product's rolled-up
+    # ``unit_cost_cached`` reflects the BOM immediately.
+    bom_items: list[BomItemCreate] | None = None
 
 
 class ProductUpdateRequest(BaseModel):

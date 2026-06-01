@@ -69,7 +69,7 @@ describe("<BomTab />", () => {
       .reply(200, { items: [aBomItem()], total_cost: "2000.000000" });
     renderTab();
     expect(await screen.findByText("PLA-A")).toBeInTheDocument();
-    expect(screen.getByTestId("bom-rollup").textContent).toContain("2000.000000");
+    expect(screen.getByTestId("bom-rollup").textContent).toContain("$2,000.00");
   });
 
   it("renders the cost-unknown message when total_cost is null", async () => {

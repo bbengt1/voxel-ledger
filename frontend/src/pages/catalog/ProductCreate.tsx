@@ -8,6 +8,47 @@ import { Input } from "@/components/ui/Input";
 
 type ProductResponse = components["schemas"]["ProductResponse"];
 
+type ComponentKind = "material" | "supply" | "product";
+
+interface BomRow {
+  key: string;
+  kind: ComponentKind;
+  search: string;
+  options: { id: string; name: string }[];
+  componentId: string;
+  quantity: string;
+}
+
+let _bomKey = 0;
+const nextBomKey = () => `b${++_bomKey}`;
+const emptyBomRow = (): BomRow => ({
+  key: nextBomKey(),
+  kind: "material",
+  search: "",
+  options: [],
+  componentId: "",
+  quantity: "",
+});
+
+async function searchComponentOptions(
+  kind: ComponentKind,
+  search: string,
+): Promise<{ id: string; name: string }[]> {
+  const endpoint =
+    kind === "material"
+      ? "/api/v1/materials"
+      : kind === "supply"
+        ? "/api/v1/supplies"
+        : "/api/v1/products";
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  params.set("limit", "20");
+  const res = await apiClient.get<{ items: { id: string; name: string }[] }>(
+    `${endpoint}?${params.toString()}`,
+  );
+  return res.data.items;
+}
+
 export function ProductCreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -20,9 +61,26 @@ export function ProductCreatePage() {
   const [weight, setWeight] = useState("");
   const [category, setCategory] = useState("");
 
+  const [bomRows, setBomRows] = useState<BomRow[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
   const [generatingUpc, setGeneratingUpc] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function updateBomRow(key: string, patch: Partial<BomRow>) {
+    setBomRows((prev) =>
+      prev.map((r) => (r.key === key ? { ...r, ...patch } : r)),
+    );
+  }
+
+  async function refreshBomOptions(key: string, kind: ComponentKind, search: string) {
+    try {
+      const options = await searchComponentOptions(kind, search);
+      updateBomRow(key, { options });
+    } catch {
+      /* non-fatal — leave prior options */
+    }
+  }
 
   async function onGenerateUpc() {
     setGeneratingUpc(true);
@@ -53,6 +111,15 @@ export function ProductCreatePage() {
       if (description.trim()) body["description"] = description.trim();
       if (weight.trim()) body["weight_grams"] = weight.trim();
       if (category.trim()) body["category"] = category.trim();
+      // Only include complete BOM rows (component picked + positive qty).
+      const bomItems = bomRows
+        .filter((r) => r.componentId && Number(r.quantity) > 0)
+        .map((r) => ({
+          component_kind: r.kind,
+          component_id: r.componentId,
+          quantity: r.quantity,
+        }));
+      if (bomItems.length > 0) body["bom_items"] = bomItems;
       const res = await apiClient.post<ProductResponse>(
         "/api/v1/products",
         body,
@@ -156,6 +223,99 @@ export function ProductCreatePage() {
             onChange={(e) => setCategory(e.target.value)}
           />
         </label>
+
+        <fieldset className="rounded border border-border p-3" data-testid="bom-fieldset">
+          <legend className="px-1 text-xs uppercase text-muted-foreground">
+            Bill of materials (optional)
+          </legend>
+          <p className="text-xs text-muted-foreground">
+            Add materials, supplies, or sub-products that make up this
+            product. The rolled-up cost is computed from these on save.
+          </p>
+          <div className="mt-3 space-y-3">
+            {bomRows.map((row, idx) => (
+              <div
+                key={row.key}
+                className="grid grid-cols-1 gap-2 rounded border border-border/60 p-2 sm:grid-cols-[7rem_1fr_5rem_auto]"
+                data-testid={`bom-row-${idx}`}
+              >
+                <select
+                  className="rounded border border-input bg-background px-2 py-1 text-sm"
+                  value={row.kind}
+                  onChange={(e) => {
+                    const kind = e.target.value as ComponentKind;
+                    updateBomRow(row.key, { kind, componentId: "", options: [] });
+                    void refreshBomOptions(row.key, kind, row.search);
+                  }}
+                  data-testid={`bom-kind-${idx}`}
+                >
+                  <option value="material">Material</option>
+                  <option value="supply">Supply</option>
+                  <option value="product">Product</option>
+                </select>
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Search…"
+                    value={row.search}
+                    onChange={(e) => {
+                      const search = e.target.value;
+                      updateBomRow(row.key, { search });
+                      void refreshBomOptions(row.key, row.kind, search);
+                    }}
+                    data-testid={`bom-search-${idx}`}
+                  />
+                  <select
+                    className="block w-full rounded border border-input bg-background px-2 py-1 text-sm"
+                    value={row.componentId}
+                    onChange={(e) =>
+                      updateBomRow(row.key, { componentId: e.target.value })
+                    }
+                    onFocus={() => {
+                      if (row.options.length === 0)
+                        void refreshBomOptions(row.key, row.kind, row.search);
+                    }}
+                    data-testid={`bom-component-${idx}`}
+                  >
+                    <option value="">— select —</option>
+                    {row.options.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  inputMode="decimal"
+                  placeholder="Qty"
+                  value={row.quantity}
+                  onChange={(e) =>
+                    updateBomRow(row.key, { quantity: e.target.value })
+                  }
+                  data-testid={`bom-qty-${idx}`}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() =>
+                    setBomRows((prev) => prev.filter((r) => r.key !== row.key))
+                  }
+                  data-testid={`bom-remove-${idx}`}
+                >
+                  ×
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            onClick={() => setBomRows((prev) => [...prev, emptyBomRow()])}
+            data-testid="bom-add-row"
+          >
+            Add component
+          </Button>
+        </fieldset>
 
         {error ? (
           <p
