@@ -19,7 +19,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Numeric, String, Text, func, text
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
@@ -48,6 +48,13 @@ class Product(Base):
 
     # Phase 3.3: low-stock alert threshold. NULL = no alert configured.
     low_stock_threshold: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+
+    # Assembly-line epic #267 Phase 3: minutes of (operator) labor to
+    # assemble one finished product from its parts + supplies. Costed at
+    # the cost-engine labor rate and added to the rolled-up product cost.
+    assembly_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
 
     is_archived: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="0"

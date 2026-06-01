@@ -13,12 +13,11 @@ from decimal import Decimal
 
 import pytest
 from app.models import Base
-from app.models.product import Product
 from app.models.product_bom_item import ProductBomItem
 from app.services import bom as bom_service
 from app.services import products as products_service
 from app.services import supplies as supplies_service
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
@@ -55,20 +54,23 @@ async def test_null_propagates_and_restores(engine) -> None:
             quantity=Decimal("2"),
             actor_user_id=None,
         )
-        await bom_service.add_component(
-            s,
-            parent_product_id=p_outer.id,
-            component_kind="product",
-            component_id=p_inner.id,
-            quantity=Decimal("1"),
-            actor_user_id=None,
+        # product→product link inserted directly (legacy-shaped): new
+        # product BOMs only accept part/supply (epic #267 decision #3), but
+        # the cost-tree walk still resolves product components.
+        s.add(
+            ProductBomItem(
+                parent_product_id=p_outer.id,
+                component_kind="product",
+                component_id=p_inner.id,
+                quantity=Decimal("1"),
+            )
         )
         await s.commit()
         inner_bom_item_id = inner_bom_item.id
 
     async with factory() as s:
-        outer = (await s.execute(select(Product).where(Product.id == p_outer.id))).scalar_one()
-        assert outer.unit_cost_cached == Decimal("6.000000")
+        tree = await bom_service.compute_cost_tree(s, product_id=p_outer.id)
+        assert tree.total_cost == Decimal("6.000000")
 
     # Break the leaf: point the supply BOM row at a non-existent supply
     # (polymorphic ref, no FK).

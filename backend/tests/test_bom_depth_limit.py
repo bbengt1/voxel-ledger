@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 from app.models import Base
+from app.models.product_bom_item import ProductBomItem
 from app.services import bom as bom_service
 from app.services import products as products_service
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -35,15 +36,18 @@ async def test_depth_limit_fires(engine) -> None:
             chain.append(p)
         await s.commit()
 
+    # product→product links inserted directly (legacy-shaped): new product
+    # BOMs only accept part/supply (epic #267 decision #3), but the cycle
+    # walk still traverses product components for legacy data.
     async with factory() as s:
         for parent, child in itertools.pairwise(chain):
-            await bom_service.add_component(
-                s,
-                parent_product_id=parent.id,
-                component_kind="product",
-                component_id=child.id,
-                quantity=Decimal("1"),
-                actor_user_id=None,
+            s.add(
+                ProductBomItem(
+                    parent_product_id=parent.id,
+                    component_kind="product",
+                    component_id=child.id,
+                    quantity=Decimal("1"),
+                )
             )
         await s.commit()
 

@@ -50,6 +50,7 @@ from app.models.event import Event
 from app.models.product import Product
 from app.models.product_bom_item import (
     COMPONENT_KIND_MATERIAL,
+    COMPONENT_KIND_PART,
     COMPONENT_KIND_SUPPLY,
 )
 from app.projections.registry import projection
@@ -70,6 +71,8 @@ HANDLER_NAMES = {
     inventory_events.TYPE_MATERIAL_RECEIVED: "product_cost_material_received",
     catalog_events.TYPE_SUPPLY_UPDATED: "product_cost_supply_updated",
     catalog_events.TYPE_PRODUCT_COST_CHANGED: "product_cost_product_cost_changed",
+    catalog_events.TYPE_PART_COST_CHANGED: "product_cost_part_cost_changed",
+    catalog_events.TYPE_PRODUCT_UPDATED: "product_cost_product_updated",
 }
 
 
@@ -118,6 +121,25 @@ async def _affected_for_supply_updated(event: Event, session: AsyncSession) -> s
     )
 
 
+async def _affected_for_part_cost_changed(event: Event, session: AsyncSession) -> set[uuid.UUID]:
+    """Every product whose BOM contains this part (epic #267 Phase 3)."""
+    part_id = event.aggregate_id
+    return await bom_service._products_containing_component(
+        COMPONENT_KIND_PART, part_id, session=session
+    )
+
+
+async def _affected_for_product_updated(event: Event, session: AsyncSession) -> set[uuid.UUID]:
+    """Only when ``assembly_minutes`` changed — it feeds the cost rollup
+    (epic #267 Phase 3). Other product-field edits don't affect cost."""
+    payload = event.payload or {}
+    after = payload.get("after") or {}
+    before = payload.get("before") or {}
+    if "assembly_minutes" not in after and "assembly_minutes" not in before:
+        return set()
+    return {uuid.UUID(payload["product_id"])}
+
+
 async def _affected_for_product_cost_changed(event: Event, session: AsyncSession) -> set[uuid.UUID]:
     """The changed product's ancestors only (the product itself was just
     updated by the projection step that emitted this event)."""
@@ -133,6 +155,8 @@ _DISPATCH = {
     inventory_events.TYPE_MATERIAL_RECEIVED: _affected_for_material_received,
     catalog_events.TYPE_SUPPLY_UPDATED: _affected_for_supply_updated,
     catalog_events.TYPE_PRODUCT_COST_CHANGED: _affected_for_product_cost_changed,
+    catalog_events.TYPE_PART_COST_CHANGED: _affected_for_part_cost_changed,
+    catalog_events.TYPE_PRODUCT_UPDATED: _affected_for_product_updated,
 }
 
 

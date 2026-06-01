@@ -39,9 +39,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import catalog as catalog_events
 from app.models.material import Material
+from app.models.part import Part
 from app.models.product import Product
 from app.models.product_bom_item import (
     COMPONENT_KIND_MATERIAL,
+    COMPONENT_KIND_PART,
     COMPONENT_KIND_PRODUCT,
     COMPONENT_KIND_SUPPLY,
     COMPONENT_KIND_VALUES,
@@ -141,6 +143,33 @@ def _supply_cost_per_piece(supply: Supply) -> Decimal:
     return unit_cost
 
 
+async def _assembly_labor_cost(session: AsyncSession, product: Product) -> Decimal | None:
+    """Labor to assemble one finished product = ``assembly_minutes/60 x
+    labor_rate`` (epic #267 Phase 3, decision #1). Returns ``None`` when the
+    labor rate isn't configured (so the product cost reads as unknown, like
+    any missing component cost).
+    """
+    minutes = product.assembly_minutes or 0
+    if minutes <= 0:
+        return Decimal("0")
+    # Lazy import: the cost-engine service imports this module, so importing
+    # it at module load would cycle.
+    from app.services.cost_engine.service import (
+        MissingRateConfigError,
+        _load_all_rates,
+        _resolve_labor_rate,
+    )
+
+    try:
+        rates = await _load_all_rates(session)
+        labor_rate = await _resolve_labor_rate(rates, session)
+    except MissingRateConfigError:
+        return None
+    return (Decimal(minutes) / Decimal(60) * labor_rate).quantize(
+        _COST_QUANTUM, rounding=ROUND_HALF_UP
+    )
+
+
 async def _emit(
     session: AsyncSession,
     *,
@@ -195,6 +224,17 @@ async def _load_component(
         if row is None:
             raise ComponentNotFoundError(f"supply {component_id} not found")
         return row.name, _supply_cost_per_piece(row), bool(row.is_archived)
+    if component_kind == COMPONENT_KIND_PART:
+        row = (
+            await session.execute(select(Part).where(Part.id == component_id))
+        ).scalar_one_or_none()
+        if row is None:
+            raise ComponentNotFoundError(f"part {component_id} not found")
+        # Part cost is its cached unit cost (materials + print/labor/machine
+        # + overhead), maintained by the part_cost projection. None when the
+        # part isn't priceable yet (no rate config) → propagates as unknown.
+        unit_cost = None if row.unit_cost_cached is None else _as_decimal(row.unit_cost_cached)
+        return row.name, unit_cost, bool(row.is_archived)
     if component_kind == COMPONENT_KIND_PRODUCT:
         row = (
             await session.execute(select(Product).where(Product.id == component_id))
@@ -405,8 +445,14 @@ async def add_component(
     notes: str | None = None,
     actor_user_id: uuid.UUID | None,
 ) -> ProductBomItem:
-    if component_kind not in COMPONENT_KIND_VALUES:
-        raise InvalidComponentKindError(f"component_kind must be one of {COMPONENT_KIND_VALUES}")
+    # Products are assembled from parts + supplies (epic #267 decision #3).
+    # Legacy ``material`` / ``product`` kinds remain valid in the enum + cost
+    # rollup for pre-migration rows, but are rejected on new BOM lines.
+    if component_kind not in (COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY):
+        raise InvalidComponentKindError(
+            f"product BOM components must be one of "
+            f"{(COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY)}; got {component_kind!r}"
+        )
     quantity = _as_decimal(quantity)
     if quantity <= 0:
         raise InvalidQuantityError("quantity must be > 0")
@@ -699,6 +745,13 @@ async def compute_cost_tree(
             )
         )
 
+    # Assembly labor (epic #267 Phase 3): plain sum on top of component
+    # costs — parts already carry their own overhead (decision #2). Unknown
+    # labor rate makes the whole product cost unknown.
+    if running is not None:
+        labor = await _assembly_labor_cost(session, product)
+        running = None if labor is None else running + labor
+
     if running is not None:
         running = running.quantize(_COST_QUANTUM, rounding=ROUND_HALF_UP)
     node.total_cost = running
@@ -757,6 +810,49 @@ async def supply_line_costs_per_piece(
     return line_costs
 
 
+async def material_rollup_for_product(
+    session: AsyncSession, *, product_id: uuid.UUID
+) -> dict[uuid.UUID, Decimal]:
+    """Derived material usage to build one finished product (epic #267 Phase 3).
+
+    Walks the product's direct ``part`` BOM components. A part prints
+    ``print_grams_by_material`` grams per run producing ``parts_per_run``
+    pieces, so one part uses ``grams / parts_per_run`` of each material; a
+    product needing ``quantity`` of that part uses
+    ``quantity * grams / parts_per_run``. Returns ``{material_id: grams}``
+    aggregated across all parts (read-only; for reporting / where-used).
+    """
+    rows = list(
+        (
+            await session.execute(
+                select(ProductBomItem).where(
+                    ProductBomItem.parent_product_id == product_id,
+                    ProductBomItem.component_kind == COMPONENT_KIND_PART,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    out: dict[uuid.UUID, Decimal] = {}
+    for row in rows:
+        part = (
+            await session.execute(select(Part).where(Part.id == row.component_id))
+        ).scalar_one_or_none()
+        if part is None:
+            continue
+        ppr = Decimal(part.parts_per_run or 1)
+        qty = _as_decimal(row.quantity)
+        for mat_id_str, grams_str in (part.print_grams_by_material or {}).items():
+            try:
+                mid = uuid.UUID(str(mat_id_str))
+            except ValueError:
+                continue
+            per_product = qty * _as_decimal(grams_str) / ppr
+            out[mid] = out.get(mid, Decimal("0")) + per_product
+    return {mid: g.quantize(_COST_QUANTUM, rounding=ROUND_HALF_UP) for mid, g in out.items()}
+
+
 __all__ = [
     "DEFAULT_MAX_DEPTH",
     "ArchivedTargetError",
@@ -778,6 +874,7 @@ __all__ = [
     "compute_cost_tree",
     "get_bom",
     "get_item",
+    "material_rollup_for_product",
     "remove_component",
     "supply_line_costs_per_piece",
     "update_component_quantity",

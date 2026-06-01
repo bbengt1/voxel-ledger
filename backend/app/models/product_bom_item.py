@@ -38,10 +38,16 @@ from app.core.db import Base
 COMPONENT_KIND_MATERIAL = "material"
 COMPONENT_KIND_SUPPLY = "supply"
 COMPONENT_KIND_PRODUCT = "product"
+# Assembly-line epic #267 Phase 3: products are assembled from parts +
+# supplies. ``material`` / ``product`` remain in the enum for legacy rows
+# (pre-migration) and the cost rollup, but new product BOMs accept only
+# ``part`` / ``supply``.
+COMPONENT_KIND_PART = "part"
 COMPONENT_KIND_VALUES: tuple[str, ...] = (
     COMPONENT_KIND_MATERIAL,
     COMPONENT_KIND_SUPPLY,
     COMPONENT_KIND_PRODUCT,
+    COMPONENT_KIND_PART,
 )
 
 # The column is an actual PG ENUM (`bom_component_kind`) — see the
