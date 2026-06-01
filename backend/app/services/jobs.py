@@ -362,8 +362,10 @@ async def get(session: AsyncSession, job_id: uuid.UUID) -> Job:
     return row
 
 
-_EDITABLE_FIELDS = ("priority", "due_at", "notes")
-_IMMUTABLE_FIELDS = ("product_id", "quantity_ordered")
+_EDITABLE_FIELDS = ("priority", "due_at", "notes", "quantity_ordered")
+_IMMUTABLE_FIELDS = ("product_id",)
+# Jobs are read-only once they reach a terminal state.
+_TERMINAL_STATES = (JobState.COMPLETED, JobState.CANCELLED)
 
 
 async def update(
@@ -378,6 +380,18 @@ async def update(
             raise ImmutableFieldError(f"{f} is immutable post-create")
 
     target = await get(session, job_id)
+
+    # A completed or cancelled job is a closed record — no edits.
+    if target.state in _TERMINAL_STATES:
+        raise JobLockedError(
+            f"cannot edit a job in state {target.state.value!r}; "
+            "completed and cancelled jobs are read-only"
+        )
+
+    if "quantity_ordered" in patch:
+        qty = patch["quantity_ordered"]
+        if not isinstance(qty, int) or qty <= 0:
+            raise JobsServiceError("quantity_ordered must be > 0")
 
     before: dict[str, Any] = {}
     after: dict[str, Any] = {}

@@ -11,6 +11,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type JobResponse = components["schemas"]["JobResponse"];
@@ -65,6 +66,19 @@ export function JobDetailPage() {
 
   const [calc, setCalc] = useState<CalcResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
+
+  // Job-level edit form (non-terminal jobs only).
+  const [editingJob, setEditingJob] = useState(false);
+  const [editQty, setEditQty] = useState("");
+  const [editPriority, setEditPriority] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  // Inline per-plate edit.
+  const [editingPlateId, setEditingPlateId] = useState<string | null>(null);
+  const [plateName, setPlateName] = useState("");
+  const [platePps, setPlatePps] = useState("");
+  const [platePrintMin, setPlatePrintMin] = useState("");
+  const [plateSetupMin, setPlateSetupMin] = useState("");
 
   const refetch = useCallback(async () => {
     if (!id) return;
@@ -148,6 +162,85 @@ export function JobDetailPage() {
     }
   }
 
+  function startEditJob() {
+    if (!job) return;
+    setEditQty(String(job.quantity_ordered));
+    setEditPriority(String(job.priority));
+    setEditNotes(job.notes ?? "");
+    setEditingJob(true);
+  }
+
+  async function saveJob() {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = {};
+      const qty = Number.parseInt(editQty, 10);
+      if (Number.isFinite(qty) && qty > 0) body["quantity_ordered"] = qty;
+      const pri = Number.parseInt(editPriority, 10);
+      if (Number.isFinite(pri)) body["priority"] = pri;
+      body["notes"] = editNotes.trim() || null;
+      await apiClient.patch(`/api/v1/jobs/${id}`, body);
+      setEditingJob(false);
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not save job.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function startEditPlate(p: NonNullable<JobResponse["plates"]>[number]) {
+    setEditingPlateId(p.id);
+    setPlateName(p.name);
+    setPlatePps(String(p.parts_per_set));
+    setPlatePrintMin(String(p.print_minutes));
+    setPlateSetupMin(String(p.print_hours_setup_minutes ?? 0));
+  }
+
+  async function savePlate(plateId: string) {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const body: Record<string, unknown> = { name: plateName };
+      const pps = Number.parseInt(platePps, 10);
+      if (Number.isFinite(pps) && pps > 0) body["parts_per_set"] = pps;
+      const pm = Number.parseInt(platePrintMin, 10);
+      if (Number.isFinite(pm) && pm >= 0) body["print_minutes"] = pm;
+      const sm = Number.parseInt(plateSetupMin, 10);
+      if (Number.isFinite(sm) && sm >= 0) body["print_hours_setup_minutes"] = sm;
+      await apiClient.patch(`/api/v1/jobs/${id}/plates/${plateId}`, body);
+      setEditingPlateId(null);
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not save plate.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePlate(plateId: string) {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiClient.delete(`/api/v1/jobs/${id}/plates/${plateId}`);
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not delete plate.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading && !job) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
@@ -163,6 +256,10 @@ export function JobDetailPage() {
   const allowedTransitions = TRANSITIONS.filter((t) =>
     t.allowedStates.includes(job.state),
   );
+
+  // Completed/cancelled jobs are read-only; everything else is editable.
+  const editable =
+    canWrite && job.state !== "completed" && job.state !== "cancelled";
 
   return (
     <section className="flex gap-6">
@@ -204,6 +301,83 @@ export function JobDetailPage() {
           </div>
         ) : null}
 
+        {editable ? (
+          <div
+            className="rounded-lg border border-border p-4"
+            data-testid="job-edit-section"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Job details</h2>
+              {!editingJob ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={startEditJob}
+                  data-testid="job-edit-btn"
+                >
+                  Edit
+                </Button>
+              ) : null}
+            </div>
+            {editingJob ? (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block text-sm">
+                    Quantity ordered
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editQty}
+                      onChange={(e) => setEditQty(e.target.value)}
+                      data-testid="job-edit-qty"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    Priority
+                    <Input
+                      type="number"
+                      value={editPriority}
+                      onChange={(e) => setEditPriority(e.target.value)}
+                      data-testid="job-edit-priority"
+                    />
+                  </label>
+                </div>
+                <label className="block text-sm">
+                  Notes
+                  <textarea
+                    className="mt-1 w-full rounded-md border border-input bg-background p-2 text-sm"
+                    rows={2}
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    data-testid="job-edit-notes"
+                  />
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void saveJob()}
+                    data-testid="job-edit-save"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingJob(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Quantity {job.quantity_ordered} · Priority {job.priority}
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <div className="rounded-lg border border-border p-4">
           <h2 className="text-sm font-semibold">Plates</h2>
           <table className="mt-2 w-full table-fixed border-collapse text-sm">
@@ -228,33 +402,116 @@ export function JobDetailPage() {
                   </td>
                 </tr>
               ) : (
-                (job.plates ?? []).map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-b border-border/50"
-                    data-testid={`plate-row-${p.id}`}
-                  >
-                    <td className="py-2 pr-2 font-mono text-xs">
-                      {p.plate_number}
-                    </td>
-                    <td className="py-2 pr-2">{p.name}</td>
-                    <td className="py-2 pr-2">{p.parts_per_set}</td>
-                    <td className="py-2 pr-2">{p.runs_completed}</td>
-                    <td className="py-2 pr-2">{p.print_minutes}</td>
-                    <td className="py-2 pr-2 text-right">
-                      {canWrite && job.state === "in_progress" ? (
+                (job.plates ?? []).map((p) =>
+                  editingPlateId === p.id ? (
+                    <tr
+                      key={p.id}
+                      className="border-b border-border/50"
+                      data-testid={`plate-row-${p.id}`}
+                    >
+                      <td className="py-2 pr-2 font-mono text-xs">
+                        {p.plate_number}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <Input
+                          value={plateName}
+                          onChange={(e) => setPlateName(e.target.value)}
+                          data-testid={`plate-edit-name-${p.id}`}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={platePps}
+                          onChange={(e) => setPlatePps(e.target.value)}
+                          data-testid={`plate-edit-pps-${p.id}`}
+                        />
+                      </td>
+                      <td className="py-2 pr-2">{p.runs_completed}</td>
+                      <td className="py-2 pr-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          value={platePrintMin}
+                          onChange={(e) => setPlatePrintMin(e.target.value)}
+                          data-testid={`plate-edit-printmin-${p.id}`}
+                        />
+                      </td>
+                      <td className="py-2 pr-2 text-right">
                         <Button
                           size="sm"
                           disabled={busy}
-                          onClick={() => void recordRun(p.id)}
-                          data-testid={`record-run-${p.id}`}
+                          onClick={() => void savePlate(p.id)}
+                          data-testid={`plate-save-${p.id}`}
                         >
-                          Record run
+                          Save
+                        </Button>{" "}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingPlateId(null)}
+                        >
+                          Cancel
                         </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr
+                      key={p.id}
+                      className="border-b border-border/50"
+                      data-testid={`plate-row-${p.id}`}
+                    >
+                      <td className="py-2 pr-2 font-mono text-xs">
+                        {p.plate_number}
+                      </td>
+                      <td className="py-2 pr-2">{p.name}</td>
+                      <td className="py-2 pr-2">{p.parts_per_set}</td>
+                      <td className="py-2 pr-2">{p.runs_completed}</td>
+                      <td className="py-2 pr-2">{p.print_minutes}</td>
+                      <td className="py-2 pr-2 text-right">
+                        <div className="flex justify-end gap-1">
+                          {canWrite && job.state === "in_progress" ? (
+                            <Button
+                              size="sm"
+                              disabled={busy}
+                              onClick={() => void recordRun(p.id)}
+                              data-testid={`record-run-${p.id}`}
+                            >
+                              Record run
+                            </Button>
+                          ) : null}
+                          {editable ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => startEditPlate(p)}
+                                data-testid={`plate-edit-${p.id}`}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={busy || p.runs_completed > 0}
+                                title={
+                                  p.runs_completed > 0
+                                    ? "Cannot delete a plate with recorded runs"
+                                    : undefined
+                                }
+                                onClick={() => void deletePlate(p.id)}
+                                data-testid={`plate-delete-${p.id}`}
+                              >
+                                Delete
+                              </Button>
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )
               )}
             </tbody>
           </table>

@@ -1,9 +1,10 @@
 """Plates service (Phase 5.2, #78).
 
 CRUD for plates plus printer assignment. Mutations (create/update/delete)
-are only legal while the parent job is in ``draft``; changing plate
-geometry after the job leaves draft would corrupt the pieces/economics
-math.
+are legal while the parent job is editable — any non-terminal state
+(``draft``, ``queued``, ``in_progress``). Once a job is ``completed`` or
+``cancelled`` it's a closed record and plates are locked. A plate that has
+recorded runs cannot be deleted, so production history stays intact.
 """
 
 from __future__ import annotations
@@ -86,11 +87,14 @@ async def _load_plate(session: AsyncSession, plate_id: uuid.UUID) -> Plate:
     return row
 
 
-def _ensure_draft(job: Job) -> None:
-    if job.state != JobState.DRAFT:
+_TERMINAL_STATES = (JobState.COMPLETED, JobState.CANCELLED)
+
+
+def _ensure_editable(job: Job) -> None:
+    if job.state in _TERMINAL_STATES:
         raise JobLockedError(
             f"cannot modify plates on a job in state {job.state.value!r}; "
-            "plates are locked once the job leaves draft"
+            "completed and cancelled jobs are read-only"
         )
 
 
@@ -113,7 +117,7 @@ async def create(
         raise PlatesServiceError("print_minutes must be >= 0")
 
     job = await _load_job(session, job_id)
-    _ensure_draft(job)
+    _ensure_editable(job)
 
     dup = (
         await session.execute(
@@ -163,7 +167,7 @@ async def update(
 ) -> Plate:
     plate = await _load_plate(session, plate_id)
     job = await _load_job(session, plate.job_id)
-    _ensure_draft(job)
+    _ensure_editable(job)
 
     for field in _EDITABLE:
         if field not in patch:
@@ -200,7 +204,11 @@ async def delete(
 ) -> None:
     plate = await _load_plate(session, plate_id)
     job = await _load_job(session, plate.job_id)
-    _ensure_draft(job)
+    _ensure_editable(job)
+    if (plate.runs_completed or 0) > 0:
+        raise PlatesServiceError(
+            "cannot delete a plate that has recorded runs; production history would be lost"
+        )
     await session.delete(plate)
     await session.flush()
 

@@ -294,6 +294,10 @@ export function Sidebar() {
           );
         })}
       </div>
+      <footer className="mt-2 border-t border-border pt-3 text-xs text-muted-foreground">
+        <p className="font-medium">Bengtson Precision 3d</p>
+        <p>All Rights Reserved {new Date().getFullYear()}</p>
+      </footer>
     </nav>
   );
 }

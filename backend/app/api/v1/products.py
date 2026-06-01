@@ -11,7 +11,8 @@ import uuid
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
@@ -24,12 +25,28 @@ from app.schemas.products import (
     ProductResponse,
     ProductUpdateRequest,
 )
+from app.services import bom as bom_service
 from app.services import custom_fields as cf_service
 from app.services import inventory_alerts as alerts_service
+from app.services import product_images as product_images_service
 from app.services import products as products_service
 from app.services import upc as upc_service
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+def _bom_error_to_http(exc: bom_service.BomServiceError) -> HTTPException:
+    """Map create-time BOM errors to HTTP. 404 for missing parent/component/
+    item; 400 for everything else (cycle, depth, invalid kind/quantity,
+    archived target)."""
+    if isinstance(
+        exc,
+        bom_service.ProductNotFoundError
+        | bom_service.ComponentNotFoundError
+        | bom_service.BomItemNotFoundError,
+    ):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 async def _refresh_for_response(session: AsyncSession, product: Product) -> None:
@@ -93,6 +110,26 @@ async def create_product(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"message": "custom_fields validation failed", "errors": exc.errors},
         ) from None
+
+    # Optional create-time BOM. Each component is added in the same
+    # transaction; the synchronous product_cost projection keeps
+    # unit_cost_cached in sync as the events are appended.
+    if payload.bom_items:
+        for item in payload.bom_items:
+            try:
+                await bom_service.add_component(
+                    session,
+                    parent_product_id=product.id,
+                    component_kind=item.component_kind,
+                    component_id=item.component_id,
+                    quantity=item.quantity,
+                    notes=item.notes,
+                    actor_user_id=actor.id,
+                )
+            except bom_service.BomServiceError as exc:
+                await session.rollback()
+                raise _bom_error_to_http(exc) from None
+
     await _refresh_for_response(session, product)
     await session.commit()
     return await _to_response(session, product)
@@ -244,3 +281,60 @@ async def unarchive_product(
     await _refresh_for_response(session, product)
     await session.commit()
     return await _to_response(session, product)
+
+
+# ---------------------------------------------------------------------------
+# Product image (#259)
+# ---------------------------------------------------------------------------
+
+
+async def _require_product(session: AsyncSession, product_id: uuid.UUID) -> None:
+    try:
+        await products_service.get(session, product_id)
+    except products_service.ProductNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="product not found"
+        ) from None
+
+
+@router.post("/{product_id}/image", status_code=status.HTTP_204_NO_CONTENT)
+async def upload_product_image(
+    product_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+    file: Annotated[UploadFile, File()],
+) -> None:
+    await _require_product(session, product_id)
+    content = await file.read()
+    try:
+        await product_images_service.save(
+            session=session,
+            product_id=product_id,
+            content=content,
+            content_type=file.content_type,
+        )
+    except product_images_service.ProductImageError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+
+@router.get("/{product_id}/image")
+async def get_product_image(
+    product_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _user: Annotated[User, Depends(get_current_user)],
+    size: Annotated[str, Query(pattern="^(full|thumb)$")] = "full",
+) -> FileResponse:
+    path = await product_images_service.path_for(session=session, product_id=product_id, size=size)
+    if path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no image")
+    return FileResponse(path, media_type="image/webp")
+
+
+@router.delete("/{product_id}/image", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_image(
+    product_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+) -> None:
+    await _require_product(session, product_id)
+    await product_images_service.delete(session=session, product_id=product_id)

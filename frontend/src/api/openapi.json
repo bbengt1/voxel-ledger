@@ -4138,6 +4138,20 @@
         "title": "Body_upload_attachment_api_v1_attachments_post",
         "type": "object"
       },
+      "Body_upload_product_image_api_v1_products__product_id__image_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_product_image_api_v1_products__product_id__image_post",
+        "type": "object"
+      },
       "BomItemCreate": {
         "properties": {
           "component_id": {
@@ -11235,7 +11249,7 @@
         "type": "object"
       },
       "JobUpdate": {
-        "description": "Only ``priority``, ``due_at``, ``notes`` are editable post-create.\n\n``product_id`` and ``quantity_ordered`` are immutable; the service\nrejects them with 400.",
+        "description": "Editable post-create: ``priority``, ``due_at``, ``notes`` and\n``quantity_ordered`` — while the job is non-terminal.\n\n``product_id`` is immutable; the service rejects it with 400.\nCompleted/cancelled jobs are read-only.",
         "properties": {
           "due_at": {
             "anyOf": [
@@ -11271,6 +11285,18 @@
               }
             ],
             "title": "Priority"
+          },
+          "quantity_ordered": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity Ordered"
           }
         },
         "title": "JobUpdate",
@@ -14199,6 +14225,40 @@
         "title": "PosCartResponse",
         "type": "object"
       },
+      "PreferenceResponse": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "PreferenceResponse",
+        "type": "object"
+      },
+      "PreferenceValue": {
+        "description": "A JSON object value. Constrained to a dict so keys stay structured\n(e.g. ``{\"visible\": [\"sku\", \"name\"]}``).",
+        "properties": {
+          "value": {
+            "additionalProperties": true,
+            "title": "Value",
+            "type": "object"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "PreferenceValue",
+        "type": "object"
+      },
       "PrinterCreateRequest": {
         "properties": {
           "annual_print_hours": {
@@ -15035,6 +15095,20 @@
       },
       "ProductCreateRequest": {
         "properties": {
+          "bom_items": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BomItemCreate"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bom Items"
+          },
           "category": {
             "anyOf": [
               {
@@ -36453,6 +36527,108 @@
         ]
       }
     },
+    "/api/v1/me/preferences/{key}": {
+      "get": {
+        "operationId": "get_preference_api_v1_me_preferences__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Preference",
+        "tags": [
+          "preferences"
+        ]
+      },
+      "put": {
+        "operationId": "put_preference_api_v1_me_preferences__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceValue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Preference",
+        "tags": [
+          "preferences"
+        ]
+      }
+    },
     "/api/v1/notes": {
       "get": {
         "operationId": "list_notes_api_v1_notes_get",
@@ -39772,6 +39948,151 @@
         "summary": "Get Cost Breakdown",
         "tags": [
           "bom"
+        ]
+      }
+    },
+    "/api/v1/products/{product_id}/image": {
+      "delete": {
+        "operationId": "delete_product_image_api_v1_products__product_id__image_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Product Image",
+        "tags": [
+          "products"
+        ]
+      },
+      "get": {
+        "operationId": "get_product_image_api_v1_products__product_id__image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": "full",
+              "pattern": "^(full|thumb)$",
+              "title": "Size",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Product Image",
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "operationId": "upload_product_image_api_v1_products__product_id__image_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_product_image_api_v1_products__product_id__image_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Product Image",
+        "tags": [
+          "products"
         ]
       }
     },

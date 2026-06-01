@@ -215,3 +215,76 @@ async def test_endpoints_in_openapi(client: AsyncClient) -> None:
     assert "/api/v1/products/{product_id}" in paths
     assert "/api/v1/products/{product_id}/archive" in paths
     assert "/api/v1/products/{product_id}/unarchive" in paths
+
+
+@pytest.mark.asyncio
+async def test_create_with_bom_rolls_up_cost(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    """A product created with BOM supply components reflects the rolled-up
+    cost immediately in ``unit_cost_cached`` (synchronous projection)."""
+    from decimal import Decimal
+
+    from app.services import supplies as supplies_service
+
+    token = await _token_for(Role.OWNER, client, app_session)
+    supply = await supplies_service.create(
+        app_session,
+        name="Screw",
+        unit="box",
+        unit_cost=Decimal("10"),
+        vendor=None,
+        actor_user_id=None,
+        pieces_per_unit=100,  # → $0.10/piece
+    )
+    await app_session.commit()
+
+    r = await client.post(
+        "/api/v1/products",
+        headers=_h(token),
+        json={
+            "name": "Assembly",
+            "unit_price": "5.00",
+            "bom_items": [
+                {"component_kind": "supply", "component_id": str(supply.id), "quantity": "4"}
+            ],
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    # 4 screws * $0.10 = $0.40 rolled up at create time.
+    from decimal import Decimal as D
+
+    assert body["unit_cost_cached"] is not None
+    assert D(body["unit_cost_cached"]) == D("0.400000")
+
+
+@pytest.mark.asyncio
+async def test_create_with_invalid_bom_component_rolls_back(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    """A bad BOM component id aborts the whole create (atomic)."""
+    import uuid
+
+    token = await _token_for(Role.OWNER, client, app_session)
+    r = await client.post(
+        "/api/v1/products",
+        headers=_h(token),
+        json={
+            "name": "DoomedAssembly",
+            "unit_price": "5.00",
+            "bom_items": [
+                {
+                    "component_kind": "supply",
+                    "component_id": str(uuid.uuid4()),
+                    "quantity": "1",
+                }
+            ],
+        },
+    )
+    assert r.status_code == 404, r.text
+    # Product must not have been persisted.
+    lst = await client.get(
+        "/api/v1/products", headers=_h(token), params={"search": "DoomedAssembly"}
+    )
+    assert all(p["name"] != "DoomedAssembly" for p in lst.json()["items"])

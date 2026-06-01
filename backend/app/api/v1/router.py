@@ -81,6 +81,7 @@ from app.api.v1.shipments import sales_shipments_router
 from app.api.v1.supplies import router as supplies_router
 from app.api.v1.tax_profiles import router as tax_profiles_router
 from app.api.v1.tax_remittances import router as tax_remittances_router
+from app.api.v1.user_preferences import router as user_preferences_router
 from app.api.v1.users import router as users_router
 from app.api.v1.vendors import router as vendors_router
 from app.api.v1.webhooks import router as webhooks_router
@@ -99,6 +100,7 @@ api_router.include_router(budgets_router)
 api_router.include_router(divisions_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(settings_router)
+api_router.include_router(user_preferences_router)
 api_router.include_router(users_router)
 api_router.include_router(custom_fields_router)
 api_router.include_router(customers_router)

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import { OnHandSection } from "@/components/inventory/OnHandSection";
 import { AttachmentsSection } from "@/components/platform/AttachmentsSection";
 import { NotesSection } from "@/components/platform/NotesSection";
@@ -40,6 +41,40 @@ export function ProductDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [generatingUpc, setGeneratingUpc] = useState(false);
+  const [imageKey, setImageKey] = useState(0);
+  const [imageBusy, setImageBusy] = useState(false);
+
+  async function onUploadImage(file: File) {
+    if (!id) return;
+    setImageBusy(true);
+    setSaveMsg(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      await apiClient.post(`/api/v1/products/${id}/image`, form);
+      setImageKey((k) => k + 1);
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail ?? "Could not upload image.";
+      setSaveMsg(typeof detail === "string" ? detail : "Could not upload image.");
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
+  async function onRemoveImage() {
+    if (!id) return;
+    setImageBusy(true);
+    try {
+      await apiClient.delete(`/api/v1/products/${id}/image`);
+      setImageKey((k) => k + 1);
+    } catch {
+      setSaveMsg("Could not remove image.");
+    } finally {
+      setImageBusy(false);
+    }
+  }
 
   async function onGenerateUpc() {
     setGeneratingUpc(true);
@@ -172,8 +207,9 @@ export function ProductDetailPage() {
           ·{" "}
           <span data-testid="unit-cost">
             Cost{" "}
-            {product.unit_cost_cached ??
-              "— (no BOM cost data)"}
+            {product.unit_cost_cached
+              ? formatCurrency(product.unit_cost_cached, currency)
+              : "— (no BOM cost data)"}
           </span>
         </p>
       </header>
@@ -194,6 +230,50 @@ export function ProductDetailPage() {
             .catch(() => {});
         }}
       />
+
+      <section
+        className="space-y-2 rounded-lg border border-border p-4"
+        data-testid="product-image-section"
+      >
+        <h2 className="text-sm font-semibold">Image</h2>
+        <div className="flex items-start gap-4">
+          <ProductImage
+            productId={product.id}
+            size="full"
+            refreshKey={imageKey}
+            className="h-40 w-40 border border-border"
+            alt={`${product.name} image`}
+          />
+          {canWrite ? (
+            <div className="space-y-2 text-sm">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={imageBusy}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onUploadImage(f);
+                  e.target.value = "";
+                }}
+                data-testid="product-image-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                PNG, JPEG, or WEBP. Shown on the product page and in POS.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={imageBusy}
+                onClick={() => void onRemoveImage()}
+                data-testid="product-image-remove"
+              >
+                Remove image
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       {canWrite ? (
         <fieldset className="space-y-3" data-testid="edit-form">
@@ -283,7 +363,18 @@ export function ProductDetailPage() {
         className="space-y-2 border-t border-border pt-4"
         data-testid="bom-section"
       >
-        <BomTab productId={product.id} />
+        <BomTab
+          productId={product.id}
+          onChanged={() => {
+            if (!id) return;
+            // The BOM rollup recomputes server-side; re-fetch so the
+            // header's rolled-up Cost reflects the change without a reload.
+            apiClient
+              .get<ProductResponse>(`/api/v1/products/${id}`)
+              .then((res) => setProduct(res.data))
+              .catch(() => {});
+          }}
+        />
       </section>
 
       {isOwner ? (

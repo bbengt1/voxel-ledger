@@ -260,6 +260,7 @@ from app.models.tax_remittance import (
     TaxRemittanceMethod,
     TaxRemittanceState,
 )
+from app.models.user_preference import UserPreference
 from app.models.vendor import (
     VENDOR_STATE_VALUES,
     Vendor,
@@ -494,6 +495,7 @@ __all__ = [
     "TaxRemittanceMethod",
     "TaxRemittanceState",
     "User",
+    "UserPreference",
     "VENDOR_STATE_VALUES",
     "Vendor",
     "VendorContact",

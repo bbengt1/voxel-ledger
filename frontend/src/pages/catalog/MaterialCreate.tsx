@@ -25,6 +25,8 @@ export function MaterialCreatePage() {
   // Initial-stock helper: total grams = spools × weight/spool.
   const [spools, setSpools] = useState("");
   const [weightPerSpool, setWeightPerSpool] = useState("");
+  // Cost basis: price per spool drives cost-per-gram = price / spool weight.
+  const [pricePerSpool, setPricePerSpool] = useState("");
   const materialTypes = useMaterialTypes();
 
   const [submitting, setSubmitting] = useState(false);
@@ -37,6 +39,17 @@ export function MaterialCreatePage() {
       return null;
     return s * w;
   }, [spools, weightPerSpool]);
+
+  // Live cost-per-gram preview = price per spool ÷ spool weight. This is
+  // exactly what the opening receipt establishes server-side, so the
+  // operator sees the resulting cost/gram before saving.
+  const costPerGram = useMemo(() => {
+    const p = Number(pricePerSpool);
+    const w = Number(weightPerSpool);
+    if (!Number.isFinite(p) || !Number.isFinite(w) || p <= 0 || w <= 0)
+      return null;
+    return p / w;
+  }, [pricePerSpool, weightPerSpool]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,11 +81,16 @@ export function MaterialCreatePage() {
       // resolved server-side from the default receiving setting).
       const spoolsNum = Number(spools);
       if (Number.isFinite(spoolsNum) && spoolsNum > 0) {
+        const priceNum = Number(pricePerSpool);
+        const priceStr =
+          Number.isFinite(priceNum) && priceNum > 0
+            ? String(priceNum)
+            : "0";
         try {
           await apiClient.post(`/api/v1/materials/${materialId}/receipts`, {
             spools: Math.trunc(spoolsNum),
             extra_grams: "0",
-            price_per_spool: "0",
+            price_per_spool: priceStr,
             reference: "Initial stock",
           });
         } catch (recvErr: unknown) {
@@ -210,11 +228,12 @@ export function MaterialCreatePage() {
             Initial stock (optional)
           </legend>
           <p className="text-xs text-muted-foreground">
-            If you already have stock on hand, enter the spool count to post
-            an opening receipt automatically. Price defaults to $0 — record a
-            priced receipt from the detail page if needed.
+            If you already have stock on hand, enter the spool count and the
+            price per spool to post an opening receipt automatically. The
+            price establishes the material's cost per gram
+            (price ÷ spool weight).
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-3">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               Number of spools
               <Input
@@ -225,6 +244,16 @@ export function MaterialCreatePage() {
                 data-testid="spools-input"
               />
             </label>
+            <label className="block text-sm">
+              Price per spool ($)
+              <Input
+                className="mt-1"
+                inputMode="decimal"
+                value={pricePerSpool}
+                onChange={(e) => setPricePerSpool(e.target.value)}
+                data-testid="price-per-spool-input"
+              />
+            </label>
           </div>
           {totalGrams !== null ? (
             <p className="mt-2 text-xs" data-testid="total-grams-preview">
@@ -232,6 +261,20 @@ export function MaterialCreatePage() {
               <span className="font-medium tabular-nums">
                 {totalGrams.toFixed(2)} g
               </span>
+            </p>
+          ) : null}
+          {costPerGram !== null ? (
+            <p className="mt-1 text-xs" data-testid="cost-per-gram-preview">
+              <span className="text-muted-foreground">Cost per gram: </span>
+              <span className="font-medium tabular-nums">
+                ${costPerGram.toFixed(4)}/g
+              </span>
+            </p>
+          ) : null}
+          {costPerGram !== null && totalGrams === null ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter a spool count to record stock at this price so the cost
+              per gram is captured.
             </p>
           ) : null}
         </fieldset>

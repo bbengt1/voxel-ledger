@@ -23,6 +23,7 @@ import {
 import type { AxiosError } from "axios";
 
 import { apiClient } from "@/api/client";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import { Button } from "@/components/ui/Button";
 import {
   Dialog,
@@ -560,6 +561,12 @@ export function PosScreenPage() {
                         className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-sm hover:bg-accent"
                         data-testid={`pos-search-pick-${p.id}`}
                       >
+                        <ProductImage
+                          productId={p.id}
+                          size="thumb"
+                          className="h-8 w-8 shrink-0"
+                          alt=""
+                        />
                         <span className="min-w-0 flex-1 truncate">{p.name}</span>
                         <span className="font-mono text-xs text-muted-foreground">
                           {p.sku}

@@ -3033,6 +3033,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/preferences/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Preference */
+        get: operations["get_preference_api_v1_me_preferences__key__get"];
+        /** Put Preference */
+        put: operations["put_preference_api_v1_me_preferences__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notes": {
         parameters: {
             query?: never;
@@ -3803,6 +3821,25 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{product_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Product Image */
+        get: operations["get_product_image_api_v1_products__product_id__image_get"];
+        put?: never;
+        /** Upload Product Image */
+        post: operations["upload_product_image_api_v1_products__product_id__image_post"];
+        /** Delete Product Image */
+        delete: operations["delete_product_image_api_v1_products__product_id__image_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -7363,6 +7400,11 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_upload_product_image_api_v1_products__product_id__image_post */
+        Body_upload_product_image_api_v1_products__product_id__image_post: {
+            /** File */
+            file: string;
+        };
         /** BomItemCreate */
         BomItemCreate: {
             /**
@@ -9993,10 +10035,11 @@ export interface components {
         };
         /**
          * JobUpdate
-         * @description Only ``priority``, ``due_at``, ``notes`` are editable post-create.
+         * @description Editable post-create: ``priority``, ``due_at``, ``notes`` and
+         *     ``quantity_ordered`` — while the job is non-terminal.
          *
-         *     ``product_id`` and ``quantity_ordered`` are immutable; the service
-         *     rejects them with 400.
+         *     ``product_id`` is immutable; the service rejects it with 400.
+         *     Completed/cancelled jobs are read-only.
          */
         JobUpdate: {
             /** Due At */
@@ -10005,6 +10048,8 @@ export interface components {
             notes?: string | null;
             /** Priority */
             priority?: number | null;
+            /** Quantity Ordered */
+            quantity_ordered?: number | null;
         };
         /** JournalEntryCreate */
         JournalEntryCreate: {
@@ -11120,6 +11165,26 @@ export interface components {
              */
             updated_at: string;
         };
+        /** PreferenceResponse */
+        PreferenceResponse: {
+            /** Key */
+            key: string;
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * PreferenceValue
+         * @description A JSON object value. Constrained to a dict so keys stay structured
+         *     (e.g. ``{"visible": ["sku", "name"]}``).
+         */
+        PreferenceValue: {
+            /** Value */
+            value: {
+                [key: string]: unknown;
+            };
+        };
         /** PrinterCreateRequest */
         PrinterCreateRequest: {
             /** Annual Print Hours */
@@ -11345,6 +11410,8 @@ export interface components {
         };
         /** ProductCreateRequest */
         ProductCreateRequest: {
+            /** Bom Items */
+            bom_items?: components["schemas"]["BomItemCreate"][] | null;
             /** Category */
             category?: string | null;
             /** Custom Fields */
@@ -21460,6 +21527,72 @@ export interface operations {
             };
         };
     };
+    get_preference_api_v1_me_preferences__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_preference_api_v1_me_preferences__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferenceValue"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_notes_api_v1_notes_get: {
         parameters: {
             query: {
@@ -23406,6 +23539,101 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CostBreakdownResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_image_api_v1_products__product_id__image_get: {
+        parameters: {
+            query?: {
+                size?: string;
+            };
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_product_image_api_v1_products__product_id__image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_product_image_api_v1_products__product_id__image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_image_api_v1_products__product_id__image_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
