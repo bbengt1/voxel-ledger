@@ -11024,6 +11024,7 @@
         "type": "object"
       },
       "JobCreate": {
+        "description": "A job produces a **part** (epic #267 Phase 4): pass ``part_id`` and a\nquantity — the recipe comes from the part. The legacy product path\n(``product_id`` + ``plates``) is retained for transition.",
         "properties": {
           "due_at": {
             "anyOf": [
@@ -11049,11 +11050,22 @@
             ],
             "title": "Notes"
           },
+          "part_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
           "plates": {
             "items": {
               "$ref": "#/components/schemas/PlateCreate"
             },
-            "minItems": 1,
             "title": "Plates",
             "type": "array"
           },
@@ -11063,9 +11075,16 @@
             "type": "integer"
           },
           "product_id": {
-            "format": "uuid",
-            "title": "Product Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
           },
           "quantity_ordered": {
             "exclusiveMinimum": 0.0,
@@ -11074,9 +11093,7 @@
           }
         },
         "required": [
-          "product_id",
-          "quantity_ordered",
-          "plates"
+          "quantity_ordered"
         ],
         "title": "JobCreate",
         "type": "object"
@@ -11209,6 +11226,18 @@
             ],
             "title": "Notes"
           },
+          "part_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Id"
+          },
           "pieces_produced": {
             "default": 0,
             "title": "Pieces Produced",
@@ -11226,9 +11255,16 @@
             "type": "integer"
           },
           "product_id": {
-            "format": "uuid",
-            "title": "Product Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
           },
           "quantity_ordered": {
             "title": "Quantity Ordered",
@@ -11254,7 +11290,6 @@
         "required": [
           "id",
           "job_number",
-          "product_id",
           "state",
           "quantity_ordered",
           "priority",

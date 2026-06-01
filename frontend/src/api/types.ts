@@ -10089,24 +10089,28 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
-        /** JobCreate */
+        /**
+         * JobCreate
+         * @description A job produces a **part** (epic #267 Phase 4): pass ``part_id`` and a
+         *     quantity — the recipe comes from the part. The legacy product path
+         *     (``product_id`` + ``plates``) is retained for transition.
+         */
         JobCreate: {
             /** Due At */
             due_at?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Part Id */
+            part_id?: string | null;
             /** Plates */
-            plates: components["schemas"]["PlateCreate"][];
+            plates?: components["schemas"]["PlateCreate"][];
             /**
              * Priority
              * @default 0
              */
             priority: number;
-            /**
-             * Product Id
-             * Format: uuid
-             */
-            product_id: string;
+            /** Product Id */
+            product_id?: string | null;
             /** Quantity Ordered */
             quantity_ordered: number;
         };
@@ -10162,6 +10166,8 @@ export interface components {
             job_number: string;
             /** Notes */
             notes?: string | null;
+            /** Part Id */
+            part_id?: string | null;
             /**
              * Pieces Produced
              * @default 0
@@ -10171,11 +10177,8 @@ export interface components {
             plates?: components["schemas"]["PlateResponse"][];
             /** Priority */
             priority: number;
-            /**
-             * Product Id
-             * Format: uuid
-             */
-            product_id: string;
+            /** Product Id */
+            product_id?: string | null;
             /** Quantity Ordered */
             quantity_ordered: number;
             /**

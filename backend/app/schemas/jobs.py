@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 JobStateLiteral = Literal[
     "draft",
@@ -69,12 +69,30 @@ class AssignPrinterRequest(BaseModel):
 
 
 class JobCreate(BaseModel):
-    product_id: uuid.UUID
+    """A job produces a **part** (epic #267 Phase 4): pass ``part_id`` and a
+    quantity — the recipe comes from the part. The legacy product path
+    (``product_id`` + ``plates``) is retained for transition.
+    """
+
+    part_id: uuid.UUID | None = None
+    product_id: uuid.UUID | None = None
     quantity_ordered: int = Field(gt=0)
     priority: int = Field(default=0)
     due_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=4096)
-    plates: list[PlateCreate] = Field(min_length=1)
+    plates: list[PlateCreate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _part_xor_product(self) -> JobCreate:
+        if self.part_id is not None:
+            if self.product_id is not None or self.plates:
+                raise ValueError("a part job takes part_id only — no product_id or plates")
+        else:
+            if self.product_id is None:
+                raise ValueError("either part_id or product_id is required")
+            if not self.plates:
+                raise ValueError("a product job requires at least one plate")
+        return self
 
 
 class JobUpdate(BaseModel):
@@ -96,7 +114,8 @@ class JobResponse(BaseModel):
 
     id: uuid.UUID
     job_number: str
-    product_id: uuid.UUID
+    product_id: uuid.UUID | None = None
+    part_id: uuid.UUID | None = None
     customer_id: uuid.UUID | None = None
     state: JobStateLiteral
     quantity_ordered: int

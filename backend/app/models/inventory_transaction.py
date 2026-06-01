@@ -97,10 +97,14 @@ NEGATIVE_KINDS: frozenset[str] = frozenset(
 ENTITY_KIND_MATERIAL = "material"
 ENTITY_KIND_SUPPLY = "supply"
 ENTITY_KIND_PRODUCT = "product"
+# Assembly-line epic #267 Phase 4: jobs produce parts, so part stock is
+# tracked here too. Full part COGS/valuation lands in Phase 6.
+ENTITY_KIND_PART = "part"
 INVENTORY_ENTITY_KIND_VALUES: tuple[str, ...] = (
     ENTITY_KIND_MATERIAL,
     ENTITY_KIND_SUPPLY,
     ENTITY_KIND_PRODUCT,
+    ENTITY_KIND_PART,
 )
 
 

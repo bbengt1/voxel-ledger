@@ -65,6 +65,7 @@ def _job_to_response(job: Job) -> JobResponse:
         id=job.id,
         job_number=job.job_number,
         product_id=job.product_id,
+        part_id=job.part_id,
         customer_id=job.customer_id,
         state=job.state.value,  # type: ignore[arg-type]
         quantity_ordered=job.quantity_ordered,
@@ -118,6 +119,7 @@ async def create_job(
         job = await jobs_service.create(
             session,
             product_id=payload.product_id,
+            part_id=payload.part_id,
             quantity_ordered=payload.quantity_ordered,
             plates=[
                 PlateInput(
@@ -183,7 +185,7 @@ async def get_job(
     return _job_to_response(job)
 
 
-_PATCH_IMMUTABLE_KEYS = ("product_id",)
+_PATCH_IMMUTABLE_KEYS = ("product_id", "part_id")
 
 
 @router.patch("/{job_id}", response_model=JobResponse)

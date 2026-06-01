@@ -44,6 +44,7 @@ from sqlalchemy.orm import selectinload
 from app.events.types import production as production_events
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.job import Job, JobState
+from app.models.part import Part
 from app.models.plate import Plate
 from app.models.printer import Printer
 from app.models.product import Product
@@ -80,6 +81,10 @@ class JobLockedError(JobsServiceError):
 
 class ProductLookupError(JobsServiceError):
     """Product missing or archived."""
+
+
+class PartLookupError(JobsServiceError):
+    """Part missing or archived."""
 
 
 class PrinterLookupError(JobsServiceError):
@@ -161,6 +166,16 @@ async def _load_product_active(session: AsyncSession, product_id: uuid.UUID) -> 
     return product
 
 
+async def _load_part_active(session: AsyncSession, part_id: uuid.UUID) -> Part:
+    stmt = select(Part).where(Part.id == part_id)
+    part = (await session.execute(stmt)).scalar_one_or_none()
+    if part is None:
+        raise PartLookupError(f"no part with id {part_id}")
+    if part.is_archived:
+        raise PartLookupError(f"part {part_id} is archived")
+    return part
+
+
 async def _load_printer_active(session: AsyncSession, printer_id: uuid.UUID) -> Printer:
     stmt = select(Printer).where(Printer.id == printer_id)
     printer = (await session.execute(stmt)).scalar_one_or_none()
@@ -217,9 +232,10 @@ class PlateInput:
 async def create(
     session: AsyncSession,
     *,
-    product_id: uuid.UUID,
+    product_id: uuid.UUID | None = None,
+    part_id: uuid.UUID | None = None,
     quantity_ordered: int,
-    plates: list[PlateInput],
+    plates: list[PlateInput] | None = None,
     priority: int = 0,
     due_at: datetime | None = None,
     notes: str | None = None,
@@ -227,10 +243,38 @@ async def create(
 ) -> Job:
     if quantity_ordered <= 0:
         raise JobsServiceError("quantity_ordered must be > 0")
-    if not plates:
-        raise JobsServiceError("at least one plate is required")
 
-    await _load_product_active(session, product_id)
+    # Assembly-line epic #267 Phase 4: a job produces a Part. The part's
+    # print recipe is snapshotted into a single plate at create time, so all
+    # the existing run / consumption / pieces / cost machinery works
+    # unchanged. The legacy product+plates path is retained for transition.
+    if part_id is not None:
+        if product_id is not None:
+            raise JobsServiceError("a job targets either a part or a product, not both")
+        part = await _load_part_active(session, part_id)
+        for printer_id in part.assigned_printer_ids or []:
+            await _load_printer_active(session, uuid.UUID(str(printer_id)))
+        grams = {
+            uuid.UUID(str(k)): Decimal(str(v))
+            for k, v in (part.print_grams_by_material or {}).items()
+        }
+        plates = [
+            PlateInput(
+                name=part.name,
+                plate_number=1,
+                parts_per_set=part.parts_per_run,
+                print_minutes=part.print_minutes,
+                print_grams_by_material=grams,
+                print_hours_setup_minutes=part.setup_minutes,
+                assigned_printer_ids=[uuid.UUID(str(p)) for p in (part.assigned_printer_ids or [])],
+            )
+        ]
+    else:
+        if product_id is None:
+            raise JobsServiceError("a job requires either a part_id or a product_id")
+        if not plates:
+            raise JobsServiceError("at least one plate is required")
+        await _load_product_active(session, product_id)
 
     plate_numbers = [p.plate_number for p in plates]
     if len(plate_numbers) != len(set(plate_numbers)):
@@ -247,6 +291,7 @@ async def create(
     job = Job(
         job_number=job_number,
         product_id=product_id,
+        part_id=part_id,
         quantity_ordered=quantity_ordered,
         state=JobState.DRAFT,
         priority=priority,
@@ -282,7 +327,8 @@ async def create(
         payload={
             "job_id": str(job.id),
             "job_number": job.job_number,
-            "product_id": str(job.product_id),
+            "product_id": str(job.product_id) if job.product_id else None,
+            "part_id": str(job.part_id) if job.part_id else None,
             "quantity_ordered": job.quantity_ordered,
             "plates": [
                 {
@@ -321,6 +367,20 @@ async def duplicate(
     still seed a new run.
     """
     source = await get(session, source_job_id)
+
+    # Part-jobs (epic #267 Phase 4): the recipe is the part's, so just
+    # re-target the part and quantity — create() re-snapshots the plate.
+    if source.part_id is not None:
+        return await create(
+            session,
+            part_id=source.part_id,
+            quantity_ordered=source.quantity_ordered,
+            priority=source.priority,
+            due_at=source.due_at,
+            notes=source.notes,
+            actor_user_id=actor_user_id,
+        )
+
     plate_inputs: list[PlateInput] = []
     for plate in source.plates:
         # ``print_grams_by_material`` and ``assigned_printer_ids`` are
@@ -363,7 +423,7 @@ async def get(session: AsyncSession, job_id: uuid.UUID) -> Job:
 
 
 _EDITABLE_FIELDS = ("priority", "due_at", "notes", "quantity_ordered")
-_IMMUTABLE_FIELDS = ("product_id",)
+_IMMUTABLE_FIELDS = ("product_id", "part_id")
 # Jobs are read-only once they reach a terminal state.
 _TERMINAL_STATES = (JobState.COMPLETED, JobState.CANCELLED)
 
@@ -518,11 +578,17 @@ async def complete(
     produced = pieces_produced(job)
     if produced > 0:
         location_id = await _resolve_consumption_location_id(session)
+        # Part-jobs credit part stock; legacy product-jobs credit product
+        # stock (epic #267 Phase 4).
+        if job.part_id is not None:
+            entity_kind, entity_id = "part", job.part_id
+        else:
+            entity_kind, entity_id = "product", job.product_id
         await inventory_tx_service.record(
             session,
             kind="production_in",
-            entity_kind="product",
-            entity_id=job.product_id,
+            entity_kind=entity_kind,
+            entity_id=entity_id,
             location_id=location_id,
             quantity=Decimal(produced),
             actor_user_id=actor_user_id,
