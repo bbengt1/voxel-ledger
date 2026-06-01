@@ -16,7 +16,9 @@ import { cn } from "@/lib/cn";
 interface Props {
   basePath: string;
   size?: "full" | "thumb";
-  className?: string;
+  // Explicit `| undefined` for exactOptionalPropertyTypes: wrappers forward
+  // an optional className that may be undefined.
+  className?: string | undefined;
   /** Bust the blob cache after an upload/delete by changing this. */
   refreshKey?: number;
   alt?: string;
