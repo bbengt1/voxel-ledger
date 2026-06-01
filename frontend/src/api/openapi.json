@@ -37459,6 +37459,37 @@
         ]
       }
     },
+    "/api/v1/parts/recompute-costs": {
+      "post": {
+        "description": "Recompute every part's cached cost. Use after changing labor/machine/\noverhead rates, which the event-driven projection doesn't track.",
+        "operationId": "recompute_part_costs_api_v1_parts_recompute_costs_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Recompute Part Costs Api V1 Parts Recompute Costs Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Recompute Part Costs",
+        "tags": [
+          "parts"
+        ]
+      }
+    },
     "/api/v1/parts/{part_id}": {
       "get": {
         "operationId": "get_part_api_v1_parts__part_id__get",
@@ -37606,6 +37637,55 @@
           }
         ],
         "summary": "Archive Part",
+        "tags": [
+          "parts"
+        ]
+      }
+    },
+    "/api/v1/parts/{part_id}/cost": {
+      "get": {
+        "description": "Live cost breakdown (material/labor/machine/overhead) for the part.",
+        "operationId": "get_part_cost_api_v1_parts__part_id__cost_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Part Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalcResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Part Cost",
         "tags": [
           "parts"
         ]

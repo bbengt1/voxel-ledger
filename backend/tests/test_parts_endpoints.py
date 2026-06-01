@@ -83,7 +83,10 @@ async def test_create_autoallocates_sku_and_roundtrips_recipe(
     assert body["parts_per_run"] == 4
     assert body["print_minutes"] == 90
     assert body["print_grams_by_material"][material_id] == "12.5"
-    assert body["unit_cost_cached"] is None  # reserved for Phase 2
+    # Phase 2a: the part_cost projection computes the cost on create (here
+    # from print/labor/machine since the random material has no priced
+    # receipt). With default rate config it resolves to a value.
+    assert body["unit_cost_cached"] is not None
 
     # Fetch round-trip.
     got = await client.get(f"/api/v1/parts/{body['id']}", headers=_h(owner))

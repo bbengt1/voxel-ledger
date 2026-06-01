@@ -283,13 +283,23 @@ class PartUnarchivedPayload(_PartPayloadBase):
     part_id: uuid.UUID
 
 
+class PartCostChangedPayload(_PartPayloadBase):
+    # Emitted by the ``part_cost`` projection (Phase 2) when a part's cached
+    # cost changes; Phase 3's product rollup subscribes to propagate up.
+    part_id: uuid.UUID
+    old_cost: str | None = None
+    new_cost: str | None = None
+
+
 TYPE_PART_CREATED = "catalog.PartCreated"
 TYPE_PART_UPDATED = "catalog.PartUpdated"
 TYPE_PART_ARCHIVED = "catalog.PartArchived"
 TYPE_PART_UNARCHIVED = "catalog.PartUnarchived"
+TYPE_PART_COST_CHANGED = "catalog.PartCostChanged"
 
 
 register_event(TYPE_PART_CREATED, PartCreatedPayload)
 register_event(TYPE_PART_UPDATED, PartUpdatedPayload)
 register_event(TYPE_PART_ARCHIVED, PartArchivedPayload)
 register_event(TYPE_PART_UNARCHIVED, PartUnarchivedPayload)
+register_event(TYPE_PART_COST_CHANGED, PartCostChangedPayload)

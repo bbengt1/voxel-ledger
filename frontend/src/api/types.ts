@@ -3139,6 +3139,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parts/recompute-costs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recompute Part Costs
+         * @description Recompute every part's cached cost. Use after changing labor/machine/
+         *     overhead rates, which the event-driven projection doesn't track.
+         */
+        post: operations["recompute_part_costs_api_v1_parts_recompute_costs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parts/{part_id}": {
         parameters: {
             query?: never;
@@ -3168,6 +3189,26 @@ export interface paths {
         put?: never;
         /** Archive Part */
         post: operations["archive_part_api_v1_parts__part_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/parts/{part_id}/cost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Part Cost
+         * @description Live cost breakdown (material/labor/machine/overhead) for the part.
+         */
+        get: operations["get_part_cost_api_v1_parts__part_id__cost_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22060,6 +22101,28 @@ export interface operations {
             };
         };
     };
+    recompute_part_costs_api_v1_parts_recompute_costs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+    };
     get_part_api_v1_parts__part_id__get: {
         parameters: {
             query?: never;
@@ -22144,6 +22207,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_part_cost_api_v1_parts__part_id__cost_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalcResultResponse"];
                 };
             };
             /** @description Validation Error */
