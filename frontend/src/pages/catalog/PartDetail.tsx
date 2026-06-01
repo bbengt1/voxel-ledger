@@ -1,7 +1,8 @@
 /**
- * `/catalog/parts/:id` — view/edit a Part (assembly-line epic #267, Phase 1b).
- * Identity + print recipe + image (upload / replace / paste) + archive.
- * Cost shows "— (cost pending)" until the Phase 2 rollup populates it.
+ * `/catalog/parts/:id` — view/edit a Part (assembly-line epic #267).
+ * Identity + print recipe + image (upload / replace / paste) + archive,
+ * with a live cost breakdown (Phase 2b) from `/parts/{id}/cost` that
+ * refreshes after a recipe save.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,6 +12,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityImage } from "@/components/catalog/EntityImage";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
+import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency, useCurrency } from "@/lib/currency";
@@ -19,6 +21,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 type PartResponse = components["schemas"]["PartResponse"];
 type PrinterResponse = components["schemas"]["PrinterResponse"];
 type MaterialResponse = components["schemas"]["MaterialResponse"];
+type CalcResult = components["schemas"]["CalcResultResponse"];
 
 const CAN_WRITE_ROLES = ["owner", "production", "sales"] as const;
 
@@ -60,6 +63,37 @@ export function PartDetailPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [imageKey, setImageKey] = useState(0);
   const [imageBusy, setImageBusy] = useState(false);
+
+  // Live cost breakdown from /parts/{id}/cost. ``costKey`` bumps after a
+  // recipe save so the panel reflects the new cost.
+  const [cost, setCost] = useState<CalcResult | null>(null);
+  const [costLoading, setCostLoading] = useState(false);
+  const [costError, setCostError] = useState<string | null>(null);
+  const [costKey, setCostKey] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setCostLoading(true);
+    setCostError(null);
+    apiClient
+      .get<CalcResult>(`/api/v1/parts/${id}/cost`)
+      .then((res) => {
+        if (!cancelled) setCost(res.data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const detail = (err as { response?: { data?: { detail?: string } } }).response?.data
+          ?.detail;
+        setCostError(typeof detail === "string" ? detail : "Could not compute cost.");
+      })
+      .finally(() => {
+        if (!cancelled) setCostLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, costKey]);
 
   const syncForm = useCallback(
     (p: PartResponse, materialsById: Record<string, MaterialResponse>) => {
@@ -150,6 +184,7 @@ export function PartDetailPage() {
       };
       const res = await apiClient.patch<PartResponse>(`/api/v1/parts/${id}`, body);
       setPart(res.data);
+      setCostKey((k) => k + 1); // recipe changed → refresh cost breakdown
       setSaveMsg("Saved.");
     } catch (err: unknown) {
       const detail =
@@ -243,7 +278,8 @@ export function PartDetailPage() {
     );
 
   return (
-    <section className="max-w-2xl space-y-6">
+    <section className="flex gap-6">
+      <div className="max-w-2xl flex-1 space-y-6">
       <header>
         <h1 className="text-xl font-semibold">{part.name}</h1>
         <p className="text-sm text-muted-foreground">
@@ -490,6 +526,9 @@ export function PartDetailPage() {
           </div>
         </section>
       ) : null}
+      </div>
+
+      <LiveCostPanel result={cost} loading={costLoading} error={costError} />
     </section>
   );
 }
