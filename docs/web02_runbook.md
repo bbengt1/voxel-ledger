@@ -63,8 +63,11 @@ ssh web02
 1. `git fetch && git checkout main && git pull --ff-only`
 2. `scripts/web02-compose.sh run --rm backend alembic upgrade head`
 3. `scripts/web02-compose.sh up -d --build`
-4. Polls `http://127.0.0.1/health` for up to 60s.
-5. Prints `scripts/web02-compose.sh ps`.
+4. `scripts/web02-compose.sh restart nginx` — clears stale upstream IPs so
+   nginx doesn't serve 502s against the freshly-recreated backend/frontend
+   (non-fatal; logged and skipped if nginx isn't in the stack).
+5. Polls `http://127.0.0.1/health` for up to 60s.
+6. Prints `scripts/web02-compose.sh ps`.
 
 A failed step exits non-zero with a `FAILED at step N` line — read it before
 retrying.
