@@ -176,6 +176,26 @@ async def _load_part_active(session: AsyncSession, part_id: uuid.UUID) -> Part:
     return part
 
 
+async def _part_unit_cost(session: AsyncSession, part_id: uuid.UUID) -> Decimal | None:
+    """Per-piece cost of a part for crediting its inventory lot on job
+    completion (epic #267 Phase 6a). Returns None when the part is gone or
+    the cost-engine rates aren't configured (the credit stays cost-less,
+    as before — operators repair via an adjustment)."""
+    part = (
+        await session.execute(select(Part).where(Part.id == part_id))
+    ).scalar_one_or_none()
+    if part is None:
+        return None
+    # Lazy import: cost_engine.service is heavy and only needed here.
+    from app.services.cost_engine.service import CostEngineService, MissingRateConfigError
+
+    try:
+        result = await CostEngineService.calculate_for_part(part, session=session)
+    except MissingRateConfigError:
+        return None
+    return result.cost_per_piece
+
+
 async def _load_printer_active(session: AsyncSession, printer_id: uuid.UUID) -> Printer:
     stmt = select(Printer).where(Printer.id == printer_id)
     printer = (await session.execute(stmt)).scalar_one_or_none()
@@ -580,8 +600,13 @@ async def complete(
         location_id = await _resolve_consumption_location_id(session)
         # Part-jobs credit part stock; legacy product-jobs credit product
         # stock (epic #267 Phase 4).
+        unit_cost: Decimal | None = None
         if job.part_id is not None:
             entity_kind, entity_id = "part", job.part_id
+            # Cost the produced part per-piece so its inventory lot is
+            # costed (epic #267 Phase 6a) — builds consume parts FIFO and
+            # need a real lot cost to draw from.
+            unit_cost = await _part_unit_cost(session, job.part_id)
         else:
             entity_kind, entity_id = "product", job.product_id
         await inventory_tx_service.record(
@@ -592,6 +617,7 @@ async def complete(
             location_id=location_id,
             quantity=Decimal(produced),
             actor_user_id=actor_user_id,
+            unit_cost=unit_cost,
             linked_job_id=job.id,
             reason=f"job {job.job_number} completed",
         )

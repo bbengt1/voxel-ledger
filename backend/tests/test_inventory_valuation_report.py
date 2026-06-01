@@ -101,6 +101,40 @@ async def test_uses_weighted_avg_cost(client: AsyncClient, app_session: AsyncSes
 
 
 @pytest.mark.asyncio
+async def test_includes_part_valuation(client: AsyncClient, app_session: AsyncSession) -> None:
+    """Parts contribute their cached cost to inventory value (#267 Phase 6a)."""
+    from app.models.part import Part
+
+    loc = await _seed_location(app_session, code="WS-P", name="Workshop P")
+    part = Part(
+        id=uuid.uuid4(),
+        sku="P-1",
+        name="Bracket",
+        parts_per_run=1,
+        unit_cost_cached=Decimal("1.50"),
+    )
+    app_session.add(part)
+    await app_session.flush()
+    await _seed_on_hand(
+        app_session,
+        entity_kind="part",
+        entity_id=part.id,
+        location_id=loc.id,
+        on_hand="4",
+    )
+    await app_session.commit()
+
+    report = await report_service.build(app_session)
+    # 4 parts * $1.50 = $6.00.
+    assert report.totals_by_kind.get("part") == Decimal("6.00")
+    assert report.total_valuation == Decimal("6.00")
+    part_rows = [r for r in report.rows if r.entity_kind == "part"]
+    assert len(part_rows) == 1
+    assert part_rows[0].name == "Bracket"
+    assert part_rows[0].sku == "P-1"
+
+
+@pytest.mark.asyncio
 async def test_location_filter(client: AsyncClient, app_session: AsyncSession) -> None:
     loc_a = await _seed_location(app_session, code="WS-A", name="Workshop A")
     loc_b = await _seed_location(app_session, code="WS-B", name="Workshop B")

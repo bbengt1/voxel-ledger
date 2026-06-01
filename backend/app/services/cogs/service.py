@@ -163,30 +163,43 @@ class PostResult:
 # ---------------------------------------------------------------------------
 
 
-async def _load_product_lots(
+async def _load_lots(
     session: AsyncSession,
     *,
-    product_id: uuid.UUID,
+    entity_kind: str,
+    entity_id: uuid.UUID,
+    location_id: uuid.UUID | None = None,
+    fallback_unit_cost: Decimal | None = None,
 ) -> list[InventoryLot]:
-    """Synthesize FIFO lots from the ``inventory_transaction`` ledger.
+    """Synthesize FIFO lots for any ``(entity_kind, entity_id)`` from the
+    ``inventory_transaction`` ledger.
 
-    Each positive-quantity row for the product is a candidate lot. We
-    drain prior negative-quantity rows against the positives oldest-
-    first to compute each lot's remaining quantity. Lots with
-    ``remaining <= 0`` are skipped.
+    Each positive-quantity row is a candidate lot. We drain prior
+    negative-quantity rows against the positives oldest-first to compute
+    each lot's remaining quantity. Lots with ``remaining <= 0`` are
+    skipped.
+
+    ``location_id`` scopes the synthesis to one location (used by builds,
+    which consume parts from a specific consumption location). ``None``
+    means ledger-wide FIFO (the product-sale path, unchanged).
 
     ``unit_cost`` comes from ``unit_cost_at_transaction``; when NULL
     (e.g. a ``production_in`` row written before unit costs were
-    captured) we fall back to zero so the calculator stays
-    deterministic. Operators repair zero-cost lots via an adjustment.
+    captured) we fall back to ``fallback_unit_cost`` (the entity's cached
+    cost), then to zero so the calculator stays deterministic. Operators
+    repair zero-cost lots via an adjustment.
     """
     stmt = (
         select(InventoryTransaction)
-        .where(InventoryTransaction.entity_kind == ENTITY_KIND_PRODUCT)
-        .where(InventoryTransaction.entity_id == product_id)
-        .order_by(asc(InventoryTransaction.occurred_at), asc(InventoryTransaction.id))
+        .where(InventoryTransaction.entity_kind == entity_kind)
+        .where(InventoryTransaction.entity_id == entity_id)
     )
+    if location_id is not None:
+        stmt = stmt.where(InventoryTransaction.location_id == location_id)
+    stmt = stmt.order_by(asc(InventoryTransaction.occurred_at), asc(InventoryTransaction.id))
     rows = list((await session.execute(stmt)).scalars().all())
+
+    fallback = _q(fallback_unit_cost) if fallback_unit_cost is not None else _ZERO
 
     positive: list[dict] = []
     negative_magnitude = _ZERO
@@ -196,7 +209,7 @@ async def _load_product_lots(
             unit_cost = (
                 _q(row.unit_cost_at_transaction)
                 if row.unit_cost_at_transaction is not None
-                else _ZERO
+                else fallback
             )
             positive.append(
                 {
@@ -226,6 +239,51 @@ async def _load_product_lots(
         for lot in positive
         if lot["remaining"] > _ZERO
     ]
+
+
+async def _load_product_lots(
+    session: AsyncSession,
+    *,
+    product_id: uuid.UUID,
+) -> list[InventoryLot]:
+    """Ledger-wide FIFO lots for a product (the sale-COGS path)."""
+    return await _load_lots(
+        session, entity_kind=ENTITY_KIND_PRODUCT, entity_id=product_id
+    )
+
+
+async def cost_consumption(
+    session: AsyncSession,
+    *,
+    entity_kind: str,
+    entity_id: uuid.UUID,
+    quantity: Decimal,
+    location_id: uuid.UUID,
+    fallback_unit_cost: Decimal | None = None,
+) -> Decimal:
+    """FIFO cost basis for consuming ``quantity`` of an entity at a
+    location (assembly-line epic #267 Phase 6a).
+
+    Used by the Build service to value the parts it consumes at their
+    actual ledger lot cost rather than a cached snapshot. Location-scoped
+    FIFO. Returns the **total** cost across the consumed lots; the caller
+    derives an effective unit cost as ``total / quantity``.
+
+    Lots are loaded with ``fallback_unit_cost`` filling in any NULL
+    lot costs (decision #3). If the lots can't cover the request the
+    underlying calculator raises :class:`InsufficientInventory` — but the
+    Build service pre-checks on-hand at the same location, so this is a
+    guardrail, not the primary path.
+    """
+    lots = await _load_lots(
+        session,
+        entity_kind=entity_kind,
+        entity_id=entity_id,
+        location_id=location_id,
+        fallback_unit_cost=fallback_unit_cost,
+    )
+    result = compute_cogs(product_id=entity_id, quantity=quantity, lots=lots)
+    return result.total_cost
 
 
 async def _resolve_lot_location_id(session: AsyncSession, *, lot_id: uuid.UUID) -> uuid.UUID:
