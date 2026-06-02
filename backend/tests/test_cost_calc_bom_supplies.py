@@ -86,8 +86,13 @@ async def test_supply_line_costs_falls_back_to_unit_cost_when_no_pieces_per_unit
 async def test_job_cost_includes_bom_supplies_scaled_by_pieces(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    """End-to-end: product BOM supply shows up in the job's supply_cost,
-    scaled by pieces produced."""
+    """End-to-end: product BOM supply shows up in supply_cost scaled by
+    pieces produced.
+
+    Jobs now produce a Part (Phase 8a); product-linked supply costing goes
+    through the ``inputs`` + ``product_id`` calculate path, which is the
+    supported way to compute draft costs for a product's BOM supplies.
+    """
     product = await seed_product(app_session, name="Assembled")
     supply = await supplies_service.create(
         app_session,
@@ -110,33 +115,26 @@ async def test_job_cost_includes_bom_supplies_scaled_by_pieces(
     await app_session.commit()
 
     owner = await token_for(Role.OWNER, client, app_session)
-    create = await client.post(
-        "/api/v1/jobs",
-        headers=auth_header(owner),
-        json={
-            "product_id": str(product.id),
-            "quantity_ordered": 3,
-            "priority": 0,
-            "plates": [
-                {
-                    "name": "Plate A",
-                    "plate_number": 1,
-                    "parts_per_set": 1,
-                    "print_minutes": 60,
-                    "print_grams_by_material": {},
-                    "print_hours_setup_minutes": 0,
-                    "assigned_printer_ids": [],
-                }
-            ],
-        },
-    )
-    assert create.status_code == 201, create.text
-    job_id = create.json()["id"]
-
+    # Use the inputs+product_id path — supply costs are product-scoped and
+    # the calculate endpoint still accepts a product_id alongside inputs.
     r = await client.post(
         "/api/v1/jobs/calculate",
         headers=auth_header(owner),
-        json={"job_id": job_id},
+        json={
+            "product_id": str(product.id),
+            "inputs": {
+                "plates": [
+                    {
+                        "parts_per_set": 1,
+                        "print_minutes": 60,
+                        "print_grams_by_material": {},
+                        "setup_minutes": 0,
+                        "assigned_printer_ids": [],
+                    }
+                ],
+                "quantity_ordered": 3,
+            },
+        },
     )
     assert r.status_code == 200, r.text
     body = r.json()
@@ -215,34 +213,31 @@ async def test_product_id_without_inputs_is_rejected(
 async def test_product_without_bom_has_zero_supply_cost(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    """No BOM supplies → supply_cost stays zero (no regression)."""
+    """No BOM supplies → supply_cost stays zero (no regression).
+
+    Uses the inputs+product_id path; supply_cost is zero because the product
+    has no BOM components.
+    """
     product = await seed_product(app_session, name="Bare")
     owner = await token_for(Role.OWNER, client, app_session)
-    create = await client.post(
-        "/api/v1/jobs",
-        headers=auth_header(owner),
-        json={
-            "product_id": str(product.id),
-            "quantity_ordered": 2,
-            "priority": 0,
-            "plates": [
-                {
-                    "name": "Plate A",
-                    "plate_number": 1,
-                    "parts_per_set": 1,
-                    "print_minutes": 30,
-                    "print_grams_by_material": {},
-                    "print_hours_setup_minutes": 0,
-                    "assigned_printer_ids": [],
-                }
-            ],
-        },
-    )
-    assert create.status_code == 201, create.text
     r = await client.post(
         "/api/v1/jobs/calculate",
         headers=auth_header(owner),
-        json={"job_id": create.json()["id"]},
+        json={
+            "product_id": str(product.id),
+            "inputs": {
+                "plates": [
+                    {
+                        "parts_per_set": 1,
+                        "print_minutes": 30,
+                        "print_grams_by_material": {},
+                        "setup_minutes": 0,
+                        "assigned_printer_ids": [],
+                    }
+                ],
+                "quantity_ordered": 2,
+            },
+        },
     )
     assert r.status_code == 200, r.text
     assert Decimal(r.json()["supply_cost"]) == Decimal("0.00")

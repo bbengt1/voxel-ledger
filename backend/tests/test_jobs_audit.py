@@ -1,4 +1,4 @@
-"""Jobs/plates events surface in the audit projection (Phase 5.2, #78)."""
+"""Jobs/plates events surface in the audit projection (Phase 5.2, #78; part-only since 8a)."""
 
 from __future__ import annotations
 
@@ -7,23 +7,19 @@ from app.models.auth import Role
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
-
-
-def _payload(product_id: str) -> dict:
-    return {
-        "product_id": product_id,
-        "quantity_ordered": 1,
-        "plates": [{"name": "P1", "plate_number": 1, "parts_per_set": 1, "print_minutes": 0}],
-    }
+from tests._jobs_helpers import auth_header, seed_part, token_for
 
 
 @pytest.mark.asyncio
-async def test_job_created_event_in_audit(client: AsyncClient, app_session: AsyncSession) -> None:
-    product = await seed_product(app_session)
+async def test_job_created_event_in_audit(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={"part_id": str(part.id), "quantity_ordered": 1},
     )
     assert r.status_code == 201
 
@@ -35,14 +31,21 @@ async def test_job_created_event_in_audit(client: AsyncClient, app_session: Asyn
     assert audit.status_code == 200, audit.text
     items = audit.json().get("items") or audit.json().get("rows") or []
     assert len(items) >= 1
+    # The job create response carries part_id (not product_id).
+    assert r.json()["part_id"] == str(part.id)
+    assert r.json()["product_id"] is None
 
 
 @pytest.mark.asyncio
-async def test_job_state_events_in_audit(client: AsyncClient, app_session: AsyncSession) -> None:
-    product = await seed_product(app_session)
+async def test_job_state_events_in_audit(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={"part_id": str(part.id), "quantity_ordered": 1},
     )
     job_id = r.json()["id"]
 

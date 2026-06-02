@@ -1,4 +1,4 @@
-"""Jobs API: role matrix + happy paths (Phase 5.2, #78)."""
+"""Jobs API: role matrix + happy paths (Phase 5.2, #78; part-only since 8a)."""
 
 from __future__ import annotations
 
@@ -7,25 +7,14 @@ from app.models.auth import Role
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
+from tests._jobs_helpers import auth_header, seed_part, token_for
 
 
-def _payload(product_id: str) -> dict:
+def _payload(part_id: str) -> dict:
     return {
-        "product_id": product_id,
+        "part_id": part_id,
         "quantity_ordered": 10,
         "priority": 0,
-        "plates": [
-            {
-                "name": "Plate A",
-                "plate_number": 1,
-                "parts_per_set": 2,
-                "print_minutes": 30,
-                "print_grams_by_material": {},
-                "print_hours_setup_minutes": 0,
-                "assigned_printer_ids": [],
-            }
-        ],
     }
 
 
@@ -47,14 +36,18 @@ async def test_unauthenticated_list_401(client: AsyncClient) -> None:
     ],
 )
 async def test_create_role_matrix(
-    client: AsyncClient, app_session: AsyncSession, role: Role, expected: int
+    client: AsyncClient,
+    app_session: AsyncSession,
+    workshop_location,
+    role: Role,
+    expected: int,
 ) -> None:
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     token = await token_for(role, client, app_session)
     r = await client.post(
         "/api/v1/jobs",
         headers=auth_header(token),
-        json=_payload(str(product.id)),
+        json=_payload(str(part.id)),
     )
     assert r.status_code == expected, r.text
 
@@ -79,14 +72,16 @@ async def test_list_role_matrix(
 
 
 @pytest.mark.asyncio
-async def test_create_get_happy_path(client: AsyncClient, app_session: AsyncSession) -> None:
-    product = await seed_product(app_session)
+async def test_create_get_happy_path(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
 
     create = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
-        json=_payload(str(product.id)),
+        json=_payload(str(part.id)),
     )
     assert create.status_code == 201, create.text
     body = create.json()
@@ -94,6 +89,7 @@ async def test_create_get_happy_path(client: AsyncClient, app_session: AsyncSess
     assert body["quantity_ordered"] == 10
     assert body["pieces_produced"] == 0
     assert body["job_number"].startswith("JOB-")
+    # Part-job auto-creates exactly one plate snapshotted from the part recipe.
     assert len(body["plates"]) == 1
 
     job_id = body["id"]
@@ -103,22 +99,31 @@ async def test_create_get_happy_path(client: AsyncClient, app_session: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_create_rejects_zero_plates(client: AsyncClient, app_session: AsyncSession) -> None:
-    product = await seed_product(app_session)
+async def test_create_rejects_product_id(client: AsyncClient, app_session: AsyncSession) -> None:
+    """Posting product_id (legacy path) must be rejected with 422."""
     owner = await token_for(Role.OWNER, client, app_session)
-    payload = _payload(str(product.id))
-    payload["plates"] = []
-    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=payload)
-    assert r.status_code in (400, 422)
+    r = await client.post(
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={
+            "product_id": "00000000-0000-0000-0000-000000000000",
+            "quantity_ordered": 1,
+            "plates": [{"name": "P1", "plate_number": 1, "parts_per_set": 1}],
+        },
+    )
+    assert r.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_create_rejects_unknown_product(
-    client: AsyncClient, app_session: AsyncSession
+async def test_create_rejects_unknown_part(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    payload = _payload("00000000-0000-0000-0000-000000000000")
-    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=payload)
+    r = await client.post(
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={"part_id": "00000000-0000-0000-0000-000000000000", "quantity_ordered": 1},
+    )
     assert r.status_code == 400
 
 
@@ -134,15 +139,15 @@ async def test_get_404(client: AsyncClient, app_session: AsyncSession) -> None:
 
 @pytest.mark.asyncio
 async def test_duplicate_creates_fresh_draft(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
 
     source = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
-        json=_payload(str(product.id)),
+        json=_payload(str(part.id)),
     )
     assert source.status_code == 201, source.text
     source_body = source.json()
@@ -179,10 +184,11 @@ async def test_duplicate_creates_fresh_draft(
 async def test_duplicate_role_matrix(
     client: AsyncClient,
     app_session: AsyncSession,
+    workshop_location,
     role: Role,
     expected: int,
 ) -> None:
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     # Seed the source job with whichever role we're testing when it
     # already has write access; otherwise an owner seeds it first.
     seed_role = role if expected == 201 else Role.OWNER
@@ -190,7 +196,7 @@ async def test_duplicate_role_matrix(
     source = await client.post(
         "/api/v1/jobs",
         headers=auth_header(seed_token),
-        json=_payload(str(product.id)),
+        json=_payload(str(part.id)),
     )
     assert source.status_code == 201, source.text
     source_id = source.json()["id"]

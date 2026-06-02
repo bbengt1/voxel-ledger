@@ -10360,26 +10360,26 @@ export interface components {
         };
         /**
          * JobCreate
-         * @description A job produces a **part** (epic #267 Phase 4): pass ``part_id`` and a
-         *     quantity — the recipe comes from the part. The legacy product path
-         *     (``product_id`` + ``plates``) is retained for transition.
+         * @description A job produces a **part** (assembly-line epic #267). Pass ``part_id``
+         *     + a quantity — the print recipe comes from the part. The legacy
+         *     product+plates create path was retired in Phase 8a; historical
+         *     product-jobs remain readable but no new ones can be created.
          */
         JobCreate: {
             /** Due At */
             due_at?: string | null;
             /** Notes */
             notes?: string | null;
-            /** Part Id */
-            part_id?: string | null;
-            /** Plates */
-            plates?: components["schemas"]["PlateCreate"][];
+            /**
+             * Part Id
+             * Format: uuid
+             */
+            part_id: string;
             /**
              * Priority
              * @default 0
              */
             priority: number;
-            /** Product Id */
-            product_id?: string | null;
             /** Quantity Ordered */
             quantity_ordered: number;
         };

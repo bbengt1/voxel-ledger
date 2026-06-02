@@ -12,11 +12,9 @@ from app.models.auth import Role
 from app.models.job import Job
 from app.models.part import Part
 from app.models.product_bom_item import ProductBomItem
-from app.services import jobs as jobs_service
 from app.services import materials as materials_service
 from app.services import products as products_service
 from app.services.auth import create_user
-from app.services.jobs import PlateInput
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from scripts.assembly_line_migration.framework import run_all
 from scripts.assembly_line_migration.recipe import ORIGIN_KEY, ORIGIN_VALUE
 from scripts.assembly_line_migration.reverse import reverse_all
+from tests._jobs_helpers import insert_legacy_product_job
 
 
 async def _owner_id(session: AsyncSession) -> uuid.UUID:
@@ -39,16 +38,16 @@ async def _owner_id(session: AsyncSession) -> uuid.UUID:
     return user.id
 
 
-def _plate(num: int, *, grams: dict[uuid.UUID, Decimal], pps: int = 1) -> PlateInput:
-    return PlateInput(
-        name="Bracket",
-        plate_number=num,
-        parts_per_set=pps,
-        print_minutes=60,
-        print_grams_by_material=grams,
-        print_hours_setup_minutes=0,
-        assigned_printer_ids=[],
-    )
+def _plate(num: int, *, grams: dict[uuid.UUID, Decimal], pps: int = 1) -> dict:
+    """A legacy plate spec for insert_legacy_product_job."""
+    return {
+        "name": "Bracket",
+        "plate_number": num,
+        "parts_per_set": pps,
+        "print_minutes": 60,
+        "grams": grams,
+        "setup": 0,
+    }
 
 
 async def _seed(session: AsyncSession):
@@ -79,20 +78,18 @@ async def _seed(session: AsyncSession):
     r2 = {mat.id: Decimal("80")}
     # Product A, job 1 + job 2 share recipe R1.
     for _ in range(2):
-        await jobs_service.create(
+        await insert_legacy_product_job(
             session,
             product_id=prod_a.id,
-            quantity_ordered=1,
-            plates=[_plate(1, grams=r1)],
             actor_user_id=owner_id,
+            plates=[_plate(1, grams=r1)],
         )
     # Product B, one job with recipe R2.
-    await jobs_service.create(
+    await insert_legacy_product_job(
         session,
         product_id=prod_b.id,
-        quantity_ordered=1,
-        plates=[_plate(1, grams=r2)],
         actor_user_id=owner_id,
+        plates=[_plate(1, grams=r2)],
     )
     await session.commit()
     return prod_a, prod_b, mat
@@ -207,15 +204,14 @@ async def test_multi_plate_open_job_is_flagged_not_repointed(
     )
     await app_session.commit()
     owner_id = await _owner_id(app_session)
-    job = await jobs_service.create(
+    job = await insert_legacy_product_job(
         app_session,
         product_id=prod.id,
-        quantity_ordered=1,
+        actor_user_id=owner_id,
         plates=[
             _plate(1, grams={mat.id: Decimal("50")}),
             _plate(2, grams={mat.id: Decimal("80")}),
         ],
-        actor_user_id=owner_id,
     )
     await app_session.commit()
 

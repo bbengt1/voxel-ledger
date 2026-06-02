@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from decimal import Decimal
 
 import pytest
 from app.models.inventory_transaction import (
@@ -23,7 +22,7 @@ from app.models.inventory_transaction import (
 from app.models.job import JobState
 from app.models.journal_entry import JournalEntry
 from app.services import jobs as jobs_service
-from app.services import products as products_service
+from app.services import parts as parts_service
 from app.services import sales as sales_service
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,33 +48,25 @@ async def test_job_line_costs_from_job_no_inventory_consumption(
         default_fee_account_id=defaults["fee_account_id"],
     )
 
-    # Minimal job: one product, no plates → cost-engine returns zero
-    # cost. That's still a legitimate cost basis for Phase 6.3; the
-    # important assertion below is "no inventory transaction was
-    # emitted for the job line, AND the journal entry still posts".
-    product = await products_service.create(
+    # Minimal job producing a part with an empty recipe (no materials,
+    # 0 print minutes) → cost-engine returns zero cost. That's still a
+    # legitimate cost basis for Phase 6.3; the important assertion below
+    # is "no inventory transaction was emitted for the job line, AND the
+    # journal entry still posts".
+    part = await parts_service.create(
         app_session,
-        name="Jobbed widget",
-        description=None,
-        unit_price=Decimal("50.00"),
-        sku=f"PRD-{uuid.uuid4().hex[:6]}",
+        name="Jobbed part",
+        sku=f"PRT-{uuid.uuid4().hex[:6]}",
+        print_minutes=0,
+        setup_minutes=0,
+        parts_per_run=1,
+        print_grams_by_material={},
         actor_user_id=None,
     )
     job = await jobs_service.create(
         app_session,
-        product_id=product.id,
+        part_id=part.id,
         quantity_ordered=1,
-        plates=[
-            jobs_service.PlateInput(
-                name="P1",
-                plate_number=1,
-                parts_per_set=1,
-                print_minutes=0,
-                print_grams_by_material={},
-                print_hours_setup_minutes=0,
-                assigned_printer_ids=[],
-            )
-        ],
         actor_user_id=user.id,
     )
     await app_session.commit()

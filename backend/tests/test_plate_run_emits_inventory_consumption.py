@@ -13,18 +13,18 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.services import materials as materials_service
+from app.services import parts as parts_service
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
+from tests._jobs_helpers import auth_header, token_for
 
 
 @pytest.mark.asyncio
 async def test_plate_run_drains_materials(
     client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    product = await seed_product(app_session)
     mat = await materials_service.create(
         app_session,
         name="PLA Black",
@@ -36,22 +36,23 @@ async def test_plate_run_drains_materials(
         actor_user_id=None,
     )
     await app_session.commit()
+    part = await parts_service.create(
+        app_session,
+        name="Black Bracket",
+        print_minutes=30,
+        setup_minutes=0,
+        parts_per_run=2,
+        print_grams_by_material={mat.id: Decimal("42.5")},
+        actor_user_id=None,
+    )
+    await app_session.commit()
 
     owner = await token_for(Role.OWNER, client, app_session)
-    payload = {
-        "product_id": str(product.id),
-        "quantity_ordered": 1,
-        "plates": [
-            {
-                "name": "P1",
-                "plate_number": 1,
-                "parts_per_set": 2,
-                "print_minutes": 30,
-                "print_grams_by_material": {str(mat.id): "42.5"},
-            }
-        ],
-    }
-    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=payload)
+    r = await client.post(
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={"part_id": str(part.id), "quantity_ordered": 1},
+    )
     assert r.status_code == 201, r.text
     job_id = r.json()["id"]
     plate_id = r.json()["plates"][0]["id"]
@@ -103,7 +104,6 @@ async def test_plate_run_drains_materials(
 async def test_plate_run_with_multiple_runs_delta(
     client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    product = await seed_product(app_session)
     mat = await materials_service.create(
         app_session,
         name="PLA Red",
@@ -115,22 +115,23 @@ async def test_plate_run_with_multiple_runs_delta(
         actor_user_id=None,
     )
     await app_session.commit()
+    part = await parts_service.create(
+        app_session,
+        name="Red Bracket",
+        print_minutes=0,
+        setup_minutes=0,
+        parts_per_run=1,
+        print_grams_by_material={mat.id: Decimal("10")},
+        actor_user_id=None,
+    )
+    await app_session.commit()
 
     owner = await token_for(Role.OWNER, client, app_session)
-    payload = {
-        "product_id": str(product.id),
-        "quantity_ordered": 1,
-        "plates": [
-            {
-                "name": "P1",
-                "plate_number": 1,
-                "parts_per_set": 1,
-                "print_minutes": 0,
-                "print_grams_by_material": {str(mat.id): "10"},
-            }
-        ],
-    }
-    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=payload)
+    r = await client.post(
+        "/api/v1/jobs",
+        headers=auth_header(owner),
+        json={"part_id": str(part.id), "quantity_ordered": 1},
+    )
     job_id = r.json()["id"]
     plate_id = r.json()["plates"][0]["id"]
     await client.post(f"/api/v1/jobs/{job_id}/submit", headers=auth_header(owner))

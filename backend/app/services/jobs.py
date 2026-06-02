@@ -47,7 +47,6 @@ from app.models.job import Job, JobState
 from app.models.part import Part
 from app.models.plate import Plate
 from app.models.printer import Printer
-from app.models.product import Product
 from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services import inventory_transactions as inventory_tx_service
@@ -156,16 +155,6 @@ def _decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         raise InvalidCursorError(f"invalid cursor: {exc}") from exc
 
 
-async def _load_product_active(session: AsyncSession, product_id: uuid.UUID) -> Product:
-    stmt = select(Product).where(Product.id == product_id)
-    product = (await session.execute(stmt)).scalar_one_or_none()
-    if product is None:
-        raise ProductLookupError(f"no product with id {product_id}")
-    if product.is_archived:
-        raise ProductLookupError(f"product {product_id} is archived")
-    return product
-
-
 async def _load_part_active(session: AsyncSession, part_id: uuid.UUID) -> Part:
     stmt = select(Part).where(Part.id == part_id)
     part = (await session.execute(stmt)).scalar_one_or_none()
@@ -252,65 +241,48 @@ class PlateInput:
 async def create(
     session: AsyncSession,
     *,
-    product_id: uuid.UUID | None = None,
-    part_id: uuid.UUID | None = None,
+    part_id: uuid.UUID,
     quantity_ordered: int,
-    plates: list[PlateInput] | None = None,
     priority: int = 0,
     due_at: datetime | None = None,
     notes: str | None = None,
     actor_user_id: uuid.UUID,
 ) -> Job:
+    """Create a draft job that produces a Part (assembly-line epic #267).
+
+    The part's print recipe is snapshotted into a single plate at create
+    time, so the run / consumption / pieces / cost machinery works
+    unchanged. The legacy product+plates create path was retired in
+    Phase 8a — historical product-jobs remain readable but new jobs
+    always target a part.
+    """
     if quantity_ordered <= 0:
         raise JobsServiceError("quantity_ordered must be > 0")
 
-    # Assembly-line epic #267 Phase 4: a job produces a Part. The part's
-    # print recipe is snapshotted into a single plate at create time, so all
-    # the existing run / consumption / pieces / cost machinery works
-    # unchanged. The legacy product+plates path is retained for transition.
-    if part_id is not None:
-        if product_id is not None:
-            raise JobsServiceError("a job targets either a part or a product, not both")
-        part = await _load_part_active(session, part_id)
-        for printer_id in part.assigned_printer_ids or []:
-            await _load_printer_active(session, uuid.UUID(str(printer_id)))
-        grams = {
-            uuid.UUID(str(k)): Decimal(str(v))
-            for k, v in (part.print_grams_by_material or {}).items()
-        }
-        plates = [
-            PlateInput(
-                name=part.name,
-                plate_number=1,
-                parts_per_set=part.parts_per_run,
-                print_minutes=part.print_minutes,
-                print_grams_by_material=grams,
-                print_hours_setup_minutes=part.setup_minutes,
-                assigned_printer_ids=[uuid.UUID(str(p)) for p in (part.assigned_printer_ids or [])],
-            )
-        ]
-    else:
-        if product_id is None:
-            raise JobsServiceError("a job requires either a part_id or a product_id")
-        if not plates:
-            raise JobsServiceError("at least one plate is required")
-        await _load_product_active(session, product_id)
-
-    plate_numbers = [p.plate_number for p in plates]
-    if len(plate_numbers) != len(set(plate_numbers)):
-        raise JobsServiceError("plate_numbers must be unique within a job")
-
-    for p in plates:
-        if p.parts_per_set <= 0:
-            raise JobsServiceError("plate parts_per_set must be > 0")
-        for printer_id in p.assigned_printer_ids:
-            await _load_printer_active(session, printer_id)
+    part = await _load_part_active(session, part_id)
+    for printer_id in part.assigned_printer_ids or []:
+        await _load_printer_active(session, uuid.UUID(str(printer_id)))
+    grams = {
+        uuid.UUID(str(k)): Decimal(str(v))
+        for k, v in (part.print_grams_by_material or {}).items()
+    }
+    plates = [
+        PlateInput(
+            name=part.name,
+            plate_number=1,
+            parts_per_set=part.parts_per_run,
+            print_minutes=part.print_minutes,
+            print_grams_by_material=grams,
+            print_hours_setup_minutes=part.setup_minutes,
+            assigned_printer_ids=[uuid.UUID(str(p)) for p in (part.assigned_printer_ids or [])],
+        )
+    ]
 
     job_number = await ReferenceNumberService.allocate("JOB", session=session)
 
     job = Job(
         job_number=job_number,
-        product_id=product_id,
+        product_id=None,
         part_id=part_id,
         quantity_ordered=quantity_ordered,
         state=JobState.DRAFT,
@@ -377,56 +349,25 @@ async def duplicate(
 ) -> Job:
     """Create a fresh DRAFT job by cloning ``source_job_id``.
 
-    Copies: product, quantity_ordered, priority, due_at, notes,
-    and every plate (name, plate_number, parts_per_set, print_minutes,
-    print_grams_by_material, print_hours_setup_minutes, assigned_printer_ids).
-    Fresh: new job_number, state=DRAFT, runs_completed=0 on every plate,
-    and the duplicate carries the calling user as actor.
+    Copies the source part + quantity_ordered, priority, due_at, notes;
+    ``create()`` re-snapshots the plate from the part recipe. Fresh: new
+    job_number, state=DRAFT.
 
     Source job state doesn't matter — completed or cancelled jobs can
-    still seed a new run.
+    still seed a new run. Legacy product-jobs (no ``part_id``) cannot be
+    duplicated: the product+plates create path was retired in Phase 8a.
     """
     source = await get(session, source_job_id)
 
-    # Part-jobs (epic #267 Phase 4): the recipe is the part's, so just
-    # re-target the part and quantity — create() re-snapshots the plate.
-    if source.part_id is not None:
-        return await create(
-            session,
-            part_id=source.part_id,
-            quantity_ordered=source.quantity_ordered,
-            priority=source.priority,
-            due_at=source.due_at,
-            notes=source.notes,
-            actor_user_id=actor_user_id,
-        )
-
-    plate_inputs: list[PlateInput] = []
-    for plate in source.plates:
-        # ``print_grams_by_material`` and ``assigned_printer_ids`` are
-        # stored as JSON with string UUIDs and Decimal-as-string. Coerce
-        # back to the native types ``create`` expects.
-        grams: dict[uuid.UUID, Decimal] = {}
-        for k, v in (plate.print_grams_by_material or {}).items():
-            grams[uuid.UUID(str(k))] = Decimal(str(v))
-        printer_ids = [uuid.UUID(str(p)) for p in (plate.assigned_printer_ids or [])]
-        plate_inputs.append(
-            PlateInput(
-                name=plate.name,
-                plate_number=plate.plate_number,
-                parts_per_set=plate.parts_per_set,
-                print_minutes=plate.print_minutes,
-                print_grams_by_material=grams,
-                print_hours_setup_minutes=plate.print_hours_setup_minutes,
-                assigned_printer_ids=printer_ids,
-            )
+    if source.part_id is None:
+        raise JobsServiceError(
+            "legacy product-jobs cannot be duplicated; create a part job instead"
         )
 
     return await create(
         session,
-        product_id=source.product_id,
+        part_id=source.part_id,
         quantity_ordered=source.quantity_ordered,
-        plates=plate_inputs,
         priority=source.priority,
         due_at=source.due_at,
         notes=source.notes,
@@ -574,18 +515,17 @@ async def complete(
     actor_user_id: uuid.UUID | None,
 ) -> Job:
     """Transition a job to ``COMPLETED`` and credit the produced pieces
-    to product on-hand.
+    to **part** on-hand (assembly-line epic #267).
 
     Posts a single ``production_in`` inventory transaction for the job's
-    product at the configured receiving location, sized to
-    ``pieces_produced(job)``. Skips the inventory write when zero
-    pieces were recorded (``runs_completed=0`` on any plate, or
-    parts_per_set=0). Operates in the same TX as the state transition
-    so completion and the inventory credit succeed or fail together.
+    part at the configured receiving location, sized to
+    ``pieces_produced(job)``. Skips the inventory write when zero pieces
+    were recorded (``runs_completed=0`` on any plate). Operates in the
+    same TX as the state transition so completion and the inventory
+    credit succeed or fail together.
 
-    The spec says "warns if under, allow" — pieces shortfall is
-    reflected by the pieces_produced helper on the response and a
-    ``pieces_short`` flag on the event payload; we never block.
+    Pieces shortfall never blocks — it's reflected by ``pieces_produced``
+    on the response.
     """
     job = await _transition(
         session,
@@ -596,24 +536,20 @@ async def complete(
     )
 
     produced = pieces_produced(job)
-    if produced > 0:
+    # Jobs produce Parts (assembly-line epic #267); completion credits part
+    # stock. New jobs always carry a part_id; the guard only skips the
+    # (already-terminal, never-completed) legacy product-jobs.
+    if produced > 0 and job.part_id is not None:
         location_id = await _resolve_consumption_location_id(session)
-        # Part-jobs credit part stock; legacy product-jobs credit product
-        # stock (epic #267 Phase 4).
-        unit_cost: Decimal | None = None
-        if job.part_id is not None:
-            entity_kind, entity_id = "part", job.part_id
-            # Cost the produced part per-piece so its inventory lot is
-            # costed (epic #267 Phase 6a) — builds consume parts FIFO and
-            # need a real lot cost to draw from.
-            unit_cost = await _part_unit_cost(session, job.part_id)
-        else:
-            entity_kind, entity_id = "product", job.product_id
+        # Cost the produced part per-piece so its inventory lot is costed
+        # (epic #267 Phase 6a) — builds consume parts FIFO and need a real
+        # lot cost to draw from.
+        unit_cost = await _part_unit_cost(session, job.part_id)
         await inventory_tx_service.record(
             session,
             kind="production_in",
-            entity_kind=entity_kind,
-            entity_id=entity_id,
+            entity_kind="part",
+            entity_id=job.part_id,
             location_id=location_id,
             quantity=Decimal(produced),
             actor_user_id=actor_user_id,

@@ -9,16 +9,15 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.models.inventory_on_hand import InventoryOnHand
-from app.services import jobs as jobs_service
 from app.services import materials as materials_service
 from app.services import products as products_service
 from app.services.auth import create_user
-from app.services.jobs import PlateInput
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from scripts.assembly_line_migration.framework import run_all
 from scripts.assembly_line_migration.reconcile import capture, reconcile
+from tests._jobs_helpers import insert_legacy_product_job
 
 
 async def _seed(session: AsyncSession, location_id: uuid.UUID):
@@ -46,22 +45,20 @@ async def _seed(session: AsyncSession, location_id: uuid.UUID):
         bcrypt_rounds=4,
     )
     await session.commit()
-    await jobs_service.create(
+    await insert_legacy_product_job(
         session,
         product_id=prod.id,
-        quantity_ordered=1,
-        plates=[
-            PlateInput(
-                name="Bracket",
-                plate_number=1,
-                parts_per_set=1,
-                print_minutes=60,
-                print_grams_by_material={mat.id: Decimal("50")},
-                print_hours_setup_minutes=0,
-                assigned_printer_ids=[],
-            )
-        ],
         actor_user_id=user.id,
+        plates=[
+            {
+                "name": "Bracket",
+                "plate_number": 1,
+                "parts_per_set": 1,
+                "print_minutes": 60,
+                "grams": {mat.id: Decimal("50")},
+                "setup": 0,
+            }
+        ],
     )
     # A product on-hand balance whose parity we assert across the backfill.
     session.add(
