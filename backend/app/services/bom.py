@@ -1,29 +1,24 @@
-"""BOM service (Phase 2.4).
+"""BOM service (Phase 2.4; flattened in Phase 8b).
 
-Polymorphic bill-of-materials with cycle detection, depth limit, and a
-cost-rollup that walks the tree.
+Bill-of-materials for products. Since the assembly-line epic (#267),
+product BOMs are **flat** — components are **parts + supplies** only.
+Two-level sub-assembly (product-in-product), the legacy direct-material
+path, and their cycle/depth machinery were retired in Phase 8a/8b;
+``material`` / ``product`` remain in the enum only for historical event
+payloads.
 
 Every mutation appends a typed ``catalog.Bom*`` event via
 ``EventStore.append`` inside the same transaction as the row write so
 the wildcard audit-log projection picks it up.
 
-Cycle detection
----------------
-When a sub-product is added to a BOM, we BFS the candidate child's
-transitive BOM tree. If the new parent is found anywhere downstream,
-the insert is rejected with :class:`BomCycleError` (the router maps
-this to HTTP 400). A depth guard of 50 levels stops runaway walks.
-
-Postgres can do this in one round-trip via a recursive CTE; SQLite
-falls back to a Python loop. Both paths are kept behaviorally identical.
-
 Cost rollup
 -----------
-:func:`compute_cost_tree` is the canonical helper. It walks the BOM
-recursively and returns NULL on any leg with an unknown component cost
-or where depth exceeds ``max_depth``. The Phase 2.4
-``product_cost`` projection calls this helper to recompute
-``product.unit_cost_cached``.
+:func:`compute_cost_tree` is the canonical helper: a flat
+sum(part/supply line cost) + assembly labor. It returns NULL on any leg
+with an unknown component cost, and **hard-fails** on a stray legacy
+``material`` / sub-``product`` BOM row (naming the product) rather than
+silently costing it. The ``product_cost`` projection calls this helper
+to recompute ``product.unit_cost_cached``.
 """
 
 from __future__ import annotations
@@ -38,15 +33,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import catalog as catalog_events
-from app.models.material import Material
 from app.models.part import Part
 from app.models.product import Product
 from app.models.product_bom_item import (
-    COMPONENT_KIND_MATERIAL,
     COMPONENT_KIND_PART,
     COMPONENT_KIND_PRODUCT,
     COMPONENT_KIND_SUPPLY,
-    COMPONENT_KIND_VALUES,
     ProductBomItem,
 )
 from app.models.supply import Supply
@@ -209,14 +201,14 @@ async def _load_component(
     component_kind: str,
     component_id: uuid.UUID,
 ) -> tuple[str, Decimal | None, bool]:
-    """Return ``(resolved_name, unit_cost_or_None, is_archived)``."""
-    if component_kind == COMPONENT_KIND_MATERIAL:
-        row = (
-            await session.execute(select(Material).where(Material.id == component_id))
-        ).scalar_one_or_none()
-        if row is None:
-            raise ComponentNotFoundError(f"material {component_id} not found")
-        return row.name, _as_decimal(row.current_cost_per_gram), bool(row.is_archived)
+    """Return ``(resolved_name, unit_cost_or_None, is_archived)``.
+
+    Product BOMs are assembled from **parts + supplies** only (epic #267).
+    The legacy ``material`` / sub-``product`` component paths were retired
+    in Phase 8a/8b — encountering one means a stray pre-migration row that
+    should have been resolved during cutover; we hard-fail rather than
+    silently cost it.
+    """
     if component_kind == COMPONENT_KIND_SUPPLY:
         row = (
             await session.execute(select(Supply).where(Supply.id == component_id))
@@ -235,121 +227,15 @@ async def _load_component(
         # part isn't priceable yet (no rate config) → propagates as unknown.
         unit_cost = None if row.unit_cost_cached is None else _as_decimal(row.unit_cost_cached)
         return row.name, unit_cost, bool(row.is_archived)
-    if component_kind == COMPONENT_KIND_PRODUCT:
-        row = (
-            await session.execute(select(Product).where(Product.id == component_id))
-        ).scalar_one_or_none()
-        if row is None:
-            raise ComponentNotFoundError(f"product {component_id} not found")
-        unit_cost = None if row.unit_cost_cached is None else _as_decimal(row.unit_cost_cached)
-        return row.name, unit_cost, bool(row.is_archived)
     raise InvalidComponentKindError(
-        f"component_kind must be one of {COMPONENT_KIND_VALUES}, got {component_kind!r}"
+        f"product BOM components must be one of {(COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY)}; "
+        f"got legacy/unsupported {component_kind!r} (resolve this stray row before costing)"
     )
 
 
 # ---------------------------------------------------------------------------
 # Cycle / ancestor walks
 # ---------------------------------------------------------------------------
-
-
-async def _walks_back_to(
-    target_product_id: uuid.UUID,
-    starting_from_product_id: uuid.UUID,
-    *,
-    session: AsyncSession,
-    max_depth: int = DEFAULT_MAX_DEPTH,
-) -> tuple[bool, list[uuid.UUID]]:
-    """BFS descendants of ``starting_from_product_id`` looking for ``target``.
-
-    Returns ``(found, path)``. ``path`` is the chain from
-    ``starting_from_product_id`` down to ``target_product_id`` when
-    found; empty list otherwise.
-
-    Raises :class:`BomDepthLimitError` if depth exceeds ``max_depth``.
-
-    Postgres branch: a single recursive CTE collects the whole descendant
-    set; we then walk a Python adjacency map to recover the path so the
-    error message can name the offending chain. SQLite branch: pure
-    Python BFS.
-
-    A visited set guards against legitimate diamond-shaped overlap
-    (same sub-product used in two branches is fine — not a cycle).
-    """
-    dialect = session.bind.dialect.name if session.bind is not None else ""
-
-    # Build adjacency: parent_id -> [child_product_id, ...] for the whole
-    # descendant set of the starting node.
-    adjacency: dict[uuid.UUID, list[uuid.UUID]] = {}
-
-    if dialect == "postgresql":
-        cte_sql = text(
-            """
-            WITH RECURSIVE descendants AS (
-                SELECT parent_product_id, component_id
-                FROM product_bom_item
-                WHERE component_kind = 'product'
-                  AND parent_product_id = :start
-                UNION
-                SELECT pb.parent_product_id, pb.component_id
-                FROM product_bom_item pb
-                JOIN descendants d ON pb.parent_product_id = d.component_id
-                WHERE pb.component_kind = 'product'
-            )
-            SELECT parent_product_id, component_id FROM descendants
-            """
-        )
-        result = await session.execute(cte_sql, {"start": starting_from_product_id})
-        for parent, child in result.all():
-            adjacency.setdefault(parent, []).append(child)
-    else:
-        # SQLite branch: iterative BFS to assemble the descendant set.
-        frontier: list[uuid.UUID] = [starting_from_product_id]
-        seen: set[uuid.UUID] = set()
-        depth = 0
-        while frontier:
-            depth += 1
-            if depth > max_depth:
-                raise BomDepthLimitError(max_depth)
-            next_frontier: list[uuid.UUID] = []
-            stmt = (
-                select(ProductBomItem.parent_product_id, ProductBomItem.component_id)
-                .where(ProductBomItem.component_kind == COMPONENT_KIND_PRODUCT)
-                .where(ProductBomItem.parent_product_id.in_(frontier))
-            )
-            rows = (await session.execute(stmt)).all()
-            for parent, child in rows:
-                adjacency.setdefault(parent, []).append(child)
-                if child not in seen:
-                    seen.add(child)
-                    next_frontier.append(child)
-            frontier = next_frontier
-
-    # Now BFS from ``starting_from_product_id`` over ``adjacency`` and
-    # track parents so we can reconstruct the path if we find ``target``.
-    parents: dict[uuid.UUID, uuid.UUID] = {}
-    queue: list[tuple[uuid.UUID, int]] = [(starting_from_product_id, 0)]
-    visited: set[uuid.UUID] = {starting_from_product_id}
-    while queue:
-        node, depth = queue.pop(0)
-        if depth > max_depth:
-            raise BomDepthLimitError(max_depth)
-        for child in adjacency.get(node, ()):
-            if child == target_product_id:
-                # Found it — reconstruct path.
-                path = [child, node]
-                cursor = node
-                while cursor in parents:
-                    cursor = parents[cursor]
-                    path.append(cursor)
-                path.reverse()
-                return True, path
-            if child not in visited:
-                visited.add(child)
-                parents[child] = node
-                queue.append((child, depth + 1))
-
-    return False, []
 
 
 async def _ancestors_of(
@@ -459,19 +345,11 @@ async def add_component(
 
     await _load_parent(session, parent_product_id)
 
-    if component_kind == COMPONENT_KIND_PRODUCT and component_id == parent_product_id:
-        raise BomCycleError(parent_product_id, component_id, [parent_product_id])
-
     _, _unit_cost, is_archived = await _load_component(
         session, component_kind=component_kind, component_id=component_id
     )
     if is_archived:
         raise ArchivedTargetError(f"component {component_kind}:{component_id} is archived")
-
-    if component_kind == COMPONENT_KIND_PRODUCT:
-        found, path = await _walks_back_to(parent_product_id, component_id, session=session)
-        if found:
-            raise BomCycleError(parent_product_id, component_id, path)
 
     item = ProductBomItem(
         parent_product_id=parent_product_id,
@@ -646,19 +524,15 @@ async def compute_cost_tree(
     session: AsyncSession,
     *,
     product_id: uuid.UUID,
-    max_depth: int = DEFAULT_MAX_DEPTH,
-    _depth: int = 0,
-    _seen: set[uuid.UUID] | None = None,
 ) -> CostTreeNode:
-    """Recursive cost tree for a product.
+    """Cost tree for a product = Σ(part/supply line costs) + assembly labor.
 
-    ``total_cost`` is None on any leg with an unknown component cost or
-    when depth exceeds ``max_depth``. ``_seen`` is a defense-in-depth
-    guard against cycles that somehow slipped past the add-time check
-    (it shouldn't ever fire in practice).
+    Product BOMs are **flat** — parts + supplies only; two-level
+    sub-assembly (product-in-product) was retired in Phase 8b, so there's
+    no recursion. ``total_cost`` is None on any leg with an unknown
+    component cost. A stray legacy ``material`` / sub-``product`` BOM row
+    hard-fails (naming the product) rather than being silently costed.
     """
-    seen = _seen if _seen is not None else set()
-
     product = (
         await session.execute(select(Product).where(Product.id == product_id))
     ).scalar_one_or_none()
@@ -670,18 +544,6 @@ async def compute_cost_tree(
         resolved_name=product.name,
         total_cost=Decimal("0"),
     )
-
-    if _depth >= max_depth:
-        node.truncated_at_depth = True
-        node.total_cost = None
-        return node
-
-    if product_id in seen:
-        # Cycle escape hatch.
-        node.truncated_at_depth = True
-        node.total_cost = None
-        return node
-    seen = seen | {product_id}
 
     rows = list(
         (
@@ -697,6 +559,12 @@ async def compute_cost_tree(
 
     running: Decimal | None = Decimal("0")
     for row in rows:
+        if row.component_kind not in (COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY):
+            raise BomServiceError(
+                f"product {product_id} ({product.name!r}) has a legacy "
+                f"{row.component_kind} BOM line {row.component_id}; resolve it before "
+                "costing (product BOMs are parts + supplies only since Phase 8b)"
+            )
         try:
             name, unit_cost, _archived = await _load_component(
                 session,
@@ -708,21 +576,6 @@ async def compute_cost_tree(
             unit_cost = None
 
         quantity = _as_decimal(row.quantity)
-        sub_tree: CostTreeNode | None = None
-
-        if row.component_kind == COMPONENT_KIND_PRODUCT:
-            sub_tree = await compute_cost_tree(
-                session,
-                product_id=row.component_id,
-                max_depth=max_depth,
-                _depth=_depth + 1,
-                _seen=seen,
-            )
-            # For sub-products, prefer the freshly-walked total_cost over
-            # the cached column so the projection can recompute without
-            # depending on its own write order.
-            unit_cost = sub_tree.total_cost
-
         line_cost: Decimal | None = None
         if unit_cost is not None:
             line_cost = (quantity * unit_cost).quantize(_COST_QUANTUM, rounding=ROUND_HALF_UP)
@@ -741,7 +594,7 @@ async def compute_cost_tree(
                 quantity=quantity,
                 unit_cost=unit_cost,
                 line_cost=line_cost,
-                sub_tree=sub_tree,
+                sub_tree=None,
             )
         )
 
@@ -869,7 +722,6 @@ __all__ = [
     "ResolvedBomItem",
     "_ancestors_of",
     "_products_containing_component",
-    "_walks_back_to",
     "add_component",
     "compute_cost_tree",
     "get_bom",

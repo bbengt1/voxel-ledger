@@ -28,9 +28,6 @@ async def test_null_propagates_and_restores(engine) -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     async with factory() as s:
-        p_inner = await products_service.create(
-            s, name="P_inner", description=None, unit_price=Decimal("1"), actor_user_id=None
-        )
         p_outer = await products_service.create(
             s, name="P_outer", description=None, unit_price=Decimal("1"), actor_user_id=None
         )
@@ -44,26 +41,17 @@ async def test_null_propagates_and_restores(engine) -> None:
         )
         await s.commit()
 
-    # Build: p_inner = 2 bag (cost 6); p_outer = 1 p_inner.
+    # Build: p_outer = 2 bag (cost 6). Product BOMs are flat parts+supplies
+    # since Phase 8b — the missing-leaf NULL propagation is exercised
+    # directly on the supply line.
     async with factory() as s:
         inner_bom_item = await bom_service.add_component(
             s,
-            parent_product_id=p_inner.id,
+            parent_product_id=p_outer.id,
             component_kind="supply",
             component_id=supply.id,
             quantity=Decimal("2"),
             actor_user_id=None,
-        )
-        # product→product link inserted directly (legacy-shaped): new
-        # product BOMs only accept part/supply (epic #267 decision #3), but
-        # the cost-tree walk still resolves product components.
-        s.add(
-            ProductBomItem(
-                parent_product_id=p_outer.id,
-                component_kind="product",
-                component_id=p_inner.id,
-                quantity=Decimal("1"),
-            )
         )
         await s.commit()
         inner_bom_item_id = inner_bom_item.id
