@@ -50,6 +50,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: secret-scan
+        name: secret / PII guard (no prod-identifiable info)
+        language: system
+        # The script scans the staged diff itself; run once per commit.
+        pass_filenames: false
+        always_run: true
+        entry: scripts/check_secrets.sh
+
       - id: eslint
         name: eslint (frontend)
         language: system

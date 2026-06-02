@@ -17,6 +17,16 @@ permissions:
   contents: read
 
 jobs:
+  secret-scan:
+    name: Secret / PII guard
+    runs-on: [self-hosted, linux, docker]
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+      - name: Scan tracked tree for secrets / prod-identifiable info
+        run: scripts/check_secrets.sh --all
+
   backend:
     name: Backend (lint, type-check, test)
     runs-on: [self-hosted, linux, docker]
