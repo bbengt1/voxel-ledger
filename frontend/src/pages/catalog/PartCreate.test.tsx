@@ -33,11 +33,26 @@ function renderPage() {
 describe("<PartCreatePage />", () => {
   let mock: MockAdapter;
 
+  const calcResult = {
+    pieces_per_set: 1,
+    sets_required: 1,
+    material_cost: "1.00",
+    supply_cost: "0.00",
+    labor_cost: "0.50",
+    machine_cost: "0.25",
+    overhead_cost: "0.10",
+    total_cost: "1.85",
+    cost_per_piece: "1.85",
+    suggested_unit_price: "2.40",
+    per_plate: [],
+  };
+
   beforeEach(() => {
     mock = new MockAdapter(apiClient);
     setOwner();
     mock.onGet("/api/v1/printers").reply(200, { items: [] });
     mock.onGet("/api/v1/materials").reply(200, { items: [] });
+    mock.onPost("/api/v1/jobs/calculate").reply(200, calcResult);
   });
 
   afterEach(() => {
@@ -105,6 +120,7 @@ describe("<PartCreatePage />", () => {
   it("looks a recipe up from a printer and pre-fills it", async () => {
     mock.reset();
     setOwner();
+    mock.onPost("/api/v1/jobs/calculate").reply(200, calcResult);
     mock.onGet("/api/v1/materials").reply(200, { items: [] });
     mock.onGet("/api/v1/printers").reply(200, {
       items: [
@@ -173,5 +189,23 @@ describe("<PartCreatePage />", () => {
 
     await waitFor(() => expect(screen.getByText("part detail")).toBeInTheDocument());
     expect(imageReq).toMatchObject({ printer_id: "p1", filename: "bracket.gcode" });
+  });
+
+  it("shows a live cost from the recipe", async () => {
+    let calcReq: Record<string, unknown> | null = null;
+    mock.onPost("/api/v1/jobs/calculate").reply((config) => {
+      calcReq = JSON.parse(config.data as string);
+      return [200, calcResult];
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    await user.clear(screen.getByTestId("part-print-minutes"));
+    await user.type(screen.getByTestId("part-print-minutes"), "60");
+
+    await waitFor(() => expect(screen.getByTestId("cost-total")).toHaveTextContent("$1.85"));
+    // Costed as one plate of `parts_per_run` pieces (per-part basis).
+    const inputs = (calcReq as { inputs?: { plates?: Array<{ parts_per_set: number }> } })?.inputs;
+    expect(inputs?.plates?.[0]?.parts_per_set).toBe(1);
   });
 });
