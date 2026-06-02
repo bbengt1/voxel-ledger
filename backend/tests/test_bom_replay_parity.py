@@ -1,30 +1,19 @@
 """Replay parity for the product_cost projection.
 
-The Phase 2.4 cost rollup must be reproducible from the BOM tables +
-material/supply leaf state alone. This test:
+The cost rollup must be reproducible from the BOM tables + leaf state
+alone. Product BOMs are flat **parts + supplies** since Phase 8b, so this
+test:
 
-1. Builds a multi-level BOM with materials, supplies, and sub-products.
-2. Snapshots every ``product.unit_cost_cached``.
-3. Wipes ``unit_cost_cached`` to NULL on every row.
-4. Recomputes by walking ``compute_cost_tree`` for each product (in
-   leaf-first order so sub-products converge first).
-5. Asserts the resulting values match the original snapshot exactly.
+1. Builds products out of parts + supplies.
+2. Recomputes every ``product.unit_cost_cached`` by walking
+   ``compute_cost_tree`` (the source of truth the rollup projection uses).
+3. Wipes the product costs to NULL and rebuilds.
+4. Asserts the rebuilt values match the original snapshot exactly.
 
-This is the load-bearing guarantee the Phase 5 cost engine depends on:
-``unit_cost_cached`` can always be rebuilt from current BOM topology
-plus leaf-level cached costs (which themselves derive from the
-``inventory.MaterialReceived`` event stream and supply unit_cost).
-
-Note on the projection-as-replayer path
----------------------------------------
-The replay engine in ``app.projections.replay`` is designed for
-projections whose handlers do not emit new events. The product_cost
-projection intentionally DOES emit ``ProductCostChanged`` to propagate
-up the tree on live appends; replaying those handlers through
-``replay_handler`` would re-append events into the log. The parity
-invariant we actually care about — "the read model can be rebuilt from
-the source data" — is what this test verifies, without running the
-handlers' recursive emission path.
+This is the load-bearing guarantee the cost engine depends on:
+``product.unit_cost_cached`` can always be rebuilt from current BOM
+topology plus leaf-level cached costs (part ``unit_cost_cached`` +
+supply ``unit_cost``).
 """
 
 from __future__ import annotations
@@ -34,11 +23,11 @@ from decimal import Decimal
 import pytest
 from app.models import Base
 from app.models.product import Product
-from app.models.product_bom_item import COMPONENT_KIND_PRODUCT, ProductBomItem
 from app.services import bom as bom_service
 from app.services import inventory_locations as locations_service
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
+from app.services import parts as parts_service
 from app.services import products as products_service
 from app.services import supplies as supplies_service
 from sqlalchemy import select, update
@@ -52,7 +41,6 @@ async def test_bom_replay_parity(engine) -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     async with factory() as s:
-        # Phase 3.2: receipts need a fallback receiving location.
         await locations_service.create(
             s, name="Receiving", code="RX", kind="workshop", actor_user_id=None
         )
@@ -74,94 +62,57 @@ async def test_bom_replay_parity(engine) -> None:
             actor_user_id=None,
         )
         sup = await supplies_service.create(
+            s, name="bag", unit="ea", unit_cost=Decimal("0.25"), vendor=None, actor_user_id=None
+        )
+        part_a = await parts_service.create(
             s,
-            name="bag",
-            unit="ea",
-            unit_cost=Decimal("0.25"),
-            vendor=None,
+            name="part-a",
+            print_minutes=0,
+            setup_minutes=0,
+            parts_per_run=1,
+            print_grams_by_material={m.id: Decimal("50")},
             actor_user_id=None,
         )
-        p_leaf = await products_service.create(
+        part_b = await parts_service.create(
             s,
-            name="leaf",
-            description=None,
-            unit_price=Decimal("10"),
+            name="part-b",
+            print_minutes=0,
+            setup_minutes=0,
+            parts_per_run=1,
+            print_grams_by_material={m.id: Decimal("25")},
             actor_user_id=None,
         )
-        p_mid = await products_service.create(
-            s,
-            name="mid",
-            description=None,
-            unit_price=Decimal("20"),
-            actor_user_id=None,
+        p_one = await products_service.create(
+            s, name="one", description=None, unit_price=Decimal("10"), actor_user_id=None
         )
-        p_top = await products_service.create(
-            s,
-            name="top",
-            description=None,
-            unit_price=Decimal("30"),
-            actor_user_id=None,
+        p_two = await products_service.create(
+            s, name="two", description=None, unit_price=Decimal("20"), actor_user_id=None
         )
         await s.commit()
 
-    # Build: leaf = 50g M + 4 bag; mid = 1 leaf + 25g M; top = 2 mid + 1 bag.
-    # Rows inserted directly: new product BOMs only accept part/supply (epic
-    # #267 decision #3), but compute_cost_tree still rebuilds from any
-    # legacy-shaped material/supply/product topology — which is exactly the
-    # replay-parity invariant under test.
+    # Flat product BOMs: one = 1 part_a + 4 bag; two = 2 part_b + 1 bag.
     async with factory() as s:
         for parent_id, kind, comp_id, qty in [
-            (p_leaf.id, "material", m.id, "50"),
-            (p_leaf.id, "supply", sup.id, "4"),
-            (p_mid.id, "product", p_leaf.id, "1"),
-            (p_mid.id, "material", m.id, "25"),
-            (p_top.id, "product", p_mid.id, "2"),
-            (p_top.id, "supply", sup.id, "1"),
+            (p_one.id, "part", part_a.id, "1"),
+            (p_one.id, "supply", sup.id, "4"),
+            (p_two.id, "part", part_b.id, "2"),
+            (p_two.id, "supply", sup.id, "1"),
         ]:
-            s.add(
-                ProductBomItem(
-                    parent_product_id=parent_id,
-                    component_kind=kind,
-                    component_id=comp_id,
-                    quantity=Decimal(qty),
-                )
+            await bom_service.add_component(
+                s,
+                parent_product_id=parent_id,
+                component_kind=kind,
+                component_id=comp_id,
+                quantity=Decimal(qty),
+                actor_user_id=None,
             )
         await s.commit()
 
-    # Topological recompute (children first) of unit_cost_cached from the
-    # BOM topology via compute_cost_tree — the source of truth the rollup
-    # projection uses.
     async def _rebuild() -> dict:
         async with factory() as s:
-            adjacency_rows = (
-                await s.execute(
-                    select(ProductBomItem.parent_product_id, ProductBomItem.component_id).where(
-                        ProductBomItem.component_kind == COMPONENT_KIND_PRODUCT
-                    )
-                )
-            ).all()
             product_ids = list((await s.execute(select(Product.id))).scalars().all())
-
-        children_of: dict = {p: set() for p in product_ids}
-        for parent, child in adjacency_rows:
-            children_of.setdefault(parent, set()).add(child)
-
-        order: list = []
-        seen: set = set()
-
-        def _visit(node) -> None:
-            if node in seen:
-                return
-            seen.add(node)
-            for ch in children_of.get(node, ()):
-                _visit(ch)
-            order.append(node)
-
-        for pid in product_ids:
-            _visit(pid)
-
         async with factory() as s:
-            for pid in order:
+            for pid in product_ids:
                 tree = await bom_service.compute_cost_tree(s, product_id=pid)
                 await s.execute(
                     update(Product)
@@ -173,7 +124,7 @@ async def test_bom_replay_parity(engine) -> None:
             rows = (await s.execute(select(Product).order_by(Product.id))).scalars().all()
             return {r.id: r.unit_cost_cached for r in rows}
 
-    # First build → snapshot, wipe, rebuild again → must match exactly.
+    # First build → snapshot, wipe product costs, rebuild → must match.
     before = await _rebuild()
     assert all(v is not None for v in before.values())
 
