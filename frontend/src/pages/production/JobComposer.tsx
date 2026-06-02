@@ -31,7 +31,7 @@ export function JobComposerPage() {
 
   const [part, setPart] = useState<EntityOption | null>(null);
   const [partDetail, setPartDetail] = useState<PartResponse | null>(null);
-  const [customer, setCustomer] = useState("");
+  const [description, setDescription] = useState("");
   const [quantityOrdered, setQuantityOrdered] = useState("1");
   const [priority, setPriority] = useState("0");
   const [dueAt, setDueAt] = useState("");
@@ -139,7 +139,9 @@ export function JobComposerPage() {
         priority: parseIntSafe(priority, 0),
       };
       if (dueAt) body["due_at"] = new Date(dueAt).toISOString();
-      const trimmedNotes = (notes + (customer ? `\n\nCustomer: ${customer}` : "")).trim();
+      const trimmedDescription = description.trim();
+      if (trimmedDescription) body["description"] = trimmedDescription;
+      const trimmedNotes = notes.trim();
       if (trimmedNotes) body["notes"] = trimmedNotes;
 
       const res = await apiClient.post<JobResponse>("/api/v1/jobs", body);
@@ -211,16 +213,16 @@ export function JobComposerPage() {
           ) : null}
 
           <label className="block text-sm">
-            Customer (free text)
+            Description
             <Input
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              data-testid="job-customer-input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              data-testid="job-description-input"
             />
           </label>
           <div className="grid grid-cols-3 gap-3">
             <label className="block text-sm">
-              Quantity ordered
+              Quantity
               <Input
                 type="number"
                 min={1}

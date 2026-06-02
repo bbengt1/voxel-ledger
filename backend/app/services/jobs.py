@@ -246,6 +246,7 @@ async def create(
     priority: int = 0,
     due_at: datetime | None = None,
     notes: str | None = None,
+    description: str | None = None,
     actor_user_id: uuid.UUID,
 ) -> Job:
     """Create a draft job that produces a Part (assembly-line epic #267).
@@ -289,6 +290,7 @@ async def create(
         priority=priority,
         due_at=due_at,
         notes=notes,
+        description=description,
         actor_user_id=actor_user_id,
     )
     session.add(job)
@@ -371,6 +373,7 @@ async def duplicate(
         priority=source.priority,
         due_at=source.due_at,
         notes=source.notes,
+        description=source.description,
         actor_user_id=actor_user_id,
     )
 
@@ -383,7 +386,7 @@ async def get(session: AsyncSession, job_id: uuid.UUID) -> Job:
     return row
 
 
-_EDITABLE_FIELDS = ("priority", "due_at", "notes", "quantity_ordered")
+_EDITABLE_FIELDS = ("priority", "due_at", "notes", "description", "quantity_ordered")
 _IMMUTABLE_FIELDS = ("product_id", "part_id")
 # Jobs are read-only once they reach a terminal state.
 _TERMINAL_STATES = (JobState.COMPLETED, JobState.CANCELLED)

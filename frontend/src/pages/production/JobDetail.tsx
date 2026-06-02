@@ -72,6 +72,7 @@ export function JobDetailPage() {
   const [editQty, setEditQty] = useState("");
   const [editPriority, setEditPriority] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   // Inline per-plate edit.
 
@@ -162,6 +163,7 @@ export function JobDetailPage() {
     setEditQty(String(job.quantity_ordered));
     setEditPriority(String(job.priority));
     setEditNotes(job.notes ?? "");
+    setEditDescription(job.description ?? "");
     setEditingJob(true);
   }
 
@@ -176,6 +178,7 @@ export function JobDetailPage() {
       const pri = Number.parseInt(editPriority, 10);
       if (Number.isFinite(pri)) body["priority"] = pri;
       body["notes"] = editNotes.trim() || null;
+      body["description"] = editDescription.trim() || null;
       await apiClient.patch(`/api/v1/jobs/${id}`, body);
       setEditingJob(false);
       await refetch();
@@ -282,7 +285,7 @@ export function JobDetailPage() {
               <div className="mt-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block text-sm">
-                    Quantity ordered
+                    Quantity
                     <Input
                       type="number"
                       min={1}
@@ -301,6 +304,14 @@ export function JobDetailPage() {
                     />
                   </label>
                 </div>
+                <label className="block text-sm">
+                  Description
+                  <Input
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    data-testid="job-edit-description"
+                  />
+                </label>
                 <label className="block text-sm">
                   Notes
                   <textarea
@@ -331,6 +342,7 @@ export function JobDetailPage() {
               </div>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
+                {job.description ? <>{job.description} · </> : null}
                 Quantity {job.quantity_ordered} · Priority {job.priority}
               </p>
             )}

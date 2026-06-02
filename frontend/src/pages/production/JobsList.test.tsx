@@ -89,4 +89,49 @@ describe("<JobsListPage />", () => {
       expect(lastParams?.["state"]).toBe("queued");
     });
   });
+
+  it("defaults to in-progress, widens via All, and shows the part", async () => {
+    const user = userEvent.setup();
+    let lastParams: Record<string, string> | undefined;
+    mock.onGet("/api/v1/jobs").reply((config) => {
+      lastParams = config.params as Record<string, string>;
+      return [
+        200,
+        {
+          items: [
+            {
+              id: JOB_ID,
+              job_number: "JOB-2026-0001",
+              state: "in_progress",
+              quantity_ordered: 2,
+              pieces_produced: 0,
+              priority: 1,
+              part_id: "pid",
+              part_sku: "PART-2026-0001",
+              part_name: "Bracket",
+              actor_user_id: "u",
+              plates: [],
+              due_at: null,
+              notes: null,
+              description: null,
+              customer_id: null,
+              created_at: "2026-01-01T00:00:00Z",
+              updated_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          next_cursor: null,
+        },
+      ];
+    });
+
+    renderPage();
+
+    // Initial load filters to in-progress without an explicit URL param.
+    await waitFor(() => expect(lastParams?.["state"]).toBe("in_progress"));
+    expect(screen.getByText("Bracket")).toBeInTheDocument();
+
+    // Choosing "All" drops the state filter (sentinel, not a snap-back).
+    await user.selectOptions(screen.getByTestId("filter-state"), "all");
+    await waitFor(() => expect(lastParams?.["state"]).toBeUndefined());
+  });
 });

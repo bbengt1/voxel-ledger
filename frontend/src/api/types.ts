@@ -10441,6 +10441,8 @@ export interface components {
          *     product-jobs remain readable but no new ones can be created.
          */
         JobCreate: {
+            /** Description */
+            description?: string | null;
             /** Due At */
             due_at?: string | null;
             /** Notes */
@@ -10499,6 +10501,8 @@ export interface components {
             created_at: string;
             /** Customer Id */
             customer_id?: string | null;
+            /** Description */
+            description?: string | null;
             /** Due At */
             due_at?: string | null;
             /**
@@ -10512,6 +10516,10 @@ export interface components {
             notes?: string | null;
             /** Part Id */
             part_id?: string | null;
+            /** Part Name */
+            part_name?: string | null;
+            /** Part Sku */
+            part_sku?: string | null;
             /**
              * Pieces Produced
              * @default 0
@@ -10538,13 +10546,15 @@ export interface components {
         };
         /**
          * JobUpdate
-         * @description Editable post-create: ``priority``, ``due_at``, ``notes`` and
-         *     ``quantity_ordered`` — while the job is non-terminal.
+         * @description Editable post-create: ``priority``, ``due_at``, ``notes``,
+         *     ``description`` and ``quantity_ordered`` — while the job is non-terminal.
          *
          *     ``product_id`` is immutable; the service rejects it with 400.
          *     Completed/cancelled jobs are read-only.
          */
         JobUpdate: {
+            /** Description */
+            description?: string | null;
             /** Due At */
             due_at?: string | null;
             /** Notes */

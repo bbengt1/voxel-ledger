@@ -79,6 +79,7 @@ class Job(Base):
     )
 
     quantity_ordered: Mapped[int] = mapped_column(Integer(), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text(), nullable=True)
     priority: Mapped[int] = mapped_column(Integer(), nullable=False, default=0, server_default="0")
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
@@ -103,3 +104,8 @@ class Job(Base):
         cascade="all, delete-orphan",
         order_by="Plate.plate_number",
     )
+
+    # The Part this job produces (assembly-line epic #267). Eager-loaded so
+    # the API response can surface the part's sku/name on every job-fetch
+    # path (list/get/create/update/actions) without per-call selectinload.
+    part: Mapped[Part | None] = relationship("Part", lazy="selectin")  # noqa: F821
