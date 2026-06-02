@@ -37,7 +37,6 @@ from app.services import job_discovery as discovery_service
 from app.services import jobs as jobs_service
 from app.services import plates as plates_service
 from app.services import printers as printers_service
-from app.services.jobs import PlateInput
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -118,21 +117,8 @@ async def create_job(
     try:
         job = await jobs_service.create(
             session,
-            product_id=payload.product_id,
             part_id=payload.part_id,
             quantity_ordered=payload.quantity_ordered,
-            plates=[
-                PlateInput(
-                    name=p.name,
-                    plate_number=p.plate_number,
-                    parts_per_set=p.parts_per_set,
-                    print_minutes=p.print_minutes,
-                    print_grams_by_material=p.print_grams_by_material,
-                    print_hours_setup_minutes=p.print_hours_setup_minutes,
-                    assigned_printer_ids=p.assigned_printer_ids,
-                )
-                for p in payload.plates
-            ],
             priority=payload.priority,
             due_at=payload.due_at,
             notes=payload.notes,

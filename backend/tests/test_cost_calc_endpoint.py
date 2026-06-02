@@ -10,7 +10,7 @@ from app.models.auth import Role
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
+from tests._jobs_helpers import auth_header, seed_part, token_for
 
 
 def _inputs_payload() -> dict:
@@ -57,27 +57,18 @@ async def test_every_authenticated_role_can_calculate(
 
 
 @pytest.mark.asyncio
-async def test_calculate_for_existing_job(client: AsyncClient, app_session: AsyncSession) -> None:
-    product = await seed_product(app_session)
+async def test_calculate_for_existing_job(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    # Part with parts_per_run=2; order 4 → 2 sets required, 2 pieces/set.
+    part = await seed_part(app_session, parts_per_run=2)
     owner = await token_for(Role.OWNER, client, app_session)
     create = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
         json={
-            "product_id": str(product.id),
+            "part_id": str(part.id),
             "quantity_ordered": 4,
-            "priority": 0,
-            "plates": [
-                {
-                    "name": "Plate A",
-                    "plate_number": 1,
-                    "parts_per_set": 2,
-                    "print_minutes": 60,
-                    "print_grams_by_material": {},
-                    "print_hours_setup_minutes": 0,
-                    "assigned_printer_ids": [],
-                }
-            ],
         },
     )
     assert create.status_code == 201, create.text

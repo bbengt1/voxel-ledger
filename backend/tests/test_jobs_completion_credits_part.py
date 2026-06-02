@@ -1,59 +1,35 @@
-"""Job completion credits ``production_in`` on the related product.
+"""Job completion credits ``production_in`` on the related part (Phase 8a).
 
 When a job moves to ``completed``, pieces_produced should land on the
-product's on-hand projection at the configured receiving location.
+part's on-hand projection at the configured receiving location.
 """
 
 from __future__ import annotations
 
-import uuid
-
 import pytest
 from app.models.auth import Role
-from app.models.inventory_location import InventoryLocation, InventoryLocationKind
+from app.models.inventory_on_hand import InventoryOnHand
 from app.services import inventory_alerts
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
-
-
-async def _seed_workshop_location(session: AsyncSession) -> InventoryLocation:
-    loc = InventoryLocation(
-        id=uuid.uuid4(),
-        code="WS01",
-        name="Workshop",
-        kind=InventoryLocationKind.WORKSHOP,
-        is_archived=False,
-    )
-    session.add(loc)
-    await session.commit()
-    return loc
+from tests._jobs_helpers import auth_header, seed_part, token_for
 
 
 @pytest.mark.asyncio
-async def test_complete_credits_product_on_hand(
-    client: AsyncClient, app_session: AsyncSession
+async def test_complete_credits_part_on_hand(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    await _seed_workshop_location(app_session)
-    product = await seed_product(app_session)
+    part = await seed_part(app_session, parts_per_run=2)
     owner = await token_for(Role.OWNER, client, app_session)
 
-    # 1 plate * 2 parts/set, quantity_ordered=2 ⇒ 1 set required.
     create = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
         json={
-            "product_id": str(product.id),
+            "part_id": str(part.id),
             "quantity_ordered": 2,
-            "plates": [
-                {
-                    "name": "P1",
-                    "plate_number": 1,
-                    "parts_per_set": 2,
-                    "print_minutes": 0,
-                }
-            ],
         },
     )
     assert create.status_code == 201, create.text
@@ -74,9 +50,9 @@ async def test_complete_credits_product_on_hand(
     )
     assert record.status_code == 200, record.text
 
-    # Pre-complete on-hand is zero for this product.
+    # Pre-complete on-hand is zero for this part.
     before = await inventory_alerts.total_on_hand_for_entity(
-        session=app_session, entity_kind="product", entity_id=product.id
+        session=app_session, entity_kind="part", entity_id=part.id
     )
     assert before == 0
 
@@ -84,46 +60,49 @@ async def test_complete_credits_product_on_hand(
     assert complete.status_code == 200, complete.text
     assert complete.json()["state"] == "completed"
 
-    # ``parts_per_set * runs_completed`` = 2 pieces produced, credited to
-    # the product's on-hand projection.
+    # ``parts_per_run * runs_completed`` = 2 pieces produced, credited to
+    # the part's on-hand projection.
     after = await inventory_alerts.total_on_hand_for_entity(
-        session=app_session, entity_kind="product", entity_id=product.id
+        session=app_session, entity_kind="part", entity_id=part.id
     )
     assert int(after) == 2
+
+    # Also verify the InventoryOnHand row uses entity_kind='part'.
+    rows = (
+        await app_session.execute(
+            select(InventoryOnHand.entity_kind, InventoryOnHand.on_hand).where(
+                InventoryOnHand.entity_kind == "part",
+                InventoryOnHand.entity_id == part.id,
+            )
+        )
+    ).all()
+    assert len(rows) >= 1
+    assert all(row[0] == "part" for row in rows)
 
 
 @pytest.mark.asyncio
 async def test_complete_with_zero_pieces_skips_inventory_write(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
     """A job completed without any recorded plate runs has 0 pieces and
-    must not require a receiving location to exist."""
-    # No workshop location seeded — proves the inventory path is only
-    # touched when there are pieces to credit.
-    product = await seed_product(app_session)
+    must not write any inventory_on_hand row."""
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     create = await client.post(
         "/api/v1/jobs",
         headers=auth_header(owner),
         json={
-            "product_id": str(product.id),
+            "part_id": str(part.id),
             "quantity_ordered": 1,
-            "plates": [
-                {
-                    "name": "P1",
-                    "plate_number": 1,
-                    "parts_per_set": 1,
-                    "print_minutes": 0,
-                }
-            ],
         },
     )
+    assert create.status_code == 201, create.text
     job_id = create.json()["id"]
     for action in ("submit", "start", "complete"):
         r = await client.post(f"/api/v1/jobs/{job_id}/{action}", headers=auth_header(owner))
         assert r.status_code == 200, (action, r.text)
 
     on_hand = await inventory_alerts.total_on_hand_for_entity(
-        session=app_session, entity_kind="product", entity_id=product.id
+        session=app_session, entity_kind="part", entity_id=part.id
     )
     assert on_hand == 0

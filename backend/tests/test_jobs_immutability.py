@@ -1,4 +1,4 @@
-"""Jobs edit rules (Phase 5.2, #78; revised #254).
+"""Jobs edit rules (Phase 5.2, #78; revised #254; part-only since 8a).
 
 - ``product_id`` is rejected in PATCH (400); ``quantity_ordered`` is now
   editable on non-terminal jobs.
@@ -14,33 +14,26 @@ from app.models.auth import Role
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests._jobs_helpers import auth_header, seed_product, token_for
+from tests._jobs_helpers import auth_header, seed_part, token_for
 
 
-def _payload(product_id: str) -> dict:
+def _payload(part_id: str) -> dict:
     return {
-        "product_id": product_id,
+        "part_id": part_id,
         "quantity_ordered": 10,
-        "plates": [
-            {
-                "name": "P1",
-                "plate_number": 1,
-                "parts_per_set": 2,
-                "print_minutes": 30,
-            }
-        ],
     }
 
 
 @pytest.mark.asyncio
 async def test_patch_rejects_product_id_but_allows_quantity(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
     )
+    assert r.status_code == 201, r.text
     job_id = r.json()["id"]
 
     # product_id stays immutable.
@@ -63,13 +56,14 @@ async def test_patch_rejects_product_id_but_allows_quantity(
 
 @pytest.mark.asyncio
 async def test_patch_allows_priority_due_notes(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
     )
+    assert r.status_code == 201, r.text
     job_id = r.json()["id"]
 
     good = await client.patch(
@@ -84,15 +78,17 @@ async def test_patch_allows_priority_due_notes(
 
 @pytest.mark.asyncio
 async def test_plate_mutation_allowed_while_queued(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
     """Queued (non-terminal) jobs remain editable — #254."""
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
     )
+    assert r.status_code == 201, r.text
     job_id = r.json()["id"]
+    # A part-job auto-creates exactly one plate from the part recipe.
     plate_id = r.json()["plates"][0]["id"]
 
     sub = await client.post(f"/api/v1/jobs/{job_id}/submit", headers=auth_header(owner))
@@ -119,15 +115,17 @@ async def test_plate_mutation_allowed_while_queued(
 
 @pytest.mark.asyncio
 async def test_plate_mutation_blocked_when_cancelled(
-    client: AsyncClient, app_session: AsyncSession
+    client: AsyncClient, app_session: AsyncSession, workshop_location
 ) -> None:
     """Terminal (cancelled) jobs are read-only — plates locked, edits 400."""
-    product = await seed_product(app_session)
+    part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
     r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(product.id))
+        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
     )
+    assert r.status_code == 201, r.text
     job_id = r.json()["id"]
+    # A part-job auto-creates exactly one plate from the part recipe.
     plate_id = r.json()["plates"][0]["id"]
 
     cancel = await client.post(f"/api/v1/jobs/{job_id}/cancel", headers=auth_header(owner))
