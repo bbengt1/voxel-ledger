@@ -156,3 +156,33 @@ def test_dispatcher_routes_json_to_sidecar_parser() -> None:
         source_filename="prusaslicer_sample.gcode.json",
     )
     assert result.source_format == "prusaslicer"
+
+
+# ---------------------------------------------------------------------------
+# Moonraker metadata mapping (discover-from-printer)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_moonraker_metadata_maps_recipe() -> None:
+    meta = {
+        "estimated_time": 3600,  # seconds → 60 min
+        "filament_weight": [20.5, 3.0],
+        "filament_name": "PLA; PETG",
+        "object_count": 2,
+        "slicer": "PrusaSlicer",
+    }
+    plate = job_discovery.parse_moonraker_metadata(meta, source_filename="part.gcode")
+    assert plate.print_minutes == 60
+    assert plate.parts_per_set == 2
+    assert plate.filament_grams_by_material["PLA"] == Decimal("20.5")
+    assert plate.filament_grams_by_material["PETG"] == Decimal("3.0")
+    assert plate.source_format == "PrusaSlicer"
+    assert plate.source_filename == "part.gcode"
+
+
+def test_parse_moonraker_metadata_defaults_on_sparse() -> None:
+    plate = job_discovery.parse_moonraker_metadata({}, source_filename="x.gcode")
+    assert plate.print_minutes == 0
+    assert plate.parts_per_set == 1
+    assert plate.filament_grams_by_material == {}
+    assert plate.source_format == "moonraker"

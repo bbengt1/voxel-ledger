@@ -221,3 +221,118 @@ async def test_discover_part_recipe_requires_auth(client: AsyncClient) -> None:
         files={"file": ("x.gcode.json", b"{}", "application/json")},
     )
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_discover_part_recipe_from_printer(
+    client: AsyncClient, app_session: AsyncSession, monkeypatch
+) -> None:
+    from app.services import job_discovery
+    from app.services import printers as printers_service
+    from app.services.job_discovery import DiscoveredPlate
+
+    token = await _token(Role.PRODUCTION, client, app_session)
+    printer = await printers_service.create(
+        app_session,
+        name="Voron",
+        slug=f"voron-{uuid.uuid4().hex[:6]}",
+        printer_type="other",
+        moonraker_url="http://printer.invalid:7125",
+        moonraker_api_key=None,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    seen: dict[str, object] = {}
+
+    async def fake_fetch(*, moonraker_url: str, api_key: str | None, filename: str):
+        seen.update(moonraker_url=moonraker_url, api_key=api_key, filename=filename)
+        return DiscoveredPlate(
+            print_minutes=60,
+            filament_grams_by_material={"PLA": __import__("decimal").Decimal("20.5")},
+            parts_per_set=2,
+            source_format="prusaslicer",
+            source_filename=filename,
+        )
+
+    monkeypatch.setattr(job_discovery, "discover_from_moonraker", fake_fetch)
+
+    r = await client.post(
+        "/api/v1/parts/discover-from-printer",
+        headers=_h(token),
+        json={"printer_id": str(printer.id), "filename": "bracket.gcode"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["print_minutes"] == 60
+    assert body["parts_per_set"] == 2
+    assert body["filament_grams_by_material"]["PLA"] == "20.5"
+    assert body["source_filename"] == "bracket.gcode"
+    # The endpoint resolved the printer's Moonraker URL + key for the fetch.
+    assert seen["moonraker_url"] == "http://printer.invalid:7125"
+    assert seen["filename"] == "bracket.gcode"
+
+
+@pytest.mark.asyncio
+async def test_discover_from_printer_404_when_no_moonraker(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    from app.services import printers as printers_service
+
+    token = await _token(Role.PRODUCTION, client, app_session)
+    printer = await printers_service.create(
+        app_session,
+        name="No-Moonraker",
+        slug=f"nm-{uuid.uuid4().hex[:6]}",
+        printer_type="other",
+        moonraker_url=None,
+        moonraker_api_key=None,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+    r = await client.post(
+        "/api/v1/parts/discover-from-printer",
+        headers=_h(token),
+        json={"printer_id": str(printer.id), "filename": "x.gcode"},
+    )
+    assert r.status_code == 404, r.text
+
+
+@pytest.mark.asyncio
+async def test_discover_from_printer_502_on_fetch_error(
+    client: AsyncClient, app_session: AsyncSession, monkeypatch
+) -> None:
+    from app.services import job_discovery
+    from app.services import printers as printers_service
+
+    token = await _token(Role.PRODUCTION, client, app_session)
+    printer = await printers_service.create(
+        app_session,
+        name="Flaky",
+        slug=f"flaky-{uuid.uuid4().hex[:6]}",
+        printer_type="other",
+        moonraker_url="http://printer.invalid:7125",
+        moonraker_api_key=None,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    async def boom(**_kwargs):
+        raise job_discovery.MoonrakerFetchError("connection refused")
+
+    monkeypatch.setattr(job_discovery, "discover_from_moonraker", boom)
+    r = await client.post(
+        "/api/v1/parts/discover-from-printer",
+        headers=_h(token),
+        json={"printer_id": str(printer.id), "filename": "x.gcode"},
+    )
+    assert r.status_code == 502, r.text
+
+
+@pytest.mark.asyncio
+async def test_discover_from_printer_requires_auth(client: AsyncClient) -> None:
+    r = await client.post(
+        "/api/v1/parts/discover-from-printer",
+        json={"printer_id": str(uuid.uuid4()), "filename": "x.gcode"},
+    )
+    assert r.status_code == 401

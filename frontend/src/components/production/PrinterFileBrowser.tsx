@@ -33,6 +33,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onPicked: (plate: DiscoveredPlate) => void;
+  /** Discover endpoint to POST {printer_id, filename} to. Defaults to jobs. */
+  discoverEndpoint?: string;
 }
 
 const THUMB_TIMEOUT_MS = 8000;
@@ -49,7 +51,12 @@ function fmtDate(epoch: number | null): string {
   return new Date(epoch * 1000).toLocaleString();
 }
 
-export function PrinterFileBrowser({ open, onClose, onPicked }: Props) {
+export function PrinterFileBrowser({
+  open,
+  onClose,
+  onPicked,
+  discoverEndpoint = "/api/v1/jobs/discover-from-printer",
+}: Props) {
   const [printers, setPrinters] = useState<PrinterResponse[]>([]);
   const [printerId, setPrinterId] = useState<string>("");
   const [files, setFiles] = useState<GcodeFileRow[]>([]);
@@ -181,10 +188,10 @@ export function PrinterFileBrowser({ open, onClose, onPicked }: Props) {
     setPicking(path);
     setError(null);
     try {
-      const res = await apiClient.post<DiscoveredPlate>(
-        "/api/v1/jobs/discover-from-printer",
-        { printer_id: printerId, filename: path },
-      );
+      const res = await apiClient.post<DiscoveredPlate>(discoverEndpoint, {
+        printer_id: printerId,
+        filename: path,
+      });
       onPicked(res.data);
       onClose();
     } catch (err: unknown) {

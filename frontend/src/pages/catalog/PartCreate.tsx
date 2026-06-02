@@ -11,6 +11,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
 import { DiscoveryUpload } from "@/components/production/DiscoveryUpload";
+import { PrinterFileBrowser } from "@/components/production/PrinterFileBrowser";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -50,6 +51,7 @@ export function PartCreatePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedFrom, setImportedFrom] = useState<string | null>(null);
+  const [printerBrowserOpen, setPrinterBrowserOpen] = useState(false);
 
   function handleDiscovered(plate: DiscoveredPlate) {
     // Carry over the pre-v2 gcode discovery (epic #267): pre-fill the
@@ -176,13 +178,25 @@ export function PartCreatePage() {
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">
-              Import a sliced <code>.gcode.json</code> or <code>.3mf</code> to auto-fill the recipe.
+              Import a sliced <code>.gcode.json</code> / <code>.3mf</code>, or look one up on a
+              printer, to auto-fill the recipe.
             </span>
-            <DiscoveryUpload
-              endpoint="/api/v1/parts/discover"
-              onDiscovered={handleDiscovered}
-              data-testid="part-discovery"
-            />
+            <div className="flex items-center gap-2">
+              <DiscoveryUpload
+                endpoint="/api/v1/parts/discover"
+                onDiscovered={handleDiscovered}
+                data-testid="part-discovery"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPrinterBrowserOpen(true)}
+                data-testid="part-discovery-printer"
+              >
+                Look up on printer
+              </Button>
+            </div>
           </div>
           {importedFrom ? (
             <p
@@ -337,6 +351,13 @@ export function PartCreatePage() {
           </Button>
         </div>
       </form>
+
+      <PrinterFileBrowser
+        open={printerBrowserOpen}
+        onClose={() => setPrinterBrowserOpen(false)}
+        onPicked={handleDiscovered}
+        discoverEndpoint="/api/v1/parts/discover-from-printer"
+      />
     </section>
   );
 }
