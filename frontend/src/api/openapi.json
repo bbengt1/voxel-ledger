@@ -38472,6 +38472,53 @@
         ]
       }
     },
+    "/api/v1/parts/discover-from-printer": {
+      "post": {
+        "description": "Look up a gcode file's print recipe from a printer's Moonraker and\nreturn it to pre-fill the part-create form — the printer-based twin of\n``/parts/discover`` (file upload). Read-only.",
+        "operationId": "discover_part_recipe_from_printer_api_v1_parts_discover_from_printer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_DiscoverFromPrinterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveredPlateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discover Part Recipe From Printer",
+        "tags": [
+          "parts"
+        ]
+      }
+    },
     "/api/v1/parts/recompute-costs": {
       "post": {
         "description": "Recompute every part's cached cost. Use after changing labor/machine/\noverhead rates, which the event-driven projection doesn't track.",

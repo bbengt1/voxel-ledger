@@ -8,10 +8,8 @@ route on role.
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 from typing import Annotated
 
-import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -470,58 +468,21 @@ async def discover_from_printer(
     if not printer.moonraker_url:
         raise HTTPException(status_code=404, detail="moonraker not configured")
 
-    moonraker_base = printer.moonraker_url.rstrip("/")
-    headers: dict[str, str] = {}
-    if printer.moonraker_api_key:
-        headers["X-Api-Key"] = printer.moonraker_api_key
-
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.get(
-                f"{moonraker_base}/server/files/metadata",
-                params={"filename": payload.filename},
-                headers=headers,
-            )
-            resp.raise_for_status()
-            meta = resp.json().get("result") or {}
-    except Exception as exc:
+        result = await discovery_service.discover_from_moonraker(
+            moonraker_url=printer.moonraker_url,
+            api_key=printer.moonraker_api_key,
+            filename=payload.filename,
+        )
+    except discovery_service.MoonrakerFetchError as exc:
         raise HTTPException(status_code=502, detail=f"moonraker fetch failed: {exc}") from None
 
-    # Moonraker timing is seconds → minutes (rounded up).
-    estimated = meta.get("estimated_time")
-    print_minutes = (
-        int((float(estimated) + 59.0) // 60.0) if isinstance(estimated, int | float) else 0
-    )
-
-    # Filament: prefer per-extruder weights; fall back to total mm * density.
-    grams_by_slot: dict[str, Decimal] = {}
-    weights = meta.get("filament_weight")
-    names_raw = meta.get("filament_name") or ""
-    # Moonraker concatenates filament names with ``;`` (per extruder).
-    names: list[str] = [s.strip(' "') for s in str(names_raw).split(";")] if names_raw else []
-    if isinstance(weights, list):
-        for idx, weight in enumerate(weights):
-            if not isinstance(weight, int | float) or weight <= 0:
-                continue
-            label = names[idx].strip() if idx < len(names) and names[idx].strip() else f"slot_{idx}"
-            grams_by_slot[label] = Decimal(str(weight))
-
-    # Object count: best-effort. SnapmakerOrca embeds it as
-    # ``object_count``; PrusaSlicer/Bambu often expose ``layer_count``
-    # without per-object counts. Default to 1 if absent.
-    parts_per_set_raw = meta.get("object_count")
-    parts_per_set = (
-        int(parts_per_set_raw)
-        if isinstance(parts_per_set_raw, int | float) and parts_per_set_raw > 0
-        else 1
-    )
-
     return DiscoveredPlateResponse(
-        print_minutes=print_minutes,
-        filament_grams_by_material=grams_by_slot,
-        parts_per_set=parts_per_set,
-        source_format=str(meta.get("slicer") or "moonraker"),
-        source_filename=payload.filename,
+        print_minutes=result.print_minutes,
+        filament_grams_by_material=dict(result.filament_grams_by_material),
+        parts_per_set=result.parts_per_set,
+        source_format=result.source_format,
+        source_filename=result.source_filename,
     )
 
 

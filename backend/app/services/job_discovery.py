@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from xml.etree import ElementTree as ET
 
+import httpx
+
 
 class JobDiscoveryError(Exception):
     """Base class. Routers map subclasses to 400."""
@@ -428,12 +430,90 @@ def parse_job_artifact(file_bytes: bytes, *, source_filename: str | None = None)
     return parse_gcode_sidecar(file_bytes, source_filename=source_filename)
 
 
+# ---------------------------------------------------------------------------
+# Moonraker (discover-from-printer)
+# ---------------------------------------------------------------------------
+
+_MOONRAKER_TIMEOUT_SECONDS = 8.0
+
+
+class MoonrakerFetchError(JobDiscoveryError):
+    """Could not fetch metadata from the printer's Moonraker."""
+
+
+def parse_moonraker_metadata(meta: dict, *, source_filename: str | None = None) -> DiscoveredPlate:
+    """Map a Moonraker ``/server/files/metadata`` result into a
+    :class:`DiscoveredPlate` — the same shape the sidecar parser returns.
+
+    Moonraker exposes ``estimated_time`` (seconds), per-extruder
+    ``filament_weight`` + ``filament_name`` (``;``-joined), and sometimes
+    ``object_count``. Filament is keyed by name (or ``slot_N``); the
+    operator maps each to a real material in the UI.
+    """
+    estimated = meta.get("estimated_time")
+    print_minutes = (
+        int((float(estimated) + 59.0) // 60.0) if isinstance(estimated, int | float) else 0
+    )
+
+    grams_by_slot: dict[str, Decimal] = {}
+    weights = meta.get("filament_weight")
+    names_raw = meta.get("filament_name") or ""
+    names: list[str] = [s.strip(' "') for s in str(names_raw).split(";")] if names_raw else []
+    if isinstance(weights, list):
+        for idx, weight in enumerate(weights):
+            if not isinstance(weight, int | float) or weight <= 0:
+                continue
+            label = names[idx].strip() if idx < len(names) and names[idx].strip() else f"slot_{idx}"
+            grams_by_slot[label] = Decimal(str(weight))
+
+    parts_per_set_raw = meta.get("object_count")
+    parts_per_set = (
+        int(parts_per_set_raw)
+        if isinstance(parts_per_set_raw, int | float) and parts_per_set_raw > 0
+        else 1
+    )
+
+    return DiscoveredPlate(
+        print_minutes=print_minutes,
+        filament_grams_by_material=grams_by_slot,
+        parts_per_set=parts_per_set,
+        source_format=str(meta.get("slicer") or "moonraker"),
+        source_filename=source_filename,
+    )
+
+
+async def discover_from_moonraker(
+    *, moonraker_url: str, api_key: str | None, filename: str
+) -> DiscoveredPlate:
+    """Fetch + parse one gcode file's Moonraker metadata into a
+    :class:`DiscoveredPlate`. Raises :class:`MoonrakerFetchError` on any
+    network/HTTP failure so the caller can surface a 502.
+    """
+    base = moonraker_url.rstrip("/")
+    headers: dict[str, str] = {"X-Api-Key": api_key} if api_key else {}
+    try:
+        async with httpx.AsyncClient(timeout=_MOONRAKER_TIMEOUT_SECONDS) as client:
+            resp = await client.get(
+                f"{base}/server/files/metadata",
+                params={"filename": filename},
+                headers=headers,
+            )
+            resp.raise_for_status()
+            meta = resp.json().get("result") or {}
+    except Exception as exc:
+        raise MoonrakerFetchError(str(exc)) from exc
+    return parse_moonraker_metadata(meta, source_filename=filename)
+
+
 __all__ = [
     "DiscoveredPlate",
     "JobDiscoveryError",
     "MalformedSidecarError",
+    "MoonrakerFetchError",
     "UnknownSidecarFormatError",
+    "discover_from_moonraker",
     "parse_3mf",
     "parse_gcode_sidecar",
     "parse_job_artifact",
+    "parse_moonraker_metadata",
 ]

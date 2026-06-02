@@ -12,6 +12,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
@@ -30,6 +31,7 @@ from app.schemas.production_orders import DiscoveredPlateResponse
 from app.services import entity_images
 from app.services import job_discovery as discovery_service
 from app.services import parts as parts_service
+from app.services import printers as printers_service
 from app.services.cost_engine.service import CostEngineService, MissingRateConfigError
 
 router = APIRouter(prefix="/parts", tags=["parts"])
@@ -56,6 +58,49 @@ async def discover_part_recipe(
             from None
     except discovery_service.MalformedSidecarError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    return DiscoveredPlateResponse(
+        print_minutes=result.print_minutes,
+        filament_grams_by_material=dict(result.filament_grams_by_material),
+        parts_per_set=result.parts_per_set,
+        source_format=result.source_format,
+        source_filename=result.source_filename,
+    )
+
+
+class _DiscoverFromPrinterRequest(BaseModel):
+    printer_id: uuid.UUID
+    filename: str = Field(min_length=1)
+
+
+@router.post("/discover-from-printer", response_model=DiscoveredPlateResponse)
+async def discover_part_recipe_from_printer(
+    payload: _DiscoverFromPrinterRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+) -> DiscoveredPlateResponse:
+    """Look up a gcode file's print recipe from a printer's Moonraker and
+    return it to pre-fill the part-create form — the printer-based twin of
+    ``/parts/discover`` (file upload). Read-only.
+    """
+    try:
+        printer = await printers_service.get(session, payload.printer_id)
+    except printers_service.PrinterNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="printer not found") \
+            from None
+    if not printer.moonraker_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="moonraker not configured"
+        )
+    try:
+        result = await discovery_service.discover_from_moonraker(
+            moonraker_url=printer.moonraker_url,
+            api_key=printer.moonraker_api_key,
+            filename=payload.filename,
+        )
+    except discovery_service.MoonrakerFetchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"moonraker fetch failed: {exc}"
+        ) from None
     return DiscoveredPlateResponse(
         print_minutes=result.print_minutes,
         filament_grams_by_material=dict(result.filament_grams_by_material),

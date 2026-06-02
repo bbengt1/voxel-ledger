@@ -3276,6 +3276,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parts/discover-from-printer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover Part Recipe From Printer
+         * @description Look up a gcode file's print recipe from a printer's Moonraker and
+         *     return it to pre-fill the part-create form — the printer-based twin of
+         *     ``/parts/discover`` (file upload). Read-only.
+         */
+        post: operations["discover_part_recipe_from_printer_api_v1_parts_discover_from_printer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parts/recompute-costs": {
         parameters: {
             query?: never;
@@ -22716,6 +22738,39 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_discover_part_recipe_api_v1_parts_discover_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveredPlateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_part_recipe_from_printer_api_v1_parts_discover_from_printer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_DiscoverFromPrinterRequest"];
             };
         };
         responses: {

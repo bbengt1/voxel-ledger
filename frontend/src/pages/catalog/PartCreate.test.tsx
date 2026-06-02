@@ -97,4 +97,58 @@ describe("<PartCreatePage />", () => {
     expect(screen.getByTestId("part-material-0")).toHaveTextContent("slot_0");
     expect(screen.getByTestId("part-material-1")).toHaveTextContent("slot_1");
   });
+
+  it("looks a recipe up from a printer and pre-fills it", async () => {
+    mock.reset();
+    setOwner();
+    mock.onGet("/api/v1/materials").reply(200, { items: [] });
+    mock.onGet("/api/v1/printers").reply(200, {
+      items: [
+        {
+          id: "p1",
+          name: "Voron",
+          slug: "voron",
+          printer_type: "other",
+          status: "active",
+          moonraker_url: "http://printer.invalid:7125",
+          moonraker_api_key_set: false,
+          is_archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+    mock.onGet("/api/v1/printers/p1/gcode-files").reply(200, {
+      items: [{ path: "bracket.gcode", size: 123, modified: 1700000000 }],
+    });
+    mock.onGet(/thumbnail/).reply(404); // thumbnails are best-effort
+    mock.onPost("/api/v1/parts/discover-from-printer").reply((config) => {
+      expect(JSON.parse(config.data as string)).toMatchObject({
+        printer_id: "p1",
+        filename: "bracket.gcode",
+      });
+      return [
+        200,
+        {
+          print_minutes: 60,
+          filament_grams_by_material: { PLA: "20.5" },
+          parts_per_set: 2,
+          source_format: "prusaslicer",
+          source_filename: "bracket.gcode",
+        },
+      ];
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("part-discovery-printer"));
+    // Modal opens and lists the printer's gcode file.
+    const pick = await screen.findByTestId("browser-pick-bracket.gcode");
+    await user.click(pick);
+
+    await waitFor(() => expect(screen.getByTestId("part-print-minutes")).toHaveValue(60));
+    expect(screen.getByTestId("part-parts-per-run")).toHaveValue(2);
+    expect(screen.getByTestId("part-discovery-imported")).toHaveTextContent("bracket.gcode");
+  });
 });
