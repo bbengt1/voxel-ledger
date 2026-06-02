@@ -80,3 +80,6 @@ class DiscoveredPlateResponse(BaseModel):
     parts_per_set: int = 1
     source_format: str = Field(description="prusaslicer | bambu")
     source_filename: str | None = None
+    # base64-encoded PNG of the artifact's embedded preview, when present
+    # (file-upload part discovery only). The UI attaches it as the part image.
+    thumbnail_b64: str | None = None

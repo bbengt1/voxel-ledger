@@ -186,3 +186,50 @@ def test_parse_moonraker_metadata_defaults_on_sparse() -> None:
     assert plate.parts_per_set == 1
     assert plate.filament_grams_by_material == {}
     assert plate.source_format == "moonraker"
+
+
+# ---------------------------------------------------------------------------
+# Embedded thumbnail extraction (file-upload part discovery)
+# ---------------------------------------------------------------------------
+
+
+def _png() -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (16, 16), (1, 2, 3)).save(buf, "PNG")
+    return buf.getvalue()
+
+
+def test_extract_thumbnail_from_3mf_picks_metadata_png() -> None:
+    import io as _io
+    import zipfile as _zip
+
+    big = _png()
+    buf = _io.BytesIO()
+    with _zip.ZipFile(buf, "w") as zf:
+        zf.writestr("3D/model.png", b"\x89PNG\r\n\x1a\n-not-a-real-thumb")  # decoy texture
+        zf.writestr("Metadata/plate_1.png", big)
+    got = job_discovery.extract_thumbnail(buf.getvalue())
+    assert got == big
+
+
+def test_extract_thumbnail_from_sidecar_base64() -> None:
+    import base64
+    import json as _json
+
+    png = _png()
+    doc = {
+        "estimated_printing_time_normal_mode": "1h",
+        "filament_used_g": [10.0],
+        "thumbnails": [{"data": base64.b64encode(png).decode(), "width": 300, "height": 300}],
+    }
+    got = job_discovery.extract_thumbnail(_json.dumps(doc).encode())
+    assert got == png
+
+
+def test_extract_thumbnail_none_when_absent() -> None:
+    assert job_discovery.extract_thumbnail(_load("prusaslicer_sample.gcode.json")) is None
+    assert job_discovery.extract_thumbnail(b"") is None

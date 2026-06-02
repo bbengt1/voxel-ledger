@@ -7818,6 +7818,17 @@
             "description": "prusaslicer | bambu",
             "title": "Source Format",
             "type": "string"
+          },
+          "thumbnail_b64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail B64"
           }
         },
         "required": [
