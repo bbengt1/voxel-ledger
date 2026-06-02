@@ -30,7 +30,7 @@ Tailwind 4 + Radix wrappers, TanStack Query for server state, Zustand for the
 auth store. Types are generated from the backend's OpenAPI export — never
 hand-written. See [`openapi-codegen.md`](openapi-codegen.md).
 
-**Deployment.** A single VM (`web01.bengtson.local`) running Docker Compose:
+**Deployment.** A single VM (`web01.internal`) running Docker Compose:
 `db`, `backend`, `frontend`. The canonical deploy path is the
 [`web01-deploy` n8n workflow](../ops/n8n/web01-deploy.json) — pull → migrate →
 rebuild → verify. Manual SSH is the fallback, documented in
@@ -190,7 +190,7 @@ new contributor doesn't have to learn them by breaking them.
 
 ## Deployment
 
-- Target: `web01.bengtson.local`, single VM, Docker Compose stack
+- Target: `web01.internal`, single VM, Docker Compose stack
   (`3d-print-sales-db`, `3d-print-sales-backend`, `3d-print-sales-frontend`
   for v1; v2 containers land under the new compose at cutover).
 - Canonical entry: the `web01-deploy` n8n workflow

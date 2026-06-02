@@ -44,6 +44,6 @@ Read 01 → 02 first to understand the *what*. Then 04 → 05 for the *how* at h
 - Source repo: `3d-print-sales`
 - Reverse-engineered: 2026-05-13
 - Source stack (current, not prescriptive for v2): Python 3.13 / FastAPI / SQLAlchemy 2 async / PostgreSQL 16 / React 19 / TypeScript / Vite / Tailwind 4 / Zustand / TanStack Query
-- Live host: `web01.bengtson.local`, Docker Compose deploy
+- Live host: `web01.internal`, Docker Compose deploy
 
 The new system is not required to preserve the source stack; documents intentionally describe behavior rather than implementation.

@@ -73,7 +73,7 @@ Bounded contexts (organize code by these, not by technical layer): **Identity & 
 | Email | SMTP, retryable | Delivery log persisted |
 | Shipping | EasyPost **or** ShipStation (pick one) | Static-label fallback retained |
 | Printer integration | Moonraker WebSocket | **Lazy-loaded**, not a startup dep |
-| Hosting | Docker Compose on `web01.bengtson.local` | systemd unit; n8n deploy workflow |
+| Hosting | Docker Compose on `web01.internal` | systemd unit; n8n deploy workflow |
 
 ---
 
@@ -260,7 +260,7 @@ Security non-negotiables: bcrypt; secrets via env file with startup validation (
 
 ## 8. Operational Model
 
-- **Single VM** (`web01.bengtson.local`), Docker Compose, systemd unit, nginx fronting.
+- **Single VM** (`web01.internal`), Docker Compose, systemd unit, nginx fronting.
 - **Deploys**: n8n workflow (pull → migrate → rebuild → verify). Migrations are mandatory; skipping crashes startup by design.
 - **Backups**: nightly `pg_dump` + continuous WAL archive to offsite. Attachments rsynced nightly.
 - **Observability**: structured JSON logs with request id; `/health` endpoint; per-request timing; worker exposes last-run + last-success; OpenTelemetry traces (P1 stretch).

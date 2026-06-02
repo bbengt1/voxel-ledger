@@ -62,7 +62,7 @@
     },
     {
       "parameters": {
-        "url": "http://web02.bengtson.local/health",
+        "url": "http://web02.internal/health",
         "options": {
           "timeout": 10000,
           "response": {
@@ -83,7 +83,7 @@
     {
       "parameters": {
         "method": "HEAD",
-        "url": "http://web02.bengtson.local/",
+        "url": "http://web02.internal/",
         "options": {
           "timeout": 10000,
           "response": {
@@ -179,6 +179,6 @@
     }
   ],
   "meta": {
-    "description": "Canonical web02 deploy workflow. Pull -> migrate -> rebuild -> verify. Each step is a separate node so n8n's per-node logs make failures obvious. SSH credential 'web02 ssh (root)' must be configured on import (the ID in this export is a placeholder). A GitHub-webhook trigger will be added once n8n.bengtson.local has inbound ingress via Cloudflare Tunnel; until then the workflow is manual-execute only."
+    "description": "Canonical web02 deploy workflow. Pull -> migrate -> rebuild -> verify. Each step is a separate node so n8n's per-node logs make failures obvious. SSH credential 'web02 ssh (root)' must be configured on import (the ID in this export is a placeholder). A GitHub-webhook trigger will be added once n8n.internal has inbound ingress via Cloudflare Tunnel; until then the workflow is manual-execute only."
   }
 }

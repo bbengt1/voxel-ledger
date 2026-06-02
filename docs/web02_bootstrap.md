@@ -1,11 +1,11 @@
 # `web02` — first-time host bootstrap
 
-One-time setup to take a fresh `web02.bengtson.local` from "Linux box with SSH"
+One-time setup to take a fresh `web02.internal` from "Linux box with SSH"
 to "ready for the canonical n8n deploy workflow." Run these steps once; routine
 deploys go through [the n8n workflow](web02_n8n_deploy.md) or
 [the manual SSH runbook](web02_runbook.md).
 
-- **Host:** `root@web02.bengtson.local`
+- **Host:** `deploy@web02.internal`
 - **OS assumed:** RHEL/EL10-compatible (the live box reports `el10_1.x86_64`).
 - **Repo:** this repository, branch `main`.
 - **App root on host:** `/srv/voxel-ledger/`
@@ -15,7 +15,7 @@ deploys go through [the n8n workflow](web02_n8n_deploy.md) or
 - SSH key-based access for `root` from your workstation. Set up via
   `ssh-copy-id` (see `~/.ssh/config` entry `web02`).
 - Outbound internet from web02 (package install, image pulls, `git clone`).
-- DNS: `web02.bengtson.local` resolves on the LAN. Cloudflare Tunnel
+- DNS: `web02.internal` resolves on the LAN. Cloudflare Tunnel
   fronts the public hostname **https://print.bengtsonprecision3d.com/**
   → `web02:80`. The box itself only serves plain HTTP locally; TLS
   terminates at Cloudflare.

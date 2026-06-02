@@ -1,7 +1,7 @@
 # Deployment via n8n (`web02-deploy`)
 
 Operator runbook for the canonical deploy path: the `web02-deploy` n8n
-workflow on `n8n.bengtson.local`.
+workflow on `n8n.internal`.
 
 - **Workflow JSON:** [`ops/n8n/web02-deploy.json`](../ops/n8n/web02-deploy.json)
 - **Manual SSH fallback:** [`docs/web02_runbook.md`](web02_runbook.md)
@@ -23,17 +23,17 @@ Use the [manual SSH fallback](web02_runbook.md) when:
 
 ## Prerequisites
 
-1. n8n instance reachable at `n8n.bengtson.local` with
+1. n8n instance reachable at `n8n.internal` with
    [`web02-deploy.json`](../ops/n8n/web02-deploy.json) imported.
 2. An n8n SSH credential named **`web02 ssh (root)`** that authenticates to
-   `root@web02.bengtson.local` using the key authorized on the host
+   `deploy@web02.internal` using the key authorized on the host
    (`~/.ssh/id_ed25519_web02` on the operator's workstation; the matching
    private key needs to be uploaded into the n8n credential).
 3. The target commit is already on `origin/main`. The workflow only deploys
    what's on `main`; it does not check out arbitrary branches.
 
 > **GitHub webhook trigger:** intentionally not enabled yet. Inbound webhook
-> ingress from github.com to `n8n.bengtson.local` requires a Cloudflare Tunnel
+> ingress from github.com to `n8n.internal` requires a Cloudflare Tunnel
 > entry that hasn't been wired up. Until then, deploys are manual-button only.
 > When the tunnel is ready, add a `webhook` trigger node feeding the same
 > `1. Pull latest main` step; the rest of the workflow stays unchanged.

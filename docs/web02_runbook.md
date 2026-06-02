@@ -12,7 +12,7 @@ For one-time host setup, see [web02_bootstrap.md](web02_bootstrap.md).
 ## Access
 
 ```bash
-ssh web02            # ~/.ssh/config alias → root@web02.bengtson.local
+ssh web02            # ~/.ssh/config alias → deploy@web02.internal
 ```
 
 ## Filesystem layout

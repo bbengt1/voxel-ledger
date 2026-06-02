@@ -145,7 +145,7 @@ Each context owns its tables and exposes a service API. Cross-context calls go t
 
 ```mermaid
 flowchart LR
-  GH[GitHub main branch] -->|n8n web01-deploy workflow| W[web01.bengtson.local]
+  GH[GitHub main branch] -->|n8n web01-deploy workflow| W[web01.internal]
   subgraph W[web01]
     SYS[systemd: 3d-print-sales.service]
     SYS --> CW[scripts/web01-compose.sh]
