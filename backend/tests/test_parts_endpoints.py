@@ -336,3 +336,99 @@ async def test_discover_from_printer_requires_auth(client: AsyncClient) -> None:
         json={"printer_id": str(uuid.uuid4()), "filename": "x.gcode"},
     )
     assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Attach a printer gcode thumbnail as the part image
+# ---------------------------------------------------------------------------
+
+
+def _png_bytes() -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (8, 8), (10, 20, 30)).save(buf, "PNG")
+    return buf.getvalue()
+
+
+async def _set_storage_root(session: AsyncSession, path) -> None:
+    from app.services.settings.service import SettingsService
+
+    await SettingsService.set(
+        "attachments.storage_root", str(path), session=session, actor_user_id=None
+    )
+    await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_attach_part_image_from_printer(
+    client: AsyncClient, app_session: AsyncSession, monkeypatch, tmp_path
+) -> None:
+    from app.services import job_discovery
+    from app.services import printers as printers_service
+
+    await _set_storage_root(app_session, tmp_path)
+    owner = await _token(Role.OWNER, client, app_session)
+    created = await client.post("/api/v1/parts", headers=_h(owner), json={"name": "Imaged"})
+    part_id = created.json()["id"]
+    printer = await printers_service.create(
+        app_session,
+        name="Voron",
+        slug=f"voron-{uuid.uuid4().hex[:6]}",
+        printer_type="other",
+        moonraker_url="http://printer.invalid:7125",
+        moonraker_api_key=None,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    async def fake_thumb(*, moonraker_url, api_key, filename):
+        return _png_bytes()
+
+    monkeypatch.setattr(job_discovery, "fetch_moonraker_thumbnail", fake_thumb)
+
+    r = await client.post(
+        f"/api/v1/parts/{part_id}/image/from-printer",
+        headers=_h(owner),
+        json={"printer_id": str(printer.id), "filename": "bracket.gcode"},
+    )
+    assert r.status_code == 204, r.text
+
+    # The image is now retrievable.
+    img = await client.get(f"/api/v1/parts/{part_id}/image", headers=_h(owner))
+    assert img.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_attach_part_image_from_printer_404_when_no_thumbnail(
+    client: AsyncClient, app_session: AsyncSession, monkeypatch
+) -> None:
+    from app.services import job_discovery
+    from app.services import printers as printers_service
+
+    owner = await _token(Role.OWNER, client, app_session)
+    created = await client.post("/api/v1/parts", headers=_h(owner), json={"name": "NoImg"})
+    part_id = created.json()["id"]
+    printer = await printers_service.create(
+        app_session,
+        name="Voron2",
+        slug=f"voron-{uuid.uuid4().hex[:6]}",
+        printer_type="other",
+        moonraker_url="http://printer.invalid:7125",
+        moonraker_api_key=None,
+        actor_user_id=None,
+    )
+    await app_session.commit()
+
+    async def no_thumb(*, moonraker_url, api_key, filename):
+        return None
+
+    monkeypatch.setattr(job_discovery, "fetch_moonraker_thumbnail", no_thumb)
+    r = await client.post(
+        f"/api/v1/parts/{part_id}/image/from-printer",
+        headers=_h(owner),
+        json={"printer_id": str(printer.id), "filename": "plain.gcode"},
+    )
+    assert r.status_code == 404, r.text

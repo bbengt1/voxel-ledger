@@ -29,10 +29,16 @@ interface GcodeFileRow {
   modified: number | null;
 }
 
+/** Which printer + file a recipe was discovered from. */
+export interface PrinterSource {
+  printerId: string;
+  filename: string;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
-  onPicked: (plate: DiscoveredPlate) => void;
+  onPicked: (plate: DiscoveredPlate, source: PrinterSource) => void;
   /** Discover endpoint to POST {printer_id, filename} to. Defaults to jobs. */
   discoverEndpoint?: string;
 }
@@ -192,7 +198,7 @@ export function PrinterFileBrowser({
         printer_id: printerId,
         filename: path,
       });
-      onPicked(res.data);
+      onPicked(res.data, { printerId, filename: path });
       onClose();
     } catch (err: unknown) {
       const detail =

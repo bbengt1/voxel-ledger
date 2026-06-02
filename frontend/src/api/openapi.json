@@ -38896,6 +38896,58 @@
         ]
       }
     },
+    "/api/v1/parts/{part_id}/image/from-printer": {
+      "post": {
+        "description": "Store a gcode file's embedded Moonraker thumbnail as the part's\nimage — so a part looked up from a printer is visually identifiable in\nproduct BOMs. 404 if the file has no embedded thumbnail.",
+        "operationId": "upload_part_image_from_printer_api_v1_parts__part_id__image_from_printer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "part_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Part Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/_DiscoverFromPrinterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Part Image From Printer",
+        "tags": [
+          "parts"
+        ]
+      }
+    },
     "/api/v1/parts/{part_id}/unarchive": {
       "post": {
         "operationId": "unarchive_part_api_v1_parts__part_id__unarchive_post",

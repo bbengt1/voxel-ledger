@@ -3393,6 +3393,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parts/{part_id}/image/from-printer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Part Image From Printer
+         * @description Store a gcode file's embedded Moonraker thumbnail as the part's
+         *     image — so a part looked up from a printer is visually identifiable in
+         *     product BOMs. 404 if the file has no embedded thumbnail.
+         */
+        post: operations["upload_part_image_from_printer_api_v1_parts__part_id__image_from_printer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parts/{part_id}/unarchive": {
         parameters: {
             query?: never;
@@ -23020,6 +23042,39 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_part_image_from_printer_api_v1_parts__part_id__image_from_printer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                part_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_DiscoverFromPrinterRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
