@@ -205,7 +205,8 @@ describe("<PartCreatePage />", () => {
 
     await waitFor(() => expect(screen.getByTestId("cost-total")).toHaveTextContent("$1.85"));
     // Costed as one plate of `parts_per_run` pieces (per-part basis).
-    const inputs = (calcReq as { inputs?: { plates?: Array<{ parts_per_set: number }> } })?.inputs;
+    const inputs = (calcReq as unknown as { inputs?: { plates?: Array<{ parts_per_set: number }> } })
+      ?.inputs;
     expect(inputs?.plates?.[0]?.parts_per_set).toBe(1);
   });
 });
