@@ -1,9 +1,10 @@
 /**
  * `/catalog/parts/new` — create a Part (assembly-line epic #267, Phase 1b).
  * Identity + print recipe (minutes, setup, parts/run, filament usage,
- * eligible printers). Cost is computed later (Phase 2).
+ * eligible printers) with a live cost panel that recomputes from the
+ * recipe as you fill it in.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
@@ -11,6 +12,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
 import { DiscoveryUpload } from "@/components/production/DiscoveryUpload";
+import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import {
   PrinterFileBrowser,
   type PrinterSource,
@@ -21,6 +23,10 @@ import { Input } from "@/components/ui/Input";
 type PartResponse = components["schemas"]["PartResponse"];
 type PrinterResponse = components["schemas"]["PrinterResponse"];
 type DiscoveredPlate = components["schemas"]["DiscoveredPlateResponse"];
+type CalcResult = components["schemas"]["CalcResultResponse"];
+type CalcInputs = components["schemas"]["CalcInputsPayload"];
+
+const CALC_DEBOUNCE_MS = 300;
 
 interface MaterialRow {
   key: string;
@@ -53,6 +59,9 @@ export function PartCreatePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calcResult, setCalcResult] = useState<CalcResult | null>(null);
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [calcError, setCalcError] = useState<string | null>(null);
   const [importedFrom, setImportedFrom] = useState<string | null>(null);
   const [printerBrowserOpen, setPrinterBrowserOpen] = useState(false);
   // When the recipe came from a printer, remember which file so we can
@@ -115,6 +124,68 @@ export function PartCreatePage() {
   function updateRow(key: string, patch: Partial<MaterialRow>) {
     setMaterials((prev) => prev.map((m) => (m.key === key ? { ...m, ...patch } : m)));
   }
+
+  // Live cost from the recipe — costed as a single plate of `parts_per_run`
+  // pieces, so `cost_per_piece` is the per-part cost (same basis as the
+  // saved part's /cost). Filament only counts once a material is picked.
+  const calcInputs = useMemo<CalcInputs | null>(() => {
+    const pps = parseIntSafe(partsPerRun, 0);
+    if (pps <= 0) return null;
+    const grams: Record<string, number> = {};
+    for (const m of materials) {
+      if (!m.material) continue;
+      const g = Number.parseFloat(m.grams);
+      if (Number.isFinite(g) && g > 0) grams[m.material.id] = g;
+    }
+    return {
+      quantity_ordered: pps,
+      plates: [
+        {
+          parts_per_set: pps,
+          print_minutes: parseIntSafe(printMinutes, 0),
+          setup_minutes: parseIntSafe(setupMinutes, 0),
+          print_grams_by_material: grams,
+          assigned_printer_ids: printerIds,
+        },
+      ],
+    };
+  }, [partsPerRun, printMinutes, setupMinutes, materials, printerIds]);
+
+  const calcHash = useMemo(
+    () => (calcInputs ? JSON.stringify(calcInputs) : ""),
+    [calcInputs],
+  );
+  const lastCalcId = useRef(0);
+
+  useEffect(() => {
+    if (!calcInputs) {
+      setCalcResult(null);
+      setCalcError(null);
+      setCalcLoading(false);
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      const id = ++lastCalcId.current;
+      setCalcLoading(true);
+      setCalcError(null);
+      apiClient
+        .post<CalcResult>("/api/v1/jobs/calculate", { inputs: calcInputs })
+        .then((res) => {
+          if (id === lastCalcId.current) setCalcResult(res.data);
+        })
+        .catch((err: unknown) => {
+          if (id !== lastCalcId.current) return;
+          const detail = (err as { response?: { data?: { detail?: string } } }).response?.data
+            ?.detail;
+          setCalcError(typeof detail === "string" ? detail : "Could not calculate cost.");
+        })
+        .finally(() => {
+          if (id === lastCalcId.current) setCalcLoading(false);
+        });
+    }, CALC_DEBOUNCE_MS);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calcHash]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -182,7 +253,8 @@ export function PartCreatePage() {
   }
 
   return (
-    <section className="max-w-md">
+    <section className="flex gap-6">
+      <div className="flex-1">
       <h1 className="text-xl font-semibold">New part</h1>
       <form className="mt-6 space-y-3" onSubmit={onSubmit}>
         <label className="block text-sm">
@@ -399,6 +471,9 @@ export function PartCreatePage() {
         onPicked={handleDiscovered}
         discoverEndpoint="/api/v1/parts/discover-from-printer"
       />
+      </div>
+
+      <LiveCostPanel result={calcResult} loading={calcLoading} error={calcError} />
     </section>
   );
 }
