@@ -31,6 +31,7 @@ clearly rejecting unknown formats.
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 import re
@@ -430,6 +431,71 @@ def parse_job_artifact(file_bytes: bytes, *, source_filename: str | None = None)
     return parse_gcode_sidecar(file_bytes, source_filename=source_filename)
 
 
+def _thumbnail_from_3mf(file_bytes: bytes) -> bytes | None:
+    """Largest embedded preview PNG in a sliced 3MF (zip). Slicers store
+    plate previews under ``Metadata/`` (``plate_N.png`` / ``thumbnail*``)."""
+    with zipfile.ZipFile(io.BytesIO(file_bytes)) as zf:
+        pngs = [n for n in zf.namelist() if n.lower().endswith(".png")]
+        if not pngs:
+            return None
+
+        def rank(name: str) -> tuple[int, int]:
+            low = name.lower()
+            if "metadata/" in low and ("thumbnail" in low or "plate" in low):
+                pref = 2
+            elif "metadata/" in low:
+                pref = 1
+            else:
+                pref = 0
+            return (pref, zf.getinfo(name).file_size)
+
+        data = zf.read(max(pngs, key=rank))
+        return data or None
+
+
+def _thumbnail_from_sidecar(file_bytes: bytes) -> bytes | None:
+    """A base64-embedded thumbnail in a ``.gcode.json`` sidecar, if present
+    (largest by pixel area). Most sidecars don't embed one — returns None."""
+    try:
+        doc = json.loads(file_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    thumbs = doc.get("thumbnails") if isinstance(doc, dict) else None
+    if not isinstance(thumbs, list):
+        return None
+    best: str | None = None
+    best_area = -1.0
+    for t in thumbs:
+        if not isinstance(t, dict) or not isinstance(t.get("data"), str):
+            continue
+        w, h = t.get("width") or 0, t.get("height") or 0
+        nums = isinstance(w, int | float) and isinstance(h, int | float)
+        area = float(w) * float(h) if nums else 0.0
+        if area >= best_area:
+            best_area, best = area, t["data"]
+    if best is None:
+        return None
+    try:
+        return base64.b64decode(best)
+    except (ValueError, TypeError):
+        return None
+
+
+def extract_thumbnail(file_bytes: bytes) -> bytes | None:
+    """Best-effort: pull an embedded preview PNG from an uploaded slicer
+    artifact (a 3MF zip, or a base64 thumbnail in a sidecar). Returns None
+    when none is found; never raises — a missing thumbnail must not break
+    recipe discovery."""
+    if not file_bytes:
+        return None
+    try:
+        if _is_zip(file_bytes):
+            return _thumbnail_from_3mf(file_bytes)
+        return _thumbnail_from_sidecar(file_bytes)
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Moonraker (discover-from-printer)
 # ---------------------------------------------------------------------------
@@ -567,6 +633,7 @@ __all__ = [
     "MoonrakerFetchError",
     "UnknownSidecarFormatError",
     "discover_from_moonraker",
+    "extract_thumbnail",
     "fetch_moonraker_thumbnail",
     "parse_3mf",
     "parse_gcode_sidecar",

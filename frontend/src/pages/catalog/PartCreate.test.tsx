@@ -70,13 +70,14 @@ describe("<PartCreatePage />", () => {
     });
   });
 
-  it("imports a gcode sidecar and pre-fills the recipe", async () => {
+  it("imports a gcode sidecar, pre-fills the recipe, and attaches its thumbnail", async () => {
     mock.onPost("/api/v1/parts/discover").reply(200, {
       print_minutes: 135,
       filament_grams_by_material: { slot_0: "42.5", slot_1: "7.25" },
       parts_per_set: 3,
       source_format: "prusaslicer",
       source_filename: "bracket.gcode.json",
+      thumbnail_b64: btoa("fake-png-bytes"),
     });
 
     renderPage();
@@ -94,6 +95,9 @@ describe("<PartCreatePage />", () => {
     // Import banner + one filament row per parsed slot (grams filled,
     // material left for the operator to pick).
     expect(screen.getByTestId("part-discovery-imported")).toHaveTextContent("bracket.gcode.json");
+    expect(screen.getByTestId("part-discovery-imported")).toHaveTextContent(
+      /embedded thumbnail will be attached/i,
+    );
     expect(screen.getByTestId("part-material-0")).toHaveTextContent("slot_0");
     expect(screen.getByTestId("part-material-1")).toHaveTextContent("slot_1");
   });

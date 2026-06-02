@@ -432,3 +432,43 @@ async def test_attach_part_image_from_printer_404_when_no_thumbnail(
         json={"printer_id": str(printer.id), "filename": "plain.gcode"},
     )
     assert r.status_code == 404, r.text
+
+
+@pytest.mark.asyncio
+async def test_discover_returns_embedded_thumbnail_b64(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    import base64
+    import json as _json
+
+    token = await _token(Role.PRODUCTION, client, app_session)
+    png = _png_bytes()
+    doc = {
+        "estimated_printing_time_normal_mode": "1h",
+        "filament_used_g": [10.0],
+        "thumbnails": [{"data": base64.b64encode(png).decode(), "width": 300, "height": 300}],
+    }
+    r = await client.post(
+        "/api/v1/parts/discover",
+        headers=_h(token),
+        files={"file": ("part.gcode.json", _json.dumps(doc).encode(), "application/json")},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["thumbnail_b64"] is not None
+    assert base64.b64decode(body["thumbnail_b64"]) == png
+
+
+@pytest.mark.asyncio
+async def test_discover_thumbnail_b64_none_without_embed(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    token = await _token(Role.PRODUCTION, client, app_session)
+    content = (_FIXTURES / "prusaslicer_sample.gcode.json").read_bytes()
+    r = await client.post(
+        "/api/v1/parts/discover",
+        headers=_h(token),
+        files={"file": ("prusaslicer_sample.gcode.json", content, "application/json")},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["thumbnail_b64"] is None

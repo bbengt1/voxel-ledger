@@ -9115,6 +9115,8 @@ export interface components {
              * @description prusaslicer | bambu
              */
             source_format: string;
+            /** Thumbnail B64 */
+            thumbnail_b64?: string | null;
         };
         /** DivisionCreateRequest */
         DivisionCreateRequest: {

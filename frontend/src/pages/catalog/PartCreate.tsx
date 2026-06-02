@@ -58,6 +58,9 @@ export function PartCreatePage() {
   // When the recipe came from a printer, remember which file so we can
   // attach its embedded thumbnail as the part image after create.
   const [printerSource, setPrinterSource] = useState<PrinterSource | null>(null);
+  // When an uploaded artifact carried an embedded thumbnail (base64 PNG),
+  // remember it to attach as the part image after create.
+  const [uploadThumbnail, setUploadThumbnail] = useState<string | null>(null);
 
   function handleDiscovered(plate: DiscoveredPlate, source?: PrinterSource) {
     // Carry over the pre-v2 gcode discovery (epic #267): pre-fill the
@@ -79,6 +82,9 @@ export function PartCreatePage() {
     }
     setImportedFrom(plate.source_filename ?? plate.source_format ?? "slicer file");
     setPrinterSource(source ?? null);
+    // File-upload path may carry an embedded thumbnail; the printer path
+    // attaches its image separately (via printerSource).
+    setUploadThumbnail(source ? null : (plate.thumbnail_b64 ?? null));
     setError(null);
   }
 
@@ -149,6 +155,19 @@ export function PartCreatePage() {
           });
         } catch {
           /* no embedded thumbnail or fetch failed — the part is still created */
+        }
+      } else if (uploadThumbnail) {
+        // The uploaded artifact carried an embedded preview — attach it as
+        // the part image (best-effort).
+        try {
+          const bytes = Uint8Array.from(atob(uploadThumbnail), (c) => c.charCodeAt(0));
+          const form = new FormData();
+          form.append("file", new File([bytes], "thumbnail.png", { type: "image/png" }));
+          await apiClient.post(`/api/v1/parts/${res.data.id}/image`, form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } catch {
+          /* image is a nice-to-have — never block the create */
         }
       }
       navigate(`/catalog/parts/${res.data.id}`);
@@ -225,7 +244,9 @@ export function PartCreatePage() {
             >
               Imported <span className="font-medium text-foreground">{importedFrom}</span> — match
               each imported filament to a material below.
-              {printerSource ? " Its printer thumbnail will be attached as the part image." : ""}
+              {printerSource || uploadThumbnail
+                ? " Its embedded thumbnail will be attached as the part image."
+                : ""}
             </p>
           ) : null}
 

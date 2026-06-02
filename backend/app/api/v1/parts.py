@@ -7,6 +7,7 @@ Parts are catalog entities only in this phase — no product/job wiring.
 
 from __future__ import annotations
 
+import base64
 import uuid
 from typing import Annotated
 
@@ -58,12 +59,14 @@ async def discover_part_recipe(
             from None
     except discovery_service.MalformedSidecarError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    thumb = discovery_service.extract_thumbnail(content)
     return DiscoveredPlateResponse(
         print_minutes=result.print_minutes,
         filament_grams_by_material=dict(result.filament_grams_by_material),
         parts_per_set=result.parts_per_set,
         source_format=result.source_format,
         source_filename=result.source_filename,
+        thumbnail_b64=base64.b64encode(thumb).decode("ascii") if thumb else None,
     )
 
 
