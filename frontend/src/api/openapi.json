@@ -11492,6 +11492,18 @@
       "JobCreate": {
         "description": "A job produces a **part** (assembly-line epic #267). Pass ``part_id``\n+ a quantity — the print recipe comes from the part. The legacy\nproduct+plates create path was retired in Phase 8a; historical\nproduct-jobs remain readable but no new ones can be created.",
         "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "due_at": {
             "anyOf": [
               {
@@ -11635,6 +11647,17 @@
             ],
             "title": "Customer Id"
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "due_at": {
             "anyOf": [
               {
@@ -11678,6 +11701,28 @@
               }
             ],
             "title": "Part Id"
+          },
+          "part_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Name"
+          },
+          "part_sku": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part Sku"
           },
           "pieces_produced": {
             "default": 0,
@@ -11742,8 +11787,20 @@
         "type": "object"
       },
       "JobUpdate": {
-        "description": "Editable post-create: ``priority``, ``due_at``, ``notes`` and\n``quantity_ordered`` — while the job is non-terminal.\n\n``product_id`` is immutable; the service rejects it with 400.\nCompleted/cancelled jobs are read-only.",
+        "description": "Editable post-create: ``priority``, ``due_at``, ``notes``,\n``description`` and ``quantity_ordered`` — while the job is non-terminal.\n\n``product_id`` is immutable; the service rejects it with 400.\nCompleted/cancelled jobs are read-only.",
         "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "due_at": {
             "anyOf": [
               {

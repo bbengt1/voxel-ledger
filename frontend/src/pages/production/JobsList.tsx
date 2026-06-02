@@ -49,7 +49,9 @@ export function JobsListPage() {
   }
 
   const [params, setParams] = useSearchParams();
-  const stateFilter = params.get("state") ?? "";
+  // Default to in-progress jobs; the explicit "all" sentinel (vs. an absent
+  // param) lets the user widen to every state without it snapping back.
+  const stateFilter = params.get("state") ?? "in_progress";
   const productId = params.get("product_id") ?? "";
   const customer = params.get("customer") ?? "";
   const dueFrom = params.get("due_from") ?? "";
@@ -68,7 +70,7 @@ export function JobsListPage() {
 
   const query = useMemo(() => {
     const q: Record<string, string> = {};
-    if (stateFilter) q["state"] = stateFilter;
+    if (stateFilter && stateFilter !== "all") q["state"] = stateFilter;
     if (productId) q["product_id"] = productId;
     return q;
   }, [stateFilter, productId]);
@@ -134,7 +136,7 @@ export function JobsListPage() {
             onChange={(e) => updateParam("state", e.target.value)}
             data-testid="filter-state"
           >
-            <option value="">All</option>
+            <option value="all">All</option>
             {STATES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -192,6 +194,8 @@ export function JobsListPage() {
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Job #</th>
+            <th className="py-2 pr-2">Part</th>
+            <th className="py-2 pr-2">Description</th>
             <th className="py-2 pr-2">State</th>
             <th className="py-2 pr-2">Qty</th>
             <th className="py-2 pr-2">Pieces</th>
@@ -203,13 +207,13 @@ export function JobsListPage() {
         <tbody>
           {loading && items.length === 0 ? (
             <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
+              <td colSpan={9} className="py-4 text-center text-muted-foreground">
                 Loading…
               </td>
             </tr>
           ) : filtered.length === 0 ? (
             <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
+              <td colSpan={9} className="py-4 text-center text-muted-foreground">
                 No jobs match these filters.
               </td>
             </tr>
@@ -226,6 +230,12 @@ export function JobsListPage() {
                   >
                     {j.job_number}
                   </Link>
+                </td>
+                <td className="py-2 pr-2 truncate" title={j.part_sku ?? undefined}>
+                  {j.part_name || j.part_sku || "—"}
+                </td>
+                <td className="py-2 pr-2 truncate" title={j.description ?? undefined}>
+                  {j.description || "—"}
                 </td>
                 <td className="py-2 pr-2">{j.state}</td>
                 <td className="py-2 pr-2">{j.quantity_ordered}</td>

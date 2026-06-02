@@ -63,9 +63,12 @@ def _job_to_response(job: Job) -> JobResponse:
         job_number=job.job_number,
         product_id=job.product_id,
         part_id=job.part_id,
+        part_sku=job.part.sku if job.part else None,
+        part_name=job.part.name if job.part else None,
         customer_id=job.customer_id,
         state=job.state.value,  # type: ignore[arg-type]
         quantity_ordered=job.quantity_ordered,
+        description=job.description,
         priority=job.priority,
         due_at=job.due_at,
         notes=job.notes,
@@ -120,6 +123,7 @@ async def create_job(
             priority=payload.priority,
             due_at=payload.due_at,
             notes=payload.notes,
+            description=payload.description,
             actor_user_id=actor.id,
         )
     except Exception as exc:

@@ -77,14 +77,15 @@ class JobCreate(BaseModel):
 
     part_id: uuid.UUID
     quantity_ordered: int = Field(gt=0)
+    description: str | None = Field(default=None, max_length=4096)
     priority: int = Field(default=0)
     due_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=4096)
 
 
 class JobUpdate(BaseModel):
-    """Editable post-create: ``priority``, ``due_at``, ``notes`` and
-    ``quantity_ordered`` — while the job is non-terminal.
+    """Editable post-create: ``priority``, ``due_at``, ``notes``,
+    ``description`` and ``quantity_ordered`` — while the job is non-terminal.
 
     ``product_id`` is immutable; the service rejects it with 400.
     Completed/cancelled jobs are read-only.
@@ -93,6 +94,7 @@ class JobUpdate(BaseModel):
     priority: int | None = None
     due_at: datetime | None = None
     notes: str | None = Field(default=None, max_length=4096)
+    description: str | None = Field(default=None, max_length=4096)
     quantity_ordered: int | None = Field(default=None, gt=0)
 
 
@@ -103,9 +105,12 @@ class JobResponse(BaseModel):
     job_number: str
     product_id: uuid.UUID | None = None
     part_id: uuid.UUID | None = None
+    part_sku: str | None = None
+    part_name: str | None = None
     customer_id: uuid.UUID | None = None
     state: JobStateLiteral
     quantity_ordered: int
+    description: str | None = None
     priority: int
     due_at: datetime | None = None
     notes: str | None = None

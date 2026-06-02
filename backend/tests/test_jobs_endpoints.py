@@ -89,6 +89,10 @@ async def test_create_get_happy_path(
     assert body["quantity_ordered"] == 10
     assert body["pieces_produced"] == 0
     assert body["job_number"].startswith("JOB-")
+    # The response surfaces the produced part's sku/name for the jobs list.
+    assert body["part_id"] == str(part.id)
+    assert body["part_name"] == part.name
+    assert body["part_sku"] == part.sku
     # Part-job auto-creates exactly one plate snapshotted from the part recipe.
     assert len(body["plates"]) == 1
 
@@ -96,6 +100,36 @@ async def test_create_get_happy_path(
     got = await client.get(f"/api/v1/jobs/{job_id}", headers=auth_header(owner))
     assert got.status_code == 200
     assert got.json()["job_number"] == body["job_number"]
+
+
+@pytest.mark.asyncio
+async def test_create_and_edit_description_round_trips(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    """The new-job form's free-text box writes a first-class ``description``
+    that the list/detail can display and that's editable post-create."""
+    part = await seed_part(app_session)
+    owner = await token_for(Role.OWNER, client, app_session)
+
+    payload = _payload(str(part.id))
+    payload["description"] = "Rush order — blue PLA"
+    create = await client.post("/api/v1/jobs", headers=auth_header(owner), json=payload)
+    assert create.status_code == 201, create.text
+    job_id = create.json()["id"]
+    assert create.json()["description"] == "Rush order — blue PLA"
+
+    # Visible on read (list page reads this field).
+    got = await client.get(f"/api/v1/jobs/{job_id}", headers=auth_header(owner))
+    assert got.json()["description"] == "Rush order — blue PLA"
+
+    # Editable while non-terminal.
+    patched = await client.patch(
+        f"/api/v1/jobs/{job_id}",
+        headers=auth_header(owner),
+        json={"description": "Updated note"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["description"] == "Updated note"
 
 
 @pytest.mark.asyncio
