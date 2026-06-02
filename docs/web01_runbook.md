@@ -1,7 +1,7 @@
 # `web01` manual SSH runbook
 
 > **HISTORICAL — v1 era.** `web01` hosts the legacy v1 app and is no longer the
-> v2 deploy target. Current production runs on `web02.bengtson.local`; see
+> v2 deploy target. Current production runs on `web02.internal`; see
 > [`web02_runbook.md`](web02_runbook.md) and [`web02_n8n_deploy.md`](web02_n8n_deploy.md).
 > This document is preserved for v1 operations until the legacy host is
 > retired.
@@ -16,7 +16,7 @@ restart, log dive, `alembic downgrade`).
 ## Access
 
 ```bash
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 ```
 
 ## Filesystem layout
@@ -56,7 +56,7 @@ scripts/web01-compose.sh restart backend
 Prefer the n8n workflow. If n8n is unavailable:
 
 ```bash
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 cd /srv/3d-print-sales/repo
 /srv/3d-print-sales/deploy.sh
 ```

@@ -71,7 +71,7 @@ The wrapper checks two things, in order: an explicit `--prod` or `--dev` flag (c
 
 ## Deployment targets
 
-The legacy v1 app is still live on `web01.bengtson.local`. v2 will deploy to the same host once it reaches Phase 12 cutover. See [`../agents.md`](../agents.md) for the canonical paths (`/srv/3d-print-sales/...`), env file location, and post-deploy checks.
+The legacy v1 app is still live on `web01.internal`. v2 will deploy to the same host once it reaches Phase 12 cutover. See [`../agents.md`](../agents.md) for the canonical paths (`/srv/3d-print-sales/...`), env file location, and post-deploy checks.
 
 ## Related
 

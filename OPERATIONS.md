@@ -4,7 +4,7 @@ Production-ops checklist. The exhaustive runbook is [`docs/web01_runbook.md`](do
 
 ## 1. Topology
 
-- Single VM: `web01.bengtson.local`.
+- Single VM: `web01.internal`.
 - Docker Compose stack: Postgres 16 + FastAPI backend + Vite-built frontend behind nginx.
 - Systemd unit `3d-print-sales.service` brings the stack up on boot.
 - Deploys orchestrated by an n8n workflow ([`docs/deployment_n8n_workflow.md`](docs/deployment_n8n_workflow.md)); manual fallback documented in the web01 runbook.
@@ -27,7 +27,7 @@ Production-ops checklist. The exhaustive runbook is [`docs/web01_runbook.md`](do
 trigger "Voxel Ledger deploy" in n8n
 
 # Manual fallback
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 cd /srv/3d-print-sales/repo
 /srv/3d-print-sales/deploy.sh
 ```
@@ -41,7 +41,7 @@ Daily nightly `pg_dump` to `/srv/3d-print-sales/backups/`. Attachments rsynced t
 To do a manual restore drill against a temp DB:
 
 ```bash
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 sudo -u postgres pg_restore --clean --if-exists --dbname=test_restore /srv/3d-print-sales/backups/<timestamp>.dump
 ```
 
@@ -87,7 +87,7 @@ Every request carries an `x-request-id`; reuse it when filing incidents.
 ## 9. Emergency contacts + escalation
 
 - Repo: https://github.com/bbengt1/voxel-ledger
-- Owner: `brent.bengtson@gmail.com`
+- Owner: `owner@bengtsonprecision3d.com`
 - Hosting: single VM, no cloud provider escalation path.
 
 If the site is down and the deploy script + nginx restart didn't fix it, the highest-leverage move is `scripts/web01-compose.sh down && scripts/web01-compose.sh up -d`. Postgres data is on a bind mount, so the worst case from a bad container is a 30s outage.

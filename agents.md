@@ -40,14 +40,14 @@
 
 ## Deployment Targets
 
-The v2 app deploys to `web02.bengtson.local`. The legacy v1 app continues to
-run on `web01.bengtson.local` until v2 cutover; see
+The v2 app deploys to `web02.internal`. The legacy v1 app continues to
+run on `web01.internal` until v2 cutover; see
 [`docs/web01_runbook.md`](docs/web01_runbook.md) for v1 ops.
 
-- **Canonical deploy path: the `web02-deploy` n8n workflow** at [`ops/n8n/web02-deploy.json`](ops/n8n/web02-deploy.json), executed from `n8n.bengtson.local`. It encapsulates pull → migrate → rebuild → verify with per-step observability. Operator runbook: [`docs/web02_n8n_deploy.md`](docs/web02_n8n_deploy.md).
+- **Canonical deploy path: the `web02-deploy` n8n workflow** at [`ops/n8n/web02-deploy.json`](ops/n8n/web02-deploy.json), executed from `n8n.internal`. It encapsulates pull → migrate → rebuild → verify with per-step observability. Operator runbook: [`docs/web02_n8n_deploy.md`](docs/web02_n8n_deploy.md).
 - **Fallback: manual SSH flow.** [`docs/web02_runbook.md`](docs/web02_runbook.md). Use it when n8n is unavailable, when debugging a broken deploy, or for one-off operations (e.g. `alembic downgrade`, emergency restart).
 - **First-time host setup:** [`docs/web02_bootstrap.md`](docs/web02_bootstrap.md).
-- Live host: `root@web02.bengtson.local` (SSH alias `web02`).
+- Live host: `deploy@web02.internal` (SSH alias `web02`).
 - App root on host: `/srv/voxel-ledger`
 - Repo checkout on host: `/srv/voxel-ledger/repo`
 - Server env file: `/srv/voxel-ledger/env/web02.env` (template at [`.env.web02.example`](.env.web02.example))

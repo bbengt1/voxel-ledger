@@ -62,7 +62,7 @@
     },
     {
       "parameters": {
-        "url": "http://web01.bengtson.local/health",
+        "url": "http://web01.internal/health",
         "options": {
           "timeout": 10000,
           "response": {
@@ -83,7 +83,7 @@
     {
       "parameters": {
         "method": "HEAD",
-        "url": "http://web01.bengtson.local/",
+        "url": "http://web01.internal/",
         "options": {
           "timeout": 10000,
           "response": {

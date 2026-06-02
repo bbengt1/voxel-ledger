@@ -5,7 +5,7 @@
 | Env | Host | URL | Purpose |
 |---|---|---|---|
 | Local dev | developer laptop | http://localhost:5173 | Vite dev server + FastAPI |
-| Production | `web01.bengtson.local` | https://web01/ | The live business app |
+| Production | `web01.internal` | https://web01/ | The live business app |
 
 **No staging.** v2 keeps a two-environment topology (local + prod). All testing happens locally before deploying. Migrations and seed data must remain safe to rerun, since prod is the first place new code meets real data.
 
@@ -30,7 +30,7 @@
 
 **Fallback (manual):**
 ```bash
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 cd /srv/3d-print-sales/repo
 git pull
 /srv/3d-print-sales/deploy.sh          # wraps scripts/deploy.sh: pull + migrate + rebuild + restart

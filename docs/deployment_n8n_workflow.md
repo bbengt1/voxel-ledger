@@ -29,7 +29,7 @@ Use the [manual SSH fallback](web01_runbook.md) when:
 1. An n8n instance with `web01-deploy.json` imported.
 2. Two credentials wired up after import (the export uses placeholder IDs):
    - **SSH credential** named `web01 ssh (root)` pointing at
-     `root@web01.bengtson.local`. Use a key that's authorized on the host.
+     `deploy@web01.internal`. Use a key that's authorized on the host.
    - **Slack credential** named `deploys-bot` for the notification node. If you
      don't run Slack, swap the node for email or delete it — `continueOnFail`
      is already true on this step so failure won't sink the deploy.
@@ -124,7 +124,7 @@ rebuild step and the previous good state is gone, follow
 These mirror the standard `agents.md` post-deploy checks:
 
 ```bash
-ssh root@web01.bengtson.local
+ssh deploy@web01.internal
 cd /srv/3d-print-sales/repo
 scripts/web01-compose.sh ps
 curl -fsS http://127.0.0.1/health
