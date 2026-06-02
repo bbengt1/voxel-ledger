@@ -1,12 +1,13 @@
 /**
- * Discovery upload — POSTs a slicer artifact to `/api/v1/jobs/discover`
- * and surfaces the parsed plate fields. Accepts:
+ * Discovery upload — POSTs a slicer artifact to a discover endpoint and
+ * surfaces the parsed recipe fields. Accepts:
  *
  *   - ``.gcode.json`` sidecars (PrusaSlicer / Bambu Studio)
  *   - ``.3mf`` sliced archives (Bambu, OrcaSlicer, PrusaSlicer)
  *
  * The backend detects format from the file bytes (zip magic vs JSON),
- * so the same endpoint handles both.
+ * so the same endpoint handles both. ``endpoint`` defaults to the jobs
+ * discover route; the part-create form points it at `/api/v1/parts/discover`.
  */
 import { useRef, useState } from "react";
 
@@ -18,11 +19,17 @@ type DiscoveredPlate = components["schemas"]["DiscoveredPlateResponse"];
 
 interface Props {
   onDiscovered: (plate: DiscoveredPlate) => void;
+  /** Discover endpoint to POST to. Defaults to the jobs route. */
+  endpoint?: string;
   /** Test/diagnostic id suffix. */
   "data-testid"?: string;
 }
 
-export function DiscoveryUpload({ onDiscovered, "data-testid": testId }: Props) {
+export function DiscoveryUpload({
+  onDiscovered,
+  endpoint = "/api/v1/jobs/discover",
+  "data-testid": testId,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +40,9 @@ export function DiscoveryUpload({ onDiscovered, "data-testid": testId }: Props) 
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await apiClient.post<DiscoveredPlate>(
-        "/api/v1/jobs/discover",
-        form,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
+      const res = await apiClient.post<DiscoveredPlate>(endpoint, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       onDiscovered(res.data);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })

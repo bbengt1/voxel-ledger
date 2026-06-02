@@ -4027,6 +4027,20 @@
         "title": "Body_discover_from_sidecar_api_v1_jobs_discover_post",
         "type": "object"
       },
+      "Body_discover_part_recipe_api_v1_parts_discover_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_discover_part_recipe_api_v1_parts_discover_post",
+        "type": "object"
+      },
       "Body_import_file_api_v1_bank_imports_post": {
         "properties": {
           "account_id": {
@@ -38406,6 +38420,53 @@
           }
         ],
         "summary": "Create Part",
+        "tags": [
+          "parts"
+        ]
+      }
+    },
+    "/api/v1/parts/discover": {
+      "post": {
+        "description": "Parse an uploaded slicer artifact (PrusaSlicer/Bambu ``.gcode.json``\nsidecar or sliced ``.3mf``) and return the extracted print recipe to\npre-fill the part-create form. Read-only — no DB writes. Carries over\nthe pre-v2 gcode-discovery that used to live on job entry; the print\nrecipe now lives on the Part (epic #267).",
+        "operationId": "discover_part_recipe_api_v1_parts_discover_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_discover_part_recipe_api_v1_parts_discover_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveredPlateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discover Part Recipe",
         "tags": [
           "parts"
         ]

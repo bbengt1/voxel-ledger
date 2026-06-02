@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 import pytest
 from app.models.auth import Role
 from app.services.auth import create_user
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
+
+_FIXTURES = Path(__file__).parent / "fixtures"
 
 
 async def _token(role: Role, client: AsyncClient, session: AsyncSession) -> str:
@@ -170,3 +173,51 @@ async def test_get_unknown_404(client: AsyncClient, app_session: AsyncSession) -
     owner = await _token(Role.OWNER, client, app_session)
     r = await client.get(f"/api/v1/parts/{uuid.uuid4()}", headers=_h(owner))
     assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# gcode discovery → pre-fill the part recipe (carried over from job entry)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_discover_part_recipe_from_sidecar(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    token = await _token(Role.PRODUCTION, client, app_session)
+    content = (_FIXTURES / "prusaslicer_sample.gcode.json").read_bytes()
+    r = await client.post(
+        "/api/v1/parts/discover",
+        headers=_h(token),
+        files={"file": ("prusaslicer_sample.gcode.json", content, "application/json")},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # Same parser as the legacy job discovery: 2h15m30s -> 135 min, 3 parts.
+    assert body["print_minutes"] == 135
+    assert body["parts_per_set"] == 3
+    assert body["source_format"] == "prusaslicer"
+    # Filament is keyed by slicer slot (operator maps slot -> material in UI).
+    assert body["filament_grams_by_material"]["slot_0"] == "42.5"
+
+
+@pytest.mark.asyncio
+async def test_discover_part_recipe_rejects_garbage(
+    client: AsyncClient, app_session: AsyncSession
+) -> None:
+    token = await _token(Role.PRODUCTION, client, app_session)
+    r = await client.post(
+        "/api/v1/parts/discover",
+        headers=_h(token),
+        files={"file": ("junk.gcode.json", b"not-json{{{", "application/json")},
+    )
+    assert r.status_code in (400, 415), r.text
+
+
+@pytest.mark.asyncio
+async def test_discover_part_recipe_requires_auth(client: AsyncClient) -> None:
+    r = await client.post(
+        "/api/v1/parts/discover",
+        files={"file": ("x.gcode.json", b"{}", "application/json")},
+    )
+    assert r.status_code == 401

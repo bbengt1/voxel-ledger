@@ -10,16 +10,20 @@ import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
+import { DiscoveryUpload } from "@/components/production/DiscoveryUpload";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 type PartResponse = components["schemas"]["PartResponse"];
 type PrinterResponse = components["schemas"]["PrinterResponse"];
+type DiscoveredPlate = components["schemas"]["DiscoveredPlateResponse"];
 
 interface MaterialRow {
   key: string;
   material: EntityOption | null;
   grams: string;
+  /** Slicer slot/label this row was imported from (operator maps it to a material). */
+  slotLabel?: string;
 }
 
 let _key = 0;
@@ -45,6 +49,29 @@ export function PartCreatePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importedFrom, setImportedFrom] = useState<string | null>(null);
+
+  function handleDiscovered(plate: DiscoveredPlate) {
+    // Carry over the pre-v2 gcode discovery (epic #267): pre-fill the
+    // recipe from the slicer artifact. The parser keys filament by slicer
+    // slot/label, not by material id — so we seed a row per filament with
+    // grams filled in and leave the material picker for the operator.
+    setPrintMinutes(String(plate.print_minutes));
+    setPartsPerRun(String(plate.parts_per_set ?? 1));
+    const entries = Object.entries(plate.filament_grams_by_material ?? {});
+    if (entries.length > 0) {
+      setMaterials(
+        entries.map(([slot, grams]) => ({
+          key: nextKey(),
+          material: null,
+          grams: String(grams),
+          slotLabel: slot,
+        })),
+      );
+    }
+    setImportedFrom(plate.source_filename ?? plate.source_format ?? "slicer file");
+    setError(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +173,28 @@ export function PartCreatePage() {
 
         <fieldset className="space-y-3 rounded border border-border p-3">
           <legend className="px-1 text-xs uppercase text-muted-foreground">Print recipe</legend>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">
+              Import a sliced <code>.gcode.json</code> or <code>.3mf</code> to auto-fill the recipe.
+            </span>
+            <DiscoveryUpload
+              endpoint="/api/v1/parts/discover"
+              onDiscovered={handleDiscovered}
+              data-testid="part-discovery"
+            />
+          </div>
+          {importedFrom ? (
+            <p
+              role="status"
+              data-testid="part-discovery-imported"
+              className="rounded bg-muted/40 px-2 py-1 text-xs text-muted-foreground"
+            >
+              Imported <span className="font-medium text-foreground">{importedFrom}</span> — match
+              each imported filament to a material below.
+            </p>
+          ) : null}
+
           <div className="grid grid-cols-3 gap-3">
             <label className="block text-sm">
               Print min
@@ -188,6 +237,11 @@ export function PartCreatePage() {
             {materials.map((m, idx) => (
               <div key={m.key} className="flex items-end gap-2" data-testid={`part-material-${idx}`}>
                 <div className="flex-1">
+                  {m.slotLabel && !m.material ? (
+                    <span className="mb-0.5 block text-[10px] text-muted-foreground">
+                      from <span className="font-mono">{m.slotLabel}</span> — pick a material
+                    </span>
+                  ) : null}
                   <EntityPicker
                     kind="material"
                     value={m.material}

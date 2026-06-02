@@ -26,13 +26,43 @@ from app.schemas.parts import (
     PartResponse,
     PartUpdateRequest,
 )
+from app.schemas.production_orders import DiscoveredPlateResponse
 from app.services import entity_images
+from app.services import job_discovery as discovery_service
 from app.services import parts as parts_service
 from app.services.cost_engine.service import CostEngineService, MissingRateConfigError
 
 router = APIRouter(prefix="/parts", tags=["parts"])
 
 _IMAGE_KIND = "part"
+
+
+@router.post("/discover", response_model=DiscoveredPlateResponse)
+async def discover_part_recipe(
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+    file: Annotated[UploadFile, File()],
+) -> DiscoveredPlateResponse:
+    """Parse an uploaded slicer artifact (PrusaSlicer/Bambu ``.gcode.json``
+    sidecar or sliced ``.3mf``) and return the extracted print recipe to
+    pre-fill the part-create form. Read-only — no DB writes. Carries over
+    the pre-v2 gcode-discovery that used to live on job entry; the print
+    recipe now lives on the Part (epic #267).
+    """
+    content = await file.read()
+    try:
+        result = discovery_service.parse_job_artifact(content, source_filename=file.filename)
+    except discovery_service.UnknownSidecarFormatError as exc:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc)) \
+            from None
+    except discovery_service.MalformedSidecarError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    return DiscoveredPlateResponse(
+        print_minutes=result.print_minutes,
+        filament_grams_by_material=dict(result.filament_grams_by_material),
+        parts_per_set=result.parts_per_set,
+        source_format=result.source_format,
+        source_filename=result.source_filename,
+    )
 
 
 @router.post("", response_model=PartResponse, status_code=status.HTTP_201_CREATED)
