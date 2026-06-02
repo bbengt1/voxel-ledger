@@ -3252,6 +3252,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parts/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discover Part Recipe
+         * @description Parse an uploaded slicer artifact (PrusaSlicer/Bambu ``.gcode.json``
+         *     sidecar or sliced ``.3mf``) and return the extracted print recipe to
+         *     pre-fill the part-create form. Read-only — no DB writes. Carries over
+         *     the pre-v2 gcode-discovery that used to live on job entry; the print
+         *     recipe now lives on the Part (epic #267).
+         */
+        post: operations["discover_part_recipe_api_v1_parts_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/parts/recompute-costs": {
         parameters: {
             query?: never;
@@ -7608,6 +7632,11 @@ export interface components {
         };
         /** Body_discover_from_sidecar_api_v1_jobs_discover_post */
         Body_discover_from_sidecar_api_v1_jobs_discover_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_discover_part_recipe_api_v1_parts_discover_post */
+        Body_discover_part_recipe_api_v1_parts_discover_post: {
             /** File */
             file: string;
         };
@@ -22664,6 +22693,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_part_recipe_api_v1_parts_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_discover_part_recipe_api_v1_parts_discover_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoveredPlateResponse"];
                 };
             };
             /** @description Validation Error */
