@@ -2,7 +2,7 @@
 
 **A production accounting + operations platform for a real 3D-printing business** — double-entry accounting, inventory, manufacturing, and point-of-sale in one event-sourced system.
 
-🔗 **Live:** [print.bengtsonprecision3d.com](https://print.bengtsonprecision3d.com/) &nbsp;·&nbsp; FastAPI + Postgres backend, React 19 frontend, deployed via Docker Compose.
+FastAPI + Postgres backend, React 19 frontend, deployed via Docker Compose.
 
 > Built and operated for **Bengtson Precision 3D**. This repo is shared publicly as a work sample — it's a single-tenant app running live in production, not a toy demo.
 
