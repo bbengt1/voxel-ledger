@@ -11,7 +11,10 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
 import { DiscoveryUpload } from "@/components/production/DiscoveryUpload";
-import { PrinterFileBrowser } from "@/components/production/PrinterFileBrowser";
+import {
+  PrinterFileBrowser,
+  type PrinterSource,
+} from "@/components/production/PrinterFileBrowser";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -52,8 +55,11 @@ export function PartCreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [importedFrom, setImportedFrom] = useState<string | null>(null);
   const [printerBrowserOpen, setPrinterBrowserOpen] = useState(false);
+  // When the recipe came from a printer, remember which file so we can
+  // attach its embedded thumbnail as the part image after create.
+  const [printerSource, setPrinterSource] = useState<PrinterSource | null>(null);
 
-  function handleDiscovered(plate: DiscoveredPlate) {
+  function handleDiscovered(plate: DiscoveredPlate, source?: PrinterSource) {
     // Carry over the pre-v2 gcode discovery (epic #267): pre-fill the
     // recipe from the slicer artifact. The parser keys filament by slicer
     // slot/label, not by material id — so we seed a row per filament with
@@ -72,6 +78,7 @@ export function PartCreatePage() {
       );
     }
     setImportedFrom(plate.source_filename ?? plate.source_format ?? "slicer file");
+    setPrinterSource(source ?? null);
     setError(null);
   }
 
@@ -132,6 +139,18 @@ export function PartCreatePage() {
       if (sku.trim()) body["sku"] = sku.trim();
       if (description.trim()) body["description"] = description.trim();
       const res = await apiClient.post<PartResponse>("/api/v1/parts", body);
+      // If the recipe came from a printer, attach that gcode's embedded
+      // thumbnail as the part image (best-effort — never block the create).
+      if (printerSource) {
+        try {
+          await apiClient.post(`/api/v1/parts/${res.data.id}/image/from-printer`, {
+            printer_id: printerSource.printerId,
+            filename: printerSource.filename,
+          });
+        } catch {
+          /* no embedded thumbnail or fetch failed — the part is still created */
+        }
+      }
       navigate(`/catalog/parts/${res.data.id}`);
     } catch (err: unknown) {
       const detail =
@@ -206,6 +225,7 @@ export function PartCreatePage() {
             >
               Imported <span className="font-medium text-foreground">{importedFrom}</span> — match
               each imported filament to a material below.
+              {printerSource ? " Its printer thumbnail will be attached as the part image." : ""}
             </p>
           ) : null}
 

@@ -150,5 +150,24 @@ describe("<PartCreatePage />", () => {
     await waitFor(() => expect(screen.getByTestId("part-print-minutes")).toHaveValue(60));
     expect(screen.getByTestId("part-parts-per-run")).toHaveValue(2);
     expect(screen.getByTestId("part-discovery-imported")).toHaveTextContent("bracket.gcode");
+    expect(screen.getByTestId("part-discovery-imported")).toHaveTextContent(
+      /thumbnail will be attached/i,
+    );
+
+    // On create, the printer thumbnail is attached as the part image.
+    let imageReq: Record<string, unknown> | null = null;
+    mock.onPost("/api/v1/parts").reply(201, { id: "55555555-5555-5555-5555-555555555555" });
+    mock.onPost("/api/v1/parts/55555555-5555-5555-5555-555555555555/image/from-printer").reply(
+      (config) => {
+        imageReq = JSON.parse(config.data as string);
+        return [204];
+      },
+    );
+
+    await user.type(screen.getByRole("textbox", { name: /name/i }), "Bracket");
+    await user.click(screen.getByRole("button", { name: /create part/i }));
+
+    await waitFor(() => expect(screen.getByText("part detail")).toBeInTheDocument());
+    expect(imageReq).toMatchObject({ printer_id: "p1", filename: "bracket.gcode" });
   });
 });

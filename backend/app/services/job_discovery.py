@@ -482,6 +482,61 @@ def parse_moonraker_metadata(meta: dict, *, source_filename: str | None = None) 
     )
 
 
+def _largest_thumbnail(thumbnails: object) -> dict | None:
+    """Pick the highest-resolution embedded thumbnail descriptor, or None.
+
+    (Parallels ``printer_thumbnail._pick_largest_thumbnail`` — kept local so
+    the service layer doesn't import the API layer.)
+    """
+    if not isinstance(thumbnails, list):
+        return None
+    sized = [
+        t
+        for t in thumbnails
+        if isinstance(t, dict)
+        and isinstance(t.get("width"), int | float)
+        and isinstance(t.get("height"), int | float)
+        and isinstance(t.get("relative_path"), str)
+    ]
+    if not sized:
+        return None
+    sized.sort(key=lambda t: float(t["width"]) * float(t["height"]), reverse=True)
+    return sized[0]
+
+
+async def fetch_moonraker_thumbnail(
+    *, moonraker_url: str, api_key: str | None, filename: str
+) -> bytes | None:
+    """Fetch the largest embedded thumbnail PNG for a gcode file from
+    Moonraker. Returns the PNG bytes, or ``None`` when the file has no
+    embedded thumbnail. Raises :class:`MoonrakerFetchError` on any
+    network/HTTP failure.
+    """
+    base = moonraker_url.rstrip("/")
+    headers: dict[str, str] = {"X-Api-Key": api_key} if api_key else {}
+    try:
+        async with httpx.AsyncClient(timeout=_MOONRAKER_TIMEOUT_SECONDS) as client:
+            meta_resp = await client.get(
+                f"{base}/server/files/metadata",
+                params={"filename": filename},
+                headers=headers,
+            )
+            meta_resp.raise_for_status()
+            meta = meta_resp.json().get("result") or {}
+            chosen = _largest_thumbnail(meta.get("thumbnails"))
+            if chosen is None:
+                return None
+            gcode_dir = filename.rsplit("/", 1)[0] + "/" if "/" in filename else ""
+            thumb_resp = await client.get(
+                f"{base}/server/files/gcodes/{gcode_dir}{chosen['relative_path']}",
+                headers=headers,
+            )
+            thumb_resp.raise_for_status()
+            return thumb_resp.content
+    except Exception as exc:
+        raise MoonrakerFetchError(str(exc)) from exc
+
+
 async def discover_from_moonraker(
     *, moonraker_url: str, api_key: str | None, filename: str
 ) -> DiscoveredPlate:
@@ -512,6 +567,7 @@ __all__ = [
     "MoonrakerFetchError",
     "UnknownSidecarFormatError",
     "discover_from_moonraker",
+    "fetch_moonraker_thumbnail",
     "parse_3mf",
     "parse_gcode_sidecar",
     "parse_job_artifact",

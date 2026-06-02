@@ -313,6 +313,53 @@ async def upload_part_image(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
 
 
+@router.post("/{part_id}/image/from-printer", status_code=status.HTTP_204_NO_CONTENT)
+async def upload_part_image_from_printer(
+    part_id: uuid.UUID,
+    payload: _DiscoverFromPrinterRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+) -> None:
+    """Store a gcode file's embedded Moonraker thumbnail as the part's
+    image — so a part looked up from a printer is visually identifiable in
+    product BOMs. 404 if the file has no embedded thumbnail.
+    """
+    await _require_part(session, part_id)
+    try:
+        printer = await printers_service.get(session, payload.printer_id)
+    except printers_service.PrinterNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="printer not found") \
+            from None
+    if not printer.moonraker_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="moonraker not configured"
+        )
+    try:
+        thumbnail = await discovery_service.fetch_moonraker_thumbnail(
+            moonraker_url=printer.moonraker_url,
+            api_key=printer.moonraker_api_key,
+            filename=payload.filename,
+        )
+    except discovery_service.MoonrakerFetchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"moonraker fetch failed: {exc}"
+        ) from None
+    if thumbnail is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="no embedded thumbnail"
+        )
+    try:
+        await entity_images.save(
+            session=session,
+            kind=_IMAGE_KIND,
+            entity_id=part_id,
+            content=thumbnail,
+            content_type="image/png",
+        )
+    except entity_images.EntityImageError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+
+
 @router.get("/{part_id}/image")
 async def get_part_image(
     part_id: uuid.UUID,
