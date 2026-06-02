@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MockAdapter from "axios-mock-adapter";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -94,5 +95,46 @@ describe("<PartDetailPage />", () => {
     expect(panel).toBeInTheDocument();
     expect(await screen.findByTestId("cost-total")).toHaveTextContent("6.33");
     expect(screen.getByTestId("cost-per-piece")).toHaveTextContent("6.33");
+  });
+
+  it("grabs the part image from a printer", async () => {
+    mock.onGet(`/api/v1/printers/p1/gcode-files`).reply(200, {
+      items: [{ path: "bracket.gcode", size: 1, modified: 1700000000 }],
+    });
+    mock.onGet(/thumbnail/).reply(404);
+    mock.onGet("/api/v1/printers").reply(200, {
+      items: [
+        {
+          id: "p1",
+          name: "Voron",
+          slug: "voron",
+          printer_type: "other",
+          status: "active",
+          moonraker_url: "http://printer.invalid:7125",
+          moonraker_api_key_set: false,
+          is_archived: false,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+    let imageReq: Record<string, unknown> | null = null;
+    mock.onPost(`/api/v1/parts/${PID}/image/from-printer`).reply((config) => {
+      imageReq = JSON.parse(config.data as string);
+      return [204];
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    expect(await screen.findByText("Bracket")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("part-image-from-printer"));
+    const pick = await screen.findByTestId("browser-pick-bracket.gcode");
+    await user.click(pick);
+
+    await waitFor(() =>
+      expect(imageReq).toMatchObject({ printer_id: "p1", filename: "bracket.gcode" }),
+    );
+    expect(await screen.findByText(/image updated from printer/i)).toBeInTheDocument();
   });
 });

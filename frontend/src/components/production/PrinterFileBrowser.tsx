@@ -38,7 +38,13 @@ export interface PrinterSource {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onPicked: (plate: DiscoveredPlate, source: PrinterSource) => void;
+  /** Recipe-discovery callback: the picked file is parsed (via
+   *  ``discoverEndpoint``) and the resulting recipe + source returned. */
+  onPicked?: (plate: DiscoveredPlate, source: PrinterSource) => void;
+  /** Recipe-less callback: just the picked {printerId, filename}. When
+   *  set, the file is NOT parsed — used to grab a thumbnail only. The
+   *  returned promise's rejection surfaces as an inline error. */
+  onPickSource?: (source: PrinterSource) => Promise<void> | void;
   /** Discover endpoint to POST {printer_id, filename} to. Defaults to jobs. */
   discoverEndpoint?: string;
 }
@@ -61,6 +67,7 @@ export function PrinterFileBrowser({
   open,
   onClose,
   onPicked,
+  onPickSource,
   discoverEndpoint = "/api/v1/jobs/discover-from-printer",
 }: Props) {
   const [printers, setPrinters] = useState<PrinterResponse[]>([]);
@@ -194,11 +201,17 @@ export function PrinterFileBrowser({
     setPicking(path);
     setError(null);
     try {
-      const res = await apiClient.post<DiscoveredPlate>(discoverEndpoint, {
-        printer_id: printerId,
-        filename: path,
-      });
-      onPicked(res.data, { printerId, filename: path });
+      const source = { printerId, filename: path };
+      if (onPickSource) {
+        // Recipe-less mode (e.g. grab a thumbnail) — skip the parse.
+        await onPickSource(source);
+      } else {
+        const res = await apiClient.post<DiscoveredPlate>(discoverEndpoint, {
+          printer_id: printerId,
+          filename: path,
+        });
+        onPicked?.(res.data, source);
+      }
       onClose();
     } catch (err: unknown) {
       const detail =

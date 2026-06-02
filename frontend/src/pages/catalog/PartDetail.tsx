@@ -14,6 +14,10 @@ import { EntityImage } from "@/components/catalog/EntityImage";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
 import { PartOnHandSection } from "@/components/inventory/PartOnHandSection";
 import { LiveCostPanel } from "@/components/production/LiveCostPanel";
+import {
+  PrinterFileBrowser,
+  type PrinterSource,
+} from "@/components/production/PrinterFileBrowser";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency, useCurrency } from "@/lib/currency";
@@ -64,6 +68,7 @@ export function PartDetailPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [imageKey, setImageKey] = useState(0);
   const [imageBusy, setImageBusy] = useState(false);
+  const [printerBrowserOpen, setPrinterBrowserOpen] = useState(false);
 
   // Live cost breakdown from /parts/{id}/cost. ``costKey`` bumps after a
   // recipe save so the panel reflects the new cost.
@@ -215,6 +220,20 @@ export function PartDetailPage() {
     }
   }
 
+  async function attachThumbnailFromPrinter(source: PrinterSource) {
+    // Grab the picked gcode's embedded thumbnail and store it as the part
+    // image. Rejection propagates so the file-browser surfaces it (e.g.
+    // "no embedded thumbnail" on files the slicer didn't embed one in).
+    if (!id) return;
+    setSaveMsg(null);
+    await apiClient.post(`/api/v1/parts/${id}/image/from-printer`, {
+      printer_id: source.printerId,
+      filename: source.filename,
+    });
+    setImageKey((k) => k + 1);
+    setSaveMsg("Image updated from printer.");
+  }
+
   async function onRemoveImage() {
     if (!id) return;
     setImageBusy(true);
@@ -339,7 +358,17 @@ export function PartDetailPage() {
                   className="mt-1 block text-sm"
                 />
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={imageBusy}
+                  onClick={() => setPrinterBrowserOpen(true)}
+                  data-testid="part-image-from-printer"
+                >
+                  Grab from printer
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -532,6 +561,12 @@ export function PartDetailPage() {
       </div>
 
       <LiveCostPanel result={cost} loading={costLoading} error={costError} />
+
+      <PrinterFileBrowser
+        open={printerBrowserOpen}
+        onClose={() => setPrinterBrowserOpen(false)}
+        onPickSource={attachThumbnailFromPrinter}
+      />
     </section>
   );
 }
