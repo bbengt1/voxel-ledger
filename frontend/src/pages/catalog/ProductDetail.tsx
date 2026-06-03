@@ -14,8 +14,13 @@ import { BomTab } from "@/pages/catalog/BomTab";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type ProductResponse = components["schemas"]["ProductResponse"];
+type BuildableResponse = components["schemas"]["BuildableResponse"];
+type BuildResponse = components["schemas"]["BuildResponse"];
 
 const CAN_WRITE_ROLES = ["owner", "production", "sales"] as const;
+// Assembling a product from its parts mutates inventory — owner/production
+// only (matches the builds API role gate).
+const CAN_BUILD_ROLES = ["owner", "production"] as const;
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +29,9 @@ export function ProductDetailPage() {
   const isOwner = role === "owner";
   const canWrite = role
     ? (CAN_WRITE_ROLES as readonly string[]).includes(role)
+    : false;
+  const canBuild = role
+    ? (CAN_BUILD_ROLES as readonly string[]).includes(role)
     : false;
   const currency = useCurrency();
 
@@ -44,6 +52,13 @@ export function ProductDetailPage() {
   const [generatingUpc, setGeneratingUpc] = useState(false);
   const [imageKey, setImageKey] = useState(0);
   const [imageBusy, setImageBusy] = useState(false);
+
+  // "Build from parts" — one-click assembly that consumes parts/supplies
+  // and credits product inventory. `buildable` is the max assemblable now.
+  const [buildable, setBuildable] = useState<number | null>(null);
+  const [buildQty, setBuildQty] = useState("1");
+  const [building, setBuilding] = useState(false);
+  const [buildMsg, setBuildMsg] = useState<string | null>(null);
 
   // Derived material rollup (grams from the product's parts), with names
   // resolved from the materials catalog. Refetched when the BOM changes.
@@ -199,6 +214,62 @@ export function ProductDetailPage() {
     };
   }, [id]);
 
+  function refreshBuildable() {
+    if (!id || !canBuild) return;
+    apiClient
+      .get<BuildableResponse>("/api/v1/builds/buildable", {
+        params: { product_id: id },
+      })
+      .then((res) => setBuildable(res.data.max_buildable))
+      .catch(() => setBuildable(null));
+  }
+
+  function refreshProduct() {
+    if (!id) return;
+    apiClient
+      .get<ProductResponse>(`/api/v1/products/${id}`)
+      .then((res) => setProduct(res.data))
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    refreshBuildable();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, canBuild]);
+
+  async function doBuild() {
+    if (!id) return;
+    const qty = Number.parseInt(buildQty, 10);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setBuildMsg("Quantity must be at least 1.");
+      return;
+    }
+    setBuilding(true);
+    setBuildMsg(null);
+    try {
+      const res = await apiClient.post<BuildResponse>("/api/v1/builds/now", {
+        product_id: id,
+        quantity: qty,
+      });
+      setBuildMsg(
+        `Built ${qty} — parts consumed and product inventory updated (build ${res.data.build_number}).`,
+      );
+      refreshProduct();
+      refreshBuildable();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: unknown } } })
+        .response?.data?.detail;
+      let msg = "Could not build.";
+      if (typeof detail === "string") msg = detail;
+      else if (detail && typeof detail === "object" && "message" in detail) {
+        msg = String((detail as { message: unknown }).message);
+      }
+      setBuildMsg(msg);
+    } finally {
+      setBuilding(false);
+    }
+  }
+
   async function save() {
     if (!id) return;
     setSaving(true);
@@ -297,14 +368,60 @@ export function ProductDetailPage() {
         perLocationOnHand={product.per_location_on_hand ?? null}
         unit="ea"
         lowStockThreshold={product.low_stock_threshold ?? null}
-        onChanged={() => {
-          if (!id) return;
-          apiClient
-            .get<ProductResponse>(`/api/v1/products/${id}`)
-            .then((res) => setProduct(res.data))
-            .catch(() => {});
-        }}
+        onChanged={refreshProduct}
       />
+
+      {canBuild ? (
+        <section
+          className="space-y-3 rounded-lg border border-border p-4"
+          data-testid="build-section"
+        >
+          <h2 className="text-sm font-semibold">Build from parts</h2>
+          <p className="text-sm text-muted-foreground">
+            Assemble this product from its parts &amp; supplies. Building
+            consumes part inventory and adds finished product to stock.
+          </p>
+          <p className="text-sm" data-testid="buildable-count">
+            {buildable === null
+              ? "Checking availability…"
+              : buildable > 0
+                ? `Can build ${buildable} from current parts inventory.`
+                : "Not enough parts in stock to build this product."}
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block text-sm">
+              Quantity
+              <Input
+                className="mt-1 w-24"
+                type="number"
+                min={1}
+                max={buildable ?? undefined}
+                value={buildQty}
+                onChange={(e) => setBuildQty(e.target.value)}
+                data-testid="build-qty-input"
+              />
+            </label>
+            <Button
+              type="button"
+              onClick={() => void doBuild()}
+              disabled={
+                building ||
+                buildable === null ||
+                buildable <= 0 ||
+                Number.parseInt(buildQty, 10) > buildable
+              }
+              data-testid="build-now-btn"
+            >
+              {building ? "Building…" : "Build now"}
+            </Button>
+          </div>
+          {buildMsg ? (
+            <p role="status" data-testid="build-msg" className="text-sm">
+              {buildMsg}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section
         className="space-y-2 rounded-lg border border-border p-4"
@@ -485,11 +602,10 @@ export function ProductDetailPage() {
             if (!id) return;
             // The BOM rollup recomputes server-side; re-fetch so the
             // header's rolled-up Cost (and material rollup) reflect the
-            // change without a reload.
-            apiClient
-              .get<ProductResponse>(`/api/v1/products/${id}`)
-              .then((res) => setProduct(res.data))
-              .catch(() => {});
+            // change without a reload. A changed BOM also changes what can
+            // be built, so refresh that too.
+            refreshProduct();
+            refreshBuildable();
             setMaterialsKey((k) => k + 1);
           }}
         />

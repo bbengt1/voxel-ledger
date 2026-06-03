@@ -20,8 +20,10 @@ from app.core.db import get_session
 from app.models.auth import User
 from app.models.build import Build
 from app.schemas.builds import (
+    BuildableResponse,
     BuildCreate,
     BuildListResponse,
+    BuildNowRequest,
     BuildPlanLine,
     BuildPlanResponse,
     BuildPreviewRequest,
@@ -175,6 +177,51 @@ async def preview_build(
     except Exception as exc:
         raise _map_builds_error(exc) from None
     return _plan_to_response(plan)
+
+
+@router.get("/buildable", response_model=BuildableResponse)
+async def buildable(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _actor: Annotated[User, Depends(require_role("owner", "production", "sales"))],
+    product_id: Annotated[uuid.UUID, Query()],
+) -> BuildableResponse:
+    """Max units of a product assemblable right now from on-hand parts +
+    supplies at the resolved consumption location. Drives the product
+    page's "can build N" hint. Read-only."""
+    try:
+        product = await builds_service._load_product_active(session, product_id)
+        location_id = await _resolve_location_or_none(session)
+        count = await builds_service.max_buildable(
+            session, product=product, location_id=location_id
+        )
+    except Exception as exc:
+        raise _map_builds_error(exc) from None
+    return BuildableResponse(product_id=product_id, location_id=location_id, max_buildable=count)
+
+
+@router.post("/now", response_model=BuildResponse)
+async def build_now(
+    payload: BuildNowRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    actor: Annotated[User, Depends(require_role("owner", "production"))],
+) -> BuildResponse:
+    """One-shot build from the product page: create a build and complete it
+    in a single call, consuming parts/supplies and crediting the product.
+    Hard-fails with 409 (no writes) if any component is short."""
+    try:
+        build = await builds_service.build_now(
+            session,
+            product_id=payload.product_id,
+            quantity=payload.quantity,
+            actor_user_id=actor.id,
+        )
+        build_id = build.id
+    except Exception as exc:
+        await session.rollback()
+        raise _map_builds_error(exc) from None
+    await session.commit()
+    build = await builds_service.get(session, build_id)
+    return _build_to_response(build)
 
 
 @router.get("/{build_id}", response_model=BuildResponse)

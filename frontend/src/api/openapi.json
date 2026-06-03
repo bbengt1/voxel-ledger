@@ -4895,6 +4895,27 @@
         "title": "BuildListResponse",
         "type": "object"
       },
+      "BuildNowRequest": {
+        "description": "One-shot build from the product page: create + complete in one call,\nconsuming parts/supplies and crediting the product immediately.",
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          },
+          "quantity": {
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "quantity"
+        ],
+        "title": "BuildNowRequest",
+        "type": "object"
+      },
       "BuildPlanLine": {
         "description": "One required part/supply for a build, with availability.",
         "properties": {
@@ -5250,6 +5271,38 @@
           }
         },
         "title": "BuildUpdate",
+        "type": "object"
+      },
+      "BuildableResponse": {
+        "description": "How many whole units of a product can be assembled right now from\non-hand parts + supplies at the resolved consumption location.",
+        "properties": {
+          "location_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Id"
+          },
+          "max_buildable": {
+            "title": "Max Buildable",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "title": "Product Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "max_buildable"
+        ],
+        "title": "BuildableResponse",
         "type": "object"
       },
       "BulkSettingUpdateRequest": {
@@ -30189,6 +30242,102 @@
           }
         ],
         "summary": "Create Build",
+        "tags": [
+          "builds"
+        ]
+      }
+    },
+    "/api/v1/builds/buildable": {
+      "get": {
+        "description": "Max units of a product assemblable right now from on-hand parts +\nsupplies at the resolved consumption location. Drives the product\npage's \"can build N\" hint. Read-only.",
+        "operationId": "buildable_api_v1_builds_buildable_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Product Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildableResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Buildable",
+        "tags": [
+          "builds"
+        ]
+      }
+    },
+    "/api/v1/builds/now": {
+      "post": {
+        "description": "One-shot build from the product page: create a build and complete it\nin a single call, consuming parts/supplies and crediting the product.\nHard-fails with 409 (no writes) if any component is short.",
+        "operationId": "build_now_api_v1_builds_now_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildNowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Build Now",
         "tags": [
           "builds"
         ]

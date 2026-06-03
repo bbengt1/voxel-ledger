@@ -1322,6 +1322,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/builds/buildable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buildable
+         * @description Max units of a product assemblable right now from on-hand parts +
+         *     supplies at the resolved consumption location. Drives the product
+         *     page's "can build N" hint. Read-only.
+         */
+        get: operations["buildable_api_v1_builds_buildable_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/builds/now": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Build Now
+         * @description One-shot build from the product page: create a build and complete it
+         *     in a single call, consuming parts/supplies and crediting the product.
+         *     Hard-fails with 409 (no writes) if any component is short.
+         */
+        post: operations["build_now_api_v1_builds_now_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/builds/preview": {
         parameters: {
             query?: never;
@@ -8014,6 +8058,20 @@ export interface components {
             next_cursor?: string | null;
         };
         /**
+         * BuildNowRequest
+         * @description One-shot build from the product page: create + complete in one call,
+         *     consuming parts/supplies and crediting the product immediately.
+         */
+        BuildNowRequest: {
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /**
          * BuildPlanLine
          * @description One required part/supply for a build, with availability.
          */
@@ -8145,6 +8203,22 @@ export interface components {
             notes?: string | null;
             /** Quantity */
             quantity?: number | null;
+        };
+        /**
+         * BuildableResponse
+         * @description How many whole units of a product can be assembled right now from
+         *     on-hand parts + supplies at the resolved consumption location.
+         */
+        BuildableResponse: {
+            /** Location Id */
+            location_id?: string | null;
+            /** Max Buildable */
+            max_buildable: number;
+            /**
+             * Product Id
+             * Format: uuid
+             */
+            product_id: string;
         };
         /**
          * BulkSettingUpdateRequest
@@ -18017,6 +18091,70 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    buildable_api_v1_builds_buildable_get: {
+        parameters: {
+            query: {
+                product_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildableResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    build_now_api_v1_builds_now_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildNowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

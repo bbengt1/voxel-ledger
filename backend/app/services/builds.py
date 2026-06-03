@@ -211,6 +211,61 @@ class BuildPage:
     next_cursor: str | None
 
 
+async def _assembly_bom_rows(session: AsyncSession, product_id: uuid.UUID) -> list[ProductBomItem]:
+    """The product's assembly BOM lines — ``part`` + ``supply`` only,
+    ordered deterministically. Legacy ``material`` / sub-``product`` rows
+    are excluded (they don't participate in builds)."""
+    return list(
+        (
+            await session.execute(
+                select(ProductBomItem)
+                .where(ProductBomItem.parent_product_id == product_id)
+                .where(
+                    ProductBomItem.component_kind.in_((COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY))
+                )
+                .order_by(ProductBomItem.created_at, ProductBomItem.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+async def max_buildable(
+    session: AsyncSession,
+    *,
+    product: Product,
+    location_id: uuid.UUID | None,
+) -> int:
+    """How many whole units of ``product`` can be assembled right now from
+    on-hand parts + supplies at ``location_id``.
+
+    The limiting line wins: ``min`` over each BOM line of
+    ``floor(on_hand / quantity_per_product)``. Returns 0 when there's no
+    resolved location, no assembly BOM, or any required line is out of
+    stock. Zero-quantity lines (degenerate) don't constrain the result.
+    """
+    if location_id is None:
+        return 0
+    rows = await _assembly_bom_rows(session, product.id)
+    if not rows:
+        return 0
+    cap: int | None = None
+    for row in rows:
+        per_product = Decimal(str(row.quantity))
+        if per_product <= 0:
+            continue
+        on_hand = await _on_hand_at(
+            session,
+            entity_kind=row.component_kind,
+            entity_id=row.component_id,
+            location_id=location_id,
+        )
+        line_cap = int(on_hand // per_product)
+        cap = line_cap if cap is None else min(cap, line_cap)
+    return cap if cap is not None else 0
+
+
 async def compute_plan(
     session: AsyncSession,
     *,
@@ -225,20 +280,7 @@ async def compute_plan(
     (no consumption location resolved) — lines report 0 on-hand and the
     plan is not buildable.
     """
-    rows = list(
-        (
-            await session.execute(
-                select(ProductBomItem)
-                .where(ProductBomItem.parent_product_id == product.id)
-                .where(
-                    ProductBomItem.component_kind.in_((COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY))
-                )
-                .order_by(ProductBomItem.created_at, ProductBomItem.id)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    rows = await _assembly_bom_rows(session, product.id)
 
     qty = Decimal(quantity)
     lines: list[_PlanLine] = []
@@ -584,6 +626,30 @@ async def complete(
     return build
 
 
+async def build_now(
+    session: AsyncSession,
+    *,
+    product_id: uuid.UUID,
+    quantity: int,
+    actor_user_id: uuid.UUID,
+) -> Build:
+    """One-shot build: create a draft and immediately complete it.
+
+    Convenience for the product-page "Build now" action — consumes parts +
+    supplies and credits the product in a single call. Inherits
+    ``complete``'s hard-fail on short stock (nothing is persisted by the
+    caller's transaction in that case), and ``create``'s default labor
+    (product.assembly_minutes x quantity).
+    """
+    build = await create(
+        session,
+        product_id=product_id,
+        quantity=quantity,
+        actor_user_id=actor_user_id,
+    )
+    return await complete(session, build_id=build.id, actor_user_id=actor_user_id)
+
+
 async def cancel(
     session: AsyncSession,
     *,
@@ -651,11 +717,13 @@ __all__ = [
     "InvalidBuildStateError",
     "InvalidCursorError",
     "ProductLookupError",
+    "build_now",
     "cancel",
     "compute_plan",
     "create",
     "complete",
     "get",
     "list_builds",
+    "max_buildable",
     "update",
 ]

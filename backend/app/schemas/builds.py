@@ -93,3 +93,20 @@ class BuildPreviewRequest(BaseModel):
     product_id: uuid.UUID
     quantity: int = Field(gt=0)
     assembly_minutes: int | None = Field(default=None, ge=0)
+
+
+class BuildNowRequest(BaseModel):
+    """One-shot build from the product page: create + complete in one call,
+    consuming parts/supplies and crediting the product immediately."""
+
+    product_id: uuid.UUID
+    quantity: int = Field(gt=0)
+
+
+class BuildableResponse(BaseModel):
+    """How many whole units of a product can be assembled right now from
+    on-hand parts + supplies at the resolved consumption location."""
+
+    product_id: uuid.UUID
+    location_id: uuid.UUID | None = None
+    max_buildable: int

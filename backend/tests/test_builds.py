@@ -455,3 +455,151 @@ async def test_build_requires_existing_product(
         json={"product_id": str(uuid.uuid4()), "quantity": 1},
     )
     assert r.status_code == 400, r.text
+
+
+@pytest.mark.asyncio
+async def test_buildable_reports_limiting_count(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    owner = await _token(Role.OWNER, client, app_session)
+    product_id, part_id, supply_id = await _assembly_product(app_session)
+    # BOM: 1 part + 2 supplies per product. With 5 parts and 6 supplies,
+    # supplies are the limiting line: floor(6 / 2) = 3.
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("5"),
+    )
+    await _seed_stock(
+        app_session,
+        entity_kind="supply",
+        entity_id=supply_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("6"),
+    )
+
+    r = await client.get(
+        "/api/v1/builds/buildable",
+        headers=_h(owner),
+        params={"product_id": str(product_id)},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["max_buildable"] == 3
+    assert body["product_id"] == str(product_id)
+    assert body["location_id"] == str(workshop_location.id)
+
+
+@pytest.mark.asyncio
+async def test_buildable_is_zero_when_a_component_is_out(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    owner = await _token(Role.OWNER, client, app_session)
+    product_id, part_id, _supply_id = await _assembly_product(app_session)
+    # Parts on hand but no supplies → can't build any.
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("10"),
+    )
+    r = await client.get(
+        "/api/v1/builds/buildable",
+        headers=_h(owner),
+        params={"product_id": str(product_id)},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["max_buildable"] == 0
+
+
+@pytest.mark.asyncio
+async def test_build_now_consumes_and_credits_in_one_call(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    owner = await _token(Role.OWNER, client, app_session)
+    product_id, part_id, supply_id = await _assembly_product(app_session)
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("5"),
+    )
+    await _seed_stock(
+        app_session,
+        entity_kind="supply",
+        entity_id=supply_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("20"),
+    )
+
+    r = await client.post(
+        "/api/v1/builds/now",
+        headers=_h(owner),
+        json={"product_id": str(product_id), "quantity": 2},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["state"] == "completed"
+
+    # One call: product +2, part 5-2=3, supply 20-4=16.
+    assert await _on_hand(app_session, "product", product_id) == Decimal("2")
+    assert await _on_hand(app_session, "part", part_id) == Decimal("3")
+    assert await _on_hand(app_session, "supply", supply_id) == Decimal("16")
+
+
+@pytest.mark.asyncio
+async def test_build_now_short_stock_makes_no_motion(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    owner = await _token(Role.OWNER, client, app_session)
+    product_id, part_id, supply_id = await _assembly_product(app_session)
+    # 1 part only; a build of 2 needs 2 parts → 409, nothing persists.
+    await _seed_stock(
+        app_session,
+        entity_kind="part",
+        entity_id=part_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("1"),
+    )
+    await _seed_stock(
+        app_session,
+        entity_kind="supply",
+        entity_id=supply_id,
+        location_id=workshop_location.id,
+        quantity=Decimal("100"),
+    )
+
+    r = await client.post(
+        "/api/v1/builds/now",
+        headers=_h(owner),
+        json={"product_id": str(product_id), "quantity": 2},
+    )
+    assert r.status_code == 409, r.text
+
+    assert await _on_hand(app_session, "part", part_id) == Decimal("1")
+    assert await _on_hand(app_session, "supply", supply_id) == Decimal("100")
+    assert await _on_hand(app_session, "product", product_id) == Decimal("0")
+    # No draft left dangling either.
+    listing = await client.get(
+        "/api/v1/builds",
+        headers=_h(owner),
+        params={"product_id": str(product_id)},
+    )
+    assert listing.json()["items"] == []
+
+
+@pytest.mark.asyncio
+async def test_build_now_forbidden_for_sales(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    sales = await _token(Role.SALES, client, app_session)
+    product_id, _part_id, _supply_id = await _assembly_product(app_session)
+    r = await client.post(
+        "/api/v1/builds/now",
+        headers=_h(sales),
+        json={"product_id": str(product_id), "quantity": 1},
+    )
+    assert r.status_code == 403, r.text
