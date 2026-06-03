@@ -86,7 +86,12 @@ jobs:
         run: ruff format --check .
 
       - name: pytest
-        run: pytest backend/tests -q
+        # Parallelize with pytest-xdist. `--dist loadscope` groups tests by
+        # module so each worker owns whole modules — keeps module-scoped
+        # fixtures and the per-test testcontainers Postgres well-behaved.
+        # The serial suite was bumping the 60-min job timeout; this keeps it
+        # comfortably under.
+        run: pytest backend/tests -q -n auto --dist loadscope
 
   frontend:
     name: Frontend (lint, type-check, test, build)
