@@ -56,6 +56,9 @@ class PartResponse(BaseModel):
     # caller builds a response straight from the ORM row; the parts list +
     # detail endpoints fill it in.
     total_on_hand: Decimal = Decimal("0")
+    # Per-location on-hand breakdown ({location_id: qty}). Populated by the
+    # detail endpoint; empty on list/ORM-built responses.
+    per_location_on_hand: dict[uuid.UUID, Decimal] = Field(default_factory=dict)
     is_archived: bool
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime

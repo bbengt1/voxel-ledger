@@ -22,7 +22,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 type InventoryLocationResponse =
   components["schemas"]["InventoryLocationResponse"];
 
-export type OnHandEntityKind = "material" | "supply" | "product";
+export type OnHandEntityKind = "material" | "supply" | "product" | "part";
 
 interface Props {
   entityKind: OnHandEntityKind;
@@ -46,6 +46,7 @@ function thresholdFieldFor(kind: OnHandEntityKind): string {
 function patchPathFor(kind: OnHandEntityKind, id: string): string {
   if (kind === "material") return `/api/v1/materials/${id}`;
   if (kind === "supply") return `/api/v1/supplies/${id}`;
+  if (kind === "part") return `/api/v1/parts/${id}`;
   return `/api/v1/products/${id}`;
 }
 
@@ -62,6 +63,11 @@ export function OnHandSection({
   const role = useAuthStore((s) => s.user?.role);
   const canWrite = !!role && WRITE_ROLES.has(role);
   const canTransfer = canWrite && entityKind !== "supply";
+  // Parts are produced by jobs / consumed by builds — receipts and a
+  // low-stock threshold don't apply, but manual adjustment, reconciliation,
+  // and transfer do.
+  const supportsReceipt = entityKind !== "part";
+  const supportsThreshold = entityKind !== "part";
 
   const [locations, setLocations] = useState<InventoryLocationResponse[]>([]);
   const [recordOpen, setRecordOpen] = useState(false);
@@ -102,7 +108,7 @@ export function OnHandSection({
     return m;
   }, [locations]);
 
-  const isWholeUnit = entityKind === "supply";
+  const isWholeUnit = entityKind === "supply" || entityKind === "part";
 
   function formatQty(qty: string | number): string {
     if (isWholeUnit) return String(Math.trunc(Number(qty)));
@@ -163,13 +169,15 @@ export function OnHandSection({
         <div className="flex flex-wrap gap-2">
           {canWrite ? (
             <>
-              <Button
-                size="sm"
-                onClick={() => openRecord("receipt")}
-                data-testid="onhand-record-receipt"
-              >
-                Record receipt
-              </Button>
+              {supportsReceipt ? (
+                <Button
+                  size="sm"
+                  onClick={() => openRecord("receipt")}
+                  data-testid="onhand-record-receipt"
+                >
+                  Record receipt
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="outline"
@@ -239,6 +247,7 @@ export function OnHandSection({
         </p>
       )}
 
+      {supportsThreshold ? (
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted-foreground">Low-stock threshold:</span>
         {editingThreshold ? (
@@ -302,6 +311,7 @@ export function OnHandSection({
           </>
         )}
       </div>
+      ) : null}
 
       <RecordTransactionModal
         open={recordOpen}

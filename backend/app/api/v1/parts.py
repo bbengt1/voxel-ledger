@@ -203,10 +203,13 @@ async def get_part(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="part not found"
         ) from None
-    total_on_hand = await alerts_service.total_on_hand_for_entity(
+    per_location = await alerts_service.on_hand_for_entity(
         session=session, entity_kind="part", entity_id=part.id
     )
-    return PartResponse.model_validate(part).model_copy(update={"total_on_hand": total_on_hand})
+    total_on_hand = sum(per_location.values(), Decimal("0"))
+    return PartResponse.model_validate(part).model_copy(
+        update={"total_on_hand": total_on_hand, "per_location_on_hand": per_location}
+    )
 
 
 @router.get("/{part_id}/cost", response_model=CalcResultResponse)

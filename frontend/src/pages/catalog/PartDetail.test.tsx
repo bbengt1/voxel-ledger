@@ -31,6 +31,8 @@ function aPart(overrides: Record<string, unknown> = {}) {
     print_grams_by_material: {},
     assigned_printer_ids: [],
     unit_cost_cached: "6.33",
+    total_on_hand: "0",
+    per_location_on_hand: {},
     is_archived: false,
     custom_fields: {},
     created_at: "2026-01-01T00:00:00Z",
@@ -82,6 +84,10 @@ describe("<PartDetailPage />", () => {
     mock.onGet(`/api/v1/parts/${PID}`).reply(200, aPart());
     mock.onGet("/api/v1/materials").reply(200, { items: [] });
     mock.onGet("/api/v1/printers").reply(200, { items: [] });
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [],
+      next_cursor: null,
+    });
   });
 
   afterEach(() => {
@@ -95,6 +101,18 @@ describe("<PartDetailPage />", () => {
     expect(panel).toBeInTheDocument();
     expect(await screen.findByTestId("cost-total")).toHaveTextContent("6.33");
     expect(screen.getByTestId("cost-per-piece")).toHaveTextContent("6.33");
+  });
+
+  it("offers adjustment, reconcile, and transfer on the on-hand section (no receipt)", async () => {
+    renderPage();
+    expect(await screen.findByText("Bracket")).toBeInTheDocument();
+    expect(await screen.findByTestId("on-hand-section")).toBeInTheDocument();
+    expect(screen.getByTestId("onhand-record-adjustment")).toBeInTheDocument();
+    expect(screen.getByTestId("onhand-reconcile")).toBeInTheDocument();
+    expect(screen.getByTestId("onhand-transfer")).toBeInTheDocument();
+    // Parts don't take receipts or a low-stock threshold.
+    expect(screen.queryByTestId("onhand-record-receipt")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("threshold-value")).not.toBeInTheDocument();
   });
 
   it("grabs the part image from a printer", async () => {
