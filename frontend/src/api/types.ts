@@ -11489,6 +11489,11 @@ export interface components {
             setup_minutes: number;
             /** Sku */
             sku: string;
+            /**
+             * Total On Hand
+             * @default 0
+             */
+            total_on_hand: string;
             /** Unit Cost Cached */
             unit_cost_cached?: string | null;
             /**

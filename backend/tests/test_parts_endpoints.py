@@ -175,6 +175,45 @@ async def test_get_unknown_404(client: AsyncClient, app_session: AsyncSession) -
     assert r.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_list_and_get_report_total_on_hand(
+    client: AsyncClient, app_session: AsyncSession, workshop_location
+) -> None:
+    from decimal import Decimal
+
+    from app.services import inventory_transactions as inventory_tx_service
+
+    owner = await _token(Role.OWNER, client, app_session)
+    stocked = (
+        await client.post("/api/v1/parts", headers=_h(owner), json={"name": "Stocked gear"})
+    ).json()
+    empty = (
+        await client.post("/api/v1/parts", headers=_h(owner), json={"name": "Empty gear"})
+    ).json()
+
+    # Seed 7 on hand for the stocked part.
+    await inventory_tx_service.record(
+        app_session,
+        kind="production_in",
+        entity_kind="part",
+        entity_id=uuid.UUID(stocked["id"]),
+        location_id=workshop_location.id,
+        quantity=Decimal("7"),
+        actor_user_id=None,
+        reason="test seed",
+    )
+    await app_session.commit()
+
+    listing = await client.get("/api/v1/parts", headers=_h(owner))
+    by_id = {p["id"]: p for p in listing.json()["items"]}
+    assert Decimal(by_id[stocked["id"]]["total_on_hand"]) == Decimal("7")
+    # A part with no inventory rows still reports 0 (not missing/null).
+    assert Decimal(by_id[empty["id"]]["total_on_hand"]) == Decimal("0")
+
+    one = await client.get(f"/api/v1/parts/{stocked['id']}", headers=_h(owner))
+    assert Decimal(one.json()["total_on_hand"]) == Decimal("7")
+
+
 # ---------------------------------------------------------------------------
 # gcode discovery → pre-fill the part recipe (carried over from job entry)
 # ---------------------------------------------------------------------------

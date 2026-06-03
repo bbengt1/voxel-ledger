@@ -28,6 +28,7 @@ const PART_COLUMNS: ColumnDef[] = [
   { id: "name", label: "Name" },
   { id: "print_minutes", label: "Print min" },
   { id: "parts_per_run", label: "Parts/run" },
+  { id: "on_hand", label: "On hand" },
   { id: "cost", label: "Cost" },
   { id: "status", label: "Status" },
 ];
@@ -119,6 +120,18 @@ export function PartsListPage() {
       align: "right",
       cellClassName: "tabular-nums",
       cell: (p) => p.parts_per_run,
+    },
+    {
+      id: "on_hand",
+      key: "on_hand",
+      header: "On hand",
+      align: "right",
+      cellClassName: "tabular-nums",
+      cell: (p) => (
+        <span data-testid={`part-onhand-${p.id}`}>
+          {Number(p.total_on_hand ?? 0).toLocaleString()}
+        </span>
+      ),
     },
     {
       id: "cost",

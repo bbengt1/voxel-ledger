@@ -28,6 +28,7 @@ function aPart(overrides: Record<string, unknown> = {}) {
     print_grams_by_material: {},
     assigned_printer_ids: [],
     unit_cost_cached: null,
+    total_on_hand: "0",
     is_archived: false,
     custom_fields: {},
     created_at: "2026-01-01T00:00:00Z",
@@ -78,6 +79,18 @@ describe("<PartsListPage />", () => {
       "href",
       "/catalog/parts/new",
     );
+  });
+
+  it("shows each part's on-hand quantity", async () => {
+    mock.onGet("/api/v1/parts").reply(200, {
+      items: [aPart({ total_on_hand: "12" })],
+      next_cursor: null,
+    });
+    renderPage();
+    await screen.findAllByText("Bracket");
+    expect(
+      screen.getAllByTestId("part-onhand-22222222-2222-2222-2222-222222222222")[0],
+    ).toHaveTextContent("12");
   });
 
   it("shows the empty state when no parts match", async () => {

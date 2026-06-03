@@ -158,9 +158,37 @@ async def total_on_hand_for_entity(
     return sum(per_loc.values(), start=Decimal("0"))
 
 
+async def total_on_hand_for_entities(
+    *,
+    session: AsyncSession,
+    entity_kind: str,
+    entity_ids: list[uuid.UUID],
+) -> dict[uuid.UUID, Decimal]:
+    """Bulk total-on-hand (summed across locations) for many entities of one
+    kind, in a single query. Every requested id is present in the result —
+    entities with no inventory rows map to ``Decimal("0")``. Use this for
+    list views to avoid an N+1 of :func:`total_on_hand_for_entity`."""
+    out: dict[uuid.UUID, Decimal] = {eid: Decimal("0") for eid in entity_ids}
+    if not entity_ids:
+        return out
+    stmt = (
+        select(
+            InventoryOnHand.entity_id,
+            func.coalesce(func.sum(InventoryOnHand.on_hand), 0),
+        )
+        .where(InventoryOnHand.entity_kind == entity_kind)
+        .where(InventoryOnHand.entity_id.in_(entity_ids))
+        .group_by(InventoryOnHand.entity_id)
+    )
+    for entity_id, total in (await session.execute(stmt)).all():
+        out[entity_id] = Decimal(str(total))
+    return out
+
+
 __all__ = [
     "LowStockAlertRow",
     "list_low_stock",
     "on_hand_for_entity",
+    "total_on_hand_for_entities",
     "total_on_hand_for_entity",
 ]

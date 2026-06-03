@@ -52,6 +52,10 @@ class PartResponse(BaseModel):
     assigned_printer_ids: list[str] = Field(default_factory=list)
     # Populated by the Phase 2 cost rollup; null until then.
     unit_cost_cached: Decimal | None = None
+    # Total on-hand summed across all locations. Defaults to 0 when the
+    # caller builds a response straight from the ORM row; the parts list +
+    # detail endpoints fill it in.
+    total_on_hand: Decimal = Decimal("0")
     is_archived: bool
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import uuid
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -30,6 +31,7 @@ from app.schemas.parts import (
 )
 from app.schemas.production_orders import DiscoveredPlateResponse
 from app.services import entity_images
+from app.services import inventory_alerts as alerts_service
 from app.services import job_discovery as discovery_service
 from app.services import parts as parts_service
 from app.services import printers as printers_service
@@ -173,8 +175,18 @@ async def list_parts(
         )
     except parts_service.PartsServiceError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
+    totals = await alerts_service.total_on_hand_for_entities(
+        session=session,
+        entity_kind="part",
+        entity_ids=[p.id for p in page.items],
+    )
     return PartListResponse(
-        items=[PartResponse.model_validate(p) for p in page.items],
+        items=[
+            PartResponse.model_validate(p).model_copy(
+                update={"total_on_hand": totals.get(p.id, Decimal("0"))}
+            )
+            for p in page.items
+        ],
         next_cursor=page.next_cursor,
     )
 
@@ -191,7 +203,10 @@ async def get_part(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="part not found"
         ) from None
-    return PartResponse.model_validate(part)
+    total_on_hand = await alerts_service.total_on_hand_for_entity(
+        session=session, entity_kind="part", entity_id=part.id
+    )
+    return PartResponse.model_validate(part).model_copy(update={"total_on_hand": total_on_hand})
 
 
 @router.get("/{part_id}/cost", response_model=CalcResultResponse)
