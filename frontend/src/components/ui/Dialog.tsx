@@ -28,19 +28,34 @@ export const DialogOverlay = forwardRef<
   );
 });
 
+type DialogContentProps = ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  /**
+   * On phones, render as a full-height bottom-anchored sheet (scrollable) for
+   * long forms instead of a centered box. From `sm:` it's the normal centered
+   * dialog. Defaults to `false`.
+   */
+  sheet?: boolean;
+};
+
 export const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(function DialogContent({ className, children, ...props }, ref) {
+  DialogContentProps
+>(function DialogContent({ className, children, sheet = false, ...props }, ref) {
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
+          // Centered, with a guaranteed inset so it never touches screen edges
+          // on phones (`w-[calc(100vw-2rem)]` caps at `max-w-lg`).
+          "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2",
+          "max-h-[calc(100dvh-2rem)] overflow-y-auto",
           "rounded-lg border border-border bg-background p-6 shadow-lg",
           "focus:outline-none",
+          // Mobile sheet: full-width, bottom-anchored, tall + scrollable.
+          sheet &&
+            "bottom-0 top-auto left-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none rounded-t-lg max-h-[90dvh] sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg",
           className,
         )}
         {...props}
