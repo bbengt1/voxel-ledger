@@ -240,7 +240,8 @@ export function SaleDetailPage() {
 
       <div className="rounded-lg border border-border p-4">
         <h2 className="text-sm font-semibold">Lines</h2>
-        <table className="mt-2 w-full table-fixed border-collapse text-sm">
+        <div className="overflow-x-auto">
+        <table className="mt-2 w-full min-w-[480px] table-fixed border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
               <th className="py-2 pr-2">#</th>
@@ -272,9 +273,10 @@ export function SaleDetailPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-border p-4 text-sm">
           <h2 className="font-semibold">Totals</h2>
           <dl className="mt-2 grid grid-cols-2 gap-y-1">

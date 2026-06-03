@@ -614,8 +614,8 @@ export function PosScreenPage() {
             </div>
           )}
 
-          <div className="rounded border border-border">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded border border-border">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="p-2">#</th>
@@ -774,7 +774,7 @@ export function PosScreenPage() {
           }
         }}
       >
-        <DialogContent data-testid="checkout-modal">
+        <DialogContent sheet data-testid="checkout-modal">
           <DialogTitle>Checkout</DialogTitle>
           <DialogDescription>
             Enter the tendered amount and charge the cart.

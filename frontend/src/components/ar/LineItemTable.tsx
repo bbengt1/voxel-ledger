@@ -199,30 +199,37 @@ export function LineItemTable({ lines, setLines, lineExtended }: Props) {
             onChange={(e) => updateLine(idx, { description: e.target.value })}
             data-testid={`line-${idx}-description`}
           />
-          <div className="grid grid-cols-3 gap-2">
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              value={line.quantity}
-              onChange={(e) => updateLine(idx, { quantity: e.target.value })}
-              placeholder="Qty"
-              data-testid={`line-${idx}-quantity`}
-            />
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              value={line.unitPrice}
-              onChange={(e) => updateLine(idx, { unitPrice: e.target.value })}
-              placeholder="Unit price"
-              data-testid={`line-${idx}-unit-price`}
-            />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <label className="block text-xs text-muted-foreground sm:sr-only">
+              Qty
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={line.quantity}
+                onChange={(e) => updateLine(idx, { quantity: e.target.value })}
+                placeholder="Qty"
+                data-testid={`line-${idx}-quantity`}
+              />
+            </label>
+            <label className="block text-xs text-muted-foreground sm:sr-only">
+              Unit price
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={line.unitPrice}
+                onChange={(e) => updateLine(idx, { unitPrice: e.target.value })}
+                placeholder="Unit price"
+                data-testid={`line-${idx}-unit-price`}
+              />
+            </label>
             <div
-              className="flex items-center justify-end pr-2 font-mono text-sm text-muted-foreground"
+              className="flex items-center justify-between pr-2 font-mono text-sm text-muted-foreground sm:justify-end"
               data-testid={`line-${idx}-extended`}
             >
-              ${(lineExtended[idx] ?? 0).toFixed(2)}
+              <span className="text-xs sm:hidden">Extended</span>
+              <span>${(lineExtended[idx] ?? 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

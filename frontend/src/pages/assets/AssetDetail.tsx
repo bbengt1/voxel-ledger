@@ -164,7 +164,8 @@ export function AssetDetailPage() {
       </div>
 
       {tab === "schedule" ? (
-        <table className="w-full table-fixed border-collapse text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] table-fixed border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
               <th className="py-2 pr-2">#</th>
@@ -200,6 +201,7 @@ export function AssetDetailPage() {
             )}
           </tbody>
         </table>
+        </div>
       ) : null}
 
       {tab === "disposal" && !isDisposed ? (

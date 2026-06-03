@@ -313,7 +313,8 @@ export function MaterialDetailPage() {
       <section className="space-y-2 border-t border-border pt-4">
         <h2 className="text-sm font-semibold">Recent receipts</h2>
         {material.recent_receipts && material.recent_receipts.length > 0 ? (
-          <table className="w-full table-fixed border-collapse text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] table-fixed border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2 pr-2">Received</th>
@@ -337,6 +338,7 @@ export function MaterialDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">No receipts yet.</p>
         )}

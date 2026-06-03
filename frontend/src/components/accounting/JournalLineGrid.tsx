@@ -119,7 +119,8 @@ export function JournalLineGrid({ lines, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-2" data-testid="line-grid">
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[48rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2 w-[34%]">Account</th>
@@ -207,6 +208,7 @@ export function JournalLineGrid({ lines, onChange }: Props) {
           ))}
         </tbody>
       </table>
+      </div>
       <div className="flex items-center justify-between">
         <Button
           size="sm"

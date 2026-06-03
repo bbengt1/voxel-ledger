@@ -309,8 +309,9 @@ function StartingBalancesInner() {
         </form>
       ) : (
         <div className="space-y-3">
+          <div className="overflow-x-auto">
           <table
-            className="w-full border-collapse text-sm"
+            className="w-full min-w-[44rem] border-collapse text-sm"
             data-testid="bulk-table"
           >
             <thead>
@@ -413,6 +414,7 @@ function StartingBalancesInner() {
               ))}
             </tbody>
           </table>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" onClick={addRow} disabled={bulkRunning}>
               Add row

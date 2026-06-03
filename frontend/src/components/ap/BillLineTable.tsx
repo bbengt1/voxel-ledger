@@ -127,7 +127,7 @@ export function BillLineTable({
             onChange={(e) => updateLine(idx, { description: e.target.value })}
             data-testid={`line-${idx}-description`}
           />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Input
               type="number"
               min={0}
@@ -162,7 +162,7 @@ export function BillLineTable({
               </div>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {!hideExtended ? (
               <Input
                 value={line.vendorSku}

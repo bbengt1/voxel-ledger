@@ -171,7 +171,8 @@ export function JournalEntryDetailPage() {
         </div>
       </div>
 
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Account</th>
@@ -212,9 +213,10 @@ export function JournalEntryDetailPage() {
           </tr>
         </tfoot>
       </table>
+      </div>
 
       <Dialog open={confirm} onOpenChange={setConfirm}>
-        <DialogContent data-testid="reverse-dialog">
+        <DialogContent sheet data-testid="reverse-dialog">
           <DialogTitle>Reverse entry?</DialogTitle>
           <p className="mt-2 text-sm text-muted-foreground">
             Posts a counter-entry with mirrored debits and credits on the date
@@ -242,7 +244,8 @@ export function JournalEntryDetailPage() {
             >
               Preview reversal lines ({entry.lines.length})
             </summary>
-            <table className="mt-2 w-full text-xs">
+            <div className="overflow-x-auto">
+            <table className="mt-2 w-full min-w-[20rem] text-xs">
               <thead className="text-muted-foreground">
                 <tr>
                   <th className="text-left">Account</th>
@@ -267,6 +270,7 @@ export function JournalEntryDetailPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </details>
 
           <label className="mt-3 flex flex-col gap-1 text-xs">

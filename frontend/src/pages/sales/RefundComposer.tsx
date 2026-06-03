@@ -178,7 +178,8 @@ export function RefundComposerPage() {
         </div>
       )}
 
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[520px] text-sm">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
             <th></th>
@@ -239,8 +240,9 @@ export function RefundComposerPage() {
           })}
         </tbody>
       </table>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           Reason code
           <select

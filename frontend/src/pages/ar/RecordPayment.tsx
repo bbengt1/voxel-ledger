@@ -167,7 +167,7 @@ export function RecordPaymentPage() {
 
       <div className="space-y-3 rounded-lg border border-border p-4">
         <h2 className="text-sm font-semibold">Header</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             Customer
             <CustomerPicker
@@ -246,53 +246,55 @@ export function RecordPaymentPage() {
             No open invoices for this customer.
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                <th className="py-1 pr-2">Invoice</th>
-                <th className="py-1 pr-2">Due</th>
-                <th className="py-1 pr-2 text-right">Outstanding</th>
-                <th className="py-1 pr-2 text-right">Apply</th>
-              </tr>
-            </thead>
-            <tbody>
-              {openInvoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className="border-b border-border/50"
-                  data-testid={`alloc-row-${inv.id}`}
-                >
-                  <td className="py-1 pr-2 font-mono text-xs">
-                    {inv.invoice_number}
-                  </td>
-                  <td className="py-1 pr-2 text-xs">
-                    {inv.due_at
-                      ? new Date(inv.due_at).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td className="py-1 pr-2 text-right font-mono">
-                    ${inv.amount_outstanding}
-                  </td>
-                  <td className="py-1 pr-2 text-right">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={allocations[inv.id] ?? ""}
-                      onChange={(e) =>
-                        setAllocations((prev) => ({
-                          ...prev,
-                          [inv.id]: e.target.value,
-                        }))
-                      }
-                      data-testid={`alloc-input-${inv.id}`}
-                      className="w-28 text-right"
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[30rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                  <th className="py-1 pr-2">Invoice</th>
+                  <th className="py-1 pr-2">Due</th>
+                  <th className="py-1 pr-2 text-right">Outstanding</th>
+                  <th className="py-1 pr-2 text-right">Apply</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {openInvoices.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    className="border-b border-border/50"
+                    data-testid={`alloc-row-${inv.id}`}
+                  >
+                    <td className="py-1 pr-2 font-mono text-xs">
+                      {inv.invoice_number}
+                    </td>
+                    <td className="py-1 pr-2 text-xs">
+                      {inv.due_at
+                        ? new Date(inv.due_at).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td className="py-1 pr-2 text-right font-mono">
+                      ${inv.amount_outstanding}
+                    </td>
+                    <td className="py-1 pr-2 text-right">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={allocations[inv.id] ?? ""}
+                        onChange={(e) =>
+                          setAllocations((prev) => ({
+                            ...prev,
+                            [inv.id]: e.target.value,
+                          }))
+                        }
+                        data-testid={`alloc-input-${inv.id}`}
+                        className="w-28 text-right"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <div className="flex items-center justify-between text-xs">
           <label className="flex items-center gap-2">
