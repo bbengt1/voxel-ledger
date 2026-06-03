@@ -14,7 +14,7 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAuthStore } from "@/store/useAuthStore";
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const user = useAuthStore((s) => s.user);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const clearSession = useAuthStore((s) => s.clearSession);
@@ -38,15 +38,31 @@ export function TopBar() {
     : "Account";
 
   return (
-    <header className="flex h-14 items-center gap-3 border-b border-border bg-background px-4">
-      <div className="flex-1">
+    <header className="flex h-14 items-center gap-2 border-b border-border bg-background px-3 sm:gap-3 sm:px-4">
+      <Button
+        variant="outline"
+        size="sm"
+        aria-label="Open navigation menu"
+        className="lg:hidden"
+        onClick={onMenuClick}
+        data-testid="nav-menu-button"
+      >
+        <span aria-hidden="true">☰</span>
+      </Button>
+      <div className="min-w-0 flex-1">
         <GlobalSearch />
       </div>
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" aria-label="Account menu">
-            {triggerLabel}
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Account menu"
+            className="max-w-[40vw] truncate sm:max-w-none"
+          >
+            <span className="hidden sm:inline">{triggerLabel}</span>
+            <span className="sm:hidden">Account</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
