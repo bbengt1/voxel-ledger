@@ -109,4 +109,50 @@ describe("<JobDetailPage />", () => {
     await user.click(screen.getByTestId("transition-submit"));
     await waitFor(() => expect(submitCalled).toBe(true));
   });
+
+  it("disables Start until a printer is assigned to a plate", async () => {
+    mock.onGet(`/api/v1/jobs/${JID}`).reply(200, {
+      id: JID,
+      job_number: "JOB-2026-0002",
+      state: "queued",
+      quantity_ordered: 1,
+      pieces_produced: 0,
+      priority: 0,
+      part_id: "part1",
+      actor_user_id: "u",
+      plates: [
+        {
+          id: "pl1",
+          job_id: JID,
+          name: "Plate A",
+          plate_number: 1,
+          parts_per_set: 1,
+          print_minutes: 60,
+          print_hours_setup_minutes: 0,
+          print_grams_by_material: {},
+          assigned_printer_ids: [],
+          runs_completed: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      notes: null,
+      due_at: null,
+      customer_id: null,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    });
+    mock.onGet("/api/v1/printers").reply(200, {
+      items: [{ id: "prn1", name: "Voron", status: "active" }],
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByTestId("job-state")).toHaveTextContent("queued"));
+    // Start is blocked + hint shown while no printer is assigned.
+    expect(screen.getByTestId("transition-start")).toBeDisabled();
+    expect(screen.getByTestId("start-needs-printer")).toBeInTheDocument();
+    // The plate exposes an assign-printer picker so the operator can fix it.
+    expect(screen.getByTestId("assign-printer-pl1")).toBeInTheDocument();
+  });
 });

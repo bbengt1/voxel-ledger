@@ -16,6 +16,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 type JobResponse = components["schemas"]["JobResponse"];
 type CalcResult = components["schemas"]["CalcResultResponse"];
+type PrinterResponse = components["schemas"]["PrinterResponse"];
+type PlateResponse = components["schemas"]["PlateResponse"];
 
 const WRITE_ROLES: readonly string[] = ["owner", "production"];
 
@@ -66,6 +68,9 @@ export function JobDetailPage() {
 
   const [calc, setCalc] = useState<CalcResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
+
+  // Active printers for the per-plate assignment picker.
+  const [printers, setPrinters] = useState<PrinterResponse[]>([]);
 
   // Job-level edit form (non-terminal jobs only).
   const [editingJob, setEditingJob] = useState(false);
@@ -158,6 +163,62 @@ export function JobDetailPage() {
     }
   }
 
+  // Load active printers once for the assignment picker.
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<{ items: PrinterResponse[] }>("/api/v1/printers", {
+        params: { status: "active" },
+      })
+      .then((res) => {
+        if (!cancelled) setPrinters(res.data.items);
+      })
+      .catch(() => {
+        /* picker just stays empty; non-fatal */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function assignPrinter(plateId: string, printerId: string) {
+    if (!id || !printerId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiClient.post(
+        `/api/v1/jobs/${id}/plates/${plateId}/assign-printer`,
+        { printer_id: printerId },
+      );
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not assign printer.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePrinter(plateId: string, printerId: string) {
+    if (!id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await apiClient.post(
+        `/api/v1/jobs/${id}/plates/${plateId}/unassign-printer`,
+        { printer_id: printerId },
+      );
+      await refetch();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      setError(typeof detail === "string" ? detail : "Could not remove printer.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function startEditJob() {
     if (!job) return;
     setEditQty(String(job.quantity_ordered));
@@ -211,6 +272,13 @@ export function JobDetailPage() {
   const editable =
     canWrite && job.state !== "completed" && job.state !== "cancelled";
 
+  // A printer assignment is mandatory to start a job (backend-enforced).
+  const hasPrinter = (job.plates ?? []).some(
+    (p) => (p.assigned_printer_ids ?? []).length > 0,
+  );
+  const printerName = (printerId: string) =>
+    printers.find((p) => p.id === printerId)?.name ?? printerId;
+
   return (
     <section className="flex flex-col gap-6 lg:flex-row">
       <div className="flex-1 space-y-4">
@@ -248,18 +316,37 @@ export function JobDetailPage() {
         ) : null}
 
         {canWrite && allowedTransitions.length > 0 ? (
-          <div className="flex flex-wrap gap-2" data-testid="job-transitions">
-            {allowedTransitions.map((t) => (
-              <Button
-                key={t.path}
-                variant={t.variant ?? "default"}
-                disabled={busy}
-                onClick={() => void transition(t.path)}
-                data-testid={`transition-${t.path}`}
+          <div className="space-y-1">
+            <div className="flex flex-wrap gap-2" data-testid="job-transitions">
+              {allowedTransitions.map((t) => {
+                // Starting requires a printer assigned to a plate.
+                const blockedNoPrinter = t.path === "start" && !hasPrinter;
+                return (
+                  <Button
+                    key={t.path}
+                    variant={t.variant ?? "default"}
+                    disabled={busy || blockedNoPrinter}
+                    title={
+                      blockedNoPrinter
+                        ? "Assign a printer to a plate before starting this job"
+                        : undefined
+                    }
+                    onClick={() => void transition(t.path)}
+                    data-testid={`transition-${t.path}`}
+                  >
+                    {t.label}
+                  </Button>
+                );
+              })}
+            </div>
+            {allowedTransitions.some((t) => t.path === "start") && !hasPrinter ? (
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="start-needs-printer"
               >
-                {t.label}
-              </Button>
-            ))}
+                Assign a printer to a plate below before starting this job.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -352,7 +439,7 @@ export function JobDetailPage() {
         <div className="rounded-lg border border-border p-4">
           <h2 className="text-sm font-semibold">Plates</h2>
           <div className="overflow-x-auto">
-          <table className="mt-2 w-full min-w-[560px] table-fixed border-collapse text-sm">
+          <table className="mt-2 w-full min-w-[720px] table-fixed border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2 pr-2">#</th>
@@ -360,6 +447,7 @@ export function JobDetailPage() {
                 <th className="py-2 pr-2">Parts / set</th>
                 <th className="py-2 pr-2">Runs</th>
                 <th className="py-2 pr-2">Print min</th>
+                <th className="py-2 pr-2">Printer</th>
                 <th className="py-2 pr-2 text-right">Action</th>
               </tr>
             </thead>
@@ -367,7 +455,7 @@ export function JobDetailPage() {
               {(job.plates ?? []).length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="py-4 text-center text-muted-foreground"
                   >
                     No plates on this job.
@@ -384,7 +472,17 @@ export function JobDetailPage() {
                     <td className="py-2 pr-2">{p.name}</td>
                     <td className="py-2 pr-2">{p.parts_per_set}</td>
                     <td className="py-2 pr-2">{p.runs_completed}</td>
-                    <td className="py-2 pr-2">{p.print_minutes}</td>
+                    <td className="py-2 pr-2">
+                      <PlatePrinters
+                        plate={p}
+                        printers={printers}
+                        printerName={printerName}
+                        editable={editable}
+                        busy={busy}
+                        onAssign={(printerId) => void assignPrinter(p.id, printerId)}
+                        onRemove={(printerId) => void removePrinter(p.id, printerId)}
+                      />
+                    </td>
                     <td className="py-2 pr-2 text-right">
                       {canWrite && job.state === "in_progress" ? (
                         <Button
@@ -425,5 +523,75 @@ export function JobDetailPage() {
 
       <LiveCostPanel result={calc} loading={calcLoading} error={null} />
     </section>
+  );
+}
+
+/** Assigned-printer chips + an assign picker for one plate. */
+function PlatePrinters({
+  plate,
+  printers,
+  printerName,
+  editable,
+  busy,
+  onAssign,
+  onRemove,
+}: {
+  plate: PlateResponse;
+  printers: PrinterResponse[];
+  printerName: (id: string) => string;
+  editable: boolean;
+  busy: boolean;
+  onAssign: (printerId: string) => void;
+  onRemove: (printerId: string) => void;
+}) {
+  const assigned = plate.assigned_printer_ids ?? [];
+  const unassigned = printers.filter((p) => !assigned.includes(p.id));
+  return (
+    <div className="flex flex-col gap-1" data-testid={`plate-printers-${plate.id}`}>
+      {assigned.length === 0 ? (
+        <span className="text-xs text-muted-foreground">None</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {assigned.map((pid) => (
+            <span
+              key={pid}
+              className="inline-flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-xs"
+            >
+              {printerName(pid)}
+              {editable ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onRemove(pid)}
+                  className="text-muted-foreground hover:text-destructive disabled:opacity-50"
+                  aria-label={`Remove ${printerName(pid)}`}
+                  data-testid={`remove-printer-${plate.id}-${pid}`}
+                >
+                  ×
+                </button>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      )}
+      {editable && unassigned.length > 0 ? (
+        <select
+          className="h-7 rounded-md border border-input bg-background px-1 text-xs"
+          value=""
+          disabled={busy}
+          onChange={(e) => {
+            if (e.target.value) onAssign(e.target.value);
+          }}
+          data-testid={`assign-printer-${plate.id}`}
+        >
+          <option value="">+ Assign printer…</option>
+          {unassigned.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
   );
 }

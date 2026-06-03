@@ -21,6 +21,8 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tests._jobs_helpers import seed_printer
+
 
 async def _token(role: Role, client: AsyncClient, session: AsyncSession) -> str:
     email = f"{role.value}-{uuid.uuid4().hex[:6]}@example.com"
@@ -362,6 +364,7 @@ async def test_job_completion_costs_the_part_lot(
         actor_user_id=None,
     )
     await app_session.commit()
+    printer = await seed_printer(app_session)
     part = await parts_service.create(
         app_session,
         name="Bracket",
@@ -369,6 +372,7 @@ async def test_job_completion_costs_the_part_lot(
         setup_minutes=0,
         parts_per_run=1,
         print_grams_by_material={m.id: Decimal("50")},
+        assigned_printer_ids=[printer.id],
         actor_user_id=None,
     )
     await app_session.commit()

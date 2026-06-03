@@ -11,6 +11,7 @@ from app.models.plate import Plate
 from app.services import material_receipts as receipts_service
 from app.services import materials as materials_service
 from app.services import parts as parts_service
+from app.services import printers as printers_service
 from app.services import products as products_service
 from app.services.auth import create_user
 from app.services.reference_number import ReferenceNumberService
@@ -52,6 +53,21 @@ async def seed_product(session: AsyncSession, *, name: str = "Widget"):
     return product
 
 
+async def seed_printer(session: AsyncSession, *, name: str | None = None):
+    """Create an **inert** active printer (no power/price → zero cost impact)
+    for tests that need a printer to assign to a job/part."""
+    suffix = uuid.uuid4().hex[:8]
+    printer = await printers_service.create(
+        session,
+        name=name or f"Printer {suffix}",
+        slug=f"printer-{suffix}",
+        printer_type="other",
+        actor_user_id=None,
+    )
+    await session.commit()
+    return printer
+
+
 async def seed_part(
     session: AsyncSession,
     *,
@@ -60,9 +76,15 @@ async def seed_part(
     parts_per_run: int = 1,
     print_minutes: int = 0,
     setup_minutes: int = 0,
+    with_printer: bool = True,
 ):
     """Create a costed Part (material + receipt + part) for part-based job
     tests. Jobs now produce Parts (epic #267) — POST ``{part_id, quantity_ordered}``.
+
+    By default the part has an inert printer assigned, so jobs created from it
+    are startable (starting a job requires a printer — see ``jobs.start``).
+    Pass ``with_printer=False`` to seed a printer-less part (e.g. to exercise
+    the start-without-printer guard).
     """
     mat = await materials_service.create(
         session,
@@ -83,6 +105,10 @@ async def seed_part(
         actor_user_id=None,
     )
     await session.commit()
+    printer_ids: list[uuid.UUID] = []
+    if with_printer:
+        printer = await seed_printer(session)
+        printer_ids = [printer.id]
     part = await parts_service.create(
         session,
         name=name,
@@ -90,6 +116,7 @@ async def seed_part(
         setup_minutes=setup_minutes,
         parts_per_run=parts_per_run,
         print_grams_by_material={mat.id: Decimal(grams)},
+        assigned_printer_ids=printer_ids,
         actor_user_id=None,
     )
     await session.commit()
@@ -133,9 +160,7 @@ async def insert_legacy_product_job(
                 plate_number=pl["plate_number"],
                 parts_per_set=pl["parts_per_set"],
                 print_minutes=pl.get("print_minutes", 0),
-                print_grams_by_material={
-                    str(k): str(v) for k, v in pl.get("grams", {}).items()
-                },
+                print_grams_by_material={str(k): str(v) for k, v in pl.get("grams", {}).items()},
                 print_hours_setup_minutes=pl.get("setup", 0),
                 assigned_printer_ids=[],
                 runs_completed=pl.get("runs_completed", 0),

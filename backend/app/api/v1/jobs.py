@@ -93,6 +93,8 @@ def _map_jobs_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, jobs_service.PrinterLookupError):
         return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, jobs_service.NoPrinterAssignedError):
+        return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, jobs_service.ReceivingLocationError):
         return HTTPException(status_code=400, detail=str(exc))
     if isinstance(exc, jobs_service.InvalidCursorError):
