@@ -14139,6 +14139,12 @@
             "title": "Sku",
             "type": "string"
           },
+          "total_on_hand": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total On Hand",
+            "type": "string"
+          },
           "unit_cost_cached": {
             "anyOf": [
               {
