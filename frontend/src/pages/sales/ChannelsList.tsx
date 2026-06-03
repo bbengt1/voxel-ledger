@@ -21,7 +21,9 @@ import {
   AccountPicker,
   type AccountOption,
 } from "@/components/accounting/AccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -228,16 +230,57 @@ export function ChannelsListPage() {
     }
   }
 
+  const columns: DataTableColumn<SalesChannelResponse>[] = [
+    { key: "name", header: "Name", isPrimary: true, cell: (c) => c.name },
+    {
+      key: "slug",
+      header: "Slug",
+      cell: (c) => <span className="font-mono text-xs">{c.slug}</span>,
+    },
+    { key: "kind", header: "Kind", cell: (c) => c.kind },
+    { key: "fee_model", header: "Fee model", cell: (c) => c.fee_model },
+    { key: "active", header: "Active", cell: (c) => (c.is_active ? "Yes" : "No") },
+    {
+      key: "actions",
+      header: "Action",
+      align: "right",
+      cardFullWidth: true,
+      cell: (c) =>
+        canWrite ? (
+          <div className="inline-flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setDraft(channelToDraft(c))}
+              data-testid={`edit-channel-${c.id}`}
+            >
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void archive(c.id, c.is_active)}
+              data-testid={`archive-channel-${c.id}`}
+            >
+              {c.is_active ? "Archive" : "Unarchive"}
+            </Button>
+          </div>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Sales channels</h1>
-        {canWrite ? (
-          <Button onClick={() => setDraft(emptyDraft())} data-testid="new-channel-btn">
-            New channel
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Sales channels"
+        actions={
+          canWrite ? (
+            <Button onClick={() => setDraft(emptyDraft())} data-testid="new-channel-btn">
+              New channel
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div role="alert" className="text-sm text-destructive">
@@ -245,69 +288,14 @@ export function ChannelsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Slug</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2">Fee model</th>
-            <th className="py-2 pr-2">Active</th>
-            <th className="py-2 pr-2 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No channels yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-border/50"
-                data-testid={`channel-row-${c.id}`}
-              >
-                <td className="py-2 pr-2">{c.name}</td>
-                <td className="py-2 pr-2 font-mono text-xs">{c.slug}</td>
-                <td className="py-2 pr-2">{c.kind}</td>
-                <td className="py-2 pr-2">{c.fee_model}</td>
-                <td className="py-2 pr-2">{c.is_active ? "Yes" : "No"}</td>
-                <td className="py-2 pr-2 text-right">
-                  {canWrite ? (
-                    <div className="inline-flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setDraft(channelToDraft(c))}
-                        data-testid={`edit-channel-${c.id}`}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void archive(c.id, c.is_active)}
-                        data-testid={`archive-channel-${c.id}`}
-                      >
-                        {c.is_active ? "Archive" : "Unarchive"}
-                      </Button>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(c) => c.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No channels yet."
+        minWidthClassName="min-w-[680px]"
+      />
 
       {draft ? (
         <div

@@ -9,7 +9,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -88,20 +91,54 @@ export function SalesListPage() {
   const channelName = (id: string) =>
     channels.find((c) => c.id === id)?.name ?? id.slice(0, 8);
 
+  const columns: DataTableColumn<SaleResponse>[] = [
+    {
+      key: "sale_number",
+      header: "Sale #",
+      isPrimary: true,
+      cell: (s) => (
+        <Link
+          to={`/sales/${s.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {s.sale_number}
+        </Link>
+      ),
+    },
+    {
+      key: "occurred",
+      header: "Occurred",
+      cell: (s) => new Date(s.occurred_at).toLocaleDateString(),
+    },
+    {
+      key: "channel",
+      header: "Channel",
+      cell: (s) => channelName(s.channel_id),
+    },
+    { key: "customer", header: "Customer", cell: (s) => s.customer_name },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (s) => <span className="font-mono">${s.total_amount}</span>,
+    },
+    { key: "state", header: "State", cell: (s) => s.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Sales</h1>
-        <div className="flex gap-2">
-          {canCreate ? (
+      <PageHeader
+        title="Sales"
+        actions={
+          canCreate ? (
             <Button asChild>
               <Link to="/sales/new">New sale</Link>
             </Button>
-          ) : null}
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={5}>
         <label className="block text-xs">
           State
           <select
@@ -161,7 +198,7 @@ export function SalesListPage() {
             data-testid="filter-date-to"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -173,59 +210,15 @@ export function SalesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Sale #</th>
-            <th className="py-2 pr-2">Occurred</th>
-            <th className="py-2 pr-2">Channel</th>
-            <th className="py-2 pr-2">Customer</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No sales match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((s) => (
-              <tr
-                key={s.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`sale-row-${s.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/sales/${s.id}`}
-                    className="hover:underline"
-                  >
-                    {s.sale_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {new Date(s.occurred_at).toLocaleDateString()}
-                </td>
-                <td className="py-2 pr-2">{channelName(s.channel_id)}</td>
-                <td className="py-2 pr-2">{s.customer_name}</td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  ${s.total_amount}
-                </td>
-                <td className="py-2 pr-2">{s.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(s) => s.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No sales match these filters."
+        minWidthClassName="min-w-[680px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

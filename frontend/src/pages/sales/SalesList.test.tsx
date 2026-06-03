@@ -105,7 +105,9 @@ describe("<SalesListPage />", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("SALE-2026-0001")).toBeInTheDocument();
+      // DataTable renders both a desktop table and a mobile card, so the sale
+      // number appears twice in jsdom.
+      expect(screen.getAllByText("SALE-2026-0001").length).toBeGreaterThan(0);
     });
 
     await user.selectOptions(screen.getByTestId("filter-state"), "confirmed");

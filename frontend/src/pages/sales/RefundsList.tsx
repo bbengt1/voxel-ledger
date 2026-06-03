@@ -11,6 +11,9 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 
 type RefundResponse = components["schemas"]["RefundResponse"];
@@ -69,16 +72,52 @@ export function RefundsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<RefundResponse>[] = [
+    {
+      key: "refund_number",
+      header: "Refund #",
+      isPrimary: true,
+      cell: (r) => (
+        <Link
+          to={`/sales/refunds/${r.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {r.refund_number}
+        </Link>
+      ),
+    },
+    { key: "state", header: "State", cell: (r) => r.state.replace(/_/g, " ") },
+    { key: "kind", header: "Kind", cell: (r) => r.kind.replace(/_/g, " ") },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (r) => <span className="tabular-nums">{r.total_amount}</span>,
+    },
+    {
+      key: "reason",
+      header: "Reason",
+      cell: (r) => (
+        <span className="truncate" title={r.reason_code}>
+          {r.reason_code}
+        </span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      cell: (r) => new Date(r.created_at).toLocaleDateString(),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-xl font-semibold">Refunds</h1>
-        <p className="mt-1 text-xs text-muted-foreground">
-          New refunds are started from a sale's detail page.
-        </p>
-      </header>
+      <PageHeader
+        title="Refunds"
+        description="New refunds are started from a sale's detail page."
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={2}>
         <label className="block text-xs">
           State
           <select
@@ -103,7 +142,7 @@ export function RefundsListPage() {
             data-testid="refunds-filter-sale"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -115,60 +154,15 @@ export function RefundsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Refund #</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2">Reason</th>
-            <th className="py-2 pr-2">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No refunds match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/sales/refunds/${r.id}`}
-                    className="hover:underline"
-                  >
-                    {r.refund_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{r.state.replace(/_/g, " ")}</td>
-                <td className="py-2 pr-2">{r.kind.replace(/_/g, " ")}</td>
-                <td className="py-2 pr-2 text-right tabular-nums">
-                  {r.total_amount}
-                </td>
-                <td className="py-2 pr-2 truncate" title={r.reason_code}>
-                  {r.reason_code}
-                </td>
-                <td className="py-2 pr-2">
-                  {new Date(r.created_at).toLocaleDateString()}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(r) => r.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No refunds match these filters."
+        minWidthClassName="min-w-[680px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

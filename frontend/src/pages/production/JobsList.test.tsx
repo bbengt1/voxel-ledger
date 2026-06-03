@@ -80,7 +80,8 @@ describe("<JobsListPage />", () => {
 
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("JOB-2026-0001")).toBeInTheDocument();
+      // DataTable renders a desktop table + mobile card, so cell text appears twice.
+      expect(screen.getAllByText("JOB-2026-0001").length).toBeGreaterThanOrEqual(1);
     });
 
     await user.selectOptions(screen.getByTestId("filter-state"), "queued");
@@ -128,7 +129,7 @@ describe("<JobsListPage />", () => {
 
     // Initial load filters to in-progress without an explicit URL param.
     await waitFor(() => expect(lastParams?.["state"]).toBe("in_progress"));
-    expect(screen.getByText("Bracket")).toBeInTheDocument();
+    expect(screen.getAllByText("Bracket").length).toBeGreaterThanOrEqual(1);
 
     // Choosing "All" drops the state filter (sentinel, not a snap-back).
     await user.selectOptions(screen.getByTestId("filter-state"), "all");

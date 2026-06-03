@@ -6,7 +6,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type QuoteResponse = components["schemas"]["QuoteResponse"];
@@ -63,18 +66,51 @@ export function QuotesListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<QuoteResponse>[] = [
+    {
+      key: "quote_number",
+      header: "Quote #",
+      isPrimary: true,
+      cell: (q) => (
+        <Link to={`/quotes/${q.id}`} className="font-mono text-xs hover:underline">
+          {q.quote_number}
+        </Link>
+      ),
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      cell: (q) => (q.issued_at ? new Date(q.issued_at).toLocaleDateString() : "—"),
+    },
+    {
+      key: "valid_until",
+      header: "Valid until",
+      cell: (q) =>
+        q.valid_until ? new Date(q.valid_until).toLocaleDateString() : "—",
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (q) => <span className="font-mono">${q.total_amount}</span>,
+    },
+    { key: "state", header: "State", cell: (q) => q.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Quotes</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/quotes/new">New quote</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Quotes"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/quotes/new">New quote</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={4}>
         <label className="block text-xs">
           State
           <select
@@ -91,7 +127,7 @@ export function QuotesListPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -99,58 +135,15 @@ export function QuotesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Quote #</th>
-            <th className="py-2 pr-2">Issued</th>
-            <th className="py-2 pr-2">Valid until</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No quotes match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((q) => (
-              <tr
-                key={q.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`quote-row-${q.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/quotes/${q.id}`} className="hover:underline">
-                    {q.quote_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {q.issued_at
-                    ? new Date(q.issued_at).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2">
-                  {q.valid_until
-                    ? new Date(q.valid_until).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">${q.total_amount}</td>
-                <td className="py-2 pr-2">{q.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(q) => q.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No quotes match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

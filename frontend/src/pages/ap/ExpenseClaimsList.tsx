@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -79,18 +82,49 @@ export function ExpenseClaimsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<ExpenseClaimResponse>[] = [
+    {
+      key: "claim_number",
+      header: "Claim #",
+      isPrimary: true,
+      cell: (c) => (
+        <Link
+          to={`/expense-claims/${c.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {c.claim_number}
+        </Link>
+      ),
+    },
+    {
+      key: "submitted",
+      header: "Submitted",
+      cell: (c) =>
+        c.submitted_at
+          ? new Date(c.submitted_at).toLocaleDateString()
+          : "—",
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (c) => <span className="font-mono">${c.total_amount}</span>,
+    },
+    { key: "state", header: "State", cell: (c) => c.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Expense claims</h1>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Expense claims"
+        actions={
           <Button asChild>
             <Link to="/expense-claims/new">New claim</Link>
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={3}>
         <label className="block text-xs">
           State
           <select
@@ -133,7 +167,7 @@ export function ExpenseClaimsListPage() {
             ) : null}
           </>
         ) : null}
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -144,57 +178,15 @@ export function ExpenseClaimsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Claim #</th>
-            <th className="py-2 pr-2">Submitted</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                No claims yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`claim-row-${c.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/expense-claims/${c.id}`}
-                    className="hover:underline"
-                  >
-                    {c.claim_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {c.submitted_at
-                    ? new Date(c.submitted_at).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  ${c.total_amount}
-                </td>
-                <td className="py-2 pr-2">{c.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(c) => c.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No claims yet."
+        minWidthClassName="min-w-[560px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

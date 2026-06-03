@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type RecurringBillTemplateResponse =
@@ -69,18 +72,56 @@ export function RecurringBillsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<RecurringBillTemplateResponse>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (t) => (
+        <Link to={`/recurring-bills/${t.id}`} className="hover:underline">
+          {t.name}
+        </Link>
+      ),
+    },
+    {
+      key: "vendor",
+      header: "Vendor",
+      cell: (t) => (
+        <span className="font-mono text-xs">{t.vendor_id.slice(0, 8)}</span>
+      ),
+    },
+    {
+      key: "cadence",
+      header: "Cadence",
+      cell: (t) => `every ${t.cadence_interval} ${t.cadence_kind}`,
+    },
+    {
+      key: "next_issue",
+      header: "Next issue",
+      cell: (t) => new Date(t.next_issue_at).toLocaleDateString(),
+    },
+    {
+      key: "auto_issue",
+      header: "Auto-issue",
+      cell: (t) => (t.auto_issue ? "yes" : "no"),
+    },
+    { key: "state", header: "State", cell: (t) => t.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Recurring bills</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/recurring-bills/new">New recurring</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Recurring bills"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/recurring-bills/new">New recurring</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <FilterBar columns={2}>
         <label className="block text-xs">
           State
           <select
@@ -97,7 +138,7 @@ export function RecurringBillsListPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -108,61 +149,15 @@ export function RecurringBillsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Vendor</th>
-            <th className="py-2 pr-2">Cadence</th>
-            <th className="py-2 pr-2">Next issue</th>
-            <th className="py-2 pr-2">Auto-issue</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No recurring bills match.
-              </td>
-            </tr>
-          ) : (
-            items.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`recurring-bill-row-${t.id}`}
-              >
-                <td className="py-2 pr-2">
-                  <Link
-                    to={`/recurring-bills/${t.id}`}
-                    className="hover:underline"
-                  >
-                    {t.name}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2 font-mono text-xs">
-                  {t.vendor_id.slice(0, 8)}
-                </td>
-                <td className="py-2 pr-2">
-                  every {t.cadence_interval} {t.cadence_kind}
-                </td>
-                <td className="py-2 pr-2">
-                  {new Date(t.next_issue_at).toLocaleDateString()}
-                </td>
-                <td className="py-2 pr-2">{t.auto_issue ? "yes" : "no"}</td>
-                <td className="py-2 pr-2">{t.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(t) => t.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No recurring bills match."
+        minWidthClassName="min-w-[720px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

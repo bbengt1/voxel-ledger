@@ -81,7 +81,8 @@ describe("<CustomersListPage />", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Acme Co")).toBeInTheDocument();
+      // DataTable renders a desktop table + mobile card, so cell text appears twice.
+      expect(screen.getAllByText("Acme Co").length).toBeGreaterThanOrEqual(1);
     });
     expect(lastParams?.["state"]).toBe("active");
 

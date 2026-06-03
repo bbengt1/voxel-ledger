@@ -6,7 +6,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type PaymentResponse = components["schemas"]["PaymentResponse"];
@@ -63,18 +66,46 @@ export function PaymentsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<PaymentResponse>[] = [
+    {
+      key: "payment_number",
+      header: "Payment #",
+      isPrimary: true,
+      cell: (p) => (
+        <Link to={`/payments/${p.id}`} className="font-mono text-xs hover:underline">
+          {p.payment_number}
+        </Link>
+      ),
+    },
+    {
+      key: "received",
+      header: "Received",
+      cell: (p) => new Date(p.received_at).toLocaleDateString(),
+    },
+    { key: "method", header: "Method", cell: (p) => p.method },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      cell: (p) => <span className="font-mono">${p.amount}</span>,
+    },
+    { key: "state", header: "State", cell: (p) => p.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Payments</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/payments/new">Record payment</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Payments"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/payments/new">Record payment</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={4}>
         <label className="block text-xs">
           State
           <select
@@ -91,7 +122,7 @@ export function PaymentsListPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -99,52 +130,15 @@ export function PaymentsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Payment #</th>
-            <th className="py-2 pr-2">Received</th>
-            <th className="py-2 pr-2">Method</th>
-            <th className="py-2 pr-2 text-right">Amount</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No payments match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr
-                key={p.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`payment-row-${p.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/payments/${p.id}`} className="hover:underline">
-                    {p.payment_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {new Date(p.received_at).toLocaleDateString()}
-                </td>
-                <td className="py-2 pr-2">{p.method}</td>
-                <td className="py-2 pr-2 text-right font-mono">${p.amount}</td>
-                <td className="py-2 pr-2">{p.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No payments match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }
