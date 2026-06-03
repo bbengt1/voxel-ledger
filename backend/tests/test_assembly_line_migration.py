@@ -219,9 +219,7 @@ async def test_multi_plate_open_job_is_flagged_not_repointed(
     assert result.ok
     repoint = next(r for r in result.results if r.context == "repoint_jobs")
     assert any(str(job.id) in item for item in repoint.review_items)
-    refreshed = (
-        await app_session.execute(select(Job).where(Job.id == job.id))
-    ).scalar_one()
+    refreshed = (await app_session.execute(select(Job).where(Job.id == job.id))).scalar_one()
     assert refreshed.part_id is None  # not auto-repointed
 
 

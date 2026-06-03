@@ -231,9 +231,7 @@ async def compute_plan(
                 select(ProductBomItem)
                 .where(ProductBomItem.parent_product_id == product.id)
                 .where(
-                    ProductBomItem.component_kind.in_(
-                        (COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY)
-                    )
+                    ProductBomItem.component_kind.in_((COMPONENT_KIND_PART, COMPONENT_KIND_SUPPLY))
                 )
                 .order_by(ProductBomItem.created_at, ProductBomItem.id)
             )
@@ -405,9 +403,7 @@ async def create(
 
 
 async def get(session: AsyncSession, build_id: uuid.UUID) -> Build:
-    row = (
-        await session.execute(select(Build).where(Build.id == build_id))
-    ).scalar_one_or_none()
+    row = (await session.execute(select(Build).where(Build.id == build_id))).scalar_one_or_none()
     if row is None:
         raise BuildNotFoundError(str(build_id))
     return row
@@ -517,11 +513,7 @@ async def complete(
             # Supplies: per-piece cached cost (Phase 6a scopes FIFO to
             # parts; supplies keep the existing per-piece basis).
             consume_unit_cost = line.unit_cost
-            line_total = (
-                line.line_cost
-                if line.line_cost is not None
-                else Decimal("0")
-            )
+            line_total = line.line_cost if line.line_cost is not None else Decimal("0")
 
         await inventory_tx_service.record(
             session,
@@ -547,9 +539,7 @@ async def complete(
     # Roll the actuals up: components (parts at FIFO + supplies) + the
     # build's assembly labor → product unit cost.
     assembly_labor = plan.assembly_labor_cost or Decimal("0")
-    total_cost = (component_total + assembly_labor).quantize(
-        _MONEY_QUANTUM, rounding=ROUND_HALF_UP
-    )
+    total_cost = (component_total + assembly_labor).quantize(_MONEY_QUANTUM, rounding=ROUND_HALF_UP)
     unit_cost = (
         (total_cost / Decimal(build.quantity)).quantize(_MONEY_QUANTUM, rounding=ROUND_HALF_UP)
         if build.quantity > 0

@@ -55,8 +55,9 @@ async def discover_part_recipe(
     try:
         result = discovery_service.parse_job_artifact(content, source_filename=file.filename)
     except discovery_service.UnknownSidecarFormatError as exc:
-        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc)) \
-            from None
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc)
+        ) from None
     except discovery_service.MalformedSidecarError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from None
     thumb = discovery_service.extract_thumbnail(content)
@@ -88,8 +89,9 @@ async def discover_part_recipe_from_printer(
     try:
         printer = await printers_service.get(session, payload.printer_id)
     except printers_service.PrinterNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="printer not found") \
-            from None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="printer not found"
+        ) from None
     if not printer.moonraker_url:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="moonraker not configured"
@@ -331,8 +333,9 @@ async def upload_part_image_from_printer(
     try:
         printer = await printers_service.get(session, payload.printer_id)
     except printers_service.PrinterNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="printer not found") \
-            from None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="printer not found"
+        ) from None
     if not printer.moonraker_url:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="moonraker not configured"
@@ -348,9 +351,7 @@ async def upload_part_image_from_printer(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"moonraker fetch failed: {exc}"
         ) from None
     if thumbnail is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="no embedded thumbnail"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no embedded thumbnail")
     try:
         await entity_images.save(
             session=session,
