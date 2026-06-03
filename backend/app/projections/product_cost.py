@@ -169,6 +169,19 @@ async def _recompute_one(
         tree = await bom_service.compute_cost_tree(session, product_id=product_id)
     except bom_service.ProductNotFoundError:
         return
+    except bom_service.BomServiceError:
+        # A stray legacy ``material`` / sub-``product`` BOM row makes
+        # ``compute_cost_tree`` hard-fail by design (it surfaces the row
+        # loudly on explicit costing). But this is a derived-cache
+        # projection running inside someone else's write transaction —
+        # the assembly-line migration adds a part line to a product that
+        # *still* has its legacy material line (non-destructive by
+        # design), and a ``MaterialReceived`` can touch such a product
+        # too. Hard-failing here would roll back that legitimate write.
+        # Leave the cached cost untouched until the legacy row is
+        # resolved; the loud failure still fires on the explicit
+        # costing path.
+        return
 
     new_cost = tree.total_cost
 
