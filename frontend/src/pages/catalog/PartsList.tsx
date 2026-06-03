@@ -8,8 +8,11 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useColumnVisibility, type ColumnDef } from "@/lib/useColumnVisibility";
@@ -34,7 +37,6 @@ export function PartsListPage() {
   const canWrite = role ? (CAN_WRITE_ROLES as readonly string[]).includes(role) : false;
   const currency = useCurrency();
   const { isVisible, toggle } = useColumnVisibility("parts", PART_COLUMNS);
-  const colCount = PART_COLUMNS.filter((c) => isVisible(c.id)).length;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -88,21 +90,73 @@ export function PartsListPage() {
     };
   }, [params]);
 
+  const allColumns: (DataTableColumn<PartResponse> & { id: string })[] = [
+    {
+      id: "sku",
+      key: "sku",
+      header: "SKU",
+      isPrimary: true,
+      cellClassName: "font-mono text-xs",
+      cell: (p) => (
+        <Link to={`/catalog/parts/${p.id}`} className="hover:underline">
+          {p.sku}
+        </Link>
+      ),
+    },
+    { id: "name", key: "name", header: "Name", cell: (p) => p.name },
+    {
+      id: "print_minutes",
+      key: "print_minutes",
+      header: "Print min",
+      align: "right",
+      cellClassName: "tabular-nums",
+      cell: (p) => p.print_minutes,
+    },
+    {
+      id: "parts_per_run",
+      key: "parts_per_run",
+      header: "Parts/run",
+      align: "right",
+      cellClassName: "tabular-nums",
+      cell: (p) => p.parts_per_run,
+    },
+    {
+      id: "cost",
+      key: "cost",
+      header: "Cost",
+      align: "right",
+      cell: (p) => (
+        <span data-testid={`part-cost-${p.id}`}>
+          {p.unit_cost_cached ? formatCurrency(p.unit_cost_cached, currency) : "—"}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      key: "status",
+      header: "Status",
+      cell: (p) => (p.is_archived ? "Archived" : "Active"),
+    },
+  ];
+  const columns = allColumns.filter((c) => isVisible(c.id));
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Parts</h1>
-        <div className="flex items-center gap-2">
-          <ColumnPicker columns={PART_COLUMNS} isVisible={isVisible} toggle={toggle} />
-          {canWrite ? (
-            <Button asChild>
-              <Link to="/catalog/parts/new">New part</Link>
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <PageHeader
+        title="Parts"
+        actions={
+          <>
+            <ColumnPicker columns={PART_COLUMNS} isVisible={isVisible} toggle={toggle} />
+            {canWrite ? (
+              <Button asChild>
+                <Link to="/catalog/parts/new">New part</Link>
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <FilterBar columns={2}>
         <div className="flex flex-col gap-1">
           <label htmlFor="parts-search" className="text-xs font-medium">
             Search
@@ -129,7 +183,7 @@ export function PartsListPage() {
             <option value="">All</option>
           </select>
         </div>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -141,66 +195,14 @@ export function PartsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            {isVisible("sku") ? <th className="py-2 pr-2">SKU</th> : null}
-            {isVisible("name") ? <th className="py-2 pr-2">Name</th> : null}
-            {isVisible("print_minutes") ? (
-              <th className="py-2 pr-2 text-right">Print min</th>
-            ) : null}
-            {isVisible("parts_per_run") ? (
-              <th className="py-2 pr-2 text-right">Parts/run</th>
-            ) : null}
-            {isVisible("cost") ? <th className="py-2 pr-2">Cost</th> : null}
-            {isVisible("status") ? <th className="py-2 pr-2">Status</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={colCount} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={colCount} className="py-4 text-center text-muted-foreground">
-                No parts match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr key={p.id} className="border-b border-border/50">
-                {isVisible("sku") ? (
-                  <td className="py-2 pr-2 font-mono text-xs">
-                    <Link to={`/catalog/parts/${p.id}`} className="hover:underline">
-                      {p.sku}
-                    </Link>
-                  </td>
-                ) : null}
-                {isVisible("name") ? <td className="py-2 pr-2">{p.name}</td> : null}
-                {isVisible("print_minutes") ? (
-                  <td className="py-2 pr-2 text-right tabular-nums">{p.print_minutes}</td>
-                ) : null}
-                {isVisible("parts_per_run") ? (
-                  <td className="py-2 pr-2 text-right tabular-nums">{p.parts_per_run}</td>
-                ) : null}
-                {isVisible("cost") ? (
-                  <td className="py-2 pr-2" data-testid={`part-cost-${p.id}`}>
-                    {p.unit_cost_cached
-                      ? formatCurrency(p.unit_cost_cached, currency)
-                      : "—"}
-                  </td>
-                ) : null}
-                {isVisible("status") ? (
-                  <td className="py-2 pr-2">{p.is_archived ? "Archived" : "Active"}</td>
-                ) : null}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No parts match the current filters."
+        minWidthClassName="min-w-[640px]"
+      />
 
       {nextCursor ? (
         <div className="flex justify-end">

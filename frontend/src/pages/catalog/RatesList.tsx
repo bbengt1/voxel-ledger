@@ -4,7 +4,9 @@ import { Link } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type RateResponse = components["schemas"]["RateResponse"];
@@ -71,16 +73,60 @@ export function RatesListPage() {
   };
   for (const r of items) groups[r.kind].push(r);
 
+  const columns: DataTableColumn<RateResponse>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (r) => (
+        <Link to={`/catalog/rates/${r.id}`} className="hover:underline">
+          {r.name}
+        </Link>
+      ),
+    },
+    { key: "value", header: "Value", align: "right", cell: (r) => r.value },
+    {
+      key: "default",
+      header: "Default",
+      cell: (r) =>
+        r.is_default_for_kind ? (
+          <span data-testid={`default-marker-${r.id}`}>Default</span>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (r) =>
+        isOwner && !r.is_default_for_kind ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setDefault(r.id)}
+            disabled={setDefaultBusy === r.id}
+            data-testid={`set-default-${r.id}`}
+          >
+            {setDefaultBusy === r.id ? "Setting…" : "Set as default"}
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Rates</h1>
-        {isOwner ? (
-          <Button asChild>
-            <Link to="/catalog/rates/new">New rate</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Rates"
+        actions={
+          isOwner ? (
+            <Button asChild>
+              <Link to="/catalog/rates/new">New rate</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div
@@ -107,74 +153,16 @@ export function RatesListPage() {
           >
             {KIND_LABELS[kind]}
           </h2>
-          <table className="w-full table-fixed border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                <th className="py-2 pr-2">Name</th>
-                <th className="py-2 pr-2">Value</th>
-                <th className="py-2 pr-2">Default</th>
-                <th className="py-2 pr-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups[kind].length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="py-3 text-center text-muted-foreground"
-                  >
-                    No {KIND_LABELS[kind].toLowerCase()} rates.
-                  </td>
-                </tr>
-              ) : (
-                groups[kind].map((r) => (
-                  <tr
-                    key={r.id}
-                    className={
-                      r.is_default_for_kind
-                        ? "border-b border-border/50 bg-accent/30 font-medium"
-                        : "border-b border-border/50"
-                    }
-                    data-testid={`rate-row-${r.id}`}
-                  >
-                    <td className="py-2 pr-2">
-                      <Link
-                        to={`/catalog/rates/${r.id}`}
-                        className="hover:underline"
-                      >
-                        {r.name}
-                      </Link>
-                    </td>
-                    <td className="py-2 pr-2">{r.value}</td>
-                    <td className="py-2 pr-2">
-                      {r.is_default_for_kind ? (
-                        <span data-testid={`default-marker-${r.id}`}>
-                          Default
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-2 pr-2 text-right">
-                      {isOwner && !r.is_default_for_kind ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setDefault(r.id)}
-                          disabled={setDefaultBusy === r.id}
-                          data-testid={`set-default-${r.id}`}
-                        >
-                          {setDefaultBusy === r.id
-                            ? "Setting…"
-                            : "Set as default"}
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={groups[kind]}
+            getRowKey={(r) => r.id}
+            emptyMessage={`No ${KIND_LABELS[kind].toLowerCase()} rates.`}
+            minWidthClassName="min-w-[480px]"
+            rowClassName={(r) =>
+              r.is_default_for_kind ? "bg-accent/30 font-medium" : undefined
+            }
+          />
         </section>
       ))}
     </section>

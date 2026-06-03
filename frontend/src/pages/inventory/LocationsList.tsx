@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -85,18 +88,43 @@ export function LocationsListPage() {
     };
   }, [params]);
 
+  const columns: DataTableColumn<InventoryLocationResponse>[] = [
+    {
+      key: "code",
+      header: "Code",
+      isPrimary: true,
+      cell: (loc) => (
+        <Link
+          to={`/inventory/locations/${loc.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {loc.code}
+        </Link>
+      ),
+    },
+    { key: "name", header: "Name", cell: (loc) => loc.name },
+    { key: "kind", header: "Kind", cell: (loc) => loc.kind },
+    {
+      key: "status",
+      header: "Status",
+      cell: (loc) => (loc.is_archived ? "Archived" : "Active"),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Inventory locations</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/inventory/locations/new">New location</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Inventory locations"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/inventory/locations/new">New location</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <FilterBar columns={3}>
         <div className="flex flex-col gap-1">
           <label htmlFor="locations-search" className="text-xs font-medium">
             Search
@@ -144,7 +172,7 @@ export function LocationsListPage() {
             <option value="">All</option>
           </select>
         </div>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -156,49 +184,14 @@ export function LocationsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Code</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                No locations match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((loc) => (
-              <tr key={loc.id} className="border-b border-border/50">
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/inventory/locations/${loc.id}`}
-                    className="hover:underline"
-                  >
-                    {loc.code}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{loc.name}</td>
-                <td className="py-2 pr-2">{loc.kind}</td>
-                <td className="py-2 pr-2">
-                  {loc.is_archived ? "Archived" : "Active"}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(loc) => loc.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No locations match the current filters."
+        minWidthClassName="min-w-[520px]"
+      />
 
       {nextCursor ? (
         <div className="flex justify-end">

@@ -68,7 +68,7 @@ describe("<DivisionsListPage />", () => {
       ];
     });
     renderPage();
-    await screen.findByText("Production");
+    await screen.findAllByText("Production");
     await userEvent.click(screen.getByTestId("open-new-division"));
     await userEvent.type(screen.getByTestId("new-division-code"), "MKT");
     await userEvent.type(screen.getByTestId("new-division-name"), "Marketing");

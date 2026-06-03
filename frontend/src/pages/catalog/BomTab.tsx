@@ -194,7 +194,8 @@ export function BomTab({
       ) : items.length === 0 ? (
         <p className="text-muted-foreground text-sm">No components yet.</p>
       ) : (
-        <table className="w-full text-sm" data-testid="bom-table">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm" data-testid="bom-table">
           <thead>
             <tr className="border-b">
               <th className="py-1 text-left">Kind</th>
@@ -288,6 +289,7 @@ export function BomTab({
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <aside

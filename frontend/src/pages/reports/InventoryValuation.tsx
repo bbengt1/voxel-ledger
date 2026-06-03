@@ -74,14 +74,14 @@ export function InventoryValuationPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Inventory valuation</h1>
         <Button onClick={downloadCsv} data-testid="iv-csv">
           Download CSV
         </Button>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="block text-xs">
           As of
           <Input
@@ -115,7 +115,8 @@ export function InventoryValuationPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[52rem] table-fixed border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Location</th>
@@ -157,6 +158,7 @@ export function InventoryValuationPage() {
           </tfoot>
         ) : null}
       </table>
+      </div>
     </section>
   );
 }

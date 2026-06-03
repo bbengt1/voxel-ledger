@@ -137,37 +137,39 @@ export function PaymentDetailPage() {
             This payment has no applications.
           </p>
         ) : (
-          <table className="mt-2 w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                <th className="py-1 pr-2">Invoice</th>
-                <th className="py-1 pr-2">Applied at</th>
-                <th className="py-1 pr-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(payment.applications ?? []).map((a) => (
-                <tr
-                  key={a.id}
-                  className="border-b border-border/50"
-                  data-testid={`application-${a.id}`}
-                >
-                  <td className="py-1 pr-2 font-mono text-xs">
-                    <Link
-                      to={`/invoices/${a.invoice_id}`}
-                      className="hover:underline"
-                    >
-                      {a.invoice_id.slice(0, 8)}
-                    </Link>
-                  </td>
-                  <td className="py-1 pr-2 text-xs">
-                    {new Date(a.applied_at).toLocaleString()}
-                  </td>
-                  <td className="py-1 pr-2 text-right font-mono">${a.amount}</td>
+          <div className="overflow-x-auto">
+            <table className="mt-2 w-full min-w-[28rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                  <th className="py-1 pr-2">Invoice</th>
+                  <th className="py-1 pr-2">Applied at</th>
+                  <th className="py-1 pr-2 text-right">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(payment.applications ?? []).map((a) => (
+                  <tr
+                    key={a.id}
+                    className="border-b border-border/50"
+                    data-testid={`application-${a.id}`}
+                  >
+                    <td className="py-1 pr-2 font-mono text-xs">
+                      <Link
+                        to={`/invoices/${a.invoice_id}`}
+                        className="hover:underline"
+                      >
+                        {a.invoice_id.slice(0, 8)}
+                      </Link>
+                    </td>
+                    <td className="py-1 pr-2 text-xs">
+                      {new Date(a.applied_at).toLocaleString()}
+                    </td>
+                    <td className="py-1 pr-2 text-right font-mono">${a.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>

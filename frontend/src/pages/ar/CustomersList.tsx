@@ -8,7 +8,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { BatchOpsDialog } from "@/components/batch/BatchOpsDialog";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -78,30 +81,72 @@ export function CustomersListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<CustomerResponse>[] = [
+    ...(canWrite
+      ? [
+          {
+            key: "select",
+            header: "",
+            cell: (c: CustomerResponse) => (
+              <input
+                type="checkbox"
+                data-testid={`customer-select-${c.id}`}
+                checked={selected.has(c.id)}
+                onChange={() => toggle(c.id)}
+              />
+            ),
+          } as DataTableColumn<CustomerResponse>,
+        ]
+      : []),
+    {
+      key: "number",
+      header: "#",
+      cell: (c) => (
+        <Link
+          to={`/customers/${c.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {c.customer_number}
+        </Link>
+      ),
+    },
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (c) => c.display_name,
+    },
+    { key: "email", header: "Email", cell: (c) => c.primary_email ?? "—" },
+    { key: "phone", header: "Phone", cell: (c) => c.phone ?? "—" },
+    { key: "state", header: "State", cell: (c) => c.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Customers</h1>
-        <div className="flex items-center gap-2">
-          {canWrite && selected.size > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              data-testid="customers-batch-archive"
-              onClick={() => setBatchOpen(true)}
-            >
-              Archive {selected.size} selected
-            </Button>
-          ) : null}
-          {canWrite ? (
-            <Button asChild>
-              <Link to="/customers/new">New customer</Link>
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <PageHeader
+        title="Customers"
+        actions={
+          <>
+            {canWrite && selected.size > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                data-testid="customers-batch-archive"
+                onClick={() => setBatchOpen(true)}
+              >
+                Archive {selected.size} selected
+              </Button>
+            ) : null}
+            {canWrite ? (
+              <Button asChild>
+                <Link to="/customers/new">New customer</Link>
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <FilterBar columns={2}>
         <label className="block text-xs">
           State
           <select
@@ -123,7 +168,7 @@ export function CustomersListPage() {
             placeholder="name / number"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -134,61 +179,15 @@ export function CustomersListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            {canWrite ? <th className="py-2 pr-2 w-6"></th> : null}
-            <th className="py-2 pr-2">#</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Email</th>
-            <th className="py-2 pr-2">Phone</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={canWrite ? 6 : 5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={canWrite ? 6 : 5} className="py-4 text-center text-muted-foreground">
-                No customers match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`customer-row-${c.id}`}
-              >
-                {canWrite ? (
-                  <td className="py-2 pr-2">
-                    <input
-                      type="checkbox"
-                      data-testid={`customer-select-${c.id}`}
-                      checked={selected.has(c.id)}
-                      onChange={() => toggle(c.id)}
-                    />
-                  </td>
-                ) : null}
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/customers/${c.id}`} className="hover:underline">
-                    {c.customer_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{c.display_name}</td>
-                <td className="py-2 pr-2">{c.primary_email ?? "—"}</td>
-                <td className="py-2 pr-2">{c.phone ?? "—"}</td>
-                <td className="py-2 pr-2">{c.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(c) => c.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No customers match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
 
       <BatchOpsDialog
         open={batchOpen}

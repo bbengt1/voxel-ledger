@@ -9,7 +9,9 @@ import { Link } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type LateFeePolicyResponse = components["schemas"]["LateFeePolicyResponse"];
@@ -68,12 +70,45 @@ export function LateFeePoliciesListPage() {
     }
   }
 
+  const columns: DataTableColumn<LateFeePolicyResponse>[] = [
+    {
+      key: "scope",
+      header: "Scope",
+      isPrimary: true,
+      cell: (p) => (
+        <Link to={`/late-fee-policies/${p.id}`} className="hover:underline">
+          {p.customer_id ? p.customer_id.slice(0, 8) : "Global"}
+        </Link>
+      ),
+    },
+    { key: "kind", header: "Kind", cell: (p) => p.kind },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      cell: (p) => <span className="font-mono">{p.amount}</span>,
+    },
+    {
+      key: "grace",
+      header: "Grace",
+      align: "right",
+      cell: (p) => <span className="font-mono">{p.grace_period_days}d</span>,
+    },
+    {
+      key: "apply_after",
+      header: "Apply after",
+      align: "right",
+      cell: (p) => <span className="font-mono">{p.apply_after_days}d</span>,
+    },
+    { key: "active", header: "Active", cell: (p) => (p.is_active ? "yes" : "no") },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Late-fee policies</h1>
-        <div className="flex gap-2">
-          {canWrite ? (
+      <PageHeader
+        title="Late-fee policies"
+        actions={
+          canWrite ? (
             <>
               <Button
                 variant="secondary"
@@ -87,9 +122,9 @@ export function LateFeePoliciesListPage() {
                 <Link to="/late-fee-policies/new">New policy</Link>
               </Button>
             </>
-          ) : null}
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       <label className="flex items-center gap-2 text-xs">
         <input
@@ -119,59 +154,15 @@ export function LateFeePoliciesListPage() {
         </p>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Scope</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2 text-right">Amount</th>
-            <th className="py-2 pr-2 text-right">Grace</th>
-            <th className="py-2 pr-2 text-right">Apply after</th>
-            <th className="py-2 pr-2">Active</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No policies.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr
-                key={p.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`policy-row-${p.id}`}
-              >
-                <td className="py-2 pr-2">
-                  <Link
-                    to={`/late-fee-policies/${p.id}`}
-                    className="hover:underline"
-                  >
-                    {p.customer_id ? p.customer_id.slice(0, 8) : "Global"}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{p.kind}</td>
-                <td className="py-2 pr-2 text-right font-mono">{p.amount}</td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  {p.grace_period_days}d
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  {p.apply_after_days}d
-                </td>
-                <td className="py-2 pr-2">{p.is_active ? "yes" : "no"}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No policies."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

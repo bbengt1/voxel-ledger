@@ -9,7 +9,9 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -107,16 +109,113 @@ export function DivisionsListPage() {
     }
   }
 
+  const columns: DataTableColumn<DivisionResponse>[] = [
+    {
+      key: "code",
+      header: "Code",
+      isPrimary: true,
+      cell: (d) => <span className="font-mono text-xs">{d.code}</span>,
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (d) =>
+        editingId === d.id ? (
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            data-testid={`edit-name-${d.id}`}
+          />
+        ) : (
+          d.name
+        ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (d) => (
+        <span className="text-xs">{d.is_archived ? "Archived" : "Active"}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (d) =>
+        canWrite ? (
+          editingId === d.id ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => saveRename(d.id)}
+                disabled={busy || !editName.trim()}
+                data-testid={`save-${d.id}`}
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingId(null)}
+                disabled={busy}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditingId(d.id);
+                  setEditName(d.name);
+                }}
+                disabled={busy || d.is_archived}
+                data-testid={`rename-${d.id}`}
+              >
+                Rename
+              </Button>
+              {d.is_archived ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => unarchive(d.id)}
+                  disabled={busy}
+                  data-testid={`unarchive-${d.id}`}
+                >
+                  Unarchive
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => archive(d.id)}
+                  disabled={busy}
+                  data-testid={`archive-${d.id}`}
+                >
+                  Archive
+                </Button>
+              )}
+            </div>
+          )
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Divisions</h1>
-        {canWrite ? (
-          <Button onClick={() => setNewOpen(true)} data-testid="open-new-division">
-            New division
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Divisions"
+        actions={
+          canWrite ? (
+            <Button onClick={() => setNewOpen(true)} data-testid="open-new-division">
+              New division
+            </Button>
+          ) : null
+        }
+      />
 
       <label className="flex items-center gap-2 text-xs">
         <input
@@ -134,105 +233,13 @@ export function DivisionsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Code</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Status</th>
-            <th className="py-2 pr-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                No divisions.
-              </td>
-            </tr>
-          ) : (
-            items.map((d) => (
-              <tr key={d.id} className="border-b border-border/50">
-                <td className="py-2 pr-2 font-mono text-xs">{d.code}</td>
-                <td className="py-2 pr-2">
-                  {editingId === d.id ? (
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      data-testid={`edit-name-${d.id}`}
-                    />
-                  ) : (
-                    d.name
-                  )}
-                </td>
-                <td className="py-2 pr-2 text-xs">
-                  {d.is_archived ? "Archived" : "Active"}
-                </td>
-                <td className="py-2 pr-2 text-right">
-                  {canWrite ? (
-                    editingId === d.id ? (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => saveRename(d.id)}
-                          disabled={busy || !editName.trim()}
-                          data-testid={`save-${d.id}`}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingId(null)}
-                          disabled={busy}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingId(d.id);
-                            setEditName(d.name);
-                          }}
-                          disabled={busy || d.is_archived}
-                          data-testid={`rename-${d.id}`}
-                        >
-                          Rename
-                        </Button>
-                        {d.is_archived ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => unarchive(d.id)}
-                            disabled={busy}
-                            data-testid={`unarchive-${d.id}`}
-                          >
-                            Unarchive
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => archive(d.id)}
-                            disabled={busy}
-                            data-testid={`archive-${d.id}`}
-                          >
-                            Archive
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  ) : null}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(d) => d.id}
+        emptyMessage="No divisions."
+        minWidthClassName="min-w-[560px]"
+      />
 
       <NewDivisionDialog
         open={newOpen}

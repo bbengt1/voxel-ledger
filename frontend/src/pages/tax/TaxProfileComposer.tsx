@@ -294,7 +294,8 @@ export function TaxProfileComposerPage() {
         <legend className="px-1 text-xs uppercase text-muted-foreground">
           Rates
         </legend>
-        <table className="w-full table-fixed border-collapse text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[44rem] table-fixed border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
               <th className="w-8 py-2 pr-2">#</th>
@@ -396,6 +397,7 @@ export function TaxProfileComposerPage() {
             )}
           </tbody>
         </table>
+        </div>
         <div className="mt-2">
           <Button type="button" variant="ghost" onClick={addRate} data-testid="tp-add-rate">
             + Add rate

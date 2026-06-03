@@ -58,7 +58,7 @@ describe("<AlertsListPage />", () => {
       ],
     });
     renderPage();
-    expect(await screen.findByTestId("alert-row-m-1")).toHaveTextContent(
+    expect((await screen.findAllByTestId("alert-row-m-1"))[0]).toHaveTextContent(
       "PLA",
     );
   });

@@ -8,7 +8,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type BuildResponse = components["schemas"]["BuildResponse"];
@@ -72,18 +75,51 @@ export function BuildsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<BuildResponse>[] = [
+    {
+      key: "build_number",
+      header: "Build #",
+      isPrimary: true,
+      cell: (b) => (
+        <Link
+          to={`/production/builds/${b.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {b.build_number}
+        </Link>
+      ),
+    },
+    { key: "state", header: "State", cell: (b) => b.state },
+    { key: "quantity", header: "Qty", cell: (b) => b.quantity },
+    {
+      key: "total_cost",
+      header: "Total cost",
+      align: "right",
+      cell: (b) => (
+        <span className="tabular-nums">{fmtMoney(b.total_cost_cached)}</span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      cell: (b) => new Date(b.created_at).toLocaleDateString(),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Builds</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/production/builds/new">New build</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Builds"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/production/builds/new">New build</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={5}>
         <label className="block text-xs">
           State
           <select
@@ -100,7 +136,7 @@ export function BuildsListPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -112,48 +148,15 @@ export function BuildsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Build #</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2">Qty</th>
-            <th className="py-2 pr-2 text-right">Total cost</th>
-            <th className="py-2 pr-2">Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No builds match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((b) => (
-              <tr key={b.id} className="border-b border-border/50 hover:bg-accent/30">
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/production/builds/${b.id}`} className="hover:underline">
-                    {b.build_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{b.state}</td>
-                <td className="py-2 pr-2">{b.quantity}</td>
-                <td className="py-2 pr-2 text-right tabular-nums">
-                  {fmtMoney(b.total_cost_cached)}
-                </td>
-                <td className="py-2 pr-2">{new Date(b.created_at).toLocaleDateString()}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(b) => b.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No builds match these filters."
+        minWidthClassName="min-w-[480px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

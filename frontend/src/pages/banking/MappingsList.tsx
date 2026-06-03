@@ -7,7 +7,9 @@ import { Link } from "react-router-dom";
 
 import { api, apiClient } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type Mapping = components["schemas"]["BankImportMappingResponse"];
@@ -63,16 +65,62 @@ export function MappingsListPage() {
     }
   }
 
+  const columns: DataTableColumn<Mapping>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (m) => <span className="font-medium">{m.name}</span>,
+    },
+    {
+      key: "account",
+      header: "Account",
+      cell: (m) => {
+        const acct = accounts[m.account_id];
+        return acct ? `${acct.code} · ${acct.name}` : m.account_id;
+      },
+    },
+    {
+      key: "file_kind",
+      header: "File kind",
+      cell: (m) => <span className="uppercase">{m.file_kind}</span>,
+    },
+    {
+      key: "is_active",
+      header: "Active",
+      cell: (m) => (m.is_active ? "yes" : "no"),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (m) =>
+        canWrite && m.is_active ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void deactivate(m.id)}
+            data-testid={`deactivate-${m.id}`}
+          >
+            Deactivate
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Bank import mappings</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/banking/mappings/new">New mapping</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Bank import mappings"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/banking/mappings/new">New mapping</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div
@@ -83,62 +131,14 @@ export function MappingsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Account</th>
-            <th className="py-2 pr-2">File kind</th>
-            <th className="py-2 pr-2">Active</th>
-            <th className="py-2 pr-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No mappings yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((m) => {
-              const acct = accounts[m.account_id];
-              return (
-                <tr
-                  key={m.id}
-                  className="border-b border-border/50"
-                  data-testid={`mapping-row-${m.id}`}
-                >
-                  <td className="py-2 pr-2 font-medium">{m.name}</td>
-                  <td className="py-2 pr-2">
-                    {acct ? `${acct.code} · ${acct.name}` : m.account_id}
-                  </td>
-                  <td className="py-2 pr-2 uppercase">{m.file_kind}</td>
-                  <td className="py-2 pr-2">{m.is_active ? "yes" : "no"}</td>
-                  <td className="py-2 pr-2 text-right">
-                    {canWrite && m.is_active ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void deactivate(m.id)}
-                        data-testid={`deactivate-${m.id}`}
-                      >
-                        Deactivate
-                      </Button>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(m) => m.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No mappings yet."
+        minWidthClassName="min-w-[640px]"
+      />
     </section>
   );
 }

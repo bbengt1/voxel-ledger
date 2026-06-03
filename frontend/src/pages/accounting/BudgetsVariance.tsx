@@ -98,7 +98,7 @@ export function BudgetsVariancePage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Variance report</h1>
         <Button asChild variant="outline">
           <Link to="/accounting/budgets">Back to budgets</Link>
@@ -128,7 +128,8 @@ export function BudgetsVariancePage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[40rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Account</th>
@@ -204,6 +205,7 @@ export function BudgetsVariancePage() {
           )}
         </tbody>
       </table>
+      </div>
     </section>
   );
 }

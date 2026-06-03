@@ -6,7 +6,9 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type TaxProfileResponse = components["schemas"]["TaxProfileResponse"];
@@ -31,16 +33,50 @@ export function TaxProfilesListPage() {
       });
   }, []);
 
+  const columns: DataTableColumn<TaxProfileResponse>[] = [
+    {
+      key: "code",
+      header: "Code",
+      isPrimary: true,
+      cell: (p) => (
+        <Link
+          to={`/tax-profiles/${p.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {p.code}
+        </Link>
+      ),
+    },
+    { key: "name", header: "Name", cell: (p) => p.name },
+    { key: "jurisdiction", header: "Jurisdiction", cell: (p) => p.jurisdiction },
+    {
+      key: "is_reverse_charge",
+      header: "Reverse charge?",
+      cell: (p) => (p.is_reverse_charge ? "yes" : "no"),
+    },
+    {
+      key: "is_active",
+      header: "Active",
+      cell: (p) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+          {p.is_active ? "active" : "archived"}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Tax profiles</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/tax-profiles/new">New profile</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Tax profiles"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/tax-profiles/new">New profile</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -48,44 +84,14 @@ export function TaxProfilesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Code</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Jurisdiction</th>
-            <th className="py-2 pr-2">Reverse charge?</th>
-            <th className="py-2 pr-2">Active</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No tax profiles yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr key={p.id} className="border-b border-border/50 hover:bg-accent/30" data-testid={`tax-profile-row-${p.id}`}>
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/tax-profiles/${p.id}`} className="hover:underline">
-                    {p.code}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{p.name}</td>
-                <td className="py-2 pr-2">{p.jurisdiction}</td>
-                <td className="py-2 pr-2">{p.is_reverse_charge ? "yes" : "no"}</td>
-                <td className="py-2 pr-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                    {p.is_active ? "active" : "archived"}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        emptyMessage="No tax profiles yet."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

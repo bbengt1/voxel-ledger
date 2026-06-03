@@ -77,9 +77,9 @@ describe("<BuildsListPage />", () => {
   it("lists builds and shows the New build button", async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("BUILD-2026-0001")).toBeInTheDocument();
+      expect(screen.getAllByText("BUILD-2026-0001").length).toBeGreaterThan(0);
     });
-    expect(screen.getByText("$5.25")).toBeInTheDocument();
+    expect(screen.getAllByText("$5.25").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "New build" })).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe("<BuildsListPage />", () => {
     const user = userEvent.setup();
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("BUILD-2026-0001")).toBeInTheDocument();
+      expect(screen.getAllByText("BUILD-2026-0001").length).toBeGreaterThan(0);
     });
     await user.selectOptions(screen.getByTestId("build-filter-state"), "completed");
     await waitFor(() => {

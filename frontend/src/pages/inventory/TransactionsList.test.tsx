@@ -66,7 +66,7 @@ describe("<TransactionsListPage />", () => {
       .onGet("/api/v1/inventory/transactions")
       .reply(200, { items: [TX], next_cursor: null });
     renderPage();
-    expect(await screen.findByText(/Receipt/)).toBeInTheDocument();
+    expect((await screen.findAllByText(/Receipt/)).length).toBeGreaterThan(0);
   });
 
   it("passes entity_kind filter to the API and clears cursor", async () => {
@@ -77,7 +77,7 @@ describe("<TransactionsListPage />", () => {
       return [200, { items: [], next_cursor: null }];
     });
     renderPage();
-    await screen.findByText(/No transactions/i);
+    await screen.findAllByText(/No transactions/i);
     await userEvent.selectOptions(
       screen.getByTestId("filter-entity-kind"),
       "material",
@@ -95,7 +95,7 @@ describe("<TransactionsListPage />", () => {
       .onGet("/api/v1/inventory/transactions")
       .reply(200, { items: [], next_cursor: null });
     renderPage();
-    await screen.findByText(/No transactions/i);
+    await screen.findAllByText(/No transactions/i);
     expect(screen.queryByTestId("open-transfer")).not.toBeInTheDocument();
     expect(screen.getByTestId("open-record")).toBeInTheDocument();
   });
@@ -106,7 +106,7 @@ describe("<TransactionsListPage />", () => {
       .onGet("/api/v1/inventory/transactions")
       .reply(200, { items: [], next_cursor: null });
     renderPage();
-    await screen.findByText(/No transactions/i);
+    await screen.findAllByText(/No transactions/i);
     expect(screen.queryByTestId("open-record")).not.toBeInTheDocument();
     expect(screen.queryByTestId("open-transfer")).not.toBeInTheDocument();
   });

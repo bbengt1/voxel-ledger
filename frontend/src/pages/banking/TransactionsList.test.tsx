@@ -64,10 +64,20 @@ describe("<TransactionsListPage />", () => {
       </MemoryRouter>,
     );
     await waitFor(() =>
-      expect(screen.getByTestId(`tx-row-${TX_ID}`)).toBeInTheDocument(),
+      // DataTable renders a desktop table + mobile card, so row + action
+      // testids appear twice in jsdom.
+      expect(
+        screen.getAllByTestId(`tx-row-${TX_ID}`).length,
+      ).toBeGreaterThanOrEqual(1),
     );
-    expect(screen.getByTestId(`tx-match-${TX_ID}`)).toBeInTheDocument();
-    expect(screen.getByTestId(`tx-post-${TX_ID}`)).toBeInTheDocument();
-    expect(screen.getByTestId(`tx-ignore-${TX_ID}`)).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId(`tx-match-${TX_ID}`).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByTestId(`tx-post-${TX_ID}`).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByTestId(`tx-ignore-${TX_ID}`).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 });

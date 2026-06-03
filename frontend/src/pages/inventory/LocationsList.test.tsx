@@ -79,9 +79,11 @@ describe("<LocationsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("Workshop bench")).toBeInTheDocument();
-    expect(screen.getByText("WSB")).toBeInTheDocument();
-    expect(screen.getByText("workshop")).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText("Workshop bench")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("WSB").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("workshop").length).toBeGreaterThan(0);
   });
 
   it("hides New location for sales role", async () => {
@@ -111,7 +113,7 @@ describe("<LocationsListPage />", () => {
       return [200, { items: [], next_cursor: null }];
     });
     renderPage();
-    await screen.findByText(/no locations match/i);
+    await screen.findAllByText(/no locations match/i);
     await userEvent.selectOptions(
       screen.getByLabelText(/^Kind$/i),
       "finished_goods",
@@ -135,7 +137,7 @@ describe("<LocationsListPage />", () => {
       return [200, { items: [], next_cursor: null }];
     });
     renderPage();
-    await screen.findByText(/no locations match/i);
+    await screen.findAllByText(/no locations match/i);
     await userEvent.selectOptions(screen.getByLabelText(/^Status$/i), "true");
     await waitFor(() => {
       expect(calls.some((u) => u.includes("is_archived=true"))).toBe(true);

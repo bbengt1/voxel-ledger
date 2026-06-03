@@ -10,7 +10,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -116,18 +119,78 @@ export function JobsListPage() {
     });
   }, [items, customer, dueFrom, dueTo]);
 
+  const columns: DataTableColumn<JobResponse>[] = [
+    {
+      key: "job_number",
+      header: "Job #",
+      isPrimary: true,
+      cell: (j) => (
+        <Link
+          to={`/production/jobs/${j.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {j.job_number}
+        </Link>
+      ),
+    },
+    {
+      key: "part",
+      header: "Part",
+      cell: (j) => (
+        <span title={j.part_sku ?? undefined}>
+          {j.part_name || j.part_sku || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      cell: (j) => <span title={j.description ?? undefined}>{j.description || "—"}</span>,
+    },
+    { key: "state", header: "State", cell: (j) => j.state },
+    { key: "qty", header: "Qty", cell: (j) => j.quantity_ordered },
+    { key: "pieces", header: "Pieces", cell: (j) => j.pieces_produced },
+    { key: "priority", header: "Priority", cell: (j) => j.priority },
+    {
+      key: "due",
+      header: "Due",
+      cell: (j) => (j.due_at ? new Date(j.due_at).toLocaleDateString() : "—"),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cardFullWidth: true,
+      cell: (j) =>
+        canCreate ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void duplicateJob(j.id)}
+            disabled={duplicatingId === j.id}
+            data-testid={`duplicate-job-${j.id}`}
+          >
+            {duplicatingId === j.id ? "Duplicating…" : "Duplicate"}
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Jobs</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/production/jobs/new">New job</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Jobs"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/production/jobs/new">New job</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={5}>
         <label className="block text-xs">
           State
           <select
@@ -178,7 +241,7 @@ export function JobsListPage() {
             data-testid="filter-due-to"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -190,79 +253,15 @@ export function JobsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Job #</th>
-            <th className="py-2 pr-2">Part</th>
-            <th className="py-2 pr-2">Description</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2">Qty</th>
-            <th className="py-2 pr-2">Pieces</th>
-            <th className="py-2 pr-2">Priority</th>
-            <th className="py-2 pr-2">Due</th>
-            <th className="py-2 pr-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={9} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : filtered.length === 0 ? (
-            <tr>
-              <td colSpan={9} className="py-4 text-center text-muted-foreground">
-                No jobs match these filters.
-              </td>
-            </tr>
-          ) : (
-            filtered.map((j) => (
-              <tr
-                key={j.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/production/jobs/${j.id}`}
-                    className="hover:underline"
-                  >
-                    {j.job_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2 truncate" title={j.part_sku ?? undefined}>
-                  {j.part_name || j.part_sku || "—"}
-                </td>
-                <td className="py-2 pr-2 truncate" title={j.description ?? undefined}>
-                  {j.description || "—"}
-                </td>
-                <td className="py-2 pr-2">{j.state}</td>
-                <td className="py-2 pr-2">{j.quantity_ordered}</td>
-                <td className="py-2 pr-2">{j.pieces_produced}</td>
-                <td className="py-2 pr-2">{j.priority}</td>
-                <td className="py-2 pr-2">
-                  {j.due_at ? new Date(j.due_at).toLocaleDateString() : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right">
-                  {canCreate ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void duplicateJob(j.id)}
-                      disabled={duplicatingId === j.id}
-                      data-testid={`duplicate-job-${j.id}`}
-                    >
-                      {duplicatingId === j.id ? "Duplicating…" : "Duplicate"}
-                    </Button>
-                  ) : null}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={filtered}
+        getRowKey={(j) => j.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No jobs match these filters."
+        minWidthClassName="min-w-[760px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

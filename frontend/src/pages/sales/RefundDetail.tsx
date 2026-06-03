@@ -97,7 +97,7 @@ export function RefundDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div>
           Sale:{" "}
           <Link to={`/sales/${refund.sale_id}`} className="text-primary underline">
@@ -132,7 +132,8 @@ export function RefundDetailPage() {
         )}
       </div>
 
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[440px] text-sm">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
             <th className="py-2">Sale item</th>
@@ -152,6 +153,7 @@ export function RefundDetailPage() {
           ))}
         </tbody>
       </table>
+      </div>
 
       {refund.state === "posted" && refund.restock_inventory && (
         <div

@@ -76,8 +76,9 @@ describe("<MaterialsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("PLA Red")).toBeInTheDocument();
-    expect(screen.getByText("Polymaker")).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so cell text appears twice.
+    expect((await screen.findAllByText("PLA Red")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Polymaker").length).toBeGreaterThanOrEqual(1);
   });
 
   it("debounces search input and re-queries with search param", async () => {
@@ -98,7 +99,7 @@ describe("<MaterialsListPage />", () => {
     await user.type(screen.getByLabelText(/search/i), "red");
     await waitFor(
       () => {
-        expect(screen.getByText("PLA Red")).toBeInTheDocument();
+        expect(screen.getAllByText("PLA Red").length).toBeGreaterThanOrEqual(1);
       },
       { timeout: 1500 },
     );

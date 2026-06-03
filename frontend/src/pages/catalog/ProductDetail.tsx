@@ -505,7 +505,8 @@ export function ProductDetailPage() {
             No material usage — add parts to this product's BOM.
           </p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[320px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-1 pr-2">Material</th>
@@ -523,6 +524,7 @@ export function ProductDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 

@@ -118,7 +118,7 @@ export function MappingComposerPage() {
         <h1 className="text-xl font-semibold">New bank import mapping</h1>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border p-4">
+      <div className="grid grid-cols-1 gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
         <label className="block text-sm">
           Name
           <Input
@@ -195,7 +195,7 @@ export function MappingComposerPage() {
             ))}
           </select>
         </label>
-        <fieldset className="col-span-2 text-sm">
+        <fieldset className="text-sm sm:col-span-2">
           <legend className="font-medium">Amount sign</legend>
           {AMOUNT_SIGNS.map((s) => (
             <label key={s} className="mr-3 inline-flex items-center gap-1">
@@ -219,7 +219,7 @@ export function MappingComposerPage() {
           <p className="text-xs text-muted-foreground">
             Map each logical field to the matching header in your CSV.
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {COLUMN_KEYS.map((key) => (
               <label key={key} className="block text-sm">
                 {key}
@@ -248,8 +248,9 @@ export function MappingComposerPage() {
             data-testid="mapping-preview-input"
           />
           {previewRows.length > 0 ? (
+            <div className="overflow-x-auto">
             <table
-              className="w-full text-xs"
+              className="w-full min-w-[32rem] text-xs"
               data-testid="mapping-preview-table"
             >
               <thead>
@@ -277,6 +278,7 @@ export function MappingComposerPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           ) : null}
         </div>
       ) : null}

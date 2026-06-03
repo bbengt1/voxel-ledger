@@ -9,7 +9,9 @@ import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { BankAccountPicker } from "@/components/banking/BankAccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -101,19 +103,60 @@ export function ReconciliationsListPage() {
     }
   }
 
+  const columns: DataTableColumn<Recon>[] = [
+    {
+      key: "period_end",
+      header: "Period end",
+      isPrimary: true,
+      cell: (r) => (
+        <Link
+          to={`/banking/reconciliation/${r.id}`}
+          className="hover:underline"
+        >
+          {r.period_end}
+        </Link>
+      ),
+    },
+    { key: "state", header: "State", cell: (r) => r.state },
+    {
+      key: "statement",
+      header: "Statement",
+      align: "right",
+      cell: (r) => (
+        <span className="font-mono">{r.statement_ending_balance}</span>
+      ),
+    },
+    {
+      key: "book",
+      header: "Book",
+      align: "right",
+      cell: (r) => (
+        <span className="font-mono">{r.book_ending_balance ?? "—"}</span>
+      ),
+    },
+    {
+      key: "difference",
+      header: "Difference",
+      align: "right",
+      cell: (r) => <span className="font-mono">{r.difference ?? "—"}</span>,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Reconciliations</h1>
-        {canWrite ? (
-          <Button
-            onClick={() => setModalOpen(true)}
-            data-testid="new-recon-btn"
-          >
-            New reconciliation
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Reconciliations"
+        actions={
+          canWrite ? (
+            <Button
+              onClick={() => setModalOpen(true)}
+              data-testid="new-recon-btn"
+            >
+              New reconciliation
+            </Button>
+          ) : null
+        }
+      />
 
       <label className="block text-sm">
         Account
@@ -133,59 +176,14 @@ export function ReconciliationsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Period end</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2 text-right">Statement</th>
-            <th className="py-2 pr-2 text-right">Book</th>
-            <th className="py-2 pr-2 text-right">Difference</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No reconciliations.
-              </td>
-            </tr>
-          ) : (
-            items.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b border-border/50"
-                data-testid={`recon-row-${r.id}`}
-              >
-                <td className="py-2 pr-2">
-                  <Link
-                    to={`/banking/reconciliation/${r.id}`}
-                    className="hover:underline"
-                  >
-                    {r.period_end}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{r.state}</td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  {r.statement_ending_balance}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  {r.book_ending_balance ?? "—"}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  {r.difference ?? "—"}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(r) => r.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No reconciliations."
+        minWidthClassName="min-w-[640px]"
+      />
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>

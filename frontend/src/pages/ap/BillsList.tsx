@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -80,18 +83,60 @@ export function BillsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<BillResponse>[] = [
+    {
+      key: "bill_number",
+      header: "Bill #",
+      isPrimary: true,
+      cell: (b) => (
+        <Link
+          to={`/bills/${b.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {b.bill_number}
+        </Link>
+      ),
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      cell: (b) =>
+        b.issued_at ? new Date(b.issued_at).toLocaleDateString() : "—",
+    },
+    {
+      key: "due",
+      header: "Due",
+      cell: (b) => (b.due_at ? new Date(b.due_at).toLocaleDateString() : "—"),
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (b) => <span className="font-mono">${b.total_amount}</span>,
+    },
+    {
+      key: "outstanding",
+      header: "Outstanding",
+      align: "right",
+      cell: (b) => <span className="font-mono">${b.amount_outstanding}</span>,
+    },
+    { key: "state", header: "State", cell: (b) => b.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Bills</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/bills/new">New bill</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Bills"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/bills/new">New bill</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={5}>
         <label className="block text-xs">
           State
           <select
@@ -144,7 +189,7 @@ export function BillsListPage() {
           />
           Overdue only
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -155,62 +200,15 @@ export function BillsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Bill #</th>
-            <th className="py-2 pr-2">Issued</th>
-            <th className="py-2 pr-2">Due</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2 text-right">Outstanding</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No bills match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((b) => (
-              <tr
-                key={b.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`bill-row-${b.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/bills/${b.id}`} className="hover:underline">
-                    {b.bill_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {b.issued_at
-                    ? new Date(b.issued_at).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2">
-                  {b.due_at ? new Date(b.due_at).toLocaleDateString() : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  ${b.total_amount}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  ${b.amount_outstanding}
-                </td>
-                <td className="py-2 pr-2">{b.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(b) => b.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No bills match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

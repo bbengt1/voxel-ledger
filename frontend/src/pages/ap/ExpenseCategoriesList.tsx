@@ -8,7 +8,9 @@ import { Link } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type ExpenseCategoryResponse = components["schemas"]["ExpenseCategoryResponse"];
@@ -62,16 +64,65 @@ export function ExpenseCategoriesListPage() {
     }
   }
 
+  const columns: DataTableColumn<ExpenseCategoryResponse>[] = [
+    {
+      key: "code",
+      header: "Code",
+      isPrimary: true,
+      cell: (c) => (
+        <Link
+          to={`/expense-categories/${c.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {c.code}
+        </Link>
+      ),
+    },
+    { key: "name", header: "Name", cell: (c) => c.name },
+    {
+      key: "parent",
+      header: "Parent",
+      cell: (c) =>
+        c.parent_id ? (
+          <span className="rounded border border-border px-1 font-mono text-xs">
+            {c.parent_id.slice(0, 8)}
+          </span>
+        ) : (
+          "—"
+        ),
+    },
+    { key: "active", header: "Active", cell: (c) => (c.is_active ? "yes" : "no") },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cardFullWidth: true,
+      cell: (c) =>
+        canWrite ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void toggleActive(c)}
+            data-testid={`toggle-active-${c.id}`}
+          >
+            {c.is_active ? "Archive" : "Activate"}
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Expense categories</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/expense-categories/new">New category</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Expense categories"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/expense-categories/new">New category</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div
@@ -82,72 +133,15 @@ export function ExpenseCategoriesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Code</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Parent</th>
-            <th className="py-2 pr-2">Active</th>
-            <th className="py-2 pr-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No categories yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`category-row-${c.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link
-                    to={`/expense-categories/${c.id}`}
-                    className="hover:underline"
-                  >
-                    {c.code}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{c.name}</td>
-                <td className="py-2 pr-2 font-mono text-xs">
-                  {c.parent_id ? (
-                    <span className="rounded border border-border px-1">
-                      {c.parent_id.slice(0, 8)}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="py-2 pr-2">{c.is_active ? "yes" : "no"}</td>
-                <td className="py-2 pr-2 text-right">
-                  {canWrite ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void toggleActive(c)}
-                      data-testid={`toggle-active-${c.id}`}
-                    >
-                      {c.is_active ? "Archive" : "Activate"}
-                    </Button>
-                  ) : null}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(c) => c.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No categories yet."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

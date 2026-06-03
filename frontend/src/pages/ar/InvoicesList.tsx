@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -78,18 +81,56 @@ export function InvoicesListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<InvoiceResponse>[] = [
+    {
+      key: "invoice_number",
+      header: "Invoice #",
+      isPrimary: true,
+      cell: (i) => (
+        <Link to={`/invoices/${i.id}`} className="font-mono text-xs hover:underline">
+          {i.invoice_number}
+        </Link>
+      ),
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      cell: (i) => (i.issued_at ? new Date(i.issued_at).toLocaleDateString() : "—"),
+    },
+    {
+      key: "due",
+      header: "Due",
+      cell: (i) => (i.due_at ? new Date(i.due_at).toLocaleDateString() : "—"),
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      cell: (i) => <span className="font-mono">${i.total_amount}</span>,
+    },
+    {
+      key: "outstanding",
+      header: "Outstanding",
+      align: "right",
+      cell: (i) => <span className="font-mono">${i.amount_outstanding}</span>,
+    },
+    { key: "state", header: "State", cell: (i) => i.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Invoices</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/invoices/new">New invoice</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Invoices"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/invoices/new">New invoice</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={4}>
         <label className="block text-xs">
           State
           <select
@@ -133,7 +174,7 @@ export function InvoicesListPage() {
           />
           Overdue only
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -141,56 +182,15 @@ export function InvoicesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Invoice #</th>
-            <th className="py-2 pr-2">Issued</th>
-            <th className="py-2 pr-2">Due</th>
-            <th className="py-2 pr-2 text-right">Total</th>
-            <th className="py-2 pr-2 text-right">Outstanding</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No invoices match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((i) => (
-              <tr
-                key={i.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`invoice-row-${i.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/invoices/${i.id}`} className="hover:underline">
-                    {i.invoice_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  {i.issued_at ? new Date(i.issued_at).toLocaleDateString() : "—"}
-                </td>
-                <td className="py-2 pr-2">
-                  {i.due_at ? new Date(i.due_at).toLocaleDateString() : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right font-mono">${i.total_amount}</td>
-                <td className="py-2 pr-2 text-right font-mono">${i.amount_outstanding}</td>
-                <td className="py-2 pr-2">{i.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(i) => i.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No invoices match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

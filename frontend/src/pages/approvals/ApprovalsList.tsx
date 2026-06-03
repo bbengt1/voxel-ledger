@@ -9,6 +9,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 
 interface ApprovalRow {
   id: string;
@@ -63,26 +65,82 @@ export function ApprovalsListPage() {
 
   const rows = useMemo(() => items, [items]);
 
+  const columns: DataTableColumn<ApprovalRow>[] = [
+    {
+      key: "request_type",
+      header: "Type",
+      isPrimary: true,
+      cell: (row) => row.request_type,
+    },
+    {
+      key: "subject",
+      header: "Subject",
+      cell: (row) => (
+        <>
+          {row.subject_kind}:{row.subject_id.slice(0, 8)}
+        </>
+      ),
+    },
+    { key: "state", header: "State", cell: (row) => row.state },
+    {
+      key: "threshold",
+      header: "Threshold",
+      align: "right",
+      cell: (row) => row.threshold_amount ?? "—",
+    },
+    {
+      key: "requested",
+      header: "Requested",
+      cell: (row) => new Date(row.requested_at).toLocaleString(),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cardFullWidth: true,
+      cell: (row) => (
+        <span className="space-x-2">
+          <Link to={`/approvals/${row.id}`} className="text-primary underline">
+            Open
+          </Link>
+          {row.subject_kind === "refund" && (
+            <Link
+              to={`/sales/refunds/${row.subject_id}`}
+              data-testid={`view-refund-${row.id}`}
+              className="text-primary underline"
+            >
+              View refund
+            </Link>
+          )}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Approvals</h1>
-        <label className="text-sm text-muted-foreground">
-          State{" "}
-          <select
-            data-testid="state-filter"
-            value={stateFilter}
-            onChange={(e) => setStateFilter(e.target.value)}
-            className="ml-2 rounded border border-border bg-background px-2 py-1"
-          >
-            <option value="">all</option>
-            <option value="pending">pending</option>
-            <option value="approved">approved</option>
-            <option value="rejected">rejected</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </label>
-      </header>
+      <PageHeader
+        title={
+          <h1 className="text-2xl font-semibold tracking-tight">Approvals</h1>
+        }
+        actions={
+          <label className="text-sm text-muted-foreground">
+            State{" "}
+            <select
+              data-testid="state-filter"
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="ml-2 rounded border border-border bg-background px-2 py-1"
+            >
+              <option value="">all</option>
+              <option value="pending">pending</option>
+              <option value="approved">approved</option>
+              <option value="rejected">rejected</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+          </label>
+        }
+      />
 
       {banner === "refund-pending" && (
         <div
@@ -100,55 +158,18 @@ export function ApprovalsListPage() {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : rows.length === 0 ? (
+      {!loading && rows.length === 0 ? (
         <p className="text-sm text-muted-foreground" data-testid="empty">
           No approval requests.
         </p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="py-2">Type</th>
-              <th>Subject</th>
-              <th>State</th>
-              <th>Threshold</th>
-              <th>Requested</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-t border-border">
-                <td className="py-2">{row.request_type}</td>
-                <td>
-                  {row.subject_kind}:{row.subject_id.slice(0, 8)}
-                </td>
-                <td>{row.state}</td>
-                <td>{row.threshold_amount ?? "—"}</td>
-                <td>{new Date(row.requested_at).toLocaleString()}</td>
-                <td className="space-x-2">
-                  <Link
-                    to={`/approvals/${row.id}`}
-                    className="text-primary underline"
-                  >
-                    Open
-                  </Link>
-                  {row.subject_kind === "refund" && (
-                    <Link
-                      to={`/sales/refunds/${row.subject_id}`}
-                      data-testid={`view-refund-${row.id}`}
-                      className="text-primary underline"
-                    >
-                      View refund
-                    </Link>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          getRowKey={(row) => row.id}
+          loading={loading}
+          minWidthClassName="min-w-[640px]"
+        />
       )}
     </section>
   );

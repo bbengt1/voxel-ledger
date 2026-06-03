@@ -57,7 +57,7 @@ export function WithholdingYtdReportPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Withholding YTD (1099)</h1>
         <Button onClick={downloadCsv} data-testid="wy-csv">
           Download CSV
@@ -83,7 +83,8 @@ export function WithholdingYtdReportPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[44rem] table-fixed border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Vendor #</th>
@@ -126,6 +127,7 @@ export function WithholdingYtdReportPage() {
           </tfoot>
         ) : null}
       </table>
+      </div>
     </section>
   );
 }

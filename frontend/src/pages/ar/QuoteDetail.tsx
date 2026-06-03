@@ -172,32 +172,34 @@ export function QuoteDetailPage() {
 
       <div className="rounded-lg border border-border p-4">
         <h2 className="text-sm font-semibold">Lines</h2>
-        <table className="mt-2 w-full table-fixed border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-              <th className="py-2 pr-2">#</th>
-              <th className="py-2 pr-2">Kind</th>
-              <th className="py-2 pr-2">Description</th>
-              <th className="py-2 pr-2 text-right">Qty</th>
-              <th className="py-2 pr-2 text-right">Unit</th>
-              <th className="py-2 pr-2 text-right">Extended</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(quote.items ?? []).map((it) => (
-              <tr key={it.id} className="border-b border-border/50">
-                <td className="py-2 pr-2 font-mono text-xs">{it.line_number}</td>
-                <td className="py-2 pr-2">{it.kind}</td>
-                <td className="py-2 pr-2">{it.description}</td>
-                <td className="py-2 pr-2 text-right font-mono">{it.quantity}</td>
-                <td className="py-2 pr-2 text-right font-mono">${it.unit_price}</td>
-                <td className="py-2 pr-2 text-right font-mono">
-                  ${it.extended_amount}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="mt-2 w-full min-w-[32rem] table-fixed border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <th className="py-2 pr-2">#</th>
+                <th className="py-2 pr-2">Kind</th>
+                <th className="py-2 pr-2">Description</th>
+                <th className="py-2 pr-2 text-right">Qty</th>
+                <th className="py-2 pr-2 text-right">Unit</th>
+                <th className="py-2 pr-2 text-right">Extended</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(quote.items ?? []).map((it) => (
+                <tr key={it.id} className="border-b border-border/50">
+                  <td className="py-2 pr-2 font-mono text-xs">{it.line_number}</td>
+                  <td className="py-2 pr-2">{it.kind}</td>
+                  <td className="py-2 pr-2">{it.description}</td>
+                  <td className="py-2 pr-2 text-right font-mono">{it.quantity}</td>
+                  <td className="py-2 pr-2 text-right font-mono">${it.unit_price}</td>
+                  <td className="py-2 pr-2 text-right font-mono">
+                    ${it.extended_amount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border p-4 text-sm">

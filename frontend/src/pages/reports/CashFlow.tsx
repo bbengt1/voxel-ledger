@@ -108,14 +108,14 @@ export function CashFlowPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">Cash flow (indirect)</h1>
         <Button onClick={downloadCsv} data-testid="cf-csv">
           Download CSV
         </Button>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="block text-xs">
           From
           <Input
@@ -164,7 +164,8 @@ export function CashFlowPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[24rem] border-collapse text-sm">
         <tbody>
           {report ? (
             <>
@@ -199,6 +200,7 @@ export function CashFlowPage() {
           )}
         </tbody>
       </table>
+      </div>
     </section>
   );
 }

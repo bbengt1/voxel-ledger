@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Voxel Ledger">
+  <rect width="512" height="512" rx="96" fill="#3f5ad9"/>
+  <g>
+    <!-- top face -->
+    <polygon points="256,97 394,177 256,256 118,177" fill="#ffffff"/>
+    <!-- left face -->
+    <polygon points="118,177 256,256 256,415 118,335" fill="#ffffff" fill-opacity="0.86"/>
+    <!-- right face -->
+    <polygon points="394,177 394,335 256,415 256,256" fill="#ffffff" fill-opacity="0.70"/>
+  </g>
+</svg>

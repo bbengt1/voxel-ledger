@@ -150,7 +150,7 @@ export function RecordBillPaymentPage() {
 
       <div className="space-y-3 rounded-lg border border-border p-4">
         <h2 className="text-sm font-semibold">Header</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             Vendor
             <VendorPicker
@@ -229,51 +229,55 @@ export function RecordBillPaymentPage() {
             No open bills for this vendor.
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                <th className="py-1 pr-2">Bill</th>
-                <th className="py-1 pr-2">Due</th>
-                <th className="py-1 pr-2 text-right">Outstanding</th>
-                <th className="py-1 pr-2 text-right">Apply</th>
-              </tr>
-            </thead>
-            <tbody>
-              {openBills.map((b) => (
-                <tr
-                  key={b.id}
-                  className="border-b border-border/50"
-                  data-testid={`alloc-row-${b.id}`}
-                >
-                  <td className="py-1 pr-2 font-mono text-xs">
-                    {b.bill_number}
-                  </td>
-                  <td className="py-1 pr-2 text-xs">
-                    {b.due_at ? new Date(b.due_at).toLocaleDateString() : "—"}
-                  </td>
-                  <td className="py-1 pr-2 text-right font-mono">
-                    ${b.amount_outstanding}
-                  </td>
-                  <td className="py-1 pr-2 text-right">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={allocations[b.id] ?? ""}
-                      onChange={(e) =>
-                        setAllocations((prev) => ({
-                          ...prev,
-                          [b.id]: e.target.value,
-                        }))
-                      }
-                      data-testid={`alloc-input-${b.id}`}
-                      className="w-28 text-right"
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[32rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                  <th className="py-1 pr-2">Bill</th>
+                  <th className="py-1 pr-2">Due</th>
+                  <th className="py-1 pr-2 text-right">Outstanding</th>
+                  <th className="py-1 pr-2 text-right">Apply</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {openBills.map((b) => (
+                  <tr
+                    key={b.id}
+                    className="border-b border-border/50"
+                    data-testid={`alloc-row-${b.id}`}
+                  >
+                    <td className="py-1 pr-2 font-mono text-xs">
+                      {b.bill_number}
+                    </td>
+                    <td className="py-1 pr-2 text-xs">
+                      {b.due_at
+                        ? new Date(b.due_at).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td className="py-1 pr-2 text-right font-mono">
+                      ${b.amount_outstanding}
+                    </td>
+                    <td className="py-1 pr-2 text-right">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={allocations[b.id] ?? ""}
+                        onChange={(e) =>
+                          setAllocations((prev) => ({
+                            ...prev,
+                            [b.id]: e.target.value,
+                          }))
+                        }
+                        data-testid={`alloc-input-${b.id}`}
+                        className="w-28 text-right"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <div
           className="flex items-center justify-end text-xs"

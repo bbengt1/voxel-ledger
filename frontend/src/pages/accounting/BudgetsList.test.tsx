@@ -92,8 +92,8 @@ describe("<BudgetsListPage />", () => {
         (screen.getByTestId("period-select") as HTMLSelectElement).value,
       ).toBe("p-current"),
     );
-    expect(await screen.findByText("Rent")).toBeInTheDocument();
-    const variance = await screen.findByTestId("variance-acc-1");
+    expect((await screen.findAllByText("Rent")).length).toBeGreaterThanOrEqual(1);
+    const variance = (await screen.findAllByTestId("variance-acc-1"))[0]!;
     // Expense w/ positive variance is favorable → emerald color class.
     expect(variance.className).toMatch(/emerald/);
   });
@@ -104,7 +104,7 @@ describe("<BudgetsListPage />", () => {
       .onGet("/api/v1/accounting/budgets/variance")
       .reply(200, { period_id: "p-current", items: [] });
     renderPage();
-    await screen.findByText(/No budgets for this period/i);
+    await screen.findAllByText(/No budgets for this period/i);
     await userEvent.click(screen.getByTestId("open-new-budget"));
     expect(await screen.findByTestId("new-budget-dialog")).toBeInTheDocument();
   });

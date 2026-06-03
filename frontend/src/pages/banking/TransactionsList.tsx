@@ -9,7 +9,10 @@ import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { BankAccountPicker } from "@/components/banking/BankAccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ManualMatchModal } from "./ManualMatchModal";
@@ -98,13 +101,95 @@ export function TransactionsListPage() {
     }
   }
 
+  const columns: DataTableColumn<Tx>[] = [
+    {
+      key: "date",
+      header: "Date",
+      isPrimary: true,
+      cell: (t) => <span data-testid={`tx-row-${t.id}`}>{t.occurred_on}</span>,
+    },
+    { key: "description", header: "Description", cell: (t) => t.description },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      cell: (t) => {
+        const n = Number.parseFloat(t.amount);
+        const positive = Number.isFinite(n) && n >= 0;
+        return (
+          <span
+            className={
+              "font-mono " +
+              (positive ? "text-emerald-600" : "text-destructive")
+            }
+          >
+            {t.amount}
+          </span>
+        );
+      },
+    },
+    {
+      key: "state",
+      header: "State",
+      cell: (t) => (
+        <span className="rounded bg-muted px-2 py-0.5 text-xs">{t.state}</span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (t) =>
+        canWrite ? (
+          <div className="flex justify-end gap-1">
+            {t.state === "unmatched" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMatchTxId(t.id)}
+                  data-testid={`tx-match-${t.id}`}
+                >
+                  Match
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPostJeTx(t)}
+                  data-testid={`tx-post-${t.id}`}
+                >
+                  Post + match
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void ignore(t.id)}
+                  data-testid={`tx-ignore-${t.id}`}
+                >
+                  Ignore
+                </Button>
+              </>
+            ) : t.state === "matched" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void unmatch(t.id)}
+                data-testid={`tx-unmatch-${t.id}`}
+              >
+                Unmatch
+              </Button>
+            ) : null}
+          </div>
+        ) : null,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-xl font-semibold">Bank transactions</h1>
-      </header>
+      <PageHeader title="Bank transactions" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <FilterBar columns={5}>
         <label className="block text-xs">
           Account
           <BankAccountPicker
@@ -155,7 +240,7 @@ export function TransactionsListPage() {
             data-testid="tx-filter-search"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -166,103 +251,14 @@ export function TransactionsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Date</th>
-            <th className="py-2 pr-2">Description</th>
-            <th className="py-2 pr-2 text-right">Amount</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No transactions.
-              </td>
-            </tr>
-          ) : (
-            items.map((t) => {
-              const n = Number.parseFloat(t.amount);
-              const positive = Number.isFinite(n) && n >= 0;
-              return (
-                <tr
-                  key={t.id}
-                  className="border-b border-border/50"
-                  data-testid={`tx-row-${t.id}`}
-                >
-                  <td className="py-2 pr-2">{t.occurred_on}</td>
-                  <td className="py-2 pr-2">{t.description}</td>
-                  <td
-                    className={
-                      "py-2 pr-2 text-right font-mono " +
-                      (positive ? "text-emerald-600" : "text-destructive")
-                    }
-                  >
-                    {t.amount}
-                  </td>
-                  <td className="py-2 pr-2">
-                    <span className="rounded bg-muted px-2 py-0.5 text-xs">
-                      {t.state}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-2 text-right">
-                    {canWrite ? (
-                      <div className="flex justify-end gap-1">
-                        {t.state === "unmatched" ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setMatchTxId(t.id)}
-                              data-testid={`tx-match-${t.id}`}
-                            >
-                              Match
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setPostJeTx(t)}
-                              data-testid={`tx-post-${t.id}`}
-                            >
-                              Post + match
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => void ignore(t.id)}
-                              data-testid={`tx-ignore-${t.id}`}
-                            >
-                              Ignore
-                            </Button>
-                          </>
-                        ) : t.state === "matched" ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void unmatch(t.id)}
-                            data-testid={`tx-unmatch-${t.id}`}
-                          >
-                            Unmatch
-                          </Button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(t) => t.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No transactions."
+        minWidthClassName="min-w-[640px]"
+      />
 
       <ManualMatchModal
         txId={matchTxId ?? ""}

@@ -73,8 +73,12 @@ describe("<VendorsListPage />", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByTestId(`vendor-row-${VENDOR_ID}`)).toBeInTheDocument();
+      // DataTable renders a desktop table + mobile card, so the vendor number
+      // (and other cell text) appears twice in jsdom.
+      expect(screen.getAllByText("VND-0001").length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.getByText("Acme Supplies")).toBeInTheDocument();
+    expect(screen.getAllByText("Acme Supplies").length).toBeGreaterThanOrEqual(
+      1,
+    );
   });
 });

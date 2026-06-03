@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type RecurringTemplateResponse = components["schemas"]["RecurringTemplateResponse"];
@@ -68,18 +71,49 @@ export function RecurringListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<RecurringTemplateResponse>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (t) => (
+        <Link to={`/recurring-invoices/${t.id}`} className="hover:underline">
+          {t.name}
+        </Link>
+      ),
+    },
+    {
+      key: "cadence",
+      header: "Cadence",
+      cell: (t) => `every ${t.cadence_interval} ${t.cadence_kind}`,
+    },
+    {
+      key: "next_issue",
+      header: "Next issue",
+      cell: (t) => new Date(t.next_issue_at).toLocaleDateString(),
+    },
+    {
+      key: "auto_issue",
+      header: "Auto-issue",
+      cell: (t) => (t.auto_issue ? "yes" : "no"),
+    },
+    { key: "state", header: "State", cell: (t) => t.state },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Recurring invoices</h1>
-        {canCreate ? (
-          <Button asChild>
-            <Link to="/recurring-invoices/new">New recurring</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Recurring invoices"
+        actions={
+          canCreate ? (
+            <Button asChild>
+              <Link to="/recurring-invoices/new">New recurring</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <FilterBar columns={3}>
         <label className="block text-xs">
           State
           <select
@@ -96,7 +130,7 @@ export function RecurringListPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -107,57 +141,15 @@ export function RecurringListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Cadence</th>
-            <th className="py-2 pr-2">Next issue</th>
-            <th className="py-2 pr-2">Auto-issue</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No recurring invoices match.
-              </td>
-            </tr>
-          ) : (
-            items.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`recurring-row-${t.id}`}
-              >
-                <td className="py-2 pr-2">
-                  <Link
-                    to={`/recurring-invoices/${t.id}`}
-                    className="hover:underline"
-                  >
-                    {t.name}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">
-                  every {t.cadence_interval} {t.cadence_kind}
-                </td>
-                <td className="py-2 pr-2">
-                  {new Date(t.next_issue_at).toLocaleDateString()}
-                </td>
-                <td className="py-2 pr-2">{t.auto_issue ? "yes" : "no"}</td>
-                <td className="py-2 pr-2">{t.state}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(t) => t.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No recurring invoices match."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

@@ -219,30 +219,36 @@ export function ExpenseClaimDetailPage() {
 
       <div className="rounded-lg border border-border p-4">
         <h2 className="text-sm font-semibold">Lines</h2>
-        <table className="mt-2 w-full table-fixed border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-              <th className="py-2 pr-2">#</th>
-              <th className="py-2 pr-2">Description</th>
-              <th className="py-2 pr-2">Occurred</th>
-              <th className="py-2 pr-2">Billable</th>
-              <th className="py-2 pr-2 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(claim.lines ?? []).map((l) => (
-              <tr key={l.id} className="border-b border-border/50">
-                <td className="py-2 pr-2 font-mono text-xs">{l.line_number}</td>
-                <td className="py-2 pr-2">{l.description}</td>
-                <td className="py-2 pr-2 text-xs">
-                  {new Date(l.occurred_on).toLocaleDateString()}
-                </td>
-                <td className="py-2 pr-2">{l.is_billable ? "yes" : "no"}</td>
-                <td className="py-2 pr-2 text-right font-mono">${l.amount}</td>
+        <div className="overflow-x-auto">
+          <table className="mt-2 w-full min-w-[36rem] table-fixed border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <th className="py-2 pr-2">#</th>
+                <th className="py-2 pr-2">Description</th>
+                <th className="py-2 pr-2">Occurred</th>
+                <th className="py-2 pr-2">Billable</th>
+                <th className="py-2 pr-2 text-right">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(claim.lines ?? []).map((l) => (
+                <tr key={l.id} className="border-b border-border/50">
+                  <td className="py-2 pr-2 font-mono text-xs">
+                    {l.line_number}
+                  </td>
+                  <td className="py-2 pr-2">{l.description}</td>
+                  <td className="py-2 pr-2 text-xs">
+                    {new Date(l.occurred_on).toLocaleDateString()}
+                  </td>
+                  <td className="py-2 pr-2">{l.is_billable ? "yes" : "no"}</td>
+                  <td className="py-2 pr-2 text-right font-mono">
+                    ${l.amount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

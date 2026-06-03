@@ -100,8 +100,8 @@ describe("<JournalEntriesListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("JE-00007")).toBeInTheDocument();
-    expect(screen.getByText(/October utility/i)).toBeInTheDocument();
+    expect((await screen.findAllByText("JE-00007")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/October utility/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("passes period_id filter to the API on selection", async () => {
@@ -116,7 +116,7 @@ describe("<JournalEntriesListPage />", () => {
       return [200, { items: [], next_cursor: null }];
     });
     renderPage();
-    await screen.findByText(/no entries match/i);
+    await screen.findAllByText(/no entries match/i);
     const select = screen.getByTestId("filter-period") as HTMLSelectElement;
     select.value = "p1";
     select.dispatchEvent(new Event("change", { bubbles: true }));

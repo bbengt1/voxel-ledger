@@ -64,9 +64,9 @@ describe("<CustomFieldsPage />", () => {
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByText("Supplier Code")).toBeInTheDocument(),
+      expect(screen.getAllByText("Supplier Code").length).toBeGreaterThan(0),
     );
-    expect(screen.getByText("supplier_code")).toBeInTheDocument();
+    expect(screen.getAllByText("supplier_code").length).toBeGreaterThan(0);
   });
 
   it("shows select option editor when type=select", async () => {

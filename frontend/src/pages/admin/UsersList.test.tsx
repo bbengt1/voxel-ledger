@@ -68,8 +68,10 @@ describe("<UsersListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("alice@example.com")).toBeInTheDocument();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText("alice@example.com")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
   });
 
   it("debounces search input and re-queries with search param", async () => {
@@ -104,7 +106,9 @@ describe("<UsersListPage />", () => {
     await user.type(screen.getByLabelText(/search/i), "bob");
     await waitFor(
       () => {
-        expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+        expect(screen.getAllByText("bob@example.com").length).toBeGreaterThan(
+          0,
+        );
       },
       { timeout: 1500 },
     );
@@ -159,7 +163,7 @@ describe("<UsersListPage />", () => {
 
     renderPage();
     const user = userEvent.setup();
-    await screen.findByText("a@example.com");
+    await screen.findAllByText("a@example.com");
     await user.click(screen.getByTestId("load-more"));
     await waitFor(() => {
       expect(observedCursor).toBe("cursor-1");
