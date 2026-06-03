@@ -63,6 +63,12 @@ describe("<ProductDetailPage />", () => {
       items: [],
       next_cursor: null,
     });
+    // Default: nothing buildable. Individual tests override as needed.
+    mock.onGet("/api/v1/builds/buildable").reply(200, {
+      product_id: PID,
+      location_id: null,
+      max_buildable: 0,
+    });
   });
 
   afterEach(() => {
@@ -148,6 +154,86 @@ describe("<ProductDetailPage />", () => {
         "Finished goods",
       );
     });
+  });
+
+  it("shows the buildable count and builds from parts in one click", async () => {
+    setOwner();
+    mock.reset();
+    mock.onGet("/api/v1/inventory/locations").reply(200, {
+      items: [],
+      next_cursor: null,
+    });
+    mock.onGet(`/api/v1/products/${PID}`).reply(200, aProduct());
+    mock
+      .onGet(`/api/v1/products/${PID}/bom`)
+      .reply(200, { items: [], total_cost: null });
+    // First availability check: can build 4.
+    let buildableCalls = 0;
+    mock.onGet("/api/v1/builds/buildable").reply(() => {
+      buildableCalls += 1;
+      return [
+        200,
+        { product_id: PID, location_id: "loc-1", max_buildable: buildableCalls === 1 ? 4 : 2 },
+      ];
+    });
+    let postedBody: Record<string, unknown> | undefined;
+    mock.onPost("/api/v1/builds/now").reply((config) => {
+      postedBody = JSON.parse(config.data as string);
+      return [
+        200,
+        {
+          id: "b1",
+          build_number: "BUILD-2026-0001",
+          product_id: PID,
+          state: "completed",
+          quantity: 2,
+          assembly_minutes: 0,
+          actor_user_id: "u",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ];
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    await waitFor(() => {
+      expect(screen.getByTestId("buildable-count").textContent).toMatch(
+        /Can build 4/i,
+      );
+    });
+    const qty = screen.getByTestId("build-qty-input") as HTMLInputElement;
+    await user.clear(qty);
+    await user.type(qty, "2");
+    await user.click(screen.getByTestId("build-now-btn"));
+    await waitFor(() => {
+      expect(screen.getByTestId("build-msg").textContent).toMatch(
+        /BUILD-2026-0001/,
+      );
+    });
+    expect(postedBody).toEqual({ product_id: PID, quantity: 2 });
+    // Availability re-checked after the build.
+    await waitFor(() => {
+      expect(screen.getByTestId("buildable-count").textContent).toMatch(
+        /Can build 2/i,
+      );
+    });
+  });
+
+  it("disables the build button when nothing is buildable", async () => {
+    setOwner();
+    mock.onGet(`/api/v1/products/${PID}`).reply(200, aProduct());
+    mock
+      .onGet(`/api/v1/products/${PID}/bom`)
+      .reply(200, { items: [], total_cost: null });
+    // beforeEach default: max_buildable 0.
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId("buildable-count").textContent).toMatch(
+        /Not enough parts/i,
+      );
+    });
+    expect(screen.getByTestId("build-now-btn")).toBeDisabled();
   });
 
   it("renders the derived material rollup (from parts)", async () => {
