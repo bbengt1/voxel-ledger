@@ -72,8 +72,9 @@ describe("<SuppliesListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("Bubble Wrap")).toBeInTheDocument();
-    expect(screen.getByText("ULINE")).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so cell text appears twice.
+    expect((await screen.findAllByText("Bubble Wrap")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("ULINE").length).toBeGreaterThanOrEqual(1);
   });
 
   it("hides New supply for sales role", async () => {

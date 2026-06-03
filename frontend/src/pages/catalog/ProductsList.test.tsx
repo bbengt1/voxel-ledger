@@ -75,8 +75,9 @@ describe("<ProductsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("Widget A")).toBeInTheDocument();
-    expect(screen.getByText("PROD-2026-0001")).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so cell text appears twice.
+    expect((await screen.findAllByText("Widget A")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("PROD-2026-0001").length).toBeGreaterThanOrEqual(1);
   });
 
   it("debounces search input and forwards the search param", async () => {
@@ -94,7 +95,7 @@ describe("<ProductsListPage />", () => {
     await user.type(screen.getByLabelText(/search/i), "widget");
     await waitFor(
       () => {
-        expect(screen.getByText("Widget Match")).toBeInTheDocument();
+        expect(screen.getAllByText("Widget Match").length).toBeGreaterThanOrEqual(1);
       },
       { timeout: 1500 },
     );

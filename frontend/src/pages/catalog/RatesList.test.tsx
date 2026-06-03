@@ -74,12 +74,13 @@ describe("<RatesListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByText("Labor A")).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so cell text appears twice.
+    expect((await screen.findAllByText("Labor A")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("rates-section-labor")).toContainElement(
-      screen.getByText("Labor A"),
+      screen.getAllByText("Labor A")[0]!,
     );
     expect(screen.getByTestId("rates-section-machine")).toContainElement(
-      screen.getByText("Machine A"),
+      screen.getAllByText("Machine A")[0]!,
     );
   });
 
@@ -105,13 +106,16 @@ describe("<RatesListPage />", () => {
       .reply(200, aRate(B_ID, "Labor B", "labor", true));
 
     renderPage();
-    expect(await screen.findByTestId(`default-marker-${A_ID}`)).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so testids appear twice.
+    expect((await screen.findAllByTestId(`default-marker-${A_ID}`)).length).toBeGreaterThanOrEqual(
+      1,
+    );
 
     const user = userEvent.setup();
-    await user.click(screen.getByTestId(`set-default-${B_ID}`));
+    await user.click(screen.getAllByTestId(`set-default-${B_ID}`)[0]!);
 
     await waitFor(() => {
-      expect(screen.getByTestId(`default-marker-${B_ID}`)).toBeInTheDocument();
+      expect(screen.getAllByTestId(`default-marker-${B_ID}`).length).toBeGreaterThanOrEqual(1);
     });
     expect(screen.queryByTestId(`default-marker-${A_ID}`)).not.toBeInTheDocument();
   });

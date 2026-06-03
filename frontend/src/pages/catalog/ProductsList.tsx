@@ -3,8 +3,11 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { formatCurrency, useCurrency } from "@/lib/currency";
 import { useColumnVisibility, type ColumnDef } from "@/lib/useColumnVisibility";
@@ -34,7 +37,6 @@ export function ProductsListPage() {
     : false;
   const currency = useCurrency();
   const { isVisible, toggle } = useColumnVisibility("products", PRODUCT_COLUMNS);
-  const colCount = PRODUCT_COLUMNS.filter((c) => isVisible(c.id)).length;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -92,25 +94,93 @@ export function ProductsListPage() {
     };
   }, [params]);
 
+  const allColumns: (DataTableColumn<ProductResponse> & { id: string })[] = [
+    {
+      id: "sku",
+      key: "sku",
+      header: "SKU",
+      isPrimary: true,
+      cellClassName: "font-mono text-xs",
+      cell: (p) => (
+        <Link to={`/catalog/products/${p.id}`} className="hover:underline">
+          {p.sku}
+        </Link>
+      ),
+    },
+    {
+      id: "upc",
+      key: "upc",
+      header: "UPC",
+      cellClassName: "font-mono text-xs text-muted-foreground",
+      cell: (p) => <span data-testid={`product-upc-${p.id}`}>{p.upc ?? "—"}</span>,
+    },
+    { id: "name", key: "name", header: "Name", cell: (p) => p.name },
+    {
+      id: "price",
+      key: "price",
+      header: "Price",
+      align: "right",
+      cell: (p) => formatCurrency(p.unit_price, currency),
+    },
+    {
+      id: "cost",
+      key: "cost",
+      header: "Cost (BOM)",
+      align: "right",
+      cell: (p) => (
+        <span data-testid={`product-cost-${p.id}`}>
+          {p.unit_cost_cached ? formatCurrency(p.unit_cost_cached, currency) : "—"}
+        </span>
+      ),
+    },
+    {
+      id: "on_hand",
+      key: "on_hand",
+      header: "On hand",
+      align: "right",
+      cellClassName: "tabular-nums",
+      cell: (p) => (
+        <span data-testid={`product-on-hand-${p.id}`}>
+          {Math.trunc(Number(p.total_on_hand ?? 0))}
+        </span>
+      ),
+    },
+    {
+      id: "category",
+      key: "category",
+      header: "Category",
+      cell: (p) => p.category ?? "—",
+    },
+    {
+      id: "status",
+      key: "status",
+      header: "Status",
+      cell: (p) => (p.is_archived ? "Archived" : "Active"),
+    },
+  ];
+  const columns = allColumns.filter((c) => isVisible(c.id));
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Products</h1>
-        <div className="flex items-center gap-2">
-          <ColumnPicker
-            columns={PRODUCT_COLUMNS}
-            isVisible={isVisible}
-            toggle={toggle}
-          />
-          {canWrite ? (
-            <Button asChild>
-              <Link to="/catalog/products/new">New product</Link>
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <PageHeader
+        title="Products"
+        actions={
+          <>
+            <ColumnPicker
+              columns={PRODUCT_COLUMNS}
+              isVisible={isVisible}
+              toggle={toggle}
+            />
+            {canWrite ? (
+              <Button asChild>
+                <Link to="/catalog/products/new">New product</Link>
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <FilterBar columns={3}>
         <div className="flex flex-col gap-1">
           <label htmlFor="products-search" className="text-xs font-medium">
             Search
@@ -152,7 +222,7 @@ export function ProductsListPage() {
             <option value="">All</option>
           </select>
         </div>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -164,91 +234,14 @@ export function ProductsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            {isVisible("sku") ? <th className="py-2 pr-2">SKU</th> : null}
-            {isVisible("upc") ? <th className="py-2 pr-2">UPC</th> : null}
-            {isVisible("name") ? <th className="py-2 pr-2">Name</th> : null}
-            {isVisible("price") ? <th className="py-2 pr-2">Price</th> : null}
-            {isVisible("cost") ? <th className="py-2 pr-2">Cost (BOM)</th> : null}
-            {isVisible("on_hand") ? (
-              <th className="py-2 pr-2 text-right">On hand</th>
-            ) : null}
-            {isVisible("category") ? <th className="py-2 pr-2">Category</th> : null}
-            {isVisible("status") ? <th className="py-2 pr-2">Status</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={colCount} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={colCount} className="py-4 text-center text-muted-foreground">
-                No products match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr key={p.id} className="border-b border-border/50">
-                {isVisible("sku") ? (
-                  <td className="py-2 pr-2 font-mono text-xs">
-                    <Link
-                      to={`/catalog/products/${p.id}`}
-                      className="hover:underline"
-                    >
-                      {p.sku}
-                    </Link>
-                  </td>
-                ) : null}
-                {isVisible("upc") ? (
-                  <td
-                    className="py-2 pr-2 font-mono text-xs text-muted-foreground"
-                    data-testid={`product-upc-${p.id}`}
-                  >
-                    {p.upc ?? "—"}
-                  </td>
-                ) : null}
-                {isVisible("name") ? (
-                  <td className="py-2 pr-2">{p.name}</td>
-                ) : null}
-                {isVisible("price") ? (
-                  <td className="py-2 pr-2">
-                    {formatCurrency(p.unit_price, currency)}
-                  </td>
-                ) : null}
-                {isVisible("cost") ? (
-                  <td className="py-2 pr-2" data-testid={`product-cost-${p.id}`}>
-                    {p.unit_cost_cached
-                      ? formatCurrency(p.unit_cost_cached, currency)
-                      : "—"}
-                  </td>
-                ) : null}
-                {isVisible("on_hand") ? (
-                  <td
-                    className="py-2 pr-2 text-right tabular-nums"
-                    data-testid={`product-on-hand-${p.id}`}
-                  >
-                    {Math.trunc(Number(p.total_on_hand ?? 0))}
-                  </td>
-                ) : null}
-                {isVisible("category") ? (
-                  <td className="py-2 pr-2">{p.category ?? "—"}</td>
-                ) : null}
-                {isVisible("status") ? (
-                  <td className="py-2 pr-2">
-                    {p.is_archived ? "Archived" : "Active"}
-                  </td>
-                ) : null}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No products match the current filters."
+        minWidthClassName="min-w-[760px]"
+      />
 
       {nextCursor ? (
         <div className="flex justify-end">

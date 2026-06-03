@@ -121,7 +121,8 @@ describe("<WebhooksSettingsPage />", () => {
     renderPage();
     const user = userEvent.setup();
     await user.click(await screen.findByTestId("webhook-tab-deliveries"));
-    const button = await screen.findByTestId("webhook-replay-d-1");
+    // DataTable renders a desktop table + mobile card, so the button appears twice.
+    const button = (await screen.findAllByTestId("webhook-replay-d-1"))[0]!;
     await user.click(button);
     await waitFor(() => expect(replayed).toBe(true));
   });

@@ -8,6 +8,7 @@ import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 
 type Subscription = components["schemas"]["WebhookSubscriptionRead"];
@@ -141,6 +142,22 @@ function SubscriptionsTab() {
     void refresh();
   }, [refresh]);
 
+  const columns: DataTableColumn<Subscription>[] = [
+    { key: "name", header: "Name", isPrimary: true, cell: (s) => s.name },
+    {
+      key: "url",
+      header: "URL",
+      cellClassName: "font-mono text-xs",
+      cell: (s) => s.target_url,
+    },
+    {
+      key: "events",
+      header: "Events",
+      cell: (s) => (s.event_types || []).join(", "),
+    },
+    { key: "active", header: "Active", cell: (s) => (s.is_active ? "yes" : "no") },
+  ];
+
   return (
     <div className="space-y-3">
       {createdSecret ? (
@@ -156,34 +173,13 @@ function SubscriptionsTab() {
         }}
       />
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
-      <table className="w-full text-sm" data-testid="webhook-subs-table">
-        <thead className="bg-muted/30 text-xs uppercase">
-          <tr>
-            <th className="py-1 px-2 text-left">Name</th>
-            <th className="py-1 px-2 text-left">URL</th>
-            <th className="py-1 px-2 text-left">Events</th>
-            <th className="py-1 px-2 text-left">Active</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subs.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-2 px-2 text-muted-foreground">
-                No subscriptions yet.
-              </td>
-            </tr>
-          ) : (
-            subs.map((s) => (
-              <tr key={s.id} className="border-t border-border/30">
-                <td className="py-1 px-2">{s.name}</td>
-                <td className="py-1 px-2 font-mono text-xs">{s.target_url}</td>
-                <td className="py-1 px-2">{(s.event_types || []).join(", ")}</td>
-                <td className="py-1 px-2">{s.is_active ? "yes" : "no"}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={subs}
+        getRowKey={(s) => s.id}
+        emptyMessage="No subscriptions yet."
+        minWidthClassName="min-w-[560px]"
+      />
     </div>
   );
 }
@@ -210,48 +206,60 @@ function DeliveriesTab() {
     await refresh();
   }
 
+  const columns: DataTableColumn<Delivery>[] = [
+    {
+      key: "event",
+      header: "Event",
+      isPrimary: true,
+      cellClassName: "font-mono text-xs",
+      cell: (d) => d.event_type,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (d) => STATUS_LABEL[d.last_status] ?? d.last_status,
+    },
+    {
+      key: "attempts",
+      header: "Attempts",
+      align: "right",
+      cellClassName: "tabular-nums",
+      cell: (d) => d.attempt_count,
+    },
+    {
+      key: "next",
+      header: "Next",
+      cellClassName: "font-mono text-xs",
+      cell: (d) => d.next_attempt_at,
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cardFullWidth: true,
+      cell: (d) => (
+        <Button
+          type="button"
+          variant="outline"
+          data-testid={`webhook-replay-${d.id}`}
+          onClick={() => void replay(d.id)}
+        >
+          Replay
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-3">
       {error ? <div className="text-sm text-red-600">{error}</div> : null}
-      <table className="w-full text-sm" data-testid="webhook-deliveries-table">
-        <thead className="bg-muted/30 text-xs uppercase">
-          <tr>
-            <th className="py-1 px-2 text-left">Event</th>
-            <th className="py-1 px-2 text-left">Status</th>
-            <th className="py-1 px-2 text-left">Attempts</th>
-            <th className="py-1 px-2 text-left">Next</th>
-            <th className="py-1 px-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {deliveries.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-2 px-2 text-muted-foreground">
-                No deliveries yet.
-              </td>
-            </tr>
-          ) : (
-            deliveries.map((d) => (
-              <tr key={d.id} className="border-t border-border/30">
-                <td className="py-1 px-2 font-mono text-xs">{d.event_type}</td>
-                <td className="py-1 px-2">{STATUS_LABEL[d.last_status] ?? d.last_status}</td>
-                <td className="py-1 px-2 tabular-nums">{d.attempt_count}</td>
-                <td className="py-1 px-2 font-mono text-xs">{d.next_attempt_at}</td>
-                <td className="py-1 px-2 text-right">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    data-testid={`webhook-replay-${d.id}`}
-                    onClick={() => void replay(d.id)}
-                  >
-                    Replay
-                  </Button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={deliveries}
+        getRowKey={(d) => d.id}
+        emptyMessage="No deliveries yet."
+        minWidthClassName="min-w-[640px]"
+      />
     </div>
   );
 }

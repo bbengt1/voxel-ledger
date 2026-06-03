@@ -71,7 +71,7 @@ export function ArAgingReportPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-semibold">AR aging</h1>
         <div className="flex gap-2">
           <Button
@@ -117,7 +117,8 @@ export function ArAgingReportPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
             <th className="py-2 pr-2">Customer</th>
@@ -204,6 +205,7 @@ export function ArAgingReportPage() {
           </tfoot>
         ) : null}
       </table>
+      </div>
     </section>
   );
 }

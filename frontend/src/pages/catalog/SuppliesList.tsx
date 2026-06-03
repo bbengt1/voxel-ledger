@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -72,18 +75,62 @@ export function SuppliesListPage() {
     };
   }, [params]);
 
+  const columns: DataTableColumn<SupplyResponse>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (s) => (
+        <Link to={`/catalog/supplies/${s.id}`} className="hover:underline">
+          {s.name}
+        </Link>
+      ),
+    },
+    { key: "unit", header: "Unit", cell: (s) => s.unit },
+    {
+      key: "pieces_per_unit",
+      header: "Pieces / unit",
+      cell: (s) => (
+        <span data-testid="pieces-per-unit-cell">{s.pieces_per_unit ?? "—"}</span>
+      ),
+    },
+    { key: "unit_cost", header: "Unit cost", align: "right", cell: (s) => s.unit_cost },
+    { key: "vendor", header: "Vendor", cell: (s) => s.vendor ?? "—" },
+    {
+      key: "on_hand",
+      header: "On hand",
+      cell: (s) => (
+        <span data-testid="on-hand-cell">
+          {Math.trunc(Number(s.total_on_hand))} {s.unit}
+          {s.pieces_per_unit
+            ? ` (${
+                Math.trunc(Number(s.total_on_hand)) * s.pieces_per_unit
+              } pieces)`
+            : ""}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (s) => (s.is_archived ? "Archived" : "Active"),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Supplies</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/catalog/supplies/new">New supply</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Supplies"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/catalog/supplies/new">New supply</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <FilterBar columns={2}>
         <div className="flex flex-col gap-1">
           <label htmlFor="supplies-search" className="text-xs font-medium">
             Search
@@ -113,7 +160,7 @@ export function SuppliesListPage() {
             <option value="">All</option>
           </select>
         </div>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -125,64 +172,14 @@ export function SuppliesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Unit</th>
-            <th className="py-2 pr-2">Pieces / unit</th>
-            <th className="py-2 pr-2">Unit cost</th>
-            <th className="py-2 pr-2">Vendor</th>
-            <th className="py-2 pr-2">On hand</th>
-            <th className="py-2 pr-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No supplies match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((s) => (
-              <tr key={s.id} className="border-b border-border/50">
-                <td className="py-2 pr-2">
-                  <Link
-                    to={`/catalog/supplies/${s.id}`}
-                    className="hover:underline"
-                  >
-                    {s.name}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{s.unit}</td>
-                <td className="py-2 pr-2" data-testid="pieces-per-unit-cell">
-                  {s.pieces_per_unit ?? "—"}
-                </td>
-                <td className="py-2 pr-2">{s.unit_cost}</td>
-                <td className="py-2 pr-2">{s.vendor ?? "—"}</td>
-                <td className="py-2 pr-2" data-testid="on-hand-cell">
-                  {Math.trunc(Number(s.total_on_hand))} {s.unit}
-                  {s.pieces_per_unit
-                    ? ` (${
-                        Math.trunc(Number(s.total_on_hand)) * s.pieces_per_unit
-                      } pieces)`
-                    : ""}
-                </td>
-                <td className="py-2 pr-2">
-                  {s.is_archived ? "Archived" : "Active"}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(s) => s.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No supplies match the current filters."
+        minWidthClassName="min-w-[760px]"
+      />
 
       {nextCursor ? (
         <div className="flex justify-end">

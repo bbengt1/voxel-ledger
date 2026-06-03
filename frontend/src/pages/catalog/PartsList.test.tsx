@@ -68,11 +68,12 @@ describe("<PartsListPage />", () => {
   it("renders parts with cost placeholder and the New part button", async () => {
     mock.onGet("/api/v1/parts").reply(200, { items: [aPart()], next_cursor: null });
     renderPage();
-    expect(await screen.findByText("Bracket")).toBeInTheDocument();
+    // DataTable renders a desktop table + mobile card, so cell text appears twice.
+    expect((await screen.findAllByText("Bracket")).length).toBeGreaterThanOrEqual(1);
     // Cost shows "—" until Phase 2 populates unit_cost_cached.
-    expect(screen.getByTestId("part-cost-22222222-2222-2222-2222-222222222222")).toHaveTextContent(
-      "—",
-    );
+    expect(
+      screen.getAllByTestId("part-cost-22222222-2222-2222-2222-222222222222")[0],
+    ).toHaveTextContent("—");
     expect(screen.getByRole("link", { name: /new part/i })).toHaveAttribute(
       "href",
       "/catalog/parts/new",
@@ -83,7 +84,7 @@ describe("<PartsListPage />", () => {
     mock.onGet("/api/v1/parts").reply(200, { items: [], next_cursor: null });
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/no parts match/i)).toBeInTheDocument(),
+      expect(screen.getAllByText(/no parts match/i).length).toBeGreaterThanOrEqual(1),
     );
   });
 });
