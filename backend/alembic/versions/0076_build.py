@@ -76,9 +76,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.CheckConstraint("quantity > 0", name="ck_build_quantity_positive"),
-        sa.CheckConstraint(
-            "assembly_minutes >= 0", name="ck_build_assembly_minutes_nonneg"
-        ),
+        sa.CheckConstraint("assembly_minutes >= 0", name="ck_build_assembly_minutes_nonneg"),
     )
     op.create_index("ix_build_state_created", "build", ["state", "created_at"])
     op.create_index("ix_build_product_state", "build", ["product_id", "state"])

@@ -30,9 +30,7 @@ async def test_patch_rejects_product_id_but_allows_quantity(
 ) -> None:
     part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
-    r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
-    )
+    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id)))
     assert r.status_code == 201, r.text
     job_id = r.json()["id"]
 
@@ -60,9 +58,7 @@ async def test_patch_allows_priority_due_notes(
 ) -> None:
     part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
-    r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
-    )
+    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id)))
     assert r.status_code == 201, r.text
     job_id = r.json()["id"]
 
@@ -83,9 +79,7 @@ async def test_plate_mutation_allowed_while_queued(
     """Queued (non-terminal) jobs remain editable — #254."""
     part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
-    r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
-    )
+    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id)))
     assert r.status_code == 201, r.text
     job_id = r.json()["id"]
     # A part-job auto-creates exactly one plate from the part recipe.
@@ -120,9 +114,7 @@ async def test_plate_mutation_blocked_when_cancelled(
     """Terminal (cancelled) jobs are read-only — plates locked, edits 400."""
     part = await seed_part(app_session)
     owner = await token_for(Role.OWNER, client, app_session)
-    r = await client.post(
-        "/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id))
-    )
+    r = await client.post("/api/v1/jobs", headers=auth_header(owner), json=_payload(str(part.id)))
     assert r.status_code == 201, r.text
     job_id = r.json()["id"]
     # A part-job auto-creates exactly one plate from the part recipe.

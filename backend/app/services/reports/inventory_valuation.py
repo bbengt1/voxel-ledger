@@ -137,9 +137,7 @@ async def _load_costs(
                 Decimal(str(p.unit_cost_cached or 0)),
             )
     if parts:
-        for pt in (
-            (await session.execute(select(Part).where(Part.id.in_(parts)))).scalars().all()
-        ):
+        for pt in (await session.execute(select(Part).where(Part.id.in_(parts)))).scalars().all():
             out_part[pt.id] = (
                 pt.name,
                 pt.sku,

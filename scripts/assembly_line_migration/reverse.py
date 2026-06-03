@@ -100,9 +100,7 @@ async def reverse_all(*, session: AsyncSession, dry_run: bool = True) -> Reverse
             update(Job).where(Job.part_id.in_(migration_part_ids)).values(part_id=None)
         )
     if bom_lines:
-        await session.execute(
-            delete(ProductBomItem).where(ProductBomItem.id.in_(bom_lines))
-        )
+        await session.execute(delete(ProductBomItem).where(ProductBomItem.id.in_(bom_lines)))
     await session.execute(delete(Part).where(Part.id.in_(migration_part_ids)))
     await session.commit()
     return res

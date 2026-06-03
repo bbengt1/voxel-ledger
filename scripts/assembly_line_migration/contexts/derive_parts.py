@@ -69,9 +69,7 @@ async def migrate(ctx: StepContext) -> StepResult:
             res.rows_skipped += 1
             continue
 
-        name = Counter(
-            [(g.name or "").strip() or "part" for g in group]
-        ).most_common(1)[0][0]
+        name = Counter([(g.name or "").strip() or "part" for g in group]).most_common(1)[0][0]
         sample = group[0]
 
         if ctx.dry_run:

@@ -174,9 +174,7 @@ async def _part_unit_cost(session: AsyncSession, part_id: uuid.UUID) -> Decimal 
     completion (epic #267 Phase 6a). Returns None when the part is gone or
     the cost-engine rates aren't configured (the credit stays cost-less,
     as before — operators repair via an adjustment)."""
-    part = (
-        await session.execute(select(Part).where(Part.id == part_id))
-    ).scalar_one_or_none()
+    part = (await session.execute(select(Part).where(Part.id == part_id))).scalar_one_or_none()
     if part is None:
         return None
     # Lazy import: cost_engine.service is heavy and only needed here.
@@ -268,8 +266,7 @@ async def create(
     for printer_id in part.assigned_printer_ids or []:
         await _load_printer_active(session, uuid.UUID(str(printer_id)))
     grams = {
-        uuid.UUID(str(k)): Decimal(str(v))
-        for k, v in (part.print_grams_by_material or {}).items()
+        uuid.UUID(str(k)): Decimal(str(v)) for k, v in (part.print_grams_by_material or {}).items()
     }
     plates = [
         PlateInput(
@@ -513,12 +510,9 @@ async def start(
     non-queued job reports the state error, not the printer error.)
     """
     job = await get(session, job_id)
-    if job.state == JobState.QUEUED and not any(
-        p.assigned_printer_ids for p in job.plates
-    ):
+    if job.state == JobState.QUEUED and not any(p.assigned_printer_ids for p in job.plates):
         raise NoPrinterAssignedError(
-            "cannot start a job with no printer assigned; "
-            "assign a printer to a plate first"
+            "cannot start a job with no printer assigned; " "assign a printer to a plate first"
         )
     return await _transition(
         session,

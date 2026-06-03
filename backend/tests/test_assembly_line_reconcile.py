@@ -103,8 +103,7 @@ async def test_reconcile_hard_fails_on_onhand_drift(
     row = (
         await app_session.execute(
             InventoryOnHand.__table__.select().where(
-                (InventoryOnHand.entity_kind == "product")
-                & (InventoryOnHand.entity_id == prod.id)
+                (InventoryOnHand.entity_kind == "product") & (InventoryOnHand.entity_id == prod.id)
             )
         )
     ).first()

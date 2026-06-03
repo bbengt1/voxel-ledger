@@ -159,9 +159,7 @@ async def reconcile(session: AsyncSession, baseline: Baseline) -> Reconciliation
     )
     for job in open_jobs:
         if job.part_id is None and job.product_id is not None:
-            report.coverage.append(
-                f"open job {job.job_number} ({job.id}) still has no part_id"
-            )
+            report.coverage.append(f"open job {job.job_number} ({job.id}) still has no part_id")
 
     products_with_part_bom = set(
         (
@@ -175,16 +173,12 @@ async def reconcile(session: AsyncSession, baseline: Baseline) -> Reconciliation
         .all()
     )
     products_with_jobs = set(
-        (
-            await session.execute(select(Job.product_id).where(Job.product_id.isnot(None)))
-        )
+        (await session.execute(select(Job.product_id).where(Job.product_id.isnot(None))))
         .scalars()
         .all()
     )
     for pid in sorted(products_with_jobs - products_with_part_bom, key=str):
-        report.coverage.append(
-            f"product {pid} has historical jobs but no part BOM line"
-        )
+        report.coverage.append(f"product {pid} has historical jobs but no part BOM line")
 
     return report
 

@@ -247,9 +247,7 @@ async def _load_product_lots(
     product_id: uuid.UUID,
 ) -> list[InventoryLot]:
     """Ledger-wide FIFO lots for a product (the sale-COGS path)."""
-    return await _load_lots(
-        session, entity_kind=ENTITY_KIND_PRODUCT, entity_id=product_id
-    )
+    return await _load_lots(session, entity_kind=ENTITY_KIND_PRODUCT, entity_id=product_id)
 
 
 async def cost_consumption(
