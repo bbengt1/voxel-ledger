@@ -90,6 +90,10 @@ class PrinterLookupError(JobsServiceError):
     """Printer missing or archived."""
 
 
+class NoPrinterAssignedError(JobsServiceError):
+    """Raised when starting a job that has no printer assigned to any plate."""
+
+
 class ReceivingLocationError(JobsServiceError):
     """No suitable inventory location to drain materials from."""
 
@@ -502,6 +506,20 @@ async def start(
     job_id: uuid.UUID,
     actor_user_id: uuid.UUID | None,
 ) -> Job:
+    """Move a QUEUED job to IN_PROGRESS.
+
+    A printer assignment is **mandatory** to start: at least one plate must
+    have an assigned printer. (The state check still runs first, so a
+    non-queued job reports the state error, not the printer error.)
+    """
+    job = await get(session, job_id)
+    if job.state == JobState.QUEUED and not any(
+        p.assigned_printer_ids for p in job.plates
+    ):
+        raise NoPrinterAssignedError(
+            "cannot start a job with no printer assigned; "
+            "assign a printer to a plate first"
+        )
     return await _transition(
         session,
         job_id=job_id,
@@ -737,6 +755,7 @@ __all__ = [
     "JobNotFoundError",
     "JobPage",
     "JobsServiceError",
+    "NoPrinterAssignedError",
     "PlateInput",
     "PlateNotFoundError",
     "PrinterLookupError",
