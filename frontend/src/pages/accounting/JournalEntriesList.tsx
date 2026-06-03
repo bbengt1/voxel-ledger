@@ -12,7 +12,10 @@ import {
   AccountPicker,
   type AccountOption,
 } from "@/components/accounting/AccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 
 type JournalEntryResponse = components["schemas"]["JournalEntryResponse"];
@@ -156,17 +159,93 @@ export function JournalEntriesListPage() {
     setSearchParams(next);
   }
 
+  const columns: DataTableColumn<JournalEntryResponse>[] = [
+    {
+      key: "entry_number",
+      header: "Entry #",
+      isPrimary: true,
+      cell: (e) => (
+        <Link
+          to={`/accounting/entries/${e.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {e.entry_number}
+        </Link>
+      ),
+    },
+    {
+      key: "posted",
+      header: "Posted",
+      cell: (e) => (
+        <span className="text-xs">
+          {new Date(e.posted_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      cell: (e) => {
+        const desc = e.description ?? "";
+        const descTrim = desc.length > 50 ? desc.slice(0, 47) + "…" : desc;
+        return <span title={desc}>{descTrim}</span>;
+      },
+    },
+    {
+      key: "total_debits",
+      header: "Total debits",
+      align: "right",
+      cell: (e) => (
+        <span className="tabular-nums">
+          {e.lines.reduce((s, ln) => s + Number(ln.debit || 0), 0).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: "actor",
+      header: "Actor",
+      cell: (e) => (
+        <span className="text-xs">{actors.get(e.actor_user_id) ?? "…"}</span>
+      ),
+    },
+    {
+      key: "period",
+      header: "Period",
+      cell: (e) => (
+        <span className="text-xs">{periodNames.get(e.period_id) ?? "—"}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (e) =>
+        e.is_reversed ? (
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+            reversed
+          </span>
+        ) : e.reversal_of_entry_id ? (
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+            reversal
+          </span>
+        ) : (
+          <span className="text-xs">—</span>
+        ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Journal entries</h1>
-        <Button asChild>
-          <Link to="/accounting/entries/new">New entry</Link>
-        </Button>
-      </header>
+      <PageHeader
+        title="Journal entries"
+        actions={
+          <Button asChild>
+            <Link to="/accounting/entries/new">New entry</Link>
+          </Button>
+        }
+      />
 
       <div className="rounded-md border border-border bg-muted/20 p-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FilterBar columns={4}>
           <label className="flex flex-col gap-1 text-xs font-medium">
             Account
             <AccountPicker
@@ -212,7 +291,7 @@ export function JournalEntriesListPage() {
               data-testid="filter-to"
             />
           </label>
-        </div>
+        </FilterBar>
       </div>
 
       {error ? (
@@ -221,82 +300,14 @@ export function JournalEntriesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Entry #</th>
-            <th className="py-2 pr-2">Posted</th>
-            <th className="py-2 pr-2">Description</th>
-            <th className="py-2 pr-2 text-right">Total debits</th>
-            <th className="py-2 pr-2">Actor</th>
-            <th className="py-2 pr-2">Period</th>
-            <th className="py-2 pr-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No entries match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((e) => {
-              const totalDebits = e.lines
-                .reduce((s, ln) => s + Number(ln.debit || 0), 0)
-                .toFixed(2);
-              const desc = e.description ?? "";
-              const descTrim = desc.length > 50 ? desc.slice(0, 47) + "…" : desc;
-              return (
-                <tr key={e.id} className="border-b border-border/50">
-                  <td className="py-2 pr-2 font-mono text-xs">
-                    <Link
-                      to={`/accounting/entries/${e.id}`}
-                      className="hover:underline"
-                    >
-                      {e.entry_number}
-                    </Link>
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {new Date(e.posted_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-2 pr-2" title={desc}>
-                    {descTrim}
-                  </td>
-                  <td className="py-2 pr-2 text-right tabular-nums">
-                    {totalDebits}
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {actors.get(e.actor_user_id) ?? "…"}
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {periodNames.get(e.period_id) ?? "—"}
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {e.is_reversed ? (
-                      <span className="rounded bg-muted px-1.5 py-0.5">
-                        reversed
-                      </span>
-                    ) : e.reversal_of_entry_id ? (
-                      <span className="rounded bg-muted px-1.5 py-0.5">
-                        reversal
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(e) => e.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No entries match the current filters."
+        minWidthClassName="min-w-[720px]"
+      />
 
       <div className="flex justify-between">
         <Button

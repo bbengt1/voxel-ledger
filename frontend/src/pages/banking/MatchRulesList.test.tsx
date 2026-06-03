@@ -58,7 +58,11 @@ describe("<MatchRulesListPage />", () => {
       </MemoryRouter>,
     );
     await waitFor(() =>
-      expect(screen.getByTestId(`rule-row-${RULE_ID}`)).toBeInTheDocument(),
+      // DataTable renders a desktop table + mobile card, so the row testid
+      // (on the primary cell) appears twice in jsdom.
+      expect(
+        screen.getAllByTestId(`rule-row-${RULE_ID}`).length,
+      ).toBeGreaterThanOrEqual(1),
     );
     expect(screen.getByTestId("run-now-btn")).toBeInTheDocument();
   });

@@ -56,9 +56,9 @@ describe("<ApprovalsListPage />", () => {
     });
     renderPage();
     expect(
-      await screen.findByText("accounting.large_journal_entry"),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/journal_entry:/)).toBeInTheDocument();
+      (await screen.findAllByText("accounting.large_journal_entry")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/journal_entry:/).length).toBeGreaterThan(0);
   });
 
   it("re-queries when the state filter changes", async () => {

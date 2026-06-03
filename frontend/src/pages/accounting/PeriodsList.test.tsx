@@ -58,9 +58,9 @@ describe("<PeriodsListPage />", () => {
       .onGet("/api/v1/accounting/periods")
       .reply(200, { items: [period()], next_cursor: null });
     renderPage();
-    expect(await screen.findByTestId("close-p1")).toBeInTheDocument();
-    expect(screen.queryByTestId("lock-p1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("reopen-p1")).not.toBeInTheDocument();
+    expect((await screen.findAllByTestId("close-p1")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryAllByTestId("lock-p1")).toHaveLength(0);
+    expect(screen.queryAllByTestId("reopen-p1")).toHaveLength(0);
   });
 
   it("renders reopen + lock for a closed period (owner)", async () => {
@@ -70,8 +70,8 @@ describe("<PeriodsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByTestId("reopen-p1")).toBeInTheDocument();
-    expect(screen.getByTestId("lock-p1")).toBeInTheDocument();
+    expect((await screen.findAllByTestId("reopen-p1")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByTestId("lock-p1").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders reopen but not lock for closed (bookkeeper, no lock)", async () => {
@@ -81,8 +81,8 @@ describe("<PeriodsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    expect(await screen.findByTestId("reopen-p1")).toBeInTheDocument();
-    expect(screen.queryByTestId("lock-p1")).not.toBeInTheDocument();
+    expect((await screen.findAllByTestId("reopen-p1")).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryAllByTestId("lock-p1")).toHaveLength(0);
   });
 
   it("renders no actions for a locked period", async () => {
@@ -92,10 +92,10 @@ describe("<PeriodsListPage />", () => {
       next_cursor: null,
     });
     renderPage();
-    await screen.findByText("2026-Q1");
-    expect(screen.queryByTestId("close-p1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("reopen-p1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("lock-p1")).not.toBeInTheDocument();
+    await screen.findAllByText("2026-Q1");
+    expect(screen.queryAllByTestId("close-p1")).toHaveLength(0);
+    expect(screen.queryAllByTestId("reopen-p1")).toHaveLength(0);
+    expect(screen.queryAllByTestId("lock-p1")).toHaveLength(0);
   });
 
   it("shows a confirmation dialog before locking", async () => {
@@ -110,7 +110,7 @@ describe("<PeriodsListPage />", () => {
       return [200, period({ state: "locked" })];
     });
     renderPage();
-    await userEvent.click(await screen.findByTestId("lock-p1"));
+    await userEvent.click((await screen.findAllByTestId("lock-p1"))[0]!);
     expect(await screen.findByTestId("lock-dialog")).toHaveTextContent(
       /permanent/i,
     );

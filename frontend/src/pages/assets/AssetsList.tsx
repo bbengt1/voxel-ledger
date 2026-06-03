@@ -9,7 +9,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -70,18 +73,60 @@ export function AssetsListPage() {
     };
   }, [query]);
 
+  const columns: DataTableColumn<AssetResponse>[] = [
+    {
+      key: "asset_number",
+      header: "#",
+      isPrimary: true,
+      cell: (a) => (
+        <Link
+          to={`/assets/${a.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {a.asset_number}
+        </Link>
+      ),
+    },
+    { key: "name", header: "Name", cell: (a) => a.name },
+    {
+      key: "class",
+      header: "Class",
+      cell: (a) => (
+        <span className="text-xs">
+          {a.kind} · {a.asset_class}
+        </span>
+      ),
+    },
+    {
+      key: "acquisition_cost",
+      header: "Cost",
+      align: "right",
+      cell: (a) => a.acquisition_cost,
+    },
+    { key: "acquired_on", header: "Acquired", cell: (a) => a.acquired_on },
+    {
+      key: "state",
+      header: "State",
+      cell: (a) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{a.state}</span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Fixed assets</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/assets/new">Acquire asset</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Fixed assets"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/assets/new">Acquire asset</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={4}>
         <label className="block text-xs">
           Kind
           <select
@@ -137,7 +182,7 @@ export function AssetsListPage() {
             placeholder="name / number / serial"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -148,58 +193,15 @@ export function AssetsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">#</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Class</th>
-            <th className="py-2 pr-2">Cost</th>
-            <th className="py-2 pr-2">Acquired</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No assets match these filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((a) => (
-              <tr
-                key={a.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`asset-row-${a.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/assets/${a.id}`} className="hover:underline">
-                    {a.asset_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{a.name}</td>
-                <td className="py-2 pr-2 text-xs">
-                  {a.kind} · {a.asset_class}
-                </td>
-                <td className="py-2 pr-2">{a.acquisition_cost}</td>
-                <td className="py-2 pr-2">{a.acquired_on}</td>
-                <td className="py-2 pr-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                    {a.state}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(a) => a.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No assets match these filters."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

@@ -7,7 +7,9 @@ import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { PeriodStateActions } from "@/components/accounting/PeriodStateActions";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -116,16 +118,96 @@ export function PeriodsListPage() {
     }
   }
 
+  const columns: DataTableColumn<AccountingPeriodResponse>[] = [
+    {
+      key: "name",
+      header: "Name",
+      isPrimary: true,
+      cell: (p) => p.name,
+    },
+    {
+      key: "start",
+      header: "Start",
+      cell: (p) => <span className="text-xs">{p.start_date}</span>,
+    },
+    {
+      key: "end",
+      header: "End",
+      cell: (p) => <span className="text-xs">{p.end_date}</span>,
+    },
+    {
+      key: "state",
+      header: "State",
+      cell: (p) => (
+        <span
+          className={
+            "rounded px-1.5 py-0.5 text-xs font-medium " + STATE_COLOR[p.state]
+          }
+        >
+          {p.state}
+        </span>
+      ),
+    },
+    {
+      key: "closed",
+      header: "Closed",
+      cell: (p) => (
+        <span className="text-xs">
+          {p.closed_at ? (
+            <>
+              {new Date(p.closed_at).toLocaleDateString()}
+              {p.closed_by_user_id ? (
+                <>
+                  {" "}
+                  by{" "}
+                  {actors.get(p.closed_by_user_id) ??
+                    p.closed_by_user_id.slice(0, 8)}
+                </>
+              ) : null}
+            </>
+          ) : (
+            "—"
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "locked_at",
+      header: "Locked at",
+      cell: (p) => (
+        <span className="text-xs">
+          {p.locked_at ? new Date(p.locked_at).toLocaleDateString() : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (p) => (
+        <PeriodStateActions
+          period={p}
+          role={role}
+          busy={busy}
+          onAction={action}
+        />
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Accounting periods</h1>
-        {canCreate ? (
-          <Button onClick={() => setNewOpen(true)} data-testid="open-new-period">
-            New period
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Accounting periods"
+        actions={
+          canCreate ? (
+            <Button onClick={() => setNewOpen(true)} data-testid="open-new-period">
+              New period
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div
@@ -137,77 +219,13 @@ export function PeriodsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Start</th>
-            <th className="py-2 pr-2">End</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2">Closed</th>
-            <th className="py-2 pr-2">Locked at</th>
-            <th className="py-2 pr-2 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No periods yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr key={p.id} className="border-b border-border/50">
-                <td className="py-2 pr-2">{p.name}</td>
-                <td className="py-2 pr-2 text-xs">{p.start_date}</td>
-                <td className="py-2 pr-2 text-xs">{p.end_date}</td>
-                <td className="py-2 pr-2">
-                  <span
-                    className={
-                      "rounded px-1.5 py-0.5 text-xs font-medium " +
-                      STATE_COLOR[p.state]
-                    }
-                    data-testid={`state-${p.id}`}
-                  >
-                    {p.state}
-                  </span>
-                </td>
-                <td className="py-2 pr-2 text-xs">
-                  {p.closed_at ? (
-                    <>
-                      {new Date(p.closed_at).toLocaleDateString()}
-                      {p.closed_by_user_id ? (
-                        <>
-                          {" "}
-                          by{" "}
-                          {actors.get(p.closed_by_user_id) ??
-                            p.closed_by_user_id.slice(0, 8)}
-                        </>
-                      ) : null}
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="py-2 pr-2 text-xs">
-                  {p.locked_at
-                    ? new Date(p.locked_at).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2 text-right">
-                  <PeriodStateActions
-                    period={p}
-                    role={role}
-                    busy={busy}
-                    onAction={action}
-                  />
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        emptyMessage="No periods yet."
+        minWidthClassName="min-w-[760px]"
+      />
 
       <NewPeriodDialog
         open={newOpen}

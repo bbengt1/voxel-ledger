@@ -85,7 +85,9 @@ describe("<EmailLogPage />", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByTestId(`email-row-${EMAIL_ID}`)).toBeInTheDocument();
+      expect(
+        screen.getAllByTestId(`email-row-${EMAIL_ID}`).length,
+      ).toBeGreaterThan(0);
     });
 
     await user.selectOptions(screen.getByTestId("filter-state"), "failed");
@@ -93,7 +95,7 @@ describe("<EmailLogPage />", () => {
       expect(lastParams?.["state"]).toBe("failed");
     });
 
-    await user.click(screen.getByTestId(`email-retry-${EMAIL_ID}`));
+    await user.click(screen.getAllByTestId(`email-retry-${EMAIL_ID}`)[0]!);
     await waitFor(() => {
       expect(retried).toBe(true);
     });

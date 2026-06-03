@@ -14,7 +14,9 @@ import {
   AccountPicker,
   type AccountOption,
 } from "@/components/accounting/AccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import {
   Dialog,
   DialogContent,
@@ -129,27 +131,91 @@ export function BudgetsListPage() {
     };
   }, [periodId, reloadKey]);
 
+  const columns: DataTableColumn<BudgetVarianceRow>[] = [
+    {
+      key: "account",
+      header: "Account",
+      isPrimary: true,
+      cell: (row) => (
+        <>
+          <span className="font-mono text-xs">{row.account_code}</span>{" "}
+          {row.account_name}
+        </>
+      ),
+    },
+    {
+      key: "division",
+      header: "Division",
+      cell: (row) => (
+        <span className="text-xs">{row.division_name ?? "All"}</span>
+      ),
+    },
+    {
+      key: "budget",
+      header: "Budget",
+      align: "right",
+      cell: (row) => (
+        <span className="tabular-nums">
+          {Number(row.budget_amount).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: "actual",
+      header: "Actual",
+      align: "right",
+      cell: (row) => (
+        <span className="tabular-nums">
+          {Number(row.actual_amount).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: "variance",
+      header: "Variance",
+      align: "right",
+      cell: (row) => (
+        <span
+          className={"tabular-nums " + VARIANCE_COLOR[isFavorable(row)]}
+          data-testid={`variance-${row.account_id}`}
+        >
+          {Number(row.variance).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: "pct",
+      header: "%",
+      align: "right",
+      cell: (row) => (
+        <span className="tabular-nums text-xs">{row.variance_pct}%</span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Budgets</h1>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link
-              to={`/accounting/budgets/variance${
-                periodId ? `?period_id=${periodId}` : ""
-              }`}
-            >
-              Variance report
-            </Link>
-          </Button>
-          {canWrite ? (
-            <Button onClick={() => setNewOpen(true)} data-testid="open-new-budget">
-              New budget
+      <PageHeader
+        title="Budgets"
+        actions={
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link
+                to={`/accounting/budgets/variance${
+                  periodId ? `?period_id=${periodId}` : ""
+                }`}
+              >
+                Variance report
+              </Link>
             </Button>
-          ) : null}
-        </div>
-      </header>
+            {canWrite ? (
+              <Button onClick={() => setNewOpen(true)} data-testid="open-new-budget">
+                New budget
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
 
       <label className="flex flex-col gap-1 text-xs font-medium">
         Period
@@ -173,66 +239,13 @@ export function BudgetsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Account</th>
-            <th className="py-2 pr-2">Division</th>
-            <th className="py-2 pr-2 text-right">Budget</th>
-            <th className="py-2 pr-2 text-right">Actual</th>
-            <th className="py-2 pr-2 text-right">Variance</th>
-            <th className="py-2 pr-2 text-right">%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No budgets for this period.
-              </td>
-            </tr>
-          ) : (
-            rows.map((row) => {
-              const status = isFavorable(row);
-              return (
-                <tr
-                  key={`${row.account_id}-${row.division_id ?? "all"}`}
-                  className="border-b border-border/40"
-                  data-testid={`budget-row-${row.account_id}-${row.division_id ?? "all"}`}
-                >
-                  <td className="py-1.5 pr-2">
-                    <span className="font-mono text-xs">
-                      {row.account_code}
-                    </span>{" "}
-                    {row.account_name}
-                  </td>
-                  <td className="py-1.5 pr-2 text-xs">
-                    {row.division_name ?? "All"}
-                  </td>
-                  <td className="py-1.5 pr-2 text-right tabular-nums">
-                    {Number(row.budget_amount).toFixed(2)}
-                  </td>
-                  <td className="py-1.5 pr-2 text-right tabular-nums">
-                    {Number(row.actual_amount).toFixed(2)}
-                  </td>
-                  <td
-                    className={
-                      "py-1.5 pr-2 text-right tabular-nums " +
-                      VARIANCE_COLOR[status]
-                    }
-                    data-testid={`variance-${row.account_id}`}
-                  >
-                    {Number(row.variance).toFixed(2)}
-                  </td>
-                  <td className="py-1.5 pr-2 text-right tabular-nums text-xs">
-                    {row.variance_pct}%
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowKey={(row) => `${row.account_id}-${row.division_id ?? "all"}`}
+        emptyMessage="No budgets for this period."
+        minWidthClassName="min-w-[640px]"
+      />
 
       <NewBudgetDialog
         open={newOpen}

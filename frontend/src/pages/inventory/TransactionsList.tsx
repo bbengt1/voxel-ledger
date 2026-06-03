@@ -12,7 +12,10 @@ import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { RecordTransactionModal } from "@/components/inventory/RecordTransactionModal";
 import { TransferStockModal } from "@/components/inventory/TransferStockModal";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -222,30 +225,139 @@ export function TransactionsListPage() {
     setSearchParams(next);
   }
 
+  const columns: DataTableColumn<InventoryTransactionResponse>[] = [
+    {
+      key: "occurred",
+      header: "Occurred",
+      isPrimary: true,
+      cell: (tx) => (
+        <span className="text-xs">
+          {new Date(tx.occurred_at).toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "kind",
+      header: "Kind",
+      cell: (tx) => {
+        const kindInfo = KIND_BY_VALUE.get(tx.kind);
+        return (
+          <>
+            <span aria-hidden="true">{kindInfo?.icon ?? ""}</span>{" "}
+            <span>{kindInfo?.label ?? tx.kind}</span>
+          </>
+        );
+      },
+    },
+    {
+      key: "entity",
+      header: "Entity",
+      cell: (tx) => {
+        const entityHref =
+          tx.entity_kind === "material"
+            ? `/catalog/materials/${tx.entity_id}`
+            : tx.entity_kind === "supply"
+              ? `/catalog/supplies/${tx.entity_id}`
+              : `/catalog/products/${tx.entity_id}`;
+        return (
+          <Link to={entityHref} className="hover:underline">
+            {tx.entity_kind}:{tx.entity_id.slice(0, 8)}…
+          </Link>
+        );
+      },
+    },
+    {
+      key: "location",
+      header: "Location",
+      cell: (tx) => (
+        <Link
+          to={`/inventory/locations/${tx.location_id}`}
+          className="hover:underline"
+        >
+          {locations.find((l) => l.id === tx.location_id)?.name ??
+            tx.location_id.slice(0, 8) + "…"}
+        </Link>
+      ),
+    },
+    {
+      key: "qty",
+      header: "Qty",
+      align: "right",
+      cell: (tx) => {
+        const qty = Number(tx.quantity);
+        const negative =
+          tx.kind === "sale_out" ||
+          tx.kind === "waste" ||
+          tx.kind === "transfer_out" ||
+          (tx.kind === "adjustment" && qty < 0);
+        return (
+          <span
+            className={
+              "tabular-nums " +
+              (negative
+                ? "text-destructive"
+                : "text-emerald-600 dark:text-emerald-400")
+            }
+          >
+            {negative && !tx.quantity.startsWith("-") ? "-" : ""}
+            {tx.quantity}
+          </span>
+        );
+      },
+    },
+    {
+      key: "actor",
+      header: "Actor",
+      cell: (tx) => (
+        <span className="text-xs">
+          {tx.actor_user_id
+            ? (actors.get(tx.actor_user_id) ?? "…")
+            : "system"}
+        </span>
+      ),
+    },
+    {
+      key: "reason",
+      header: "Reason",
+      cell: (tx) => {
+        const reason = tx.reason ?? "";
+        const reasonTrim =
+          reason.length > 50 ? reason.slice(0, 47) + "…" : reason;
+        return (
+          <span className="text-xs" title={reason || undefined}>
+            {reasonTrim}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Inventory transactions</h1>
-        <div className="flex gap-2">
-          {canRecord ? (
-            <Button
-              onClick={() => setRecordOpen(true)}
-              data-testid="open-record"
-            >
-              Record transaction
-            </Button>
-          ) : null}
-          {canTransfer ? (
-            <Button
-              variant="outline"
-              onClick={() => setTransferOpen(true)}
-              data-testid="open-transfer"
-            >
-              Transfer stock
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      <PageHeader
+        title="Inventory transactions"
+        actions={
+          <>
+            {canRecord ? (
+              <Button
+                onClick={() => setRecordOpen(true)}
+                data-testid="open-record"
+              >
+                Record transaction
+              </Button>
+            ) : null}
+            {canTransfer ? (
+              <Button
+                variant="outline"
+                onClick={() => setTransferOpen(true)}
+                data-testid="open-transfer"
+              >
+                Transfer stock
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       {toast ? (
         <p
@@ -258,7 +370,7 @@ export function TransactionsListPage() {
       ) : null}
 
       <div className="rounded-md border border-border bg-muted/20 p-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FilterBar columns={4}>
           <label className="flex flex-col gap-1 text-xs font-medium">
             From
             <Input
@@ -308,7 +420,7 @@ export function TransactionsListPage() {
               ))}
             </select>
           </label>
-        </div>
+        </FilterBar>
         <div className="mt-3">
           <span className="text-xs font-medium">Kinds</span>
           <div
@@ -349,100 +461,14 @@ export function TransactionsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Occurred</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2">Entity</th>
-            <th className="py-2 pr-2">Location</th>
-            <th className="py-2 pr-2 text-right">Qty</th>
-            <th className="py-2 pr-2">Actor</th>
-            <th className="py-2 pr-2">Reason</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No transactions match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((tx) => {
-              const kindInfo = KIND_BY_VALUE.get(tx.kind);
-              const qty = Number(tx.quantity);
-              const negative =
-                tx.kind === "sale_out" ||
-                tx.kind === "waste" ||
-                tx.kind === "transfer_out" ||
-                (tx.kind === "adjustment" && qty < 0);
-              const entityHref =
-                tx.entity_kind === "material"
-                  ? `/catalog/materials/${tx.entity_id}`
-                  : tx.entity_kind === "supply"
-                    ? `/catalog/supplies/${tx.entity_id}`
-                    : `/catalog/products/${tx.entity_id}`;
-              const reason = tx.reason ?? "";
-              const reasonTrim =
-                reason.length > 50 ? reason.slice(0, 47) + "…" : reason;
-              return (
-                <tr key={tx.id} className="border-b border-border/50">
-                  <td className="py-2 pr-2 text-xs">
-                    {new Date(tx.occurred_at).toLocaleString()}
-                  </td>
-                  <td className="py-2 pr-2">
-                    <span aria-hidden="true">{kindInfo?.icon ?? ""}</span>{" "}
-                    <span>{kindInfo?.label ?? tx.kind}</span>
-                  </td>
-                  <td className="py-2 pr-2">
-                    <Link to={entityHref} className="hover:underline">
-                      {tx.entity_kind}:{tx.entity_id.slice(0, 8)}…
-                    </Link>
-                  </td>
-                  <td className="py-2 pr-2">
-                    <Link
-                      to={`/inventory/locations/${tx.location_id}`}
-                      className="hover:underline"
-                    >
-                      {locations.find((l) => l.id === tx.location_id)?.name ??
-                        tx.location_id.slice(0, 8) + "…"}
-                    </Link>
-                  </td>
-                  <td
-                    className={
-                      "py-2 pr-2 text-right tabular-nums " +
-                      (negative
-                        ? "text-destructive"
-                        : "text-emerald-600 dark:text-emerald-400")
-                    }
-                  >
-                    {negative && !tx.quantity.startsWith("-") ? "-" : ""}
-                    {tx.quantity}
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {tx.actor_user_id
-                      ? (actors.get(tx.actor_user_id) ?? "…")
-                      : "system"}
-                  </td>
-                  <td
-                    className="py-2 pr-2 text-xs"
-                    title={reason || undefined}
-                  >
-                    {reasonTrim}
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(tx) => tx.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No transactions match the current filters."
+        minWidthClassName="min-w-[820px]"
+      />
 
       <div className="flex justify-between">
         <Button

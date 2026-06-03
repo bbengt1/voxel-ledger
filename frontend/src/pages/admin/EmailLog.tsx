@@ -9,7 +9,10 @@ import { useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 
 type EmailMessageResponse = components["schemas"]["EmailMessageResponse"];
@@ -118,13 +121,85 @@ export function EmailLogPage() {
     );
   }
 
+  const columns: DataTableColumn<EmailMessageResponse>[] = [
+    {
+      key: "subject",
+      header: "Subject",
+      isPrimary: true,
+      cell: (m) => <span data-testid={`email-row-${m.id}`}>{m.subject}</span>,
+    },
+    {
+      key: "to",
+      header: "To",
+      cell: (m) => <span className="font-mono text-xs">{m.to_address}</span>,
+    },
+    { key: "kind", header: "Kind", cell: (m) => m.kind },
+    { key: "state", header: "State", cell: (m) => m.state },
+    {
+      key: "attempts",
+      header: "Attempts",
+      align: "right",
+      cell: (m) => <span className="font-mono">{m.attempts}</span>,
+    },
+    {
+      key: "created",
+      header: "Created",
+      cell: (m) => (
+        <span className="text-xs">
+          {new Date(m.created_at).toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      cardFullWidth: true,
+      cell: (m) => {
+        const canRetry = m.state === "failed" || m.state === "bounced";
+        const canCancel = m.state === "queued" || m.state === "failed";
+        return (
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => viewBody(m.id)}
+              data-testid={`email-view-${m.id}`}
+            >
+              View
+            </Button>
+            {canRetry ? (
+              <Button
+                size="sm"
+                disabled={busyId === m.id}
+                onClick={() => void retry(m.id)}
+                data-testid={`email-retry-${m.id}`}
+              >
+                Retry
+              </Button>
+            ) : null}
+            {canCancel ? (
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={busyId === m.id}
+                onClick={() => void cancel(m.id)}
+                data-testid={`email-cancel-${m.id}`}
+              >
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-xl font-semibold">Email delivery log</h1>
-      </header>
+      <PageHeader title="Email delivery log" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <FilterBar columns={3}>
         <label className="block text-xs">
           State
           <select
@@ -166,7 +241,7 @@ export function EmailLogPage() {
             placeholder="substring"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -177,94 +252,14 @@ export function EmailLogPage() {
         </div>
       ) : null}
 
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Subject</th>
-            <th className="py-2 pr-2">To</th>
-            <th className="py-2 pr-2">Kind</th>
-            <th className="py-2 pr-2">State</th>
-            <th className="py-2 pr-2 text-right">Attempts</th>
-            <th className="py-2 pr-2">Created</th>
-            <th className="py-2 pr-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && filtered.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : filtered.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No messages.
-              </td>
-            </tr>
-          ) : (
-            filtered.map((m) => {
-              const canRetry =
-                m.state === "failed" || m.state === "bounced";
-              const canCancel =
-                m.state === "queued" || m.state === "failed";
-              return (
-                <tr
-                  key={m.id}
-                  className="border-b border-border/50"
-                  data-testid={`email-row-${m.id}`}
-                >
-                  <td className="py-2 pr-2">{m.subject}</td>
-                  <td className="py-2 pr-2 font-mono text-xs">
-                    {m.to_address}
-                  </td>
-                  <td className="py-2 pr-2">{m.kind}</td>
-                  <td className="py-2 pr-2">{m.state}</td>
-                  <td className="py-2 pr-2 text-right font-mono">
-                    {m.attempts}
-                  </td>
-                  <td className="py-2 pr-2 text-xs">
-                    {new Date(m.created_at).toLocaleString()}
-                  </td>
-                  <td className="py-2 pr-2">
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => viewBody(m.id)}
-                        data-testid={`email-view-${m.id}`}
-                      >
-                        View
-                      </Button>
-                      {canRetry ? (
-                        <Button
-                          size="sm"
-                          disabled={busyId === m.id}
-                          onClick={() => void retry(m.id)}
-                          data-testid={`email-retry-${m.id}`}
-                        >
-                          Retry
-                        </Button>
-                      ) : null}
-                      {canCancel ? (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={busyId === m.id}
-                          onClick={() => void cancel(m.id)}
-                          data-testid={`email-cancel-${m.id}`}
-                        >
-                          Cancel
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={filtered}
+        getRowKey={(m) => m.id}
+        loading={loading && filtered.length === 0}
+        emptyMessage="No messages."
+        minWidthClassName="min-w-[760px]"
+      />
     </section>
   );
 }

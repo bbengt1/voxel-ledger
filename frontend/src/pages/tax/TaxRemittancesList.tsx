@@ -6,7 +6,9 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type TaxRemittanceResponse = components["schemas"]["TaxRemittanceResponse"];
@@ -31,16 +33,57 @@ export function TaxRemittancesListPage() {
       });
   }, []);
 
+  const columns: DataTableColumn<TaxRemittanceResponse>[] = [
+    {
+      key: "remittance_number",
+      header: "#",
+      isPrimary: true,
+      cell: (r) => (
+        <span className="font-mono text-xs">{r.remittance_number}</span>
+      ),
+    },
+    {
+      key: "period",
+      header: "Period",
+      cell: (r) => (
+        <>
+          {r.period_start} → {r.period_end}
+        </>
+      ),
+    },
+    { key: "paid_on", header: "Paid on", cell: (r) => r.paid_on },
+    {
+      key: "amount_paid",
+      header: "Amount",
+      align: "right",
+      cell: (r) => r.amount_paid,
+    },
+    {
+      key: "method",
+      header: "Method",
+      cell: (r) => <span className="text-xs">{r.method}</span>,
+    },
+    {
+      key: "state",
+      header: "State",
+      cell: (r) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{r.state}</span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Tax remittances</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/tax-remittances/new">Record remittance</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Tax remittances"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/tax-remittances/new">Record remittance</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -48,44 +91,13 @@ export function TaxRemittancesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">#</th>
-            <th className="py-2 pr-2">Period</th>
-            <th className="py-2 pr-2">Paid on</th>
-            <th className="py-2 pr-2">Amount</th>
-            <th className="py-2 pr-2">Method</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No remittances yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((r) => (
-              <tr key={r.id} className="border-b border-border/50">
-                <td className="py-2 pr-2 font-mono text-xs">{r.remittance_number}</td>
-                <td className="py-2 pr-2">
-                  {r.period_start} → {r.period_end}
-                </td>
-                <td className="py-2 pr-2">{r.paid_on}</td>
-                <td className="py-2 pr-2">{r.amount_paid}</td>
-                <td className="py-2 pr-2 text-xs">{r.method}</td>
-                <td className="py-2 pr-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                    {r.state}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(r) => r.id}
+        emptyMessage="No remittances yet."
+        minWidthClassName="min-w-[640px]"
+      />
     </section>
   );
 }

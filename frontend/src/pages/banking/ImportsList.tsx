@@ -8,7 +8,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
 import { BankAccountPicker } from "@/components/banking/BankAccountPicker";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type Run = components["schemas"]["BankImportRunResponse"];
@@ -62,16 +64,56 @@ export function ImportsListPage() {
     };
   }, [accountId]);
 
+  const columns: DataTableColumn<Run>[] = [
+    {
+      key: "filename",
+      header: "Filename",
+      isPrimary: true,
+      cell: (r) => <span className="font-mono text-xs">{r.filename}</span>,
+    },
+    {
+      key: "imported_at",
+      header: "Imported at",
+      cell: (r) => new Date(r.imported_at).toLocaleString(),
+    },
+    {
+      key: "row_count",
+      header: "Rows",
+      align: "right",
+      cell: (r) => r.row_count,
+    },
+    {
+      key: "inserted_count",
+      header: "Inserted",
+      align: "right",
+      cell: (r) => r.inserted_count,
+    },
+    {
+      key: "duplicate_count",
+      header: "Duplicates",
+      align: "right",
+      cell: (r) => r.duplicate_count,
+    },
+    {
+      key: "error_count",
+      header: "Errors",
+      align: "right",
+      cell: (r) => r.error_count,
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Bank statement imports</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/banking/imports/new">Import statement</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Bank statement imports"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/banking/imports/new">Import statement</Link>
+            </Button>
+          ) : null
+        }
+      />
 
       <label className="block text-sm">
         Account
@@ -91,56 +133,18 @@ export function ImportsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Filename</th>
-            <th className="py-2 pr-2">Imported at</th>
-            <th className="py-2 pr-2 text-right">Rows</th>
-            <th className="py-2 pr-2 text-right">Inserted</th>
-            <th className="py-2 pr-2 text-right">Duplicates</th>
-            <th className="py-2 pr-2 text-right">Errors</th>
-          </tr>
-        </thead>
-        <tbody>
-          {!accountId ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Pick an account to see its import history.
-              </td>
-            </tr>
-          ) : loading && runs.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : runs.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No imports yet for this account.
-              </td>
-            </tr>
-          ) : (
-            runs.map((r) => (
-              <tr
-                key={r.id}
-                className="border-b border-border/50"
-                data-testid={`run-row-${r.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">{r.filename}</td>
-                <td className="py-2 pr-2">
-                  {new Date(r.imported_at).toLocaleString()}
-                </td>
-                <td className="py-2 pr-2 text-right">{r.row_count}</td>
-                <td className="py-2 pr-2 text-right">{r.inserted_count}</td>
-                <td className="py-2 pr-2 text-right">{r.duplicate_count}</td>
-                <td className="py-2 pr-2 text-right">{r.error_count}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={runs}
+        getRowKey={(r) => r.id}
+        loading={loading && runs.length === 0}
+        emptyMessage={
+          !accountId
+            ? "Pick an account to see its import history."
+            : "No imports yet for this account."
+        }
+        minWidthClassName="min-w-[720px]"
+      />
     </section>
   );
 }

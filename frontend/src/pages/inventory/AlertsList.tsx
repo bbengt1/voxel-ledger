@@ -10,7 +10,10 @@ import { Link } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 
 type LowStockAlertResponse = components["schemas"]["LowStockAlertResponse"];
 type InventoryLocationResponse =
@@ -119,46 +122,119 @@ export function AlertsListPage() {
     return `/catalog/products/${it.entity_id}`;
   }
 
+  const columns: DataTableColumn<LowStockAlertResponse>[] = [
+    {
+      key: "entity_name",
+      header: (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toggleSort("entity_name")}
+          data-testid="sort-name"
+        >
+          Entity
+        </Button>
+      ),
+      isPrimary: true,
+      cell: (it) => (
+        <span data-testid={`alert-row-${it.entity_id}`}>
+          <span
+            className="mr-1 inline-block rounded bg-muted px-1 text-xs font-mono"
+            aria-label={`${it.entity_kind} entity`}
+          >
+            {ENTITY_LABEL[it.entity_kind]}
+          </span>
+          <Link to={entityHref(it)} className="hover:underline">
+            {it.entity_name}
+          </Link>
+        </span>
+      ),
+    },
+    {
+      key: "threshold",
+      align: "right",
+      header: (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toggleSort("threshold")}
+          data-testid="sort-threshold"
+        >
+          Threshold
+        </Button>
+      ),
+      cell: (it) => <span className="tabular-nums">{it.threshold}</span>,
+    },
+    {
+      key: "total_on_hand",
+      align: "right",
+      header: (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toggleSort("total_on_hand")}
+          data-testid="sort-on-hand"
+        >
+          On hand
+        </Button>
+      ),
+      cell: (it) => <span className="tabular-nums">{it.total_on_hand}</span>,
+    },
+    {
+      key: "deficit",
+      align: "right",
+      header: (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toggleSort("deficit")}
+          data-testid="sort-deficit"
+        >
+          Deficit
+        </Button>
+      ),
+      cell: (it) => (
+        <span className="tabular-nums text-destructive">{it.deficit}</span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-xl font-semibold">Low-stock alerts</h1>
-      </header>
+      <PageHeader title="Low-stock alerts" />
 
-      <div className="rounded-md border border-border bg-muted/20 p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Entity kind
-            <select
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-              value={entityKind}
-              onChange={(e) => setEntityKind(e.target.value as EntityKind | "")}
-              data-testid="alerts-filter-kind"
-            >
-              <option value="">All</option>
-              <option value="material">Material</option>
-              <option value="supply">Supply</option>
-              <option value="product">Product</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs font-medium">
-            Location
-            <select
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-              value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
-              data-testid="alerts-filter-location"
-            >
-              <option value="">All locations</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
+      <FilterBar columns={2}>
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Entity kind
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={entityKind}
+            onChange={(e) => setEntityKind(e.target.value as EntityKind | "")}
+            data-testid="alerts-filter-kind"
+          >
+            <option value="">All</option>
+            <option value="material">Material</option>
+            <option value="supply">Supply</option>
+            <option value="product">Product</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Location
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            data-testid="alerts-filter-location"
+          >
+            <option value="">All locations</option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FilterBar>
 
       {error ? (
         <div
@@ -182,93 +258,13 @@ export function AlertsListPage() {
           </p>
         </div>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-              <th className="py-2 pr-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleSort("entity_name")}
-                  data-testid="sort-name"
-                >
-                  Entity
-                </Button>
-              </th>
-              <th className="py-2 pr-2 text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleSort("threshold")}
-                  data-testid="sort-threshold"
-                >
-                  Threshold
-                </Button>
-              </th>
-              <th className="py-2 pr-2 text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleSort("total_on_hand")}
-                  data-testid="sort-on-hand"
-                >
-                  On hand
-                </Button>
-              </th>
-              <th className="py-2 pr-2 text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleSort("deficit")}
-                  data-testid="sort-deficit"
-                >
-                  Deficit
-                </Button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && sortedItems.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="py-4 text-center text-muted-foreground"
-                >
-                  Loading…
-                </td>
-              </tr>
-            ) : (
-              sortedItems.map((it) => (
-                <tr
-                  key={`${it.entity_kind}:${it.entity_id}`}
-                  className="border-b border-border/50"
-                  data-testid={`alert-row-${it.entity_id}`}
-                >
-                  <td className="py-2 pr-2">
-                    <span
-                      className="mr-1 inline-block rounded bg-muted px-1 text-xs font-mono"
-                      aria-label={`${it.entity_kind} entity`}
-                    >
-                      {ENTITY_LABEL[it.entity_kind]}
-                    </span>
-                    <Link to={entityHref(it)} className="hover:underline">
-                      {it.entity_name}
-                    </Link>
-                  </td>
-                  <td className="py-2 pr-2 text-right tabular-nums">
-                    {it.threshold}
-                  </td>
-                  <td className="py-2 pr-2 text-right tabular-nums">
-                    {it.total_on_hand}
-                  </td>
-                  <td className="py-2 pr-2 text-right tabular-nums text-destructive">
-                    {it.deficit}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          rows={sortedItems}
+          getRowKey={(it) => `${it.entity_kind}:${it.entity_id}`}
+          loading={loading && sortedItems.length === 0}
+          minWidthClassName="min-w-[520px]"
+        />
       )}
     </section>
   );

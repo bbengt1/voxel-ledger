@@ -7,7 +7,9 @@ import { apiClient } from "@/api/client";
 // in this file falls back to the raw axios client until the typed
 // wrapper grows path-template support. Same workaround pattern as
 // UserDetail (Phase 1.6) uses for `/users/{id}/...`.
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 
 type EntityType = "material" | "supply" | "rate" | "product";
@@ -114,11 +116,46 @@ export function CustomFieldsPage() {
     reload();
   };
 
+  const columns: DataTableColumn<CustomFieldRow>[] = [
+    {
+      key: "key",
+      header: "key",
+      isPrimary: true,
+      cell: (r) => <span className="font-mono">{r.key}</span>,
+    },
+    { key: "label", header: "label", cell: (r) => r.label },
+    { key: "type", header: "type", cell: (r) => r.field_type },
+    {
+      key: "required",
+      header: "required",
+      cell: (r) => (r.required ? "yes" : "no"),
+    },
+    {
+      key: "status",
+      header: "status",
+      cell: (r) => (r.is_archived ? "archived" : "active"),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cardFullWidth: true,
+      cell: (r) =>
+        r.is_archived ? (
+          <Button variant="secondary" onClick={() => void onUnarchive(r.id)}>
+            Unarchive
+          </Button>
+        ) : (
+          <Button variant="secondary" onClick={() => void onArchive(r.id)}>
+            Archive
+          </Button>
+        ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Custom fields</h1>
-      </header>
+      <PageHeader title="Custom fields" />
 
       <nav aria-label="Entity tabs" className="flex gap-2 border-b border-border">
         {ENTITY_TYPES.map((et) => (
@@ -241,66 +278,14 @@ export function CustomFieldsPage() {
         </div>
       </form>
 
-      {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="text-left">
-              <th className="border-b border-border py-2">key</th>
-              <th className="border-b border-border py-2">label</th>
-              <th className="border-b border-border py-2">type</th>
-              <th className="border-b border-border py-2">required</th>
-              <th className="border-b border-border py-2">status</th>
-              <th className="border-b border-border py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="border-b border-border py-2 font-mono">
-                  {r.key}
-                </td>
-                <td className="border-b border-border py-2">{r.label}</td>
-                <td className="border-b border-border py-2">{r.field_type}</td>
-                <td className="border-b border-border py-2">
-                  {r.required ? "yes" : "no"}
-                </td>
-                <td className="border-b border-border py-2">
-                  {r.is_archived ? "archived" : "active"}
-                </td>
-                <td className="border-b border-border py-2 text-right">
-                  {r.is_archived ? (
-                    <Button
-                      variant="secondary"
-                      onClick={() => void onUnarchive(r.id)}
-                    >
-                      Unarchive
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      onClick={() => void onArchive(r.id)}
-                    >
-                      Archive
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="py-3 text-center text-muted-foreground"
-                >
-                  No custom fields yet for {tab}.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowKey={(r) => r.id}
+        loading={loading}
+        emptyMessage={`No custom fields yet for ${tab}.`}
+        minWidthClassName="min-w-[640px]"
+      />
     </section>
   );
 }

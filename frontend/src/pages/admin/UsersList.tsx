@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -74,18 +77,46 @@ export function UsersListPage() {
     };
   }, [params]);
 
+  const columns: DataTableColumn<UserResponse>[] = [
+    {
+      key: "email",
+      header: "Email",
+      isPrimary: true,
+      cell: (u) => (
+        <Link to={`/admin/users/${u.id}`} className="hover:underline">
+          {u.email}
+        </Link>
+      ),
+    },
+    { key: "name", header: "Name", cell: (u) => u.full_name },
+    { key: "role", header: "Role", cell: (u) => u.role },
+    {
+      key: "status",
+      header: "Status",
+      cell: (u) => (u.is_active ? "Active" : "Inactive"),
+    },
+    {
+      key: "last_login",
+      header: "Last login",
+      cell: (u) =>
+        u.last_login ? new Date(u.last_login).toLocaleString() : "—",
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Users</h1>
-        {isOwner ? (
-          <Button asChild>
-            <Link to="/admin/users/new">New user</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Users"
+        actions={
+          isOwner ? (
+            <Button asChild>
+              <Link to="/admin/users/new">New user</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <FilterBar columns={3}>
         <div className="flex flex-col gap-1">
           <label htmlFor="users-search" className="text-xs font-medium">
             Search
@@ -134,7 +165,7 @@ export function UsersListPage() {
             <option value="false">Inactive</option>
           </select>
         </div>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div
@@ -146,52 +177,14 @@ export function UsersListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Email</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Role</th>
-            <th className="py-2 pr-2">Status</th>
-            <th className="py-2 pr-2">Last login</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading && items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                Loading…
-              </td>
-            </tr>
-          ) : items.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No users match the current filters.
-              </td>
-            </tr>
-          ) : (
-            items.map((u) => (
-              <tr key={u.id} className="border-b border-border/50">
-                <td className="py-2 pr-2">
-                  <Link to={`/admin/users/${u.id}`} className="hover:underline">
-                    {u.email}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2">{u.full_name}</td>
-                <td className="py-2 pr-2">{u.role}</td>
-                <td className="py-2 pr-2">
-                  {u.is_active ? "Active" : "Inactive"}
-                </td>
-                <td className="py-2 pr-2">
-                  {u.last_login
-                    ? new Date(u.last_login).toLocaleString()
-                    : "—"}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(u) => u.id}
+        loading={loading && items.length === 0}
+        emptyMessage="No users match the current filters."
+        minWidthClassName="min-w-[640px]"
+      />
 
       {nextCursor ? (
         <div className="flex justify-end">

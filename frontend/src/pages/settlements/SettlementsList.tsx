@@ -7,7 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type SettlementResponse = components["schemas"]["SettlementResponse"];
@@ -57,18 +60,70 @@ export function SettlementsListPage() {
       });
   }, [state, channelId]);
 
+  const columns: DataTableColumn<SettlementResponse>[] = [
+    {
+      key: "settlement_number",
+      header: "#",
+      isPrimary: true,
+      cell: (s) => (
+        <Link
+          to={`/settlements/${s.id}`}
+          className="font-mono text-xs hover:underline"
+        >
+          {s.settlement_number}
+        </Link>
+      ),
+    },
+    {
+      key: "period",
+      header: "Period",
+      cell: (s) => (
+        <span className="text-xs">
+          {s.period_start} → {s.period_end}
+        </span>
+      ),
+    },
+    {
+      key: "gross_amount",
+      header: "Gross",
+      align: "right",
+      cell: (s) => s.gross_amount,
+    },
+    {
+      key: "fee_amount",
+      header: "Fees",
+      align: "right",
+      cell: (s) => s.fee_amount,
+    },
+    {
+      key: "payout_amount",
+      header: "Payout",
+      align: "right",
+      cell: (s) => s.payout_amount,
+    },
+    {
+      key: "state",
+      header: "State",
+      cell: (s) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">{s.state}</span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Settlements</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/settlements/import">Import settlement</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Settlements"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/settlements/import">Import settlement</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <FilterBar columns={2}>
         <label className="block text-xs">
           Channel
           <select
@@ -100,7 +155,7 @@ export function SettlementsListPage() {
             <option value="cancelled">Cancelled</option>
           </select>
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -108,48 +163,14 @@ export function SettlementsListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">#</th>
-            <th className="py-2 pr-2">Period</th>
-            <th className="py-2 pr-2">Gross</th>
-            <th className="py-2 pr-2">Fees</th>
-            <th className="py-2 pr-2">Payout</th>
-            <th className="py-2 pr-2">State</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="py-4 text-center text-muted-foreground">
-                No settlements yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((s) => (
-              <tr key={s.id} className="border-b border-border/50 hover:bg-accent/30">
-                <td className="py-2 pr-2 font-mono text-xs">
-                  <Link to={`/settlements/${s.id}`} className="hover:underline">
-                    {s.settlement_number}
-                  </Link>
-                </td>
-                <td className="py-2 pr-2 text-xs">
-                  {s.period_start} → {s.period_end}
-                </td>
-                <td className="py-2 pr-2">{s.gross_amount}</td>
-                <td className="py-2 pr-2">{s.fee_amount}</td>
-                <td className="py-2 pr-2">{s.payout_amount}</td>
-                <td className="py-2 pr-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                    {s.state}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(s) => s.id}
+        emptyMessage="No settlements yet."
+        minWidthClassName="min-w-[640px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }

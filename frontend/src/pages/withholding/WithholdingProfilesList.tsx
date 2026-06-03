@@ -6,7 +6,10 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -49,18 +52,48 @@ export function WithholdingProfilesListPage() {
       });
   }, [search, active]);
 
+  const columns: DataTableColumn<WithholdingProfileResponse>[] = [
+    {
+      key: "code",
+      header: "Code",
+      isPrimary: true,
+      cell: (p) => <span className="font-mono text-xs">{p.code}</span>,
+    },
+    { key: "name", header: "Name", cell: (p) => p.name },
+    { key: "jurisdiction", header: "Jurisdiction", cell: (p) => p.jurisdiction },
+    { key: "rate", header: "Rate", align: "right", cell: (p) => p.rate },
+    {
+      key: "threshold",
+      header: "Threshold",
+      align: "right",
+      cell: (p) => p.threshold_per_year ?? "—",
+    },
+    { key: "form", header: "Form", cell: (p) => p.form_kind ?? "—" },
+    {
+      key: "is_active",
+      header: "Active",
+      cell: (p) => (
+        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+          {p.is_active ? "active" : "archived"}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Withholding profiles</h1>
-        {canWrite ? (
-          <Button asChild>
-            <Link to="/withholding-profiles/new">New profile</Link>
-          </Button>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Withholding profiles"
+        actions={
+          canWrite ? (
+            <Button asChild>
+              <Link to="/withholding-profiles/new">New profile</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <FilterBar columns={2}>
         <label className="block text-xs">
           Active
           <select
@@ -83,7 +116,7 @@ export function WithholdingProfilesListPage() {
             placeholder="code / name / jurisdiction"
           />
         </label>
-      </div>
+      </FilterBar>
 
       {error ? (
         <div role="alert" className="rounded border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
@@ -91,48 +124,14 @@ export function WithholdingProfilesListPage() {
         </div>
       ) : null}
 
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2 pr-2">Code</th>
-            <th className="py-2 pr-2">Name</th>
-            <th className="py-2 pr-2">Jurisdiction</th>
-            <th className="py-2 pr-2">Rate</th>
-            <th className="py-2 pr-2">Threshold</th>
-            <th className="py-2 pr-2">Form</th>
-            <th className="py-2 pr-2">Active</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="py-4 text-center text-muted-foreground">
-                No withholding profiles yet.
-              </td>
-            </tr>
-          ) : (
-            items.map((p) => (
-              <tr
-                key={p.id}
-                className="border-b border-border/50 hover:bg-accent/30"
-                data-testid={`withholding-row-${p.id}`}
-              >
-                <td className="py-2 pr-2 font-mono text-xs">{p.code}</td>
-                <td className="py-2 pr-2">{p.name}</td>
-                <td className="py-2 pr-2">{p.jurisdiction}</td>
-                <td className="py-2 pr-2">{p.rate}</td>
-                <td className="py-2 pr-2">{p.threshold_per_year ?? "—"}</td>
-                <td className="py-2 pr-2">{p.form_kind ?? "—"}</td>
-                <td className="py-2 pr-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                    {p.is_active ? "active" : "archived"}
-                  </span>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={items}
+        getRowKey={(p) => p.id}
+        emptyMessage="No withholding profiles yet."
+        minWidthClassName="min-w-[760px]"
+        rowClassName={() => "hover:bg-accent/30"}
+      />
     </section>
   );
 }
