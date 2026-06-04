@@ -25,7 +25,7 @@ type InventoryLocationResponse =
 type InventoryTransactionResponse =
   components["schemas"]["InventoryTransactionResponse"];
 
-export type ReconcileEntityKind = "material" | "supply" | "product";
+export type ReconcileEntityKind = "material" | "supply" | "product" | "part";
 
 interface Props {
   open: boolean;

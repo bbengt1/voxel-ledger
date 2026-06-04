@@ -39,10 +39,13 @@ InventoryTransactionResponseKindLiteral = Literal[
     "production_consumption",
     "sale_consumption",
 ]
-InventoryEntityKindLiteral = Literal["material", "supply", "product"]
-# Read-side literal — includes ``part`` so part ledger rows (written by
-# jobs/builds, epic #267) serialize + filter. Manual create/transfer stay
-# narrow (parts move via jobs/builds, not manual transactions).
+# Write-side literal — the entity kinds a manual transaction/transfer may
+# target. ``part`` is included so parts support manual adjustments,
+# reconciliation, and transfers from the UI (they're still primarily moved
+# by jobs/builds, but on-hand corrections need a manual path too).
+InventoryEntityKindLiteral = Literal["material", "supply", "product", "part"]
+# Read-side literal — same set; part ledger rows (written by jobs/builds,
+# epic #267) serialize + filter through this.
 InventoryEntityKindReadLiteral = Literal["material", "supply", "product", "part"]
 
 

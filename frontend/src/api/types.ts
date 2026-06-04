@@ -10119,7 +10119,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /**
              * Kind
              * @enum {string}
@@ -10220,7 +10220,7 @@ export interface components {
              * Entity Kind
              * @enum {string}
              */
-            entity_kind: "material" | "supply" | "product";
+            entity_kind: "material" | "supply" | "product" | "part";
             /**
              * From Location Id
              * Format: uuid
@@ -11479,6 +11479,10 @@ export interface components {
             name: string;
             /** Parts Per Run */
             parts_per_run: number;
+            /** Per Location On Hand */
+            per_location_on_hand?: {
+                [key: string]: string;
+            };
             /** Print Grams By Material */
             print_grams_by_material?: {
                 [key: string]: string;

@@ -12,7 +12,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { EntityImage } from "@/components/catalog/EntityImage";
 import { EntityPicker, type EntityOption } from "@/components/inventory/EntityPicker";
-import { PartOnHandSection } from "@/components/inventory/PartOnHandSection";
+import { OnHandSection } from "@/components/inventory/OnHandSection";
 import { LiveCostPanel } from "@/components/production/LiveCostPanel";
 import {
   PrinterFileBrowser,
@@ -153,6 +153,16 @@ export function PartDetailPage() {
       cancelled = true;
     };
   }, [id, syncForm]);
+
+  // Refetch just the part (e.g. after an inventory adjustment/transfer) to
+  // refresh on-hand without clobbering any unsaved edits in the form.
+  const refreshPart = useCallback(() => {
+    if (!id) return;
+    apiClient
+      .get<PartResponse>(`/api/v1/parts/${id}`)
+      .then((res) => setPart(res.data))
+      .catch(() => {});
+  }, [id]);
 
   const gramsSum = useMemo(
     () =>
@@ -314,7 +324,16 @@ export function PartDetailPage() {
         </p>
       </header>
 
-      {id ? <PartOnHandSection partId={id} /> : null}
+      <OnHandSection
+        entityKind="part"
+        entityId={part.id}
+        entityName={part.name}
+        totalOnHand={part.total_on_hand}
+        perLocationOnHand={part.per_location_on_hand ?? null}
+        unit="ea"
+        lowStockThreshold={null}
+        onChanged={refreshPart}
+      />
 
       <section
         className="space-y-2 rounded-lg border border-border p-4"
