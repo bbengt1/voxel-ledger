@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
+import { ProductImage } from "@/components/catalog/ProductImage";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
@@ -20,6 +21,7 @@ const DEBOUNCE_MS = 250;
 const CAN_WRITE_ROLES = ["owner", "production", "sales"] as const;
 
 const PRODUCT_COLUMNS: ColumnDef[] = [
+  { id: "thumbnail", label: "Image" },
   { id: "sku", label: "SKU", alwaysVisible: true },
   { id: "upc", label: "UPC" },
   { id: "name", label: "Name" },
@@ -95,6 +97,19 @@ export function ProductsListPage() {
   }, [params]);
 
   const allColumns: (DataTableColumn<ProductResponse> & { id: string })[] = [
+    {
+      id: "thumbnail",
+      key: "thumbnail",
+      header: "Image",
+      cell: (p) => (
+        <ProductImage
+          productId={p.id}
+          size="thumb"
+          className="h-9 w-9 shrink-0"
+          alt={`${p.name} thumbnail`}
+        />
+      ),
+    },
     {
       id: "sku",
       key: "sku",
