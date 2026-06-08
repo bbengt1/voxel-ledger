@@ -52,7 +52,9 @@ PLACEHOLDER_SUBSTRINGS = frozenset(
     }
 )
 
-SECRET_FIELDS = frozenset({"jwt_secret_key", "database_url", "owner_email", "owner_password"})
+SECRET_FIELDS = frozenset(
+    {"jwt_secret_key", "database_url", "owner_email", "owner_password", "qbo_client_secret"}
+)
 
 
 class Settings(BaseSettings):
@@ -107,6 +109,15 @@ class Settings(BaseSettings):
     owner_email: str | None = None
     owner_password: str | None = None
 
+    # QuickBooks Online OAuth (epic #312, Phase 1 #314). Optional so the app
+    # boots without QBO configured; the /admin/quickbooks connect flow raises a
+    # clear error if these are unset. `qbo_client_secret` is placeholder-checked.
+    # Phase-0 verified base config: sandbox vs production via `qbo_environment`.
+    qbo_client_id: str | None = None
+    qbo_client_secret: str | None = None
+    qbo_redirect_uri: str | None = None
+    qbo_environment: Literal["sandbox", "production"] = "sandbox"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors_origins(cls, value: object) -> object:
@@ -130,6 +141,7 @@ class Settings(BaseSettings):
         "jwt_secret_key",
         "owner_email",
         "owner_password",
+        "qbo_client_secret",
     )
     @classmethod
     def _reject_placeholders(cls, value: str | None, info: ValidationInfo) -> str | None:

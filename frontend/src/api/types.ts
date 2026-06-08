@@ -474,6 +474,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quickbooks Connect */
+        get: operations["quickbooks_connect_api_v1_admin_quickbooks_connect_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quickbooks Disconnect */
+        post: operations["quickbooks_disconnect_api_v1_admin_quickbooks_disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Quickbooks Set Enabled */
+        post: operations["quickbooks_set_enabled_api_v1_admin_quickbooks_enabled_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quickbooks Status */
+        get: operations["quickbooks_status_api_v1_admin_quickbooks_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/reference-sequences": {
         parameters: {
             query?: never;
@@ -8498,6 +8566,11 @@ export interface components {
             /** Section */
             section: string;
         };
+        /** ConnectResponse */
+        ConnectResponse: {
+            /** Authorization Url */
+            authorization_url: string;
+        };
         /** ControlCenterResponse */
         ControlCenterResponse: {
             /**
@@ -9347,6 +9420,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** EnabledRequest */
+        EnabledRequest: {
+            /** Enabled */
+            enabled: boolean;
         };
         /** ExpenseCategoryCreate */
         ExpenseCategoryCreate: {
@@ -12333,6 +12411,23 @@ export interface components {
             notes?: string | null;
             /** Priority */
             priority?: number | null;
+        };
+        /** QuickBooksStatusResponse */
+        QuickBooksStatusResponse: {
+            /** Access Token Expires At */
+            access_token_expires_at?: string | null;
+            /** Connected */
+            connected: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Environment */
+            environment: string;
+            /** Realm Id */
+            realm_id?: string | null;
+            /** Refresh Token Expires At */
+            refresh_token_expires_at?: string | null;
+            /** Token Health */
+            token_health?: string | null;
         };
         /** QuoteCreate */
         QuoteCreate: {
@@ -16245,6 +16340,97 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonitorRestartResponse"];
+                };
+            };
+        };
+    };
+    quickbooks_connect_api_v1_admin_quickbooks_connect_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectResponse"];
+                };
+            };
+        };
+    };
+    quickbooks_disconnect_api_v1_admin_quickbooks_disconnect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    quickbooks_set_enabled_api_v1_admin_quickbooks_enabled_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickBooksStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quickbooks_status_api_v1_admin_quickbooks_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickBooksStatusResponse"];
                 };
             };
         };

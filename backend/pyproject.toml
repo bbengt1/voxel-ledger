@@ -25,6 +25,7 @@ dependencies = [
     "aiosmtplib>=3.0",
     "python-dateutil>=2.9",
     "pillow>=11.0",
+    "intuit-oauth>=1.2.6",
 ]
 
 [project.optional-dependencies]

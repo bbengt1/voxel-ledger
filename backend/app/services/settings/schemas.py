@@ -692,6 +692,32 @@ class EmailStorageRoot(SettingSchema):
     value: str = Field(min_length=1)
 
 
+@register
+class QuickbooksEnabled(SettingSchema):
+    """QuickBooks Online sync toggle (epic #312, Phase 1 #314).
+
+    When true (and a credential is connected), accounting postings are pushed
+    to QBO. Wired now; has no effect until the Phase-3 sync worker lands.
+    """
+
+    key: ClassVar[str] = "quickbooks.enabled"
+    default: ClassVar[bool] = False
+    value: bool = False
+
+
+@register
+class QuickbooksRealmId(SettingSchema):
+    """QuickBooks Online company id (``realmId``) of the connected company.
+
+    A convenience mirror of ``oauth_credential.realm_id`` for read-only display
+    in admin. Set on OAuth callback, cleared on disconnect. Not a secret.
+    """
+
+    key: ClassVar[str] = "quickbooks.realm_id"
+    default: ClassVar[str | None] = None
+    value: str | None = None
+
+
 # Set of setting keys whose values are sensitive — redacted in event payloads.
 SECRET_SETTING_KEYS: frozenset[str] = frozenset({"email.smtp_password_secret"})
 

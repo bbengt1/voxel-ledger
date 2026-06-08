@@ -5,6 +5,7 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { HomePage } from "@/pages/Home";
 import { LoginPage } from "@/pages/Login";
 import { CustomFieldsPage } from "@/pages/admin/CustomFields";
+import { QuickBooksPage } from "@/pages/admin/QuickBooks";
 import { SettingsPage } from "@/pages/admin/Settings";
 import { UserCreatePage } from "@/pages/admin/UserCreate";
 import { UserDetailPage } from "@/pages/admin/UserDetail";
@@ -209,6 +210,16 @@ export function App() {
           <RequireAuth>
             <AppShell>
               <SettingsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/quickbooks"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <QuickBooksPage />
             </AppShell>
           </RequireAuth>
         }

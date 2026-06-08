@@ -5964,6 +5964,19 @@
         "title": "ComparisonRowResponse",
         "type": "object"
       },
+      "ConnectResponse": {
+        "properties": {
+          "authorization_url": {
+            "title": "Authorization Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorization_url"
+        ],
+        "title": "ConnectResponse",
+        "type": "object"
+      },
       "ControlCenterResponse": {
         "properties": {
           "as_of": {
@@ -8305,6 +8318,19 @@
           "updated_at"
         ],
         "title": "EmailMessageResponse",
+        "type": "object"
+      },
+      "EnabledRequest": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "EnabledRequest",
         "type": "object"
       },
       "ExpenseCategoryCreate": {
@@ -16767,6 +16793,75 @@
           }
         },
         "title": "ProductionOrderUpdate",
+        "type": "object"
+      },
+      "QuickBooksStatusResponse": {
+        "properties": {
+          "access_token_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token Expires At"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "realm_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realm Id"
+          },
+          "refresh_token_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token Expires At"
+          },
+          "token_health": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Health"
+          }
+        },
+        "required": [
+          "connected",
+          "enabled",
+          "environment"
+        ],
+        "title": "QuickBooksStatusResponse",
         "type": "object"
       },
       "QuoteCreate": {
@@ -26854,6 +26949,127 @@
         "tags": [
           "admin",
           "admin-printer-monitor"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/connect": {
+      "get": {
+        "operationId": "quickbooks_connect_api_v1_admin_quickbooks_connect_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Quickbooks Connect",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/disconnect": {
+      "post": {
+        "operationId": "quickbooks_disconnect_api_v1_admin_quickbooks_disconnect_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Quickbooks Disconnect",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/enabled": {
+      "post": {
+        "operationId": "quickbooks_set_enabled_api_v1_admin_quickbooks_enabled_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickBooksStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Quickbooks Set Enabled",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/status": {
+      "get": {
+        "operationId": "quickbooks_status_api_v1_admin_quickbooks_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickBooksStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Quickbooks Status",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
         ]
       }
     },
