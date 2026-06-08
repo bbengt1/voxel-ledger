@@ -53,7 +53,14 @@ PLACEHOLDER_SUBSTRINGS = frozenset(
 )
 
 SECRET_FIELDS = frozenset(
-    {"jwt_secret_key", "database_url", "owner_email", "owner_password", "qbo_client_secret"}
+    {
+        "jwt_secret_key",
+        "database_url",
+        "owner_email",
+        "owner_password",
+        "qbo_client_secret",
+        "secret_encryption_key",
+    }
 )
 
 
@@ -118,6 +125,14 @@ class Settings(BaseSettings):
     qbo_redirect_uri: str | None = None
     qbo_environment: Literal["sandbox", "production"] = "sandbox"
 
+    # Secret-at-rest encryption (epic #312 hardening). A single Fernet key used
+    # to encrypt sensitive DB columns — currently the QBO OAuth tokens (see
+    # app/core/crypto.py + docs/secrets-at-rest.md). Optional so the app boots
+    # without it; only required when an encrypted secret is actually read or
+    # written. Generate with:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    secret_encryption_key: str | None = None
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors_origins(cls, value: object) -> object:
@@ -142,6 +157,7 @@ class Settings(BaseSettings):
         "owner_email",
         "owner_password",
         "qbo_client_secret",
+        "secret_encryption_key",
     )
     @classmethod
     def _reject_placeholders(cls, value: str | None, info: ValidationInfo) -> str | None:

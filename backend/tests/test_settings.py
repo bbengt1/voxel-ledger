@@ -42,6 +42,21 @@ def test_settings_rejects_empty_db_url() -> None:
         Settings(**_ok_kwargs(database_url=""))  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize("placeholder", ["change-me", "your-secret-here", ""])
+def test_settings_rejects_placeholder_encryption_key(placeholder: str) -> None:
+    with pytest.raises(ValidationError):
+        Settings(**_ok_kwargs(secret_encryption_key=placeholder))  # type: ignore[arg-type]
+
+
+def test_settings_encryption_key_optional(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Unset is allowed; the app boots without it and only needs it when an
+    # encrypted secret is read/written. (conftest seeds the env key, so clear
+    # it here to exercise the unset path.)
+    monkeypatch.delenv("SECRET_ENCRYPTION_KEY", raising=False)
+    s = Settings(**_ok_kwargs())  # type: ignore[arg-type]
+    assert s.secret_encryption_key is None
+
+
 def test_app_refuses_to_start_with_placeholders(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -24,6 +24,9 @@ os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-not-a-real-secret-xx")
 os.environ.setdefault("BCRYPT_ROUNDS", "4")
+# A fixed (test-only) Fernet key so secret-at-rest encryption round-trips
+# consistently within a run. app/core/crypto loads this lazily from env.
+os.environ.setdefault("SECRET_ENCRYPTION_KEY", "7A84cwNQBwMFQ-up0FiE2dKJBeTIeJ2LrorO0hHdNpI=")
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402

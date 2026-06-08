@@ -209,6 +209,20 @@ Phase 5 decommission gate.
 
 ---
 
+## Addendum — token secret-at-rest encryption (post-Phase-1 hardening)
+
+Phase 1 (#314) stored the QBO `access_token` / `refresh_token` in plaintext
+columns, matching the app's then-precedent. As a follow-up these are now
+**encrypted at rest** with Fernet via `EncryptedString` (see
+[`docs/secrets-at-rest.md`](secrets-at-rest.md)). The key is config-driven
+(`SECRET_ENCRYPTION_KEY`, validated like other secrets) and decryption is
+transparent to `app/services/quickbooks/oauth.py`. The "never serialized /
+logged" guarantee from Phase 1 still holds — encryption is defense in depth on
+top of it. Operational note: keep `SECRET_ENCRYPTION_KEY` stable; rotating it
+requires reconnecting QuickBooks.
+
+---
+
 ## Appendix — source URLs
 
 - OAuth 2.0 (tokens, scope, rotation, endpoints): `https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization/oauth-2.0`

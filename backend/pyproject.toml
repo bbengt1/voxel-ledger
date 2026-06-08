@@ -26,6 +26,10 @@ dependencies = [
     "python-dateutil>=2.9",
     "pillow>=11.0",
     "intuit-oauth>=1.2.6",
+    # Secret-at-rest encryption (Fernet) — see app/core/crypto.py. Already
+    # pulled in transitively by intuit-oauth; pinned explicitly now that we
+    # import it directly.
+    "cryptography>=42.0",
 ]
 
 [project.optional-dependencies]
