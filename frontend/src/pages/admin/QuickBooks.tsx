@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { AccountMapEditor } from "@/pages/admin/QuickBooksAccountMap";
 import { Button } from "@/components/ui/Button";
 
 type Status = components["schemas"]["QuickBooksStatusResponse"];
@@ -188,6 +189,8 @@ export function QuickBooksPage() {
               </span>
             </label>
           </div>
+
+          {status.connected ? <AccountMapEditor /> : null}
         </div>
       ) : null}
     </section>
