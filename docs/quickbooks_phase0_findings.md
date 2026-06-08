@@ -184,13 +184,13 @@ These are the parts of #313 a person with the Intuit login must do; everything e
 6. **Libraries:** `intuit-oauth` for OAuth, **httpx** for the API; not `python-quickbooks`. (Phases 1–4)
 7. **Link-out:** generic QBO web-app link, **no report deep-links**; Reports API is the only supported in-app data path (CorePlus-metered). (Phase 5)
 8. **Cost:** writes free, reads/CDC metered but far under the 500k/mo free tier; keep Phase-4 polling economical. (Phase 4)
-9. **Historical data:** see §11 — recommended **archive + opening-balance migration**, pending owner sign-off. (Phase 5)
+9. **Historical data:** **LOCKED** — **archive + opening-balance migration** (owner-approved 2026-06-08). See §11. (Phase 5)
 
 ---
 
-## 11. Historical-data handling (recommendation — needs owner sign-off)
+## 11. Historical-data handling (✅ owner-approved 2026-06-08 — archive + opening-balance migration)
 
-Phase 5 drops the local GL tables, so existing books must be preserved first. **Recommended approach:**
+Phase 5 drops the local GL tables, so existing books must be preserved first. **Approved approach:**
 
 1. **Archive for audit retention (do regardless):** export `journal_entry`, `journal_line`, `account`, `account_balance`,
    and a final **trial balance** snapshot as of the cutover date to durable storage (SQL dump + CSV), retained per the
@@ -200,9 +200,12 @@ Phase 5 drops the local GL tables, so existing books must be preserved first. **
    transactions (costly, error-prone, and unnecessary for go-forward bookkeeping).
 
 **Rationale:** replaying full history into QBO is high-risk and adds no audit value over the archive; opening balances +
-archive gives correct go-forward books *and* a retained historical record. **Owner must confirm** (a) the retention period
-and storage location, and (b) whether any prior-period detail must live *in QBO* (if so, a scoped historical import becomes
-its own task). This decision unblocks the Phase 5 decommission gate.
+archive gives correct go-forward books *and* a retained historical record.
+
+**Status:** ✅ Approved by owner 2026-06-08. Remaining detail to settle when Phase 5 is scoped: (a) the exact retention
+period and storage location for the archive, and (b) confirmation that no prior-period *detail* must live inside QBO
+(scope assumes opening balances only; a deeper historical import would be a separate task). This decision unblocks the
+Phase 5 decommission gate.
 
 ---
 
