@@ -158,6 +158,11 @@ from app.models.late_fee_policy import (
 from app.models.material import Material
 from app.models.material_receipt import MaterialReceipt
 from app.models.note import Note
+from app.models.oauth_credential import (
+    OAUTH_PROVIDER_VALUES,
+    OAuthCredential,
+    OAuthProvider,
+)
 from app.models.part import Part
 from app.models.payment import (
     PAYMENT_METHOD_VALUES,
@@ -418,6 +423,9 @@ __all__ = [
     "Material",
     "MaterialReceipt",
     "Note",
+    "OAUTH_PROVIDER_VALUES",
+    "OAuthCredential",
+    "OAuthProvider",
     "PRINTER_EVENT_KIND_VALUES",
     "PRINTER_TYPE_VALUES",
     "Part",
