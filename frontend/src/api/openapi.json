@@ -173,6 +173,62 @@
         "title": "AccountListResponse",
         "type": "object"
       },
+      "AccountMapEntry": {
+        "properties": {
+          "qbo_account_id": {
+            "title": "Qbo Account Id",
+            "type": "string"
+          },
+          "qbo_account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qbo Account Name"
+          }
+        },
+        "required": [
+          "qbo_account_id"
+        ],
+        "title": "AccountMapEntry",
+        "type": "object"
+      },
+      "AccountMapResponse": {
+        "properties": {
+          "mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AccountMapEntry"
+            },
+            "title": "Mappings",
+            "type": "object"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "unmapped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped",
+            "type": "array"
+          }
+        },
+        "required": [
+          "roles",
+          "mappings",
+          "unmapped"
+        ],
+        "title": "AccountMapResponse",
+        "type": "object"
+      },
       "AccountResponse": {
         "properties": {
           "code": {
@@ -8331,6 +8387,58 @@
           "enabled"
         ],
         "title": "EnabledRequest",
+        "type": "object"
+      },
+      "EntityMapResponse": {
+        "properties": {
+          "last_synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Synced At"
+          },
+          "local_id": {
+            "format": "uuid",
+            "title": "Local Id",
+            "type": "string"
+          },
+          "local_kind": {
+            "title": "Local Kind",
+            "type": "string"
+          },
+          "qbo_entity_type": {
+            "title": "Qbo Entity Type",
+            "type": "string"
+          },
+          "qbo_id": {
+            "title": "Qbo Id",
+            "type": "string"
+          },
+          "sync_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Token"
+          }
+        },
+        "required": [
+          "local_kind",
+          "local_id",
+          "qbo_entity_type",
+          "qbo_id"
+        ],
+        "title": "EntityMapResponse",
         "type": "object"
       },
       "ExpenseCategoryCreate": {
@@ -16795,6 +16903,46 @@
         "title": "ProductionOrderUpdate",
         "type": "object"
       },
+      "QboAccountChoice": {
+        "properties": {
+          "account_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Type"
+          },
+          "classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "QboAccountChoice",
+        "type": "object"
+      },
       "QuickBooksStatusResponse": {
         "properties": {
           "access_token_expires_at": {
@@ -20838,6 +20986,22 @@
           }
         },
         "title": "SendStatementRequest",
+        "type": "object"
+      },
+      "SetAccountMapRequest": {
+        "properties": {
+          "mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AccountMapEntry"
+            },
+            "title": "Mappings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "title": "SetAccountMapRequest",
         "type": "object"
       },
       "SettingResponse": {
@@ -26952,6 +27116,109 @@
         ]
       }
     },
+    "/api/v1/admin/quickbooks/account-map": {
+      "get": {
+        "operationId": "get_account_map_api_v1_admin_quickbooks_account_map_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Account Map",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      },
+      "put": {
+        "operationId": "put_account_map_api_v1_admin_quickbooks_account_map_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAccountMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Account Map",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/accounts": {
+      "get": {
+        "operationId": "list_qbo_accounts_api_v1_admin_quickbooks_accounts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QboAccountChoice"
+                  },
+                  "title": "Response List Qbo Accounts Api V1 Admin Quickbooks Accounts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Qbo Accounts",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
     "/api/v1/admin/quickbooks/connect": {
       "get": {
         "operationId": "quickbooks_connect_api_v1_admin_quickbooks_connect_get",
@@ -27067,6 +27334,64 @@
           }
         ],
         "summary": "Quickbooks Status",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/sync/{kind}/{local_id}": {
+      "post": {
+        "operationId": "sync_entity_api_v1_admin_quickbooks_sync__kind___local_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "local_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Local Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sync Entity",
         "tags": [
           "admin",
           "admin-quickbooks"

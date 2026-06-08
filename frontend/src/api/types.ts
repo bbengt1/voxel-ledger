@@ -474,6 +474,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/account-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Map */
+        get: operations["get_account_map_api_v1_admin_quickbooks_account_map_get"];
+        /** Put Account Map */
+        put: operations["put_account_map_api_v1_admin_quickbooks_account_map_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Qbo Accounts */
+        get: operations["list_qbo_accounts_api_v1_admin_quickbooks_accounts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/connect": {
         parameters: {
             query?: never;
@@ -536,6 +571,23 @@ export interface paths {
         get: operations["quickbooks_status_api_v1_admin_quickbooks_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/sync/{kind}/{local_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Entity */
+        post: operations["sync_entity_api_v1_admin_quickbooks_sync__kind___local_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6324,6 +6376,24 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** AccountMapEntry */
+        AccountMapEntry: {
+            /** Qbo Account Id */
+            qbo_account_id: string;
+            /** Qbo Account Name */
+            qbo_account_name?: string | null;
+        };
+        /** AccountMapResponse */
+        AccountMapResponse: {
+            /** Mappings */
+            mappings: {
+                [key: string]: components["schemas"]["AccountMapEntry"];
+            };
+            /** Roles */
+            roles: string[];
+            /** Unmapped */
+            unmapped: string[];
+        };
         /** AccountResponse */
         AccountResponse: {
             /** Code */
@@ -9426,6 +9496,24 @@ export interface components {
             /** Enabled */
             enabled: boolean;
         };
+        /** EntityMapResponse */
+        EntityMapResponse: {
+            /** Last Synced At */
+            last_synced_at?: string | null;
+            /**
+             * Local Id
+             * Format: uuid
+             */
+            local_id: string;
+            /** Local Kind */
+            local_kind: string;
+            /** Qbo Entity Type */
+            qbo_entity_type: string;
+            /** Qbo Id */
+            qbo_id: string;
+            /** Sync Token */
+            sync_token?: string | null;
+        };
         /** ExpenseCategoryCreate */
         ExpenseCategoryCreate: {
             /** Code */
@@ -12412,6 +12500,17 @@ export interface components {
             /** Priority */
             priority?: number | null;
         };
+        /** QboAccountChoice */
+        QboAccountChoice: {
+            /** Account Type */
+            account_type?: string | null;
+            /** Classification */
+            classification?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** QuickBooksStatusResponse */
         QuickBooksStatusResponse: {
             /** Access Token Expires At */
@@ -13828,6 +13927,13 @@ export interface components {
              * @default false
              */
             include_paid: boolean;
+        };
+        /** SetAccountMapRequest */
+        SetAccountMapRequest: {
+            /** Mappings */
+            mappings: {
+                [key: string]: components["schemas"]["AccountMapEntry"];
+            };
         };
         /**
          * SettingResponse
@@ -16344,6 +16450,79 @@ export interface operations {
             };
         };
     };
+    get_account_map_api_v1_admin_quickbooks_account_map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountMapResponse"];
+                };
+            };
+        };
+    };
+    put_account_map_api_v1_admin_quickbooks_account_map_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAccountMapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_qbo_accounts_api_v1_admin_quickbooks_accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QboAccountChoice"][];
+                };
+            };
+        };
+    };
     quickbooks_connect_api_v1_admin_quickbooks_connect_get: {
         parameters: {
             query?: never;
@@ -16431,6 +16610,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickBooksStatusResponse"];
+                };
+            };
+        };
+    };
+    sync_entity_api_v1_admin_quickbooks_sync__kind___local_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                local_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

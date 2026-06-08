@@ -194,6 +194,12 @@ from app.models.production_order import (
     ProductionOrderState,
 )
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
+from app.models.qbo_account_map import QboAccountMap
+from app.models.qbo_entity_map import (
+    QBO_LOCAL_KIND_VALUES,
+    QboEntityMap,
+    QboLocalKind,
+)
 from app.models.quote import (
     QUOTE_ITEM_KIND_VALUES,
     QUOTE_STATE_VALUES,
@@ -446,6 +452,10 @@ __all__ = [
     "ProductionOrderState",
     "ProjectionCursor",
     "ProjectionTestEvent",
+    "QBO_LOCAL_KIND_VALUES",
+    "QboAccountMap",
+    "QboEntityMap",
+    "QboLocalKind",
     "QUOTE_ITEM_KIND_VALUES",
     "QUOTE_STATE_VALUES",
     "Quote",
