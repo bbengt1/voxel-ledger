@@ -13,6 +13,8 @@ deliberately small here so Phase-2 callers (admin-triggered upserts) work today.
 
 from __future__ import annotations
 
+import asyncio
+import time
 import uuid
 from typing import Any
 
@@ -24,9 +26,29 @@ from app.services.quickbooks import oauth
 
 MINOR_VERSION = "75"  # Phase-0 verified latest; 1-74 deprecated 2025-08-01.
 _TIMEOUT_SECONDS = 30.0
+BATCH_MAX_OPS = 30  # Phase-0: QBO batch endpoint caps at 30 operations.
 
 _PROD_BASE = "https://quickbooks.api.intuit.com"
 _SANDBOX_BASE = "https://sandbox-quickbooks.api.intuit.com"
+
+# Phase-0 operational limits per realm: ≤10 concurrent, 500 requests/min.
+# A process-wide concurrency gate + a min-interval throttle keep us under both
+# even if Phase 3 later drains the outbox with parallel tasks.
+_MAX_CONCURRENT = 10
+_MIN_INTERVAL_SECONDS = 60.0 / 500.0
+_concurrency = asyncio.Semaphore(_MAX_CONCURRENT)
+_throttle_lock = asyncio.Lock()
+_last_request_monotonic = 0.0
+
+
+async def _throttle() -> None:
+    """Space requests to stay under ~500/min/realm."""
+    global _last_request_monotonic
+    async with _throttle_lock:
+        wait = _MIN_INTERVAL_SECONDS - (time.monotonic() - _last_request_monotonic)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        _last_request_monotonic = time.monotonic()
 
 
 class QuickBooksApiError(RuntimeError):
@@ -35,6 +57,10 @@ class QuickBooksApiError(RuntimeError):
     def __init__(self, status_code: int, message: str) -> None:
         self.status_code = status_code
         super().__init__(f"QBO API {status_code}: {message}")
+
+
+class QuickBooksThrottleError(QuickBooksApiError):
+    """HTTP 429 / errorCode 003001 — throttled; retry with backoff."""
 
 
 def base_url(settings: Settings) -> str:
@@ -70,10 +96,14 @@ class QuickBooksClient:
             "Content-Type": "application/json",
         }
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as http:
-                resp = await http.request(method, url, params=query, json=json, headers=headers)
+            async with _concurrency:
+                await _throttle()
+                async with httpx.AsyncClient(timeout=_TIMEOUT_SECONDS) as http:
+                    resp = await http.request(method, url, params=query, json=json, headers=headers)
         except httpx.HTTPError as exc:
             raise QuickBooksApiError(0, f"transport error: {exc}") from exc
+        if resp.status_code == 429:
+            raise QuickBooksThrottleError(429, (resp.text or "ThrottleExceeded")[:512])
         if resp.status_code >= 400:
             raise QuickBooksApiError(resp.status_code, (resp.text or "")[:512])
         return resp.json() if resp.content else {}
@@ -104,3 +134,14 @@ class QuickBooksClient:
     async def read(self, entity: str, qbo_id: str) -> dict[str, Any]:
         body = await self._request("GET", f"{entity.lower()}/{qbo_id}")
         return body.get(entity, {})
+
+    async def batch(self, operations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Submit up to 30 batch operations; return the BatchItemResponse list.
+
+        Each operation is a ``BatchItemRequest`` dict carrying a unique ``bId``.
+        Used by later phases to cut request volume; kept here as the shared
+        chokepoint (Phase-0: ≤30 ops, 120 batch-calls/min/realm)."""
+        if len(operations) > BATCH_MAX_OPS:
+            raise ValueError(f"batch supports at most {BATCH_MAX_OPS} operations")
+        body = await self._request("POST", "batch", json={"BatchItemRequest": operations})
+        return body.get("BatchItemResponse", [])

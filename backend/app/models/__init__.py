@@ -200,6 +200,11 @@ from app.models.qbo_entity_map import (
     QboEntityMap,
     QboLocalKind,
 )
+from app.models.qbo_sync_outbox import (
+    QBO_SYNC_STATUS_VALUES,
+    QboSyncOutbox,
+    QboSyncStatus,
+)
 from app.models.quote import (
     QUOTE_ITEM_KIND_VALUES,
     QUOTE_STATE_VALUES,
@@ -453,9 +458,12 @@ __all__ = [
     "ProjectionCursor",
     "ProjectionTestEvent",
     "QBO_LOCAL_KIND_VALUES",
+    "QBO_SYNC_STATUS_VALUES",
     "QboAccountMap",
     "QboEntityMap",
     "QboLocalKind",
+    "QboSyncOutbox",
+    "QboSyncStatus",
     "QUOTE_ITEM_KIND_VALUES",
     "QUOTE_STATE_VALUES",
     "Quote",
