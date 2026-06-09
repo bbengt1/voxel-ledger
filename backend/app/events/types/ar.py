@@ -356,7 +356,8 @@ class PaymentPostedPayload(_ARPayloadBase):
     customer_id: uuid.UUID
     amount: str
     method: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class PaymentUnappliedPayload(_ARPayloadBase):

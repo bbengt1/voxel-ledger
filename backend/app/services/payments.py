@@ -410,34 +410,34 @@ async def apply_payment(
 
     # Apply rows + invoice updates
     application_payload: list[dict[str, Any]] = []
-    bank_account_id = await _resolve_bank_account(
-        session,
-        method=payment.method,
-        deposit_to_undeposited=bool(payment.deposit_to_undeposited),
-    )
 
-    # Build JE lines. Single debit-bank line for full payment amount;
-    # one credit-AR line per applied invoice (different AR accounts
-    # supported via per-customer override). Excess (if any) ends up
-    # credited to the AR for the customer too — but only the applied
-    # slice reduces the invoice. Conceptually the bank line equals
-    # applied + excess; the credit is then split between
-    # invoice-AR lines and a customer-credit-clearing line. To keep
-    # bookkeeping simple we credit AR for the *applied* portion and
-    # credit AR for the customer's credit excess as well (the credit
-    # balance projection tracks the "we owe customer X" side
-    # separately). Net effect: bank +total, AR -total.
+    # QBO replace-mode (epic #312, Phase 3b-2): push a native QBO Payment via
+    # the sync outbox instead of posting the local GL. The invoice-balance /
+    # state updates, application rows, and customer-credit accrual all stay.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+
+    # Build JE lines (local mode only). Single debit-bank line for full payment
+    # amount; one credit-AR line per applied invoice. Net effect: bank +total,
+    # AR -total. In QBO mode lines stay empty (QBO holds the chart).
     lines_in: list[journal_service.JournalLineInput] = []
     line_no = 1
-    lines_in.append(
-        journal_service.JournalLineInput(
-            account_id=bank_account_id,
-            debit=total_amount,
-            credit=_ZERO,
-            line_number=line_no,
-            memo=f"Payment {payment.payment_number} ({payment.method.value})",
+    if not qbo_enabled:
+        bank_account_id = await _resolve_bank_account(
+            session,
+            method=payment.method,
+            deposit_to_undeposited=bool(payment.deposit_to_undeposited),
         )
-    )
+        lines_in.append(
+            journal_service.JournalLineInput(
+                account_id=bank_account_id,
+                debit=total_amount,
+                credit=_ZERO,
+                line_number=line_no,
+                memo=f"Payment {payment.payment_number} ({payment.method.value})",
+            )
+        )
 
     for invoice, amt in normalized:
         line_no += 1
@@ -445,16 +445,17 @@ async def apply_payment(
         invoice.amount_outstanding = _q(invoice.amount_outstanding - amt)
         _cascade_state(invoice)
 
-        ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=ar_account_id,
-                debit=_ZERO,
-                credit=amt,
-                line_number=line_no,
-                memo=f"Apply {payment.payment_number} to {invoice.invoice_number}",
+        if not qbo_enabled:
+            ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=ar_account_id,
+                    debit=_ZERO,
+                    credit=amt,
+                    line_number=line_no,
+                    memo=f"Apply {payment.payment_number} to {invoice.invoice_number}",
+                )
             )
-        )
         application = PaymentApplication(
             payment_id=payment.id,
             invoice_id=invoice.id,
@@ -473,7 +474,7 @@ async def apply_payment(
     # The customer credit accrual is the journal-entry-independent
     # bookkeeping; the GL credit balances the bank debit. The credit
     # balance projection picks up CustomerCreditAccrued separately.
-    if excess > _ZERO:
+    if excess > _ZERO and not qbo_enabled:
         line_no += 1
         ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
         lines_in.append(
@@ -486,18 +487,41 @@ async def apply_payment(
             )
         )
 
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Payment {payment.payment_number}: apply",
-            posted_at=datetime.now(UTC),
-            lines=lines_in,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
-    payment.posting_journal_entry_id = entry.id
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="payment",
+            local_id=payment.id,
+            payload={
+                "customer_id": str(customer.id),
+                "amount": str(total_amount),
+                "txn_date": payment.received_at.date().isoformat(),
+                "method": payment.method.value,
+                "reference": payment.reference,
+                "deposit_to_undeposited": bool(payment.deposit_to_undeposited),
+                "private_note": f"Payment {payment.payment_number}",
+                "applications": [
+                    {"invoice_id": str(inv.id), "amount": str(amt)} for inv, amt in normalized
+                ],
+            },
+            op="post",
+        )
+        payment.posting_journal_entry_id = None
+    else:
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Payment {payment.payment_number}: apply",
+                posted_at=datetime.now(UTC),
+                lines=lines_in,
+            ),
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
+        )
+        assert isinstance(entry, JournalEntry)
+        payment.posting_journal_entry_id = entry.id
+        posted_entry_id = entry.id
     payment.state = PaymentState.APPLIED
     await session.flush()
 
@@ -550,7 +574,7 @@ async def apply_payment(
             "customer_id": str(customer.id),
             "amount": str(total_amount),
             "method": payment.method.value,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
         },
         actor_user_id=actor_user_id,
     )
@@ -592,6 +616,19 @@ async def unapply_payment(
             description=f"Reversal of payment {payment.payment_number}",
         )
         reversing_je_id = reversal.id
+    else:
+        # QBO replace-mode: void the QBO Payment we pushed (builder finds its
+        # synced outbox row). No-op if QBO sync was never enabled for it.
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="payment",
+                local_id=payment.id,
+                payload={"payment_id": str(payment.id)},
+                op="reverse",
+            )
 
     # Restore invoice balances + state
     for app_row in list(payment.applications):
