@@ -1045,10 +1045,21 @@ async def issue(
 
     invoice.state = InvoiceState.ISSUED
 
+    # QBO replace-mode (epic #312, Phase 3b): when quickbooks.enabled, the
+    # invoice is pushed to QBO as a native Invoice via the sync outbox instead
+    # of posting to the local GL. All non-GL operational work (state, dates,
+    # tax recompute, events) stays the same.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+
     # Resolve accounts BEFORE building the JE so a missing setting raises
-    # before we touch anything.
-    ar_account_id = await _resolve_ar_account(session, customer=customer)
-    revenue_account_id = await _resolve_revenue_account(session, customer=customer)
+    # before we touch anything. Skipped in QBO mode (QBO holds the chart).
+    ar_account_id: uuid.UUID | None = None
+    revenue_account_id: uuid.UUID | None = None
+    if not qbo_enabled:
+        ar_account_id = await _resolve_ar_account(session, customer=customer)
+        revenue_account_id = await _resolve_revenue_account(session, customer=customer)
 
     # Phase 9.5 (#157): recompute per-line tax via profile resolution one
     # more time before issuance. This catches any post-draft changes to
@@ -1089,7 +1100,7 @@ async def issue(
 
     tax_amount = _q(invoice.tax_amount)
     sales_tax_payable_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO and not has_profile:
+    if tax_amount > _ZERO and not has_profile and not qbo_enabled:
         # Legacy fallback: no profile resolved but there's a flat tax
         # amount — fall through to the setting-based account.
         sales_tax_payable_account_id = await _resolve_tax_payable_account(session)
@@ -1099,7 +1110,28 @@ async def issue(
     total_amount = _q(invoice.total_amount)
     revenue_amount = _q(subtotal - discount_amount)
 
-    # Build journal entry: debit AR (total), credit Revenue (subtotal - discount),
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="invoice",
+            local_id=invoice.id,
+            payload=_qbo_invoice_spec(invoice, issued_at),
+            op="post",
+        )
+        invoice.posting_journal_entry_id = None
+        await session.flush()
+        return await _finish_issue(
+            session,
+            invoice=invoice,
+            issued_at=issued_at,
+            total_amount=total_amount,
+            posted_entry_id=None,
+            reverse_charge_memo=reverse_charge_memo,
+            actor_user_id=actor_user_id,
+        )
+
+    # Local-GL mode: debit AR (total), credit Revenue (subtotal - discount),
     # credit Sales Tax Payable (if tax > 0).
     lines_in: list[journal_service.JournalLineInput] = []
     line_no = 0
@@ -1170,8 +1202,34 @@ async def issue(
     )
     assert isinstance(entry, JournalEntry)
     invoice.posting_journal_entry_id = entry.id
+    posted_entry_id = entry.id
     await session.flush()
+    return await _finish_issue(
+        session,
+        invoice=invoice,
+        issued_at=issued_at,
+        total_amount=total_amount,
+        posted_entry_id=posted_entry_id,
+        reverse_charge_memo=reverse_charge_memo,
+        actor_user_id=actor_user_id,
+    )
 
+
+async def _finish_issue(
+    session: AsyncSession,
+    *,
+    invoice: Invoice,
+    issued_at: datetime,
+    total_amount: Decimal,
+    posted_entry_id: uuid.UUID | None,
+    reverse_charge_memo: dict[str, str],
+    actor_user_id: uuid.UUID,
+) -> Invoice:
+    """Emit the issued + posted events (shared by the local-GL and QBO paths).
+
+    ``posted_entry_id`` is the local JE id, or ``None`` in QBO replace-mode
+    (the posting is pushed asynchronously to QBO via the sync outbox)."""
+    je_id = str(posted_entry_id) if posted_entry_id is not None else None
     await _emit(
         session,
         event_type=ar_events.TYPE_INVOICE_ISSUED,
@@ -1183,7 +1241,7 @@ async def issue(
             "total_amount": str(invoice.total_amount),
             "issued_at": issued_at.isoformat(),
             "due_at": invoice.due_at.isoformat() if invoice.due_at else None,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": je_id,
             "reverse_charge_tax": reverse_charge_memo,
         },
         actor_user_id=actor_user_id,
@@ -1195,12 +1253,35 @@ async def issue(
         payload={
             "invoice_id": str(invoice.id),
             "invoice_number": invoice.invoice_number,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": je_id,
             "total_amount": str(total_amount),
         },
         actor_user_id=actor_user_id,
     )
     return invoice
+
+
+def _qbo_invoice_spec(invoice: Invoice, issued_at: datetime) -> dict[str, Any]:
+    """Build the JSON outbox spec for a native QBO Invoice (resolved at drain)."""
+    return {
+        "customer_id": str(invoice.customer_id),
+        "doc_number": invoice.invoice_number,
+        "txn_date": issued_at.date().isoformat(),
+        "due_date": invoice.due_at.date().isoformat() if invoice.due_at else None,
+        "currency": invoice.currency,
+        "private_note": f"Invoice {invoice.invoice_number}",
+        "tax_amount": str(_q(invoice.tax_amount)),
+        "lines": [
+            {
+                "product_id": str(li.product_id) if li.product_id else None,
+                "description": li.description,
+                "qty": str(_q(li.quantity)),
+                "unit_price": str(_q(li.unit_price)),
+                "amount": str(_q(li.extended_amount)),
+            }
+            for li in sorted(invoice.items, key=lambda x: x.line_number)
+        ],
+    }
 
 
 async def void(
@@ -1253,6 +1334,20 @@ async def void(
             description=f"Reversal of invoice {invoice.invoice_number}",
         )
         reversing_je_id = reversal.id
+    else:
+        # QBO replace-mode: no local JE to reverse. Enqueue a QBO void of the
+        # invoice we pushed (the builder finds its synced outbox row). No-op if
+        # QBO sync was never enabled for this invoice.
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="invoice",
+                local_id=invoice.id,
+                payload={"invoice_id": str(invoice.id)},
+                op="reverse",
+            )
 
     invoice.state = InvoiceState.VOID
     await session.flush()

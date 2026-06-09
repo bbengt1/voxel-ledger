@@ -718,6 +718,20 @@ class QuickbooksRealmId(SettingSchema):
     value: str | None = None
 
 
+@register
+class QuickbooksDefaultSalesItemId(SettingSchema):
+    """QBO Item id used for invoice/sale lines that have no mapped product.
+
+    Native QBO Invoice lines require an ``ItemRef``; job/manual lines (and any
+    non-product line) fall back to this generic sales item. Required before
+    syncing such lines — the builder raises a clear error if unset (#316 3b).
+    """
+
+    key: ClassVar[str] = "quickbooks.default_sales_item_id"
+    default: ClassVar[str | None] = None
+    value: str | None = None
+
+
 # Set of setting keys whose values are sensitive — redacted in event payloads.
 SECRET_SETTING_KEYS: frozenset[str] = frozenset({"email.smtp_password_secret"})
 

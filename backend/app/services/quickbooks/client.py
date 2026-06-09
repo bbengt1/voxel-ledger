@@ -135,6 +135,16 @@ class QuickBooksClient:
         body = await self._request("GET", f"{entity.lower()}/{qbo_id}")
         return body.get(entity, {})
 
+    async def void(self, entity: str, qbo_id: str, sync_token: str) -> dict[str, Any]:
+        """Void a transaction (Invoice/Payment/…) via ``?operation=void``."""
+        body = await self._request(
+            "POST",
+            entity.lower(),
+            params={"operation": "void"},
+            json={"Id": qbo_id, "SyncToken": sync_token},
+        )
+        return body.get(entity, {})
+
     async def batch(self, operations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Submit up to 30 batch operations; return the BatchItemResponse list.
 
