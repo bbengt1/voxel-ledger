@@ -119,22 +119,22 @@ async def run_pending(
             row.status = QboSyncStatus.FAILED.value  # permanent — needs a fix + manual retry
             row.last_error = str(exc)[:1000]
             result.failed += 1
+        except builders.DependencyNotReadyError as exc:
+            row.last_error = str(exc)[:1000]
+            _retry_or_dead(row, now=now, rng=rng, result=result)
         except QuickBooksApiError as exc:
             row.last_error = str(exc)[:1000]
             permanent = 400 <= exc.status_code < 500 and exc.status_code != 429
-            elapsed = (now - _as_utc(row.created_at)).total_seconds()
             if permanent:
                 row.status = QboSyncStatus.FAILED.value
                 result.failed += 1
-            elif elapsed > MAX_TOTAL_RETRY_SECONDS:
-                row.status = QboSyncStatus.DEAD.value
-                result.dead += 1
             else:
-                row.status = QboSyncStatus.PENDING.value
-                row.next_attempt_at = now + timedelta(
-                    seconds=backoff_for_attempt(row.attempts, rng=rng)
-                )
-                result.retried += 1
+                _retry_or_dead(row, now=now, rng=rng, result=result)
+        except Exception as exc:
+            log.exception("quickbooks_sync.row_failed", extra={"outbox_id": str(row.id)})
+            row.status = QboSyncStatus.FAILED.value
+            row.last_error = f"{type(exc).__name__}: {exc}"[:1000]
+            result.failed += 1
         else:
             row.status = QboSyncStatus.SYNCED.value
             row.qbo_entity_type = entity_type
@@ -144,3 +144,16 @@ async def run_pending(
         await session.commit()
 
     return result
+
+
+def _retry_or_dead(
+    row: QboSyncOutbox, *, now: datetime, rng: random.Random | None, result: RunResult
+) -> None:
+    """Reschedule a transiently-failed row, or dead-letter it past the window."""
+    if (now - _as_utc(row.created_at)).total_seconds() > MAX_TOTAL_RETRY_SECONDS:
+        row.status = QboSyncStatus.DEAD.value
+        result.dead += 1
+    else:
+        row.status = QboSyncStatus.PENDING.value
+        row.next_attempt_at = now + timedelta(seconds=backoff_for_attempt(row.attempts, rng=rng))
+        result.retried += 1

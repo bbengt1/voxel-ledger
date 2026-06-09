@@ -238,7 +238,9 @@ class InvoiceIssuedPayload(_ARPayloadBase):
     total_amount: str
     issued_at: str
     due_at: str | None = None
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): the posting is pushed to QBO
+    # asynchronously via the sync outbox, so there is no local journal entry.
+    journal_entry_id: uuid.UUID | None = None
     # Phase 9.5 (#157): when the resolved tax profile is reverse-charge,
     # no Cr to a sales-tax-payable account is posted but the would-be
     # tax amounts (per rate_id) are carried in the payload so replay /
@@ -251,7 +253,8 @@ class InvoiceIssuedPayload(_ARPayloadBase):
 class InvoicePostedPayload(_ARPayloadBase):
     invoice_id: uuid.UUID
     invoice_number: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312) — see InvoiceIssuedPayload.
+    journal_entry_id: uuid.UUID | None = None
     total_amount: str
 
 
