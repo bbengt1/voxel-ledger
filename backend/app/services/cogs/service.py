@@ -57,6 +57,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
 from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -153,7 +154,8 @@ class SaleCogsBreakdown:
 class PostResult:
     """Return value of :func:`post_for_sale` / :func:`reverse_for_sale`."""
 
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): the posting is pushed to QBO async.
+    journal_entry_id: uuid.UUID | None
     inventory_transaction_ids: list[uuid.UUID]
     total_cost: Decimal
 
@@ -427,46 +429,57 @@ async def post_for_sale(
     channel = await _load_channel(session, sale.channel_id)
     effective_actor: uuid.UUID = actor_user_id or sale.created_by_user_id
 
-    cogs_account_id = await _require_account(
-        session,
-        key="sales_posting.cogs_account_id",
-        why="debit COGS for confirmed sales",
-    )
-    ar_account_id = await _require_account(
-        session,
-        key="sales_posting.default_ar_account_id",
-        why="debit accounts-receivable for the sale's gross total",
-    )
-    if channel.default_revenue_account_id is None:
-        raise MissingSalesPostingAccountError(
-            f"configure default sales-posting accounts: channel {channel.slug!r} has "
-            f"no default_revenue_account_id (needed to credit revenue)"
-        )
-    revenue_account_id = channel.default_revenue_account_id
-    inventory_account_id = await _require_account(
-        session,
-        key="sales_posting.default_inventory_account_id",
-        why="credit inventory for the FIFO cost of consumed lots",
-    )
+    # QBO replace-mode (epic #312, Phase 3b-3): push a native Invoice/SalesReceipt
+    # + a COGS JournalEntry via the sync outbox instead of posting the local GL.
+    # FIFO inventory consumption below stays — only the GL leg is replaced.
+    from app.services.quickbooks import outbox as qbo_outbox
 
-    tax_amount = _q(sale.tax_amount)
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+
+    cogs_account_id: uuid.UUID | None = None
+    ar_account_id: uuid.UUID | None = None
+    revenue_account_id: uuid.UUID | None = None
+    inventory_account_id: uuid.UUID | None = None
     sales_tax_payable_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO:
-        sales_tax_payable_account_id = await _require_account(
-            session,
-            key="sales_posting.sales_tax_payable_account_id",
-            why="credit sales tax payable on a sale with tax",
-        )
-
-    channel_fee_amount = _q(sale.channel_fee_amount)
     channel_fee_account_id: uuid.UUID | None = None
-    if channel_fee_amount > _ZERO:
-        if channel.default_fee_account_id is None:
+    tax_amount = _q(sale.tax_amount)
+    channel_fee_amount = _q(sale.channel_fee_amount)
+
+    if not qbo_enabled:
+        cogs_account_id = await _require_account(
+            session,
+            key="sales_posting.cogs_account_id",
+            why="debit COGS for confirmed sales",
+        )
+        ar_account_id = await _require_account(
+            session,
+            key="sales_posting.default_ar_account_id",
+            why="debit accounts-receivable for the sale's gross total",
+        )
+        if channel.default_revenue_account_id is None:
             raise MissingSalesPostingAccountError(
-                f"configure default sales-posting accounts: channel {channel.slug!r} "
-                f"has no default_fee_account_id (needed to record channel fees)"
+                f"configure default sales-posting accounts: channel {channel.slug!r} has "
+                f"no default_revenue_account_id (needed to credit revenue)"
             )
-        channel_fee_account_id = channel.default_fee_account_id
+        revenue_account_id = channel.default_revenue_account_id
+        inventory_account_id = await _require_account(
+            session,
+            key="sales_posting.default_inventory_account_id",
+            why="credit inventory for the FIFO cost of consumed lots",
+        )
+        if tax_amount > _ZERO:
+            sales_tax_payable_account_id = await _require_account(
+                session,
+                key="sales_posting.sales_tax_payable_account_id",
+                why="credit sales tax payable on a sale with tax",
+            )
+        if channel_fee_amount > _ZERO:
+            if channel.default_fee_account_id is None:
+                raise MissingSalesPostingAccountError(
+                    f"configure default sales-posting accounts: channel {channel.slug!r} "
+                    f"has no default_fee_account_id (needed to record channel fees)"
+                )
+            channel_fee_account_id = channel.default_fee_account_id
 
     # --- Line costing + inventory consumption ---
     total_line_cost = _ZERO
@@ -510,6 +523,27 @@ async def post_for_sale(
     shipping_amount = _q(sale.shipping_amount)
     total_amount = _q(sale.total_amount)
     revenue_amount = _q(subtotal - discount_amount + shipping_amount)
+
+    journal_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        # Native Invoice/SalesReceipt (revenue/AR/tax) + a COGS JournalEntry.
+        await _enqueue_qbo_sale(
+            session,
+            sale=sale,
+            total_line_cost=total_line_cost,
+            channel_fee_amount=channel_fee_amount,
+        )
+        sale.posting_journal_entry_id = None
+        await session.flush()
+        return await _finish_sale_post(
+            session,
+            sale=sale,
+            journal_entry_id=None,
+            inventory_tx_ids=inventory_tx_ids,
+            total_amount=total_amount,
+            total_line_cost=total_line_cost,
+            effective_actor=effective_actor,
+        )
 
     lines_in: list[journal_service.JournalLineInput] = []
     line_no = 0
@@ -607,22 +641,39 @@ async def post_for_sale(
     # _internal_skip_approval_check guarantees a JournalEntry, not an
     # ApprovalRequest — narrow for the type checker.
     assert isinstance(entry, JournalEntry)
-    journal_entry_id: uuid.UUID = entry.id
+    journal_entry_id = entry.id
 
     # Persist the FK on the sale so the cancel path can find this entry
     # without a description-string scan. Same TX as the post above.
     sale.posting_journal_entry_id = journal_entry_id
     await session.flush()
+    return await _finish_sale_post(
+        session,
+        sale=sale,
+        journal_entry_id=journal_entry_id,
+        inventory_tx_ids=inventory_tx_ids,
+        total_amount=total_amount,
+        total_line_cost=total_line_cost,
+        effective_actor=effective_actor,
+    )
 
+
+async def _finish_sale_post(
+    session: AsyncSession,
+    *,
+    sale: Sale,
+    journal_entry_id: uuid.UUID | None,
+    inventory_tx_ids: list[uuid.UUID],
+    total_amount: Decimal,
+    total_line_cost: Decimal,
+    effective_actor: uuid.UUID,
+) -> PostResult:
+    """Build the result + emit SalePosted (shared by the local-GL and QBO paths)."""
     result = PostResult(
         journal_entry_id=journal_entry_id,
         inventory_transaction_ids=inventory_tx_ids,
         total_cost=total_line_cost,
     )
-
-    # Emit the audit trail event LAST so it's only present when
-    # everything else succeeded. (Inside the same TX, so rollback still
-    # discards it if a later step in the caller raises.)
     await event_store.append(
         EventCreate(
             type=sales_events.TYPE_SALE_POSTED,
@@ -631,7 +682,7 @@ async def post_for_sale(
             payload={
                 "sale_id": str(sale.id),
                 "sale_number": sale.sale_number,
-                "journal_entry_id": str(journal_entry_id),
+                "journal_entry_id": str(journal_entry_id) if journal_entry_id else None,
                 "inventory_transaction_ids": [str(t) for t in inventory_tx_ids],
                 "total_amount": str(total_amount),
             },
@@ -642,6 +693,62 @@ async def post_for_sale(
         session=session,
     )
     return result
+
+
+async def _enqueue_qbo_sale(
+    session: AsyncSession,
+    *,
+    sale: Sale,
+    total_line_cost: Decimal,
+    channel_fee_amount: Decimal,
+) -> None:
+    """Enqueue the QBO Invoice/SalesReceipt + COGS/fee JournalEntry for a sale."""
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    items = sorted(sale.items, key=lambda i: i.line_number)
+    sale_spec = {
+        "customer_id": str(sale.customer_id) if sale.customer_id else None,
+        "doc_number": sale.sale_number,
+        "txn_date": sale.occurred_at.date().isoformat(),
+        "private_note": f"Sale {sale.sale_number}",
+        "discount_amount": str(_q(sale.discount_amount)),
+        "shipping_amount": str(_q(sale.shipping_amount)),
+        "tax_amount": str(_q(sale.tax_amount)),
+        "lines": [
+            {
+                "product_id": str(it.product_id) if it.product_id else None,
+                "description": it.description,
+                "qty": str(_q(it.quantity)),
+                "unit_price": str(_q(it.unit_price)),
+                "amount": str(_q(it.extended_amount)),
+            }
+            for it in items
+        ],
+    }
+    await qbo_outbox.enqueue(session, kind="sale", local_id=sale.id, payload=sale_spec, op="post")
+
+    cogs_lines: list[dict[str, Any]] = []
+    if total_line_cost > _ZERO:
+        cogs_lines.append({"role": "cogs", "posting": "debit", "amount": str(total_line_cost)})
+        cogs_lines.append(
+            {"role": "inventory", "posting": "credit", "amount": str(total_line_cost)}
+        )
+    if channel_fee_amount > _ZERO:
+        # Channel fee → marketplace clearing (kept off the customer's QBO AR).
+        cogs_lines.append(
+            {"role": "marketplace_fee", "posting": "debit", "amount": str(channel_fee_amount)}
+        )
+        cogs_lines.append(
+            {"role": "marketplace_clearing", "posting": "credit", "amount": str(channel_fee_amount)}
+        )
+    if cogs_lines:
+        await qbo_outbox.enqueue(
+            session,
+            kind="sale_cogs",
+            local_id=sale.id,
+            payload={"lines": cogs_lines, "private_note": f"Sale {sale.sale_number} COGS/fees"},
+            op="post",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -666,25 +773,30 @@ async def reverse_for_sale(
     sale = await _load_sale(session, sale_id)
     effective_actor: uuid.UUID = actor_user_id or sale.created_by_user_id
 
-    # Locate the original journal entry via the FK populated at confirm
-    # time. The caller (sales.cancel) only invokes this function when
-    # the sale was previously confirmed, so a NULL FK here means the
-    # row was created before this column existed — raise loudly rather
-    # than silently scanning the GL by description.
-    if sale.posting_journal_entry_id is None:
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+
+    # Locate the original journal entry via the FK populated at confirm time.
+    # In QBO replace-mode there is no local JE (posting_journal_entry_id is
+    # None) — we void the QBO documents instead. A NULL FK with QBO disabled
+    # means the row predates this column; raise loudly.
+    original = None
+    if sale.posting_journal_entry_id is not None:
+        original = (
+            await session.execute(
+                select(JournalEntry).where(JournalEntry.id == sale.posting_journal_entry_id)
+            )
+        ).scalar_one_or_none()
+        if original is None:
+            raise CogsServiceError(
+                f"sale {sale.sale_number} references journal_entry "
+                f"{sale.posting_journal_entry_id} which does not exist"
+            )
+    elif not qbo_enabled:
         raise CogsServiceError(
             f"sale {sale.sale_number} has no posting_journal_entry_id; "
             "cannot reverse (data created before column existed?)"
-        )
-    original = (
-        await session.execute(
-            select(JournalEntry).where(JournalEntry.id == sale.posting_journal_entry_id)
-        )
-    ).scalar_one_or_none()
-    if original is None:
-        raise CogsServiceError(
-            f"sale {sale.sale_number} references journal_entry "
-            f"{sale.posting_journal_entry_id} which does not exist"
         )
 
     # Restore inventory: walk the prior sale_consumption rows and emit
@@ -699,10 +811,12 @@ async def reverse_for_sale(
     consumption_rows = list((await session.execute(stmt2)).scalars().all())
 
     inventory_tx_ids: list[uuid.UUID] = []
+    restored_cost = _ZERO
     for row in consumption_rows:
         magnitude = _q(abs(row.quantity))
         if magnitude <= _ZERO:
             continue
+        restored_cost = _q(restored_cost + magnitude * _q(row.unit_cost_at_transaction))
         tx = await inventory_tx_service.record(
             session,
             kind="return_in",
@@ -717,15 +831,26 @@ async def reverse_for_sale(
         )
         inventory_tx_ids.append(tx.id)
 
-    reversal = await journal_service.reverse(
-        original.id,
-        session=session,
-        actor_user_id=effective_actor,
-        description=f"Reversal of sale {sale.sale_number}",
-    )
+    reversing_je_id: uuid.UUID | None = None
+    original_je_id: uuid.UUID | None = original.id if original is not None else None
+    if original is not None:
+        reversal = await journal_service.reverse(
+            original.id,
+            session=session,
+            actor_user_id=effective_actor,
+            description=f"Reversal of sale {sale.sale_number}",
+        )
+        reversing_je_id = reversal.id
+    elif qbo_enabled:
+        await _enqueue_qbo_sale_reverse(
+            session,
+            sale=sale,
+            restored_cost=restored_cost,
+            channel_fee_amount=_q(sale.channel_fee_amount),
+        )
 
     result = PostResult(
-        journal_entry_id=reversal.id,
+        journal_entry_id=reversing_je_id,
         inventory_transaction_ids=inventory_tx_ids,
         total_cost=_ZERO,
     )
@@ -738,8 +863,8 @@ async def reverse_for_sale(
             payload={
                 "sale_id": str(sale.id),
                 "sale_number": sale.sale_number,
-                "reversing_journal_entry_id": str(reversal.id),
-                "original_journal_entry_id": str(original.id),
+                "reversing_journal_entry_id": str(reversing_je_id) if reversing_je_id else None,
+                "original_journal_entry_id": str(original_je_id) if original_je_id else None,
                 "inventory_transaction_ids": [str(t) for t in inventory_tx_ids],
             },
             occurred_at=datetime.now(UTC),
@@ -749,6 +874,40 @@ async def reverse_for_sale(
         session=session,
     )
     return result
+
+
+async def _enqueue_qbo_sale_reverse(
+    session: AsyncSession,
+    *,
+    sale: Sale,
+    restored_cost: Decimal,
+    channel_fee_amount: Decimal,
+) -> None:
+    """Enqueue the QBO void (sale doc) + a reversing COGS/fee JournalEntry."""
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    await qbo_outbox.enqueue(
+        session, kind="sale", local_id=sale.id, payload={"sale_id": str(sale.id)}, op="reverse"
+    )
+    lines: list[dict[str, Any]] = []
+    if restored_cost > _ZERO:
+        lines.append({"role": "inventory", "posting": "debit", "amount": str(restored_cost)})
+        lines.append({"role": "cogs", "posting": "credit", "amount": str(restored_cost)})
+    if channel_fee_amount > _ZERO:
+        lines.append(
+            {"role": "marketplace_clearing", "posting": "debit", "amount": str(channel_fee_amount)}
+        )
+        lines.append(
+            {"role": "marketplace_fee", "posting": "credit", "amount": str(channel_fee_amount)}
+        )
+    if lines:
+        await qbo_outbox.enqueue(
+            session,
+            kind="sale_cogs",
+            local_id=sale.id,
+            payload={"lines": lines, "private_note": f"Sale {sale.sale_number} reversal"},
+            op="post",
+        )
 
 
 __all__ = [
