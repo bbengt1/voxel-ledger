@@ -194,20 +194,25 @@ async def _create_invoice(
     return "Invoice", qbo_obj
 
 
-async def _void_invoice(
-    session: AsyncSession, client: Any, row: QboSyncOutbox
-) -> tuple[str, dict[str, Any]]:
+async def _synced_post_qbo_id(session: AsyncSession, kind: str, local_id: Any) -> str:
+    """Return the QBO id of the synced ``post`` row for (kind, local_id).
+
+    Raises :class:`DependencyNotReadyError` if it hasn't synced yet (the
+    referencing op should retry, not fail)."""
+    import uuid as _uuid
+
     from sqlalchemy import select
 
     from app.models.qbo_sync_outbox import QboSyncOutbox as _Outbox
     from app.models.qbo_sync_outbox import QboSyncStatus as _Status
 
-    orig = (
+    local_uuid = local_id if isinstance(local_id, _uuid.UUID) else _uuid.UUID(str(local_id))
+    row = (
         (
             await session.execute(
                 select(_Outbox)
-                .where(_Outbox.kind == "invoice")
-                .where(_Outbox.local_id == row.local_id)
+                .where(_Outbox.kind == kind)
+                .where(_Outbox.local_id == local_uuid)
                 .where(_Outbox.op == "post")
                 .where(_Outbox.status == _Status.SYNCED.value)
                 .order_by(_Outbox.updated_at.desc())
@@ -216,22 +221,80 @@ async def _void_invoice(
         .scalars()
         .first()
     )
-    if orig is None or not orig.qbo_id:
-        raise DependencyNotReadyError(
-            f"cannot void invoice {row.local_id}: its QBO Invoice isn't synced yet"
-        )
+    if row is None or not row.qbo_id:
+        raise DependencyNotReadyError(f"{kind} {local_id} isn't synced to QBO yet")
+    return row.qbo_id
+
+
+async def _void_entity(
+    session: AsyncSession, client: Any, *, entity: str, kind: str, local_id: Any
+) -> tuple[str, dict[str, Any]]:
+    qbo_id = await _synced_post_qbo_id(session, kind, local_id)
     # Read the live SyncToken (it may have advanced) before voiding.
-    current = await client.read("Invoice", orig.qbo_id)
-    qbo_obj = await client.void("Invoice", orig.qbo_id, current.get("SyncToken", "0"))
-    return "Invoice", qbo_obj
+    current = await client.read(entity, qbo_id)
+    qbo_obj = await client.void(entity, qbo_id, current.get("SyncToken", "0"))
+    return entity, qbo_obj
 
 
 async def build_invoice(
     session: AsyncSession, client: Any, row: QboSyncOutbox
 ) -> tuple[str, dict[str, Any]]:
     if row.op == "reverse":
-        return await _void_invoice(session, client, row)
+        return await _void_entity(
+            session, client, entity="Invoice", kind="invoice", local_id=row.local_id
+        )
     return await _create_invoice(session, client, row)
 
 
 register_builder("invoice", build_invoice)
+
+
+# --------------------------------------------------------------------------- #
+# Native Payment (#316 Phase 3b-2)
+# --------------------------------------------------------------------------- #
+async def _create_payment(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    spec = row.payload
+    customer_ref = await _ensure_customer(session, client, spec["customer_id"])
+    lines: list[dict[str, Any]] = []
+    for app in spec.get("applications", []):
+        invoice_qbo_id = await _synced_post_qbo_id(session, "invoice", app["invoice_id"])
+        lines.append(
+            {
+                "Amount": float(app["amount"]),
+                "LinkedTxn": [{"TxnId": invoice_qbo_id, "TxnType": "Invoice"}],
+            }
+        )
+    payload: dict[str, Any] = {
+        "CustomerRef": {"value": customer_ref},
+        "TotalAmt": float(spec["amount"]),
+    }
+    if lines:
+        payload["Line"] = lines
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
+    if spec.get("reference"):
+        payload["PaymentRefNum"] = str(spec["reference"])[:21]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    # Deposit account: omit → QBO Undeposited Funds; else the mapped bank account.
+    if not spec.get("deposit_to_undeposited"):
+        bank_id = await account_map.resolve(session, "bank")
+        payload["DepositToAccountRef"] = {"value": bank_id}
+
+    qbo_obj = await client.create("Payment", payload, request_id=row.request_id)
+    return "Payment", qbo_obj
+
+
+async def build_payment(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    if row.op == "reverse":
+        return await _void_entity(
+            session, client, entity="Payment", kind="payment", local_id=row.local_id
+        )
+    return await _create_payment(session, client, row)
+
+
+register_builder("payment", build_payment)
