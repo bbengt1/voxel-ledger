@@ -626,3 +626,11 @@ async def build_debit_note(
 
 
 register_builder("debit_note", build_debit_note)
+
+
+# --------------------------------------------------------------------------- #
+# JE long-tail (#316 Phase 3d) — all role-tagged JournalEntries
+# --------------------------------------------------------------------------- #
+register_builder("depreciation", build_journal_entry)
+register_builder("fixed_asset_acquisition", build_journal_entry)
+register_builder("fixed_asset_disposal", build_journal_entry)
