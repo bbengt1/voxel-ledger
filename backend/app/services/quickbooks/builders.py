@@ -553,3 +553,76 @@ register_builder("bill_payment", build_bill_payment)
 # A bill-payment withholding leg (Dr AP[Vendor], Cr withholding liability) rides
 # as a JournalEntry with a Vendor entity.
 register_builder("bill_payment_withholding", build_journal_entry)
+
+
+# --------------------------------------------------------------------------- #
+# Credit notes → CreditMemo; debit notes → JournalEntry (#316 Phase 3c-2)
+# --------------------------------------------------------------------------- #
+async def _create_credit_memo(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    spec = row.payload
+    customer_ref = await _ensure_customer(session, client, spec["customer_id"])
+    item_ref = await _ensure_item(session, client, None)  # generic sales item
+    amount = float(spec["amount"])
+    payload: dict[str, Any] = {
+        "CustomerRef": {"value": customer_ref},
+        "Line": [
+            {
+                "DetailType": "SalesItemLineDetail",
+                "Amount": amount,
+                "Description": spec.get("reason") or "Credit",
+                "SalesItemLineDetail": {
+                    "ItemRef": {"value": item_ref},
+                    "Qty": 1.0,
+                    "UnitPrice": amount,
+                },
+            }
+        ],
+    }
+    if spec.get("doc_number"):
+        payload["DocNumber"] = spec["doc_number"]
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    qbo_obj = await client.create("CreditMemo", payload, request_id=row.request_id)
+    return "CreditMemo", qbo_obj
+
+
+async def build_credit_note(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    if row.op == "reverse":
+        return await _void_entity(
+            session,
+            client,
+            entity="CreditMemo",
+            kind="credit_note",
+            local_id=row.local_id,
+            operation="delete",
+        )
+    return await _create_credit_memo(session, client, row)
+
+
+register_builder("credit_note", build_credit_note)
+
+
+async def build_debit_note(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    # No native QBO customer debit-memo: post a JournalEntry (Dr A/R + Customer
+    # Entity, Cr Revenue); reverse by deleting that JE.
+    if row.op == "reverse":
+        return await _void_entity(
+            session,
+            client,
+            entity="JournalEntry",
+            kind="debit_note",
+            local_id=row.local_id,
+            operation="delete",
+        )
+    return await build_journal_entry(session, client, row)
+
+
+register_builder("debit_note", build_debit_note)

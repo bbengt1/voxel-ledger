@@ -224,39 +224,63 @@ async def issue(
         await session.execute(select(Customer).where(Customer.id == note.customer_id))
     ).scalar_one()
 
-    ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-    revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
-
     amt = _q(note.total_amount)
-    lines = [
-        journal_service.JournalLineInput(
-            account_id=revenue_account_id,
-            debit=amt,
-            credit=_ZERO,
-            line_number=1,
-            memo=f"Credit note {note.credit_note_number} (rev reversal)",
-        ),
-        journal_service.JournalLineInput(
-            account_id=ar_account_id,
-            debit=_ZERO,
-            credit=amt,
-            line_number=2,
-            memo=f"Credit note {note.credit_note_number} (AR reduction)",
-        ),
-    ]
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Credit note {note.credit_note_number}",
-            posted_at=datetime.now(UTC),
-            lines=lines,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
+
+    # QBO replace-mode (epic #312, Phase 3c-2): push a native QBO CreditMemo via
+    # the sync outbox instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="credit_note",
+            local_id=note.id,
+            payload={
+                "customer_id": str(note.customer_id),
+                "doc_number": note.credit_note_number,
+                "reason": note.reason,
+                "amount": str(amt),
+                "txn_date": datetime.now(UTC).date().isoformat(),
+                "private_note": f"Credit note {note.credit_note_number}",
+            },
+            op="post",
+        )
+    else:
+        ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
+        revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
+        lines = [
+            journal_service.JournalLineInput(
+                account_id=revenue_account_id,
+                debit=amt,
+                credit=_ZERO,
+                line_number=1,
+                memo=f"Credit note {note.credit_note_number} (rev reversal)",
+            ),
+            journal_service.JournalLineInput(
+                account_id=ar_account_id,
+                debit=_ZERO,
+                credit=amt,
+                line_number=2,
+                memo=f"Credit note {note.credit_note_number} (AR reduction)",
+            ),
+        ]
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Credit note {note.credit_note_number}",
+                posted_at=datetime.now(UTC),
+                lines=lines,
+            ),
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
+        )
+        assert isinstance(entry, JournalEntry)
+        posted_entry_id = entry.id
+
     note.state = CreditNoteState.ISSUED
-    note.posting_journal_entry_id = entry.id
+    note.posting_journal_entry_id = posted_entry_id
     await session.flush()
 
     await _emit(
@@ -269,7 +293,7 @@ async def issue(
             "customer_id": str(note.customer_id),
             "invoice_id": str(invoice.id),
             "total_amount": str(amt),
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
         },
         actor_user_id=actor_user_id,
     )
@@ -349,6 +373,17 @@ async def cancel(
             description=f"Reversal of credit note {note.credit_note_number}",
         )
         reversing_je_id = reversal.id
+    elif note.state == CreditNoteState.ISSUED:
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="credit_note",
+                local_id=note.id,
+                payload={"credit_note_id": str(note.id)},
+                op="reverse",
+            )
     note.state = CreditNoteState.CANCELLED
     await session.flush()
     await _emit(
