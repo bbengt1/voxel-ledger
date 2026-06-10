@@ -732,6 +732,20 @@ class QuickbooksDefaultSalesItemId(SettingSchema):
     value: str | None = None
 
 
+@register
+class QuickbooksCdcCursor(SettingSchema):
+    """High-water mark (ISO-8601 UTC) for QBO change-data-capture polling.
+
+    The ``quickbooks_cdc`` worker (#317 Phase 4a) passes this as ``changedSince``
+    and advances it to the poll time on success, so each poll only sees changes
+    since the last. ``None`` until the first poll (defaults to a 30-day lookback).
+    """
+
+    key: ClassVar[str] = "quickbooks.cdc_cursor"
+    default: ClassVar[str | None] = None
+    value: str | None = None
+
+
 # Set of setting keys whose values are sensitive — redacted in event payloads.
 SECRET_SETTING_KEYS: frozenset[str] = frozenset({"email.smtp_password_secret"})
 
