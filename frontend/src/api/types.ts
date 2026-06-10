@@ -594,6 +594,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Metrics */
+        get: operations["get_metrics_api_v1_admin_quickbooks_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/outbox": {
         parameters: {
             query?: never;
@@ -14590,6 +14607,23 @@ export interface components {
             /** Vendor */
             vendor?: string | null;
         };
+        /** SyncMetricsResponse */
+        SyncMetricsResponse: {
+            cdc_worker: components["schemas"]["WorkerHealthResponse"];
+            /** Connected */
+            connected: boolean;
+            /** Drift Open */
+            drift_open: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Oldest Pending Age Seconds */
+            oldest_pending_age_seconds?: number | null;
+            /** Outbox */
+            outbox: {
+                [key: string]: number;
+            };
+            sync_worker: components["schemas"]["WorkerHealthResponse"];
+        };
         /** TaxLiabilityReportResponse */
         TaxLiabilityReportResponse: {
             /**
@@ -15595,6 +15629,22 @@ export interface components {
             vendor_id: string;
             /** Vendor Number */
             vendor_number: string;
+        };
+        /** WorkerHealthResponse */
+        WorkerHealthResponse: {
+            /** Job Name */
+            job_name: string;
+            /** Last Duration Ms */
+            last_duration_ms?: number | null;
+            /** Last Finished At */
+            last_finished_at?: string | null;
+            /**
+             * Last Processed
+             * @default 0
+             */
+            last_processed: number;
+            /** Last Status */
+            last_status?: string | null;
         };
         /** WorkerRunStateRead */
         WorkerRunStateRead: {
@@ -16953,6 +17003,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_metrics_api_v1_admin_quickbooks_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncMetricsResponse"];
                 };
             };
         };

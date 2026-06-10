@@ -22453,6 +22453,56 @@
         "title": "SupplyUpdateRequest",
         "type": "object"
       },
+      "SyncMetricsResponse": {
+        "properties": {
+          "cdc_worker": {
+            "$ref": "#/components/schemas/WorkerHealthResponse"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "drift_open": {
+            "title": "Drift Open",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "oldest_pending_age_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Pending Age Seconds"
+          },
+          "outbox": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Outbox",
+            "type": "object"
+          },
+          "sync_worker": {
+            "$ref": "#/components/schemas/WorkerHealthResponse"
+          }
+        },
+        "required": [
+          "enabled",
+          "connected",
+          "outbox",
+          "drift_open",
+          "sync_worker",
+          "cdc_worker"
+        ],
+        "title": "SyncMetricsResponse",
+        "type": "object"
+      },
       "TaxLiabilityReportResponse": {
         "properties": {
           "date_from": {
@@ -25223,6 +25273,58 @@
         "title": "WithholdingYtdRowResponse",
         "type": "object"
       },
+      "WorkerHealthResponse": {
+        "properties": {
+          "job_name": {
+            "title": "Job Name",
+            "type": "string"
+          },
+          "last_duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Duration Ms"
+          },
+          "last_finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Finished At"
+          },
+          "last_processed": {
+            "default": 0,
+            "title": "Last Processed",
+            "type": "integer"
+          },
+          "last_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Status"
+          }
+        },
+        "required": [
+          "job_name"
+        ],
+        "title": "WorkerHealthResponse",
+        "type": "object"
+      },
       "WorkerRunStateRead": {
         "properties": {
           "cron": {
@@ -27905,6 +28007,33 @@
           }
         ],
         "summary": "Quickbooks Set Enabled",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/metrics": {
+      "get": {
+        "operationId": "get_metrics_api_v1_admin_quickbooks_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Metrics",
         "tags": [
           "admin",
           "admin-quickbooks"

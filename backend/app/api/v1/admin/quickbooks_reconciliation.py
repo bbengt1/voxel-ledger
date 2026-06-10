@@ -21,7 +21,7 @@ from app.api.deps import require_role
 from app.core.db import get_session
 from app.models.auth import User
 from app.models.qbo_cdc_drift import QboDriftStatus
-from app.services.quickbooks import cdc, reconcile
+from app.services.quickbooks import cdc, monitoring, reconcile
 
 router = APIRouter(prefix="/quickbooks", tags=["admin-quickbooks"])
 
@@ -44,6 +44,24 @@ class DriftItemResponse(BaseModel):
     local_id: uuid.UUID | None = None
     occurrences: int
     last_detected_at: datetime
+
+
+class WorkerHealthResponse(BaseModel):
+    job_name: str
+    last_finished_at: datetime | None = None
+    last_status: str | None = None
+    last_duration_ms: int | None = None
+    last_processed: int = 0
+
+
+class SyncMetricsResponse(BaseModel):
+    enabled: bool
+    connected: bool
+    outbox: dict[str, int]
+    drift_open: int
+    oldest_pending_age_seconds: int | None = None
+    sync_worker: WorkerHealthResponse
+    cdc_worker: WorkerHealthResponse
 
 
 class ReconciliationResponse(BaseModel):
@@ -78,6 +96,23 @@ class DriftRowResponse(BaseModel):
 class DriftListResponse(BaseModel):
     items: list[DriftRowResponse]
     next_cursor: str | None = None
+
+
+@router.get("/metrics", response_model=SyncMetricsResponse)
+async def get_metrics(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _user: Annotated[User, Depends(require_role("owner", "bookkeeper"))],
+) -> SyncMetricsResponse:
+    m = await monitoring.build_metrics(session)
+    return SyncMetricsResponse(
+        enabled=m.enabled,
+        connected=m.connected,
+        outbox=m.outbox,
+        drift_open=m.drift_open,
+        oldest_pending_age_seconds=m.oldest_pending_age_seconds,
+        sync_worker=WorkerHealthResponse(**vars(m.sync_worker)),
+        cdc_worker=WorkerHealthResponse(**vars(m.cdc_worker)),
+    )
 
 
 @router.get("/reconciliation", response_model=ReconciliationResponse)
