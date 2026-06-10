@@ -24,12 +24,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class FakeQBO:
     def __init__(self) -> None:
         self.created: list[tuple[str, dict[str, Any]]] = []
+        self.deleted: list[tuple[str, str]] = []
         self._n = 1100
 
     async def create(self, entity, payload, *, request_id=None):
         self.created.append((entity, payload))
         self._n += 1
         return {**payload, "Id": str(self._n), "SyncToken": "0"}
+
+    async def read(self, entity, qbo_id):
+        return {"Id": qbo_id, "SyncToken": "0"}
+
+    async def delete(self, entity, qbo_id, token):
+        self.deleted.append((entity, qbo_id))
+        return {"Id": qbo_id, "status": "Deleted"}
 
 
 @pytest.fixture
@@ -61,6 +69,15 @@ async def _enable(session: AsyncSession) -> None:
             "fixed_asset": {"qbo_account_id": "FA"},
             "bank": {"qbo_account_id": "BANK"},
             "gain_loss_on_disposal": {"qbo_account_id": "GL"},
+            # Phase 3d-2 long-tail roles.
+            "tax_liability": {"qbo_account_id": "TAXLIAB"},
+            "expense": {"qbo_account_id": "EXP"},
+            "employee_reimbursable": {"qbo_account_id": "EMPREIMB"},
+            "undeposited_funds": {"qbo_account_id": "UNDEP"},
+            "payout": {"qbo_account_id": "PAYOUT"},
+            "marketplace_fee": {"qbo_account_id": "MKTFEE"},
+            "settlement_adjustment": {"qbo_account_id": "SETADJ"},
+            "marketplace_clearing": {"qbo_account_id": "MKTCLR"},
         },
         actor_user_id=None,
     )
@@ -97,6 +114,41 @@ async def _enable(session: AsyncSession) -> None:
             ],
             {"ACCDEP", "BANK", "FA", "GL"},
         ),
+        # --- Phase 3d-2 long-tail role-JE sites ---
+        (
+            "tax_remittance",
+            [
+                {"role": "tax_liability", "posting": "debit", "amount": "30"},
+                {"role": "bank", "posting": "credit", "amount": "30"},
+            ],
+            {"TAXLIAB", "BANK"},
+        ),
+        (
+            "expense_claim",
+            [
+                {"role": "expense", "posting": "debit", "amount": "12"},
+                {"role": "employee_reimbursable", "posting": "credit", "amount": "12"},
+            ],
+            {"EXP", "EMPREIMB"},
+        ),
+        (
+            "deposit_slip",
+            [
+                {"role": "bank", "posting": "debit", "amount": "200"},
+                {"role": "undeposited_funds", "posting": "credit", "amount": "200"},
+            ],
+            {"BANK", "UNDEP"},
+        ),
+        (
+            "settlement",
+            [
+                {"role": "payout", "posting": "debit", "amount": "90"},
+                {"role": "marketplace_fee", "posting": "debit", "amount": "10"},
+                {"role": "settlement_adjustment", "posting": "credit", "amount": "5"},
+                {"role": "marketplace_clearing", "posting": "credit", "amount": "95"},
+            ],
+            {"PAYOUT", "MKTFEE", "SETADJ", "MKTCLR"},
+        ),
     ],
 )
 async def test_longtail_je_kinds_build(
@@ -118,3 +170,43 @@ async def test_longtail_je_kinds_build(
     assert entity == "JournalEntry"
     refs = {ln["JournalEntryLineDetail"]["AccountRef"]["value"] for ln in payload["Line"]}
     assert refs == expected_refs
+
+
+@pytest.mark.asyncio
+async def test_tax_remittance_reverse_deletes_journal_entry(
+    client, app_session: AsyncSession, settings_obj
+) -> None:
+    """Cancelling a remittance deletes the synced QBO JournalEntry."""
+    await _enable(app_session)
+    local_id = uuid.uuid4()
+    await outbox.enqueue(
+        app_session,
+        kind="tax_remittance",
+        local_id=local_id,
+        payload={
+            "lines": [
+                {"role": "tax_liability", "posting": "debit", "amount": "30"},
+                {"role": "bank", "posting": "credit", "amount": "30"},
+            ],
+            "private_note": "remit",
+        },
+        op="post",
+    )
+    await app_session.commit()
+    fake = FakeQBO()
+    res = await outbox.run_pending(app_session, settings_obj, client=fake)
+    assert res.synced == 1, res
+
+    # Now reverse it.
+    await outbox.enqueue(
+        app_session,
+        kind="tax_remittance",
+        local_id=local_id,
+        payload={"tax_remittance_id": str(local_id)},
+        op="reverse",
+    )
+    await app_session.commit()
+    res2 = await outbox.run_pending(app_session, settings_obj, client=fake)
+    assert res2.synced == 1, res2
+    assert fake.deleted, "expected a JournalEntry delete on reverse"
+    assert fake.deleted[0][0] == "JournalEntry"

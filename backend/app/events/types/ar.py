@@ -281,7 +281,8 @@ class DepositSlipBuiltPayload(_ARPayloadBase):
     deposit_date: str  # ISO date
     total: Decimal
     payment_ids: list[str]
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class InvoiceWrittenOffPayload(_ARPayloadBase):

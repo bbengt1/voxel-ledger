@@ -87,7 +87,8 @@ class SettlementPostedPayload(_SettlementsPayloadBase):
     settlement_id: uuid.UUID
     settlement_number: str
     channel_id: uuid.UUID
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     payout_amount: str
     fee_amount: str
     adjustment_amount: str

@@ -341,53 +341,65 @@ async def record(
     await session.flush()
 
     posted_at = datetime.combine(paid_on, datetime.min.time(), tzinfo=UTC)
-    lines: list[journal_service.JournalLineInput] = []
-    line_no = 1
-    per_rate_payload: list[dict[str, Any]] = []
-    for r, piece in allocations:
-        if piece <= _ZERO:
-            continue
+    per_rate_payload: list[dict[str, Any]] = [
+        {
+            "rate_id": str(r.rate_id),
+            "ordinal": r.ordinal,
+            "name": r.name,
+            "liability_account_id": str(r.liability_account_id),
+            "amount": str(piece),
+        }
+        for r, piece in allocations
+        if piece > _ZERO
+    ]
+
+    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
+    # (per-rate Dr tax_liability, Cr bank) instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        qbo_lines: list[dict[str, Any]] = [
+            {"role": "tax_liability", "posting": "debit", "amount": p["amount"]}
+            for p in per_rate_payload
+        ]
+        qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(amount)})
+        await qbo_outbox.enqueue(
+            session, kind="tax_remittance", local_id=remittance.id,
+            payload={"lines": qbo_lines, "private_note": f"Tax remittance {remittance_number}"},
+            op="post",
+        )
+    else:
+        lines: list[journal_service.JournalLineInput] = []
+        line_no = 1
+        for r, piece in allocations:
+            if piece <= _ZERO:
+                continue
+            lines.append(
+                journal_service.JournalLineInput(
+                    account_id=r.liability_account_id, debit=piece, credit=_ZERO,
+                    line_number=line_no, memo=f"Dr tax liability {r.name} for {remittance_number}",
+                )
+            )
+            line_no += 1
         lines.append(
             journal_service.JournalLineInput(
-                account_id=r.liability_account_id,
-                debit=piece,
-                credit=_ZERO,
-                line_number=line_no,
-                memo=f"Dr tax liability {r.name} for {remittance_number}",
+                account_id=bank.id, debit=_ZERO, credit=amount, line_number=line_no,
+                memo=f"Cr bank for tax remittance {remittance_number}",
             )
         )
-        line_no += 1
-        per_rate_payload.append(
-            {
-                "rate_id": str(r.rate_id),
-                "ordinal": r.ordinal,
-                "name": r.name,
-                "liability_account_id": str(r.liability_account_id),
-                "amount": str(piece),
-            }
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Tax remittance {remittance_number} ({profile.code})",
+                posted_at=posted_at, lines=lines,
+            ),
+            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
         )
-    lines.append(
-        journal_service.JournalLineInput(
-            account_id=bank.id,
-            debit=_ZERO,
-            credit=amount,
-            line_number=line_no,
-            memo=f"Cr bank for tax remittance {remittance_number}",
-        )
-    )
+        assert isinstance(entry, JournalEntry)
+        posted_entry_id = entry.id
 
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Tax remittance {remittance_number} ({profile.code})",
-            posted_at=posted_at,
-            lines=lines,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
-    remittance.posting_journal_entry_id = entry.id
+    remittance.posting_journal_entry_id = posted_entry_id
     await session.flush()
 
     await _emit(
@@ -405,7 +417,7 @@ async def record(
             "method": method_e.value,
             "reference_number": reference_number,
             "bank_account_id": str(bank.id),
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
             "per_rate_allocations": per_rate_payload,
         },
         actor_user_id=actor_user_id,
@@ -438,18 +450,29 @@ async def cancel(
         raise TaxRemittanceStateError(
             f"tax remittance {remittance.remittance_number} is already cancelled"
         )
-    if remittance.posting_journal_entry_id is None:
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    original_je_id = remittance.posting_journal_entry_id
+    reversal_je_id: uuid.UUID | None = None
+    if original_je_id is not None:
+        reversal = await journal_service.reverse(
+            original_je_id,
+            session=session,
+            actor_user_id=actor_user_id,
+            description=f"Reversal of tax remittance {remittance.remittance_number}",
+        )
+        reversal_je_id = reversal.id
+    elif qbo_enabled:
+        # QBO replace-mode: delete the QBO JournalEntry we pushed.
+        await qbo_outbox.enqueue(
+            session, kind="tax_remittance", local_id=remittance.id,
+            payload={"tax_remittance_id": str(remittance.id)}, op="reverse",
+        )
+    else:
         raise TaxRemittanceStateError(
             f"tax remittance {remittance.remittance_number} has no posted JE to reverse"
         )
-
-    original_je_id = remittance.posting_journal_entry_id
-    reversal = await journal_service.reverse(
-        original_je_id,
-        session=session,
-        actor_user_id=actor_user_id,
-        description=f"Reversal of tax remittance {remittance.remittance_number}",
-    )
     remittance.state = TaxRemittanceState.CANCELLED
     await session.flush()
 
@@ -460,8 +483,8 @@ async def cancel(
         payload={
             "remittance_id": str(remittance.id),
             "remittance_number": remittance.remittance_number,
-            "original_journal_entry_id": str(original_je_id),
-            "reversal_journal_entry_id": str(reversal.id),
+            "original_journal_entry_id": str(original_je_id) if original_je_id else None,
+            "reversal_journal_entry_id": str(reversal_je_id) if reversal_je_id else None,
         },
         actor_user_id=actor_user_id,
     )

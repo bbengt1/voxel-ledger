@@ -633,75 +633,110 @@ async def post(
 
     clearing_credit = _q(gross_amount - refund_amount)
 
-    # Build JE.
-    lines_in: list[journal_service.JournalLineInput] = []
-    line_no = 1
-    lines_in.append(
-        journal_service.JournalLineInput(
-            account_id=settlement.payout_account_id,
-            debit=payout_amount,
-            credit=_ZERO,
-            line_number=line_no,
-            memo=f"Settlement payout {settlement.settlement_number}",
-        )
-    )
-    line_no += 1
-    if fee_amount > _ZERO:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=channel.default_fee_account_id,  # type: ignore[arg-type]
-                debit=fee_amount,
-                credit=_ZERO,
-                line_number=line_no,
-                memo=f"Settlement fees {settlement.settlement_number}",
-            )
-        )
-        line_no += 1
-    if adjustment_amount > _ZERO and adjustment_account_id is not None:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=adjustment_account_id,
-                debit=_ZERO,
-                credit=adjustment_amount,
-                line_number=line_no,
-                memo=f"Settlement adjustment {settlement.settlement_number}",
-            )
-        )
-        line_no += 1
-    elif adjustment_amount < _ZERO and adjustment_account_id is not None:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=adjustment_account_id,
-                debit=-adjustment_amount,
-                credit=_ZERO,
-                line_number=line_no,
-                memo=f"Settlement adjustment {settlement.settlement_number}",
-            )
-        )
-        line_no += 1
-    lines_in.append(
-        journal_service.JournalLineInput(
-            account_id=channel.default_clearing_account_id,  # type: ignore[arg-type]
-            debit=_ZERO,
-            credit=clearing_credit,
-            line_number=line_no,
-            memo=f"Settlement clearing {settlement.settlement_number}",
-        )
-    )
-
     posted_at = datetime.combine(settlement.period_end, datetime.min.time(), tzinfo=UTC)
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Settlement payout {settlement.settlement_number}",
-            posted_at=posted_at,
-            lines=lines_in,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
-    settlement.posting_journal_entry_id = entry.id
+
+    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
+    # instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        qbo_lines: list[dict] = [
+            {"role": "payout", "posting": "debit", "amount": str(payout_amount)}
+        ]
+        if fee_amount > _ZERO:
+            qbo_lines.append(
+                {"role": "marketplace_fee", "posting": "debit", "amount": str(fee_amount)}
+            )
+        if adjustment_amount > _ZERO:
+            qbo_lines.append(
+                {
+                    "role": "settlement_adjustment",
+                    "posting": "credit",
+                    "amount": str(adjustment_amount),
+                }
+            )
+        elif adjustment_amount < _ZERO:
+            qbo_lines.append(
+                {
+                    "role": "settlement_adjustment",
+                    "posting": "debit",
+                    "amount": str(-adjustment_amount),
+                }
+            )
+        qbo_lines.append(
+            {"role": "marketplace_clearing", "posting": "credit", "amount": str(clearing_credit)}
+        )
+        await qbo_outbox.enqueue(
+            session,
+            kind="settlement",
+            local_id=settlement.id,
+            payload={
+                "lines": qbo_lines,
+                "private_note": f"Settlement payout {settlement.settlement_number}",
+            },
+            op="post",
+        )
+    else:
+        lines_in: list[journal_service.JournalLineInput] = []
+        line_no = 1
+        lines_in.append(
+            journal_service.JournalLineInput(
+                account_id=settlement.payout_account_id, debit=payout_amount, credit=_ZERO,
+                line_number=line_no, memo=f"Settlement payout {settlement.settlement_number}",
+            )
+        )
+        line_no += 1
+        if fee_amount > _ZERO:
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=channel.default_fee_account_id,  # type: ignore[arg-type]
+                    debit=fee_amount, credit=_ZERO, line_number=line_no,
+                    memo=f"Settlement fees {settlement.settlement_number}",
+                )
+            )
+            line_no += 1
+        if adjustment_amount > _ZERO and adjustment_account_id is not None:
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=adjustment_account_id,
+                    debit=_ZERO,
+                    credit=adjustment_amount,
+                    line_number=line_no,
+                    memo=f"Settlement adjustment {settlement.settlement_number}",
+                )
+            )
+            line_no += 1
+        elif adjustment_amount < _ZERO and adjustment_account_id is not None:
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=adjustment_account_id,
+                    debit=-adjustment_amount,
+                    credit=_ZERO,
+                    line_number=line_no,
+                    memo=f"Settlement adjustment {settlement.settlement_number}",
+                )
+            )
+            line_no += 1
+        lines_in.append(
+            journal_service.JournalLineInput(
+                account_id=channel.default_clearing_account_id,  # type: ignore[arg-type]
+                debit=_ZERO, credit=clearing_credit, line_number=line_no,
+                memo=f"Settlement clearing {settlement.settlement_number}",
+            )
+        )
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Settlement payout {settlement.settlement_number}",
+                posted_at=posted_at, lines=lines_in,
+            ),
+            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+        )
+        assert isinstance(entry, JournalEntry)
+        posted_entry_id = entry.id
+
+    settlement.posting_journal_entry_id = posted_entry_id
     settlement.state = SettlementState.POSTED
     await session.flush()
 
