@@ -543,6 +543,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/drift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Drift */
+        get: operations["list_drift_api_v1_admin_quickbooks_drift_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/drift/{drift_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Drift */
+        post: operations["acknowledge_drift_api_v1_admin_quickbooks_drift__drift_id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/enabled": {
         parameters: {
             query?: never;
@@ -622,6 +656,23 @@ export interface paths {
         put?: never;
         /** Retry Outbox Row */
         post: operations["retry_outbox_row_api_v1_admin_quickbooks_outbox__row_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reconciliation */
+        get: operations["get_reconciliation_api_v1_admin_quickbooks_reconciliation_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9495,6 +9546,71 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /** DriftItemResponse */
+        DriftItemResponse: {
+            /** Change Type */
+            change_type: string;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Last Detected At
+             * Format: date-time
+             */
+            last_detected_at: string;
+            /** Local Id */
+            local_id?: string | null;
+            /** Local Kind */
+            local_kind?: string | null;
+            /** Occurrences */
+            occurrences: number;
+            /** Qbo Id */
+            qbo_id: string;
+        };
+        /** DriftListResponse */
+        DriftListResponse: {
+            /** Items */
+            items: components["schemas"]["DriftRowResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** DriftRowResponse */
+        DriftRowResponse: {
+            /** Acknowledged At */
+            acknowledged_at?: string | null;
+            /** Change Type */
+            change_type: string;
+            /** Detail */
+            detail?: {
+                [key: string]: unknown;
+            } | null;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * First Detected At
+             * Format: date-time
+             */
+            first_detected_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Detected At
+             * Format: date-time
+             */
+            last_detected_at: string;
+            /** Local Id */
+            local_id?: string | null;
+            /** Local Kind */
+            local_kind?: string | null;
+            /** Occurrences */
+            occurrences: number;
+            /** Qbo Id */
+            qbo_id: string;
+            /** Status */
+            status: string;
+        };
         /** EmailAttachmentRef */
         EmailAttachmentRef: {
             /** Filename */
@@ -10183,6 +10299,20 @@ export interface components {
             display_order?: number | null;
             /** Name */
             name?: string | null;
+        };
+        /** GapItemResponse */
+        GapItemResponse: {
+            /** Kind */
+            kind: string;
+            /**
+             * Local Id
+             * Format: uuid
+             */
+            local_id: string;
+            /** Occurred At */
+            occurred_at?: string | null;
+            /** Reference */
+            reference?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -12910,6 +13040,35 @@ export interface components {
             name?: string | null;
             /** Value */
             value?: number | string | null;
+        };
+        /** ReconciliationResponse */
+        ReconciliationResponse: {
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Decommission Ready */
+            decommission_ready: boolean;
+            /** Drift */
+            drift: components["schemas"]["DriftItemResponse"][];
+            /** Drift Open */
+            drift_open: number;
+            /** Gap Count */
+            gap_count: number;
+            /** Gaps */
+            gaps: components["schemas"]["GapItemResponse"][];
+            /** Mismatch Candidates */
+            mismatch_candidates: number;
+            /** Outbox */
+            outbox: {
+                [key: string]: number;
+            };
         };
         /** RecurringBillMaterializeResponse */
         RecurringBillMaterializeResponse: {
@@ -16701,6 +16860,70 @@ export interface operations {
             };
         };
     };
+    list_drift_api_v1_admin_quickbooks_drift_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriftListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_drift_api_v1_admin_quickbooks_drift__drift_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drift_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriftRowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     quickbooks_set_enabled_api_v1_admin_quickbooks_enabled_post: {
         parameters: {
             query?: never;
@@ -16839,6 +17062,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OutboxRowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_reconciliation_api_v1_admin_quickbooks_reconciliation_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
                 };
             };
             /** @description Validation Error */
