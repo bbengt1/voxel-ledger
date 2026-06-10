@@ -6,6 +6,7 @@ import type { components } from "@/api/types";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AccountMapEditor } from "@/pages/admin/QuickBooksAccountMap";
 import { SyncOutboxMonitor } from "@/pages/admin/QuickBooksSyncOutbox";
+import { SyncHealthPanel } from "@/pages/admin/QuickBooksSyncHealth";
 import { Button } from "@/components/ui/Button";
 
 type Status = components["schemas"]["QuickBooksStatusResponse"];
@@ -193,6 +194,7 @@ export function QuickBooksPage() {
 
           {status.connected ? <AccountMapEditor /> : null}
           {status.connected ? <SyncOutboxMonitor /> : null}
+          {status.connected ? <SyncHealthPanel /> : null}
         </div>
       ) : null}
     </section>
