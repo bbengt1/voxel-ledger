@@ -204,41 +204,73 @@ async def issue(
     customer = (
         await session.execute(select(Customer).where(Customer.id == note.customer_id))
     ).scalar_one()
-    ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-    if revenue_account_id_override is not None:
-        revenue_account_id = revenue_account_id_override
-    else:
-        revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
     amt = _q(note.total_amount)
-    lines = [
-        journal_service.JournalLineInput(
-            account_id=ar_account_id,
-            debit=amt,
-            credit=_ZERO,
-            line_number=1,
-            memo=f"Debit note {note.debit_note_number} (AR increase)",
-        ),
-        journal_service.JournalLineInput(
-            account_id=revenue_account_id,
-            debit=_ZERO,
-            credit=amt,
-            line_number=2,
-            memo=f"Debit note {note.debit_note_number} (revenue)",
-        ),
-    ]
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Debit note {note.debit_note_number}",
-            posted_at=datetime.now(UTC),
-            lines=lines,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
+
+    # QBO replace-mode (epic #312, Phase 3c-2): QBO has no native customer
+    # debit-memo, so push a JournalEntry — Dr A/R (with the Customer Entity,
+    # required by QBO), Cr Revenue — via the sync outbox instead of the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    posted_entry_id: uuid.UUID | None = None
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="debit_note",
+            local_id=note.id,
+            payload={
+                "lines": [
+                    {
+                        "role": "accounts_receivable",
+                        "posting": "debit",
+                        "amount": str(amt),
+                        "entity": {"type": "Customer", "local_id": str(note.customer_id)},
+                        "description": f"Debit note {note.debit_note_number}",
+                    },
+                    {"role": "revenue", "posting": "credit", "amount": str(amt)},
+                ],
+                "doc_number": note.debit_note_number,
+                "private_note": f"Debit note {note.debit_note_number}",
+            },
+            op="post",
+        )
+    else:
+        ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
+        if revenue_account_id_override is not None:
+            revenue_account_id = revenue_account_id_override
+        else:
+            revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
+        lines = [
+            journal_service.JournalLineInput(
+                account_id=ar_account_id,
+                debit=amt,
+                credit=_ZERO,
+                line_number=1,
+                memo=f"Debit note {note.debit_note_number} (AR increase)",
+            ),
+            journal_service.JournalLineInput(
+                account_id=revenue_account_id,
+                debit=_ZERO,
+                credit=amt,
+                line_number=2,
+                memo=f"Debit note {note.debit_note_number} (revenue)",
+            ),
+        ]
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Debit note {note.debit_note_number}",
+                posted_at=datetime.now(UTC),
+                lines=lines,
+            ),
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
+        )
+        assert isinstance(entry, JournalEntry)
+        posted_entry_id = entry.id
+
     note.state = DebitNoteState.ISSUED
-    note.posting_journal_entry_id = entry.id
+    note.posting_journal_entry_id = posted_entry_id
     await session.flush()
     await _emit(
         session,
@@ -250,7 +282,7 @@ async def issue(
             "customer_id": str(note.customer_id),
             "invoice_id": str(invoice.id),
             "total_amount": str(amt),
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
         },
         actor_user_id=actor_user_id,
     )
@@ -316,6 +348,17 @@ async def cancel(
             description=f"Reversal of debit note {note.debit_note_number}",
         )
         reversing_je_id = reversal.id
+    elif note.state == DebitNoteState.ISSUED:
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="debit_note",
+                local_id=note.id,
+                payload={"debit_note_id": str(note.id)},
+                op="reverse",
+            )
     note.state = DebitNoteState.CANCELLED
     await session.flush()
     await _emit(

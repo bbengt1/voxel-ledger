@@ -451,7 +451,8 @@ class CreditNoteIssuedPayload(_ARPayloadBase):
     customer_id: uuid.UUID
     invoice_id: uuid.UUID
     total_amount: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class CreditNoteAppliedPayload(_ARPayloadBase):
@@ -508,7 +509,8 @@ class DebitNoteIssuedPayload(_ARPayloadBase):
     customer_id: uuid.UUID
     invoice_id: uuid.UUID
     total_amount: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class DebitNoteAppliedPayload(_ARPayloadBase):
