@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import Settings
@@ -157,3 +157,97 @@ def _retry_or_dead(
         row.status = QboSyncStatus.PENDING.value
         row.next_attempt_at = now + timedelta(seconds=backoff_for_attempt(row.attempts, rng=rng))
         result.retried += 1
+
+
+# --------------------------------------------------------------------------- #
+# Admin surface (#316 Phase 3e) — observe + retry the sync outbox.
+# --------------------------------------------------------------------------- #
+
+# Only terminal-error rows can be hand-retried; pending/synced are not eligible.
+_RETRYABLE_STATUSES: frozenset[str] = frozenset(
+    {QboSyncStatus.FAILED.value, QboSyncStatus.DEAD.value}
+)
+
+
+class OutboxRowNotFoundError(LookupError):
+    """No outbox row with the given id."""
+
+
+class OutboxNotRetryableError(RuntimeError):
+    """The row is not in a retryable (failed/dead) state."""
+
+
+async def stats(session: AsyncSession) -> dict[str, int]:
+    """Count outbox rows by status (every status key present, zero-filled)."""
+    counts = {s.value: 0 for s in QboSyncStatus}
+    rows = await session.execute(
+        select(QboSyncOutbox.status, func.count()).group_by(QboSyncOutbox.status)
+    )
+    for status_value, n in rows:
+        counts[status_value] = int(n)
+    counts["total"] = sum(counts.values())
+    return counts
+
+
+async def list_rows(
+    session: AsyncSession,
+    *,
+    status: str | None = None,
+    kind: str | None = None,
+    limit: int = 50,
+    before: datetime | None = None,
+) -> list[QboSyncOutbox]:
+    """Most-recent-first page of outbox rows, optionally filtered.
+
+    ``before`` is a keyset cursor on ``created_at`` (pass the last row's
+    ``created_at`` to fetch the next page)."""
+    stmt = select(QboSyncOutbox)
+    if status is not None:
+        stmt = stmt.where(QboSyncOutbox.status == status)
+    if kind is not None:
+        stmt = stmt.where(QboSyncOutbox.kind == kind)
+    if before is not None:
+        stmt = stmt.where(QboSyncOutbox.created_at < before)
+    stmt = stmt.order_by(QboSyncOutbox.created_at.desc(), QboSyncOutbox.id.desc()).limit(limit)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def retry_row(session: AsyncSession, row_id: uuid.UUID) -> QboSyncOutbox:
+    """Requeue a single failed/dead row for the worker (caller commits).
+
+    Resets it to ``pending`` with an immediate ``next_attempt_at`` and clears
+    the stored error. ``attempts`` is preserved as history. The next worker pass
+    rebuilds + repushes using the stable ``request_id`` (idempotent)."""
+    row = await session.get(QboSyncOutbox, row_id)
+    if row is None:
+        raise OutboxRowNotFoundError(str(row_id))
+    if row.status not in _RETRYABLE_STATUSES:
+        raise OutboxNotRetryableError(
+            f"outbox row {row_id} is {row.status!r}; only failed/dead rows can be retried"
+        )
+    row.status = QboSyncStatus.PENDING.value
+    row.next_attempt_at = datetime.now(UTC)
+    row.last_error = None
+    await session.flush()
+    # Reload server-side columns (e.g. ``updated_at`` onupdate) so callers can
+    # serialize the row synchronously without tripping a lazy async load.
+    await session.refresh(row)
+    return row
+
+
+async def retry_all(session: AsyncSession, *, status: str) -> int:
+    """Bulk-requeue every row in a terminal-error ``status``. Returns the count.
+
+    Caller commits."""
+    if status not in _RETRYABLE_STATUSES:
+        raise OutboxNotRetryableError(f"{status!r} is not retryable; pass 'failed' or 'dead'")
+    result = await session.execute(
+        update(QboSyncOutbox)
+        .where(QboSyncOutbox.status == status)
+        .values(
+            status=QboSyncStatus.PENDING.value,
+            next_attempt_at=datetime.now(UTC),
+            last_error=None,
+        )
+    )
+    return int(result.rowcount or 0)

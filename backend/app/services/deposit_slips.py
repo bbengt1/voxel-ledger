@@ -177,7 +177,9 @@ async def build_slip(
     je_id: uuid.UUID | None = None
     if qbo_enabled:
         await qbo_outbox.enqueue(
-            session, kind="deposit_slip", local_id=slip_id,
+            session,
+            kind="deposit_slip",
+            local_id=slip_id,
             payload={
                 "lines": [
                     {"role": "bank", "posting": "debit", "amount": str(total)},
@@ -194,16 +196,24 @@ async def build_slip(
                 posted_at=datetime.combine(deposit_date, datetime.min.time(), tzinfo=UTC),
                 lines=[
                     journal_service.JournalLineInput(
-                        account_id=bank_account_id, debit=total, credit=_ZERO, line_number=1,
+                        account_id=bank_account_id,
+                        debit=total,
+                        credit=_ZERO,
+                        line_number=1,
                         memo=f"Deposit {slip_number} (consolidated)",
                     ),
                     journal_service.JournalLineInput(
-                        account_id=undeposited_account_id, debit=_ZERO, credit=total, line_number=2,
+                        account_id=undeposited_account_id,
+                        debit=_ZERO,
+                        credit=total,
+                        line_number=2,
                         memo=f"Clear undeposited for slip {slip_number}",
                     ),
                 ],
             ),
-            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
         )
         if not isinstance(je, JournalEntry):
             raise DepositSlipServiceError(

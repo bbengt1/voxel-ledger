@@ -683,8 +683,11 @@ async def post(
         line_no = 1
         lines_in.append(
             journal_service.JournalLineInput(
-                account_id=settlement.payout_account_id, debit=payout_amount, credit=_ZERO,
-                line_number=line_no, memo=f"Settlement payout {settlement.settlement_number}",
+                account_id=settlement.payout_account_id,
+                debit=payout_amount,
+                credit=_ZERO,
+                line_number=line_no,
+                memo=f"Settlement payout {settlement.settlement_number}",
             )
         )
         line_no += 1
@@ -692,7 +695,9 @@ async def post(
             lines_in.append(
                 journal_service.JournalLineInput(
                     account_id=channel.default_fee_account_id,  # type: ignore[arg-type]
-                    debit=fee_amount, credit=_ZERO, line_number=line_no,
+                    debit=fee_amount,
+                    credit=_ZERO,
+                    line_number=line_no,
                     memo=f"Settlement fees {settlement.settlement_number}",
                 )
             )
@@ -722,16 +727,21 @@ async def post(
         lines_in.append(
             journal_service.JournalLineInput(
                 account_id=channel.default_clearing_account_id,  # type: ignore[arg-type]
-                debit=_ZERO, credit=clearing_credit, line_number=line_no,
+                debit=_ZERO,
+                credit=clearing_credit,
+                line_number=line_no,
                 memo=f"Settlement clearing {settlement.settlement_number}",
             )
         )
         entry = await journal_service.post(
             journal_service.JournalEntryInput(
                 description=f"Settlement payout {settlement.settlement_number}",
-                posted_at=posted_at, lines=lines_in,
+                posted_at=posted_at,
+                lines=lines_in,
             ),
-            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
         )
         assert isinstance(entry, JournalEntry)
         posted_entry_id = entry.id

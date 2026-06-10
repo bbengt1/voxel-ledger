@@ -718,7 +718,9 @@ async def approve(
                 f"expense claim {claim.claim_number} has nothing to post (total is zero)"
             )
         await qbo_outbox.enqueue(
-            session, kind="expense_claim", local_id=claim.id,
+            session,
+            kind="expense_claim",
+            local_id=claim.id,
             payload={"lines": qbo_lines, "private_note": f"Expense claim {claim.claim_number}"},
             op="post",
         )
@@ -737,14 +739,19 @@ async def approve(
                 continue
             lines_in.append(
                 journal_service.JournalLineInput(
-                    account_id=account_id, debit=amount, credit=_ZERO, line_number=_next_line_no(),
+                    account_id=account_id,
+                    debit=amount,
+                    credit=_ZERO,
+                    line_number=_next_line_no(),
                     memo=f"Expense for claim {claim.claim_number} line {line.line_number}",
                 )
             )
         if total > _ZERO:
             lines_in.append(
                 journal_service.JournalLineInput(
-                    account_id=reimbursable_account_id, debit=_ZERO, credit=total,
+                    account_id=reimbursable_account_id,
+                    debit=_ZERO,
+                    credit=total,
                     line_number=_next_line_no(),
                     memo=f"Employee reimbursable for claim {claim.claim_number}",
                 )
@@ -756,9 +763,12 @@ async def approve(
         entry = await journal_service.post(
             journal_service.JournalEntryInput(
                 description=f"Expense claim {claim.claim_number}: approval",
-                posted_at=posted_at, lines=lines_in,
+                posted_at=posted_at,
+                lines=lines_in,
             ),
-            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
         )
         assert isinstance(entry, JournalEntry)
         posted_entry_id = entry.id
