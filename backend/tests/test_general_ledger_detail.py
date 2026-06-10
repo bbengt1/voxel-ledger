@@ -58,7 +58,10 @@ async def test_single_account_opening_lines_closing(
     rev = await seed_account(app_session, code="4000", name="Sales", type="revenue")
     await app_session.commit()
 
-    today = datetime.now(UTC)
+    # Anchor at midday so the +1h/+2h in-window postings below never roll past
+    # midnight into the next date (which would drop them from the day-bounded
+    # report — a real failure observed when CI runs late in the UTC day).
+    today = datetime.now(UTC).replace(hour=12, minute=0, second=0, microsecond=0)
     yesterday = today - timedelta(days=2)
     # Opening: $200 Dr to bank.
     await _post_je(

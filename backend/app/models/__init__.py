@@ -195,6 +195,11 @@ from app.models.production_order import (
 )
 from app.models.projection import ProjectionCursor, ProjectionTestEvent
 from app.models.qbo_account_map import QboAccountMap
+from app.models.qbo_cdc_drift import (
+    QBO_DRIFT_STATUS_VALUES,
+    QboCdcDrift,
+    QboDriftStatus,
+)
 from app.models.qbo_entity_map import (
     QBO_LOCAL_KIND_VALUES,
     QboEntityMap,
@@ -458,10 +463,13 @@ __all__ = [
     "ProjectionCursor",
     "ProjectionTestEvent",
     "QBO_LOCAL_KIND_VALUES",
+    "QBO_DRIFT_STATUS_VALUES",
     "QBO_SYNC_STATUS_VALUES",
     "QboAccountMap",
     "QboEntityMap",
     "QboLocalKind",
+    "QboCdcDrift",
+    "QboDriftStatus",
     "QboSyncOutbox",
     "QboSyncStatus",
     "QUOTE_ITEM_KIND_VALUES",
