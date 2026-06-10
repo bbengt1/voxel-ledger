@@ -419,35 +419,56 @@ async def acquire(
         asset.posting_journal_entry_id = je_id
         contra_for_payload = contra_account_id
     else:
-        posted_at = datetime.combine(acquired_on, datetime.min.time(), tzinfo=UTC)
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Acquisition of asset {asset_number}",
-                posted_at=posted_at,
-                lines=[
-                    journal_service.JournalLineInput(
-                        account_id=asset_account_id,
-                        debit=cost,
-                        credit=_ZERO,
-                        line_number=1,
-                        memo=f"Dr asset for {asset_number}",
-                    ),
-                    journal_service.JournalLineInput(
-                        account_id=contra_account_id,  # type: ignore[arg-type]
-                        debit=_ZERO,
-                        credit=cost,
-                        line_number=2,
-                        memo=f"Cr contra for {asset_number}",
-                    ),
-                ],
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(entry, JournalEntry)
-        je_id = entry.id
-        asset.posting_journal_entry_id = je_id
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            # Cash acquisition → Dr fixed_asset, Cr bank. (Limitation: a non-bill
+            # AP-contra acquisition also routes to the bank role here.)
+            await qbo_outbox.enqueue(
+                session,
+                kind="fixed_asset_acquisition",
+                local_id=asset.id,
+                payload={
+                    "lines": [
+                        {"role": "fixed_asset", "posting": "debit", "amount": str(cost)},
+                        {"role": "bank", "posting": "credit", "amount": str(cost)},
+                    ],
+                    "private_note": f"Acquisition of {asset_number}",
+                },
+                op="post",
+            )
+            je_id = None
+            asset.posting_journal_entry_id = None
+        else:
+            posted_at = datetime.combine(acquired_on, datetime.min.time(), tzinfo=UTC)
+            entry = await journal_service.post(
+                journal_service.JournalEntryInput(
+                    description=f"Acquisition of asset {asset_number}",
+                    posted_at=posted_at,
+                    lines=[
+                        journal_service.JournalLineInput(
+                            account_id=asset_account_id,
+                            debit=cost,
+                            credit=_ZERO,
+                            line_number=1,
+                            memo=f"Dr asset for {asset_number}",
+                        ),
+                        journal_service.JournalLineInput(
+                            account_id=contra_account_id,  # type: ignore[arg-type]
+                            debit=_ZERO,
+                            credit=cost,
+                            line_number=2,
+                            memo=f"Cr contra for {asset_number}",
+                        ),
+                    ],
+                ),
+                session=session,
+                actor_user_id=actor_user_id,
+                _internal_skip_approval_check=True,
+            )
+            assert isinstance(entry, JournalEntry)
+            je_id = entry.id
+            asset.posting_journal_entry_id = je_id
         contra_for_payload = contra_account_id
 
     await session.flush()

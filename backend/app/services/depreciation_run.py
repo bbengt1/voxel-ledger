@@ -88,44 +88,74 @@ async def _post_one_entry(
     asset: FixedAsset,
     entry: DepreciationScheduleEntry,
     actor_user_id: uuid.UUID,
-) -> uuid.UUID:
+) -> uuid.UUID | None:
     """Post a single depreciation entry's JE in the current TX.
 
     Caller is responsible for committing (success) or rolling back
     (exception).
     """
     posted_at = datetime.combine(entry.period_end, datetime.min.time(), tzinfo=UTC)
-    je = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=(
-                f"Depreciation of {asset.asset_number} period "
-                f"{entry.period_end.isoformat()} (#{entry.period_index})"
-            ),
-            posted_at=posted_at,
-            lines=[
-                journal_service.JournalLineInput(
-                    account_id=asset.depreciation_expense_account_id,
-                    debit=entry.depreciation_amount,
-                    credit=_ZERO,
-                    line_number=1,
-                    memo=f"Dr depreciation expense for {asset.asset_number}",
-                ),
-                journal_service.JournalLineInput(
-                    account_id=asset.accumulated_depreciation_account_id,
-                    debit=_ZERO,
-                    credit=entry.depreciation_amount,
-                    line_number=2,
-                    memo=f"Cr accumulated depreciation for {asset.asset_number}",
-                ),
-            ],
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(je, JournalEntry)
 
-    entry.journal_entry_id = je.id
+    # QBO replace-mode (epic #312, Phase 3d-1): enqueue a role-tagged JournalEntry
+    # instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    je_id: uuid.UUID | None = None
+    if await qbo_outbox.is_enabled(session):
+        await qbo_outbox.enqueue(
+            session,
+            kind="depreciation",
+            local_id=entry.id,
+            payload={
+                "lines": [
+                    {
+                        "role": "depreciation_expense",
+                        "posting": "debit",
+                        "amount": str(entry.depreciation_amount),
+                    },
+                    {
+                        "role": "accumulated_depreciation",
+                        "posting": "credit",
+                        "amount": str(entry.depreciation_amount),
+                    },
+                ],
+                "private_note": f"Depreciation {asset.asset_number} #{entry.period_index}",
+            },
+            op="post",
+        )
+    else:
+        je = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=(
+                    f"Depreciation of {asset.asset_number} period "
+                    f"{entry.period_end.isoformat()} (#{entry.period_index})"
+                ),
+                posted_at=posted_at,
+                lines=[
+                    journal_service.JournalLineInput(
+                        account_id=asset.depreciation_expense_account_id,
+                        debit=entry.depreciation_amount,
+                        credit=_ZERO,
+                        line_number=1,
+                        memo=f"Dr depreciation expense for {asset.asset_number}",
+                    ),
+                    journal_service.JournalLineInput(
+                        account_id=asset.accumulated_depreciation_account_id,
+                        debit=_ZERO,
+                        credit=entry.depreciation_amount,
+                        line_number=2,
+                        memo=f"Cr accumulated depreciation for {asset.asset_number}",
+                    ),
+                ],
+            ),
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
+        )
+        assert isinstance(je, JournalEntry)
+        je_id = je.id
+
+    entry.journal_entry_id = je_id
     entry.state = DepreciationEntryState.POSTED
     asset.last_depreciated_on = entry.period_end
     await session.flush()
@@ -137,14 +167,14 @@ async def _post_one_entry(
         payload={
             "asset_id": str(asset.id),
             "entry_id": str(entry.id),
-            "journal_entry_id": str(je.id),
+            "journal_entry_id": str(je_id) if je_id else None,
             "period_end": entry.period_end.isoformat(),
             "period_index": entry.period_index,
             "amount": str(entry.depreciation_amount),
         },
         actor_user_id=actor_user_id,
     )
-    return je.id
+    return je_id
 
 
 async def run_for_period(

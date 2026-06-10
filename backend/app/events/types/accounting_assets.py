@@ -74,7 +74,8 @@ class AssetDisposedPayload(_AssetsPayloadBase):
     accumulated_depreciation: str
     book_value: str
     gain_loss_amount: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     cancelled_schedule_entries: int
 
 
@@ -112,7 +113,8 @@ class DepreciationScheduleRecomputedPayload(_AssetsPayloadBase):
 class DepreciationPostedPayload(_AssetsPayloadBase):
     asset_id: uuid.UUID
     entry_id: uuid.UUID
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     period_end: str
     period_index: int
     amount: str
