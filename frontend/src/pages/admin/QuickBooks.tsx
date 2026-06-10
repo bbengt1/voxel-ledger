@@ -5,6 +5,7 @@ import { api } from "@/api/typed";
 import type { components } from "@/api/types";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AccountMapEditor } from "@/pages/admin/QuickBooksAccountMap";
+import { SyncOutboxMonitor } from "@/pages/admin/QuickBooksSyncOutbox";
 import { Button } from "@/components/ui/Button";
 
 type Status = components["schemas"]["QuickBooksStatusResponse"];
@@ -191,6 +192,7 @@ export function QuickBooksPage() {
           </div>
 
           {status.connected ? <AccountMapEditor /> : null}
+          {status.connected ? <SyncOutboxMonitor /> : null}
         </div>
       ) : null}
     </section>

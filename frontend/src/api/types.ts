@@ -560,6 +560,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Outbox */
+        get: operations["list_outbox_api_v1_admin_quickbooks_outbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/outbox/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry All Outbox */
+        post: operations["retry_all_outbox_api_v1_admin_quickbooks_outbox_retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/outbox/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Outbox Stats */
+        get: operations["outbox_stats_api_v1_admin_quickbooks_outbox_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/outbox/{row_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Outbox Row */
+        post: operations["retry_outbox_row_api_v1_admin_quickbooks_outbox__row_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/status": {
         parameters: {
             query?: never;
@@ -11557,6 +11625,68 @@ export interface components {
             /** Customer Name */
             customer_name?: string | null;
         };
+        /** OutboxListResponse */
+        OutboxListResponse: {
+            /** Items */
+            items: components["schemas"]["OutboxRowResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** OutboxRowResponse */
+        OutboxRowResponse: {
+            /** Attempts */
+            attempts: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Last Error */
+            last_error?: string | null;
+            /**
+             * Local Id
+             * Format: uuid
+             */
+            local_id: string;
+            /**
+             * Next Attempt At
+             * Format: date-time
+             */
+            next_attempt_at: string;
+            /** Op */
+            op: string;
+            /** Qbo Entity Type */
+            qbo_entity_type?: string | null;
+            /** Qbo Id */
+            qbo_id?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** OutboxStatsResponse */
+        OutboxStatsResponse: {
+            /** Dead */
+            dead: number;
+            /** Failed */
+            failed: number;
+            /** Pending */
+            pending: number;
+            /** Synced */
+            synced: number;
+            /** Total */
+            total: number;
+        };
         /**
          * ParentChainItem
          * @description Leaner shape for the parent chain — avoids recursive parent_chain
@@ -13399,6 +13529,16 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** RetryAllRequest */
+        RetryAllRequest: {
+            /** Status */
+            status: string;
+        };
+        /** RetryAllResponse */
+        RetryAllResponse: {
+            /** Requeued */
+            requeued: number;
         };
         /**
          * Role
@@ -16581,6 +16721,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickBooksStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_outbox_api_v1_admin_quickbooks_outbox_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                kind?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_all_outbox_api_v1_admin_quickbooks_outbox_retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryAllRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryAllResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outbox_stats_api_v1_admin_quickbooks_outbox_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxStatsResponse"];
+                };
+            };
+        };
+    };
+    retry_outbox_row_api_v1_admin_quickbooks_outbox__row_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                row_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxRowResponse"];
                 };
             };
             /** @description Validation Error */
