@@ -8176,6 +8176,188 @@
         "title": "DivisionsComparisonResponse",
         "type": "object"
       },
+      "DriftItemResponse": {
+        "properties": {
+          "change_type": {
+            "title": "Change Type",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "last_detected_at": {
+            "format": "date-time",
+            "title": "Last Detected At",
+            "type": "string"
+          },
+          "local_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Id"
+          },
+          "local_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Kind"
+          },
+          "occurrences": {
+            "title": "Occurrences",
+            "type": "integer"
+          },
+          "qbo_id": {
+            "title": "Qbo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_type",
+          "qbo_id",
+          "change_type",
+          "occurrences",
+          "last_detected_at"
+        ],
+        "title": "DriftItemResponse",
+        "type": "object"
+      },
+      "DriftListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DriftRowResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DriftListResponse",
+        "type": "object"
+      },
+      "DriftRowResponse": {
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "change_type": {
+            "title": "Change Type",
+            "type": "string"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "first_detected_at": {
+            "format": "date-time",
+            "title": "First Detected At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_detected_at": {
+            "format": "date-time",
+            "title": "Last Detected At",
+            "type": "string"
+          },
+          "local_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Id"
+          },
+          "local_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Kind"
+          },
+          "occurrences": {
+            "title": "Occurrences",
+            "type": "integer"
+          },
+          "qbo_id": {
+            "title": "Qbo Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity_type",
+          "qbo_id",
+          "change_type",
+          "occurrences",
+          "status",
+          "first_detected_at",
+          "last_detected_at"
+        ],
+        "title": "DriftRowResponse",
+        "type": "object"
+      },
       "EmailAttachmentRef": {
         "properties": {
           "filename": {
@@ -10104,6 +10286,48 @@
           }
         },
         "title": "FormTemplateUpdateRequest",
+        "type": "object"
+      },
+      "GapItemResponse": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "local_id": {
+            "format": "uuid",
+            "title": "Local Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "required": [
+          "kind",
+          "local_id"
+        ],
+        "title": "GapItemResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -17906,6 +18130,70 @@
           }
         },
         "title": "RateUpdateRequest",
+        "type": "object"
+      },
+      "ReconciliationResponse": {
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "decommission_ready": {
+            "title": "Decommission Ready",
+            "type": "boolean"
+          },
+          "drift": {
+            "items": {
+              "$ref": "#/components/schemas/DriftItemResponse"
+            },
+            "title": "Drift",
+            "type": "array"
+          },
+          "drift_open": {
+            "title": "Drift Open",
+            "type": "integer"
+          },
+          "gap_count": {
+            "title": "Gap Count",
+            "type": "integer"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/GapItemResponse"
+            },
+            "title": "Gaps",
+            "type": "array"
+          },
+          "mismatch_candidates": {
+            "title": "Mismatch Candidates",
+            "type": "integer"
+          },
+          "outbox": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Outbox",
+            "type": "object"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "outbox",
+          "gaps",
+          "gap_count",
+          "drift",
+          "drift_open",
+          "mismatch_candidates",
+          "decommission_ready"
+        ],
+        "title": "ReconciliationResponse",
         "type": "object"
       },
       "RecurringBillMaterializeResponse": {
@@ -27443,6 +27731,139 @@
         ]
       }
     },
+    "/api/v1/admin/quickbooks/drift": {
+      "get": {
+        "operationId": "list_drift_api_v1_admin_quickbooks_drift_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Drift",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/drift/{drift_id}/acknowledge": {
+      "post": {
+        "operationId": "acknowledge_drift_api_v1_admin_quickbooks_drift__drift_id__acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drift_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drift Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftRowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Acknowledge Drift",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
     "/api/v1/admin/quickbooks/enabled": {
       "post": {
         "operationId": "quickbooks_set_enabled_api_v1_admin_quickbooks_enabled_post",
@@ -27707,6 +28128,79 @@
           }
         ],
         "summary": "Retry Outbox Row",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/reconciliation": {
+      "get": {
+        "operationId": "get_reconciliation_api_v1_admin_quickbooks_reconciliation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Reconciliation",
         "tags": [
           "admin",
           "admin-quickbooks"

@@ -16,6 +16,7 @@ when we marked the row synced; *deletes* always count.
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -257,3 +258,46 @@ async def open_drift_count(session: AsyncSession) -> int:
             )
         ).scalar_one()
     )
+
+
+# --------------------------------------------------------------------------- #
+# Admin drift surface (#317 Phase 4b/4c) — list + acknowledge.
+# --------------------------------------------------------------------------- #
+
+
+class DriftNotFoundError(LookupError):
+    """No drift row with the given id."""
+
+
+async def list_drift(
+    session: AsyncSession,
+    *,
+    status: str | None = None,
+    limit: int = 100,
+    before: datetime | None = None,
+) -> list[QboCdcDrift]:
+    """Most-recently-detected-first page of drift rows, optionally filtered by
+    status. ``before`` is a keyset cursor on ``last_detected_at``."""
+    stmt = select(QboCdcDrift)
+    if status is not None:
+        stmt = stmt.where(QboCdcDrift.status == status)
+    if before is not None:
+        stmt = stmt.where(QboCdcDrift.last_detected_at < before)
+    stmt = stmt.order_by(QboCdcDrift.last_detected_at.desc(), QboCdcDrift.id.desc()).limit(limit)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def acknowledge_drift(
+    session: AsyncSession, drift_id: uuid.UUID, *, actor_user_id: uuid.UUID | None
+) -> QboCdcDrift:
+    """Mark a drift row reviewed. A later external change re-opens it (the CDC
+    poll resets ``status`` to ``open``). Caller commits."""
+    row = await session.get(QboCdcDrift, drift_id)
+    if row is None:
+        raise DriftNotFoundError(str(drift_id))
+    row.status = QboDriftStatus.ACKNOWLEDGED.value
+    row.acknowledged_at = datetime.now(UTC)
+    row.acknowledged_by_user_id = actor_user_id
+    await session.flush()
+    await session.refresh(row)
+    return row
