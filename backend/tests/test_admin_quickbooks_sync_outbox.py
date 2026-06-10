@@ -25,8 +25,12 @@ QB = "/api/v1/admin/quickbooks"
 async def _seed(role: Role, client: AsyncClient, session: AsyncSession) -> tuple[str, User]:
     email = f"{role.value}@example.com"
     user = await create_user(
-        session, email=email, password="pw-correct", full_name=role.value,
-        role=role, bcrypt_rounds=4,
+        session,
+        email=email,
+        password="pw-correct",
+        full_name=role.value,
+        role=role,
+        bcrypt_rounds=4,
     )
     await session.commit()
     r = await client.post("/api/v1/auth/login", json={"email": email, "password": "pw-correct"})
@@ -39,9 +43,13 @@ def _auth(token: str) -> dict[str, str]:
 
 def _row(*, kind: str, status: QboSyncStatus, **overrides) -> QboSyncOutbox:
     row = QboSyncOutbox(
-        kind=kind, local_id=uuid.uuid4(), op="post",
-        payload={"lines": []}, request_id=uuid.uuid4().hex,
-        status=status.value, next_attempt_at=datetime.now(UTC),
+        kind=kind,
+        local_id=uuid.uuid4(),
+        op="post",
+        payload={"lines": []},
+        request_id=uuid.uuid4().hex,
+        status=status.value,
+        next_attempt_at=datetime.now(UTC),
     )
     for k, v in overrides.items():
         setattr(row, k, v)
@@ -49,12 +57,14 @@ def _row(*, kind: str, status: QboSyncStatus, **overrides) -> QboSyncOutbox:
 
 
 async def _seed_rows(session: AsyncSession) -> None:
-    session.add_all([
-        _row(kind="invoice", status=QboSyncStatus.PENDING),
-        _row(kind="payment", status=QboSyncStatus.SYNCED, qbo_id="42"),
-        _row(kind="bill", status=QboSyncStatus.FAILED, last_error="boom", attempts=3),
-        _row(kind="sale", status=QboSyncStatus.DEAD, last_error="gave up", attempts=9),
-    ])
+    session.add_all(
+        [
+            _row(kind="invoice", status=QboSyncStatus.PENDING),
+            _row(kind="payment", status=QboSyncStatus.SYNCED, qbo_id="42"),
+            _row(kind="bill", status=QboSyncStatus.FAILED, last_error="boom", attempts=3),
+            _row(kind="sale", status=QboSyncStatus.DEAD, last_error="gave up", attempts=9),
+        ]
+    )
     await session.commit()
 
 

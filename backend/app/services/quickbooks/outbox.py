@@ -240,9 +240,7 @@ async def retry_all(session: AsyncSession, *, status: str) -> int:
 
     Caller commits."""
     if status not in _RETRYABLE_STATUSES:
-        raise OutboxNotRetryableError(
-            f"{status!r} is not retryable; pass 'failed' or 'dead'"
-        )
+        raise OutboxNotRetryableError(f"{status!r} is not retryable; pass 'failed' or 'dead'")
     result = await session.execute(
         update(QboSyncOutbox)
         .where(QboSyncOutbox.status == status)

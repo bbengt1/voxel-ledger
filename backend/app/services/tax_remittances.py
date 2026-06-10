@@ -366,7 +366,9 @@ async def record(
         ]
         qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(amount)})
         await qbo_outbox.enqueue(
-            session, kind="tax_remittance", local_id=remittance.id,
+            session,
+            kind="tax_remittance",
+            local_id=remittance.id,
             payload={"lines": qbo_lines, "private_note": f"Tax remittance {remittance_number}"},
             op="post",
         )
@@ -378,23 +380,32 @@ async def record(
                 continue
             lines.append(
                 journal_service.JournalLineInput(
-                    account_id=r.liability_account_id, debit=piece, credit=_ZERO,
-                    line_number=line_no, memo=f"Dr tax liability {r.name} for {remittance_number}",
+                    account_id=r.liability_account_id,
+                    debit=piece,
+                    credit=_ZERO,
+                    line_number=line_no,
+                    memo=f"Dr tax liability {r.name} for {remittance_number}",
                 )
             )
             line_no += 1
         lines.append(
             journal_service.JournalLineInput(
-                account_id=bank.id, debit=_ZERO, credit=amount, line_number=line_no,
+                account_id=bank.id,
+                debit=_ZERO,
+                credit=amount,
+                line_number=line_no,
                 memo=f"Cr bank for tax remittance {remittance_number}",
             )
         )
         entry = await journal_service.post(
             journal_service.JournalEntryInput(
                 description=f"Tax remittance {remittance_number} ({profile.code})",
-                posted_at=posted_at, lines=lines,
+                posted_at=posted_at,
+                lines=lines,
             ),
-            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
         )
         assert isinstance(entry, JournalEntry)
         posted_entry_id = entry.id
@@ -466,8 +477,11 @@ async def cancel(
     elif qbo_enabled:
         # QBO replace-mode: delete the QBO JournalEntry we pushed.
         await qbo_outbox.enqueue(
-            session, kind="tax_remittance", local_id=remittance.id,
-            payload={"tax_remittance_id": str(remittance.id)}, op="reverse",
+            session,
+            kind="tax_remittance",
+            local_id=remittance.id,
+            payload={"tax_remittance_id": str(remittance.id)},
+            op="reverse",
         )
     else:
         raise TaxRemittanceStateError(
