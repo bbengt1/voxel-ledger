@@ -194,11 +194,10 @@ async def _create_invoice(
     return "Invoice", qbo_obj
 
 
-async def _synced_post_qbo_id(session: AsyncSession, kind: str, local_id: Any) -> str:
-    """Return the QBO id of the synced ``post`` row for (kind, local_id).
-
-    Raises :class:`DependencyNotReadyError` if it hasn't synced yet (the
-    referencing op should retry, not fail)."""
+async def _synced_post(session: AsyncSession, kind: str, local_id: Any) -> tuple[str | None, str]:
+    """Return (qbo_entity_type, qbo_id) of the synced ``post`` row for
+    (kind, local_id). Raises :class:`DependencyNotReadyError` if it hasn't
+    synced yet (the referencing op should retry, not fail)."""
     import uuid as _uuid
 
     from sqlalchemy import select
@@ -223,17 +222,25 @@ async def _synced_post_qbo_id(session: AsyncSession, kind: str, local_id: Any) -
     )
     if row is None or not row.qbo_id:
         raise DependencyNotReadyError(f"{kind} {local_id} isn't synced to QBO yet")
-    return row.qbo_id
+    return row.qbo_entity_type, row.qbo_id
+
+
+async def _synced_post_qbo_id(session: AsyncSession, kind: str, local_id: Any) -> str:
+    return (await _synced_post(session, kind, local_id))[1]
 
 
 async def _void_entity(
-    session: AsyncSession, client: Any, *, entity: str, kind: str, local_id: Any
+    session: AsyncSession, client: Any, *, kind: str, local_id: Any, entity: str | None = None
 ) -> tuple[str, dict[str, Any]]:
-    qbo_id = await _synced_post_qbo_id(session, kind, local_id)
+    """Void the synced doc. ``entity`` overrides the stored type (Invoice/
+    Payment); for sales it's None → use the synced row's qbo_entity_type
+    (Invoice or SalesReceipt)."""
+    stored_entity, qbo_id = await _synced_post(session, kind, local_id)
+    use_entity = entity or stored_entity or "Invoice"
     # Read the live SyncToken (it may have advanced) before voiding.
-    current = await client.read(entity, qbo_id)
-    qbo_obj = await client.void(entity, qbo_id, current.get("SyncToken", "0"))
-    return entity, qbo_obj
+    current = await client.read(use_entity, qbo_id)
+    qbo_obj = await client.void(use_entity, qbo_id, current.get("SyncToken", "0"))
+    return use_entity, qbo_obj
 
 
 async def build_invoice(
@@ -298,3 +305,88 @@ async def build_payment(
 
 
 register_builder("payment", build_payment)
+
+
+# --------------------------------------------------------------------------- #
+# Native Sale → Invoice (customer) / SalesReceipt (walk-in) (#316 Phase 3b-3)
+# --------------------------------------------------------------------------- #
+async def _create_sale_doc(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    spec = row.payload
+    has_customer = bool(spec.get("customer_id"))
+    entity = "Invoice" if has_customer else "SalesReceipt"
+
+    lines: list[dict[str, Any]] = []
+    for line in spec.get("lines", []):
+        item_ref = await _ensure_item(session, client, line.get("product_id"))
+        lines.append(
+            {
+                "DetailType": "SalesItemLineDetail",
+                "Amount": float(line["amount"]),
+                "Description": line.get("description"),
+                "SalesItemLineDetail": {
+                    "ItemRef": {"value": item_ref},
+                    "Qty": float(line["qty"]),
+                    "UnitPrice": float(line["unit_price"]),
+                },
+            }
+        )
+    shipping = float(spec.get("shipping_amount") or 0)
+    if shipping > 0:
+        ship_item = await _ensure_item(session, client, None)  # fallback sales item
+        lines.append(
+            {
+                "DetailType": "SalesItemLineDetail",
+                "Amount": shipping,
+                "Description": "Shipping",
+                "SalesItemLineDetail": {"ItemRef": {"value": ship_item}, "Qty": 1.0},
+            }
+        )
+    discount = float(spec.get("discount_amount") or 0)
+    if discount > 0:
+        lines.append(
+            {
+                "DetailType": "DiscountLineDetail",
+                "Amount": discount,
+                "DiscountLineDetail": {"PercentBased": False},
+            }
+        )
+    if not lines:
+        raise BuilderError("sale spec has no lines")
+
+    payload: dict[str, Any] = {"Line": lines}
+    if spec.get("doc_number"):
+        payload["DocNumber"] = spec["doc_number"]
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    tax = float(spec.get("tax_amount") or 0)
+    if tax > 0:
+        payload["TxnTaxDetail"] = {"TotalTax": tax}
+
+    if has_customer:
+        payload["CustomerRef"] = {
+            "value": await _ensure_customer(session, client, spec["customer_id"])
+        }
+    else:
+        # Walk-in cash sale → deposit straight to the mapped bank account.
+        payload["DepositToAccountRef"] = {"value": await account_map.resolve(session, "bank")}
+
+    qbo_obj = await client.create(entity, payload, request_id=row.request_id)
+    return entity, qbo_obj
+
+
+async def build_sale(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    if row.op == "reverse":
+        # entity=None → void whichever doc type (Invoice/SalesReceipt) we pushed.
+        return await _void_entity(session, client, kind="sale", local_id=row.local_id)
+    return await _create_sale_doc(session, client, row)
+
+
+register_builder("sale", build_sale)
+# The COGS/inventory (+ channel-fee) leg of a sale is a plain JournalEntry.
+register_builder("sale_cogs", build_journal_entry)

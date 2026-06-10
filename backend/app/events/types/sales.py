@@ -152,7 +152,8 @@ register_event(TYPE_SALE_CANCELLED, SaleCancelledPayload)
 class SalePostedPayload(_SalesPayloadBase):
     sale_id: uuid.UUID
     sale_number: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     inventory_transaction_ids: list[uuid.UUID]
     total_amount: str
 
@@ -160,8 +161,9 @@ class SalePostedPayload(_SalesPayloadBase):
 class SaleReversedPayload(_SalesPayloadBase):
     sale_id: uuid.UUID
     sale_number: str
-    reversing_journal_entry_id: uuid.UUID
-    original_journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): the QBO void is pushed async.
+    reversing_journal_entry_id: uuid.UUID | None = None
+    original_journal_entry_id: uuid.UUID | None = None
     inventory_transaction_ids: list[uuid.UUID]
 
 
