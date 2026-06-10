@@ -763,14 +763,23 @@ async def issue(
             "purchase-discounts-earned account)"
         )
 
+    # QBO replace-mode (epic #312, Phase 3c-1): push a native QBO Bill via the
+    # sync outbox instead of posting the local GL. Operational work (state,
+    # dates, reverse-charge tax zeroing) stays.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+
     # Resolve accounts BEFORE building the JE so a missing setting raises
-    # before we touch anything else.
-    ap_account_id = await _resolve_ap_account(session, vendor=vendor)
+    # before we touch anything else. Skipped in QBO mode (QBO holds the chart).
+    ap_account_id: uuid.UUID | None = None
     per_line_expense_ids: list[uuid.UUID] = []
-    for line in sorted(bill.items, key=lambda i: i.line_number):
-        per_line_expense_ids.append(
-            await _resolve_expense_account(session, line=line, vendor=vendor)
-        )
+    if not qbo_enabled:
+        ap_account_id = await _resolve_ap_account(session, vendor=vendor)
+        for line in sorted(bill.items, key=lambda i: i.line_number):
+            per_line_expense_ids.append(
+                await _resolve_expense_account(session, line=line, vendor=vendor)
+            )
 
     # Phase 9.5 (#157): narrow scope on the bill side.
     # If any bill line carries a reverse-charge tax_profile (resolved via
@@ -791,10 +800,41 @@ async def issue(
 
     tax_amount = _q(bill.tax_amount)
     tax_expense_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO:
+    if tax_amount > _ZERO and not qbo_enabled:
         tax_expense_account_id = await _resolve_tax_expense_account(session)
 
     total_amount = _q(bill.total_amount)
+
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="bill",
+            local_id=bill.id,
+            payload={
+                "vendor_id": str(bill.vendor_id),
+                "vendor_invoice_number": bill.vendor_invoice_number,
+                "txn_date": issued_at.date().isoformat(),
+                "due_date": bill.due_at.date().isoformat() if bill.due_at else None,
+                "private_note": f"Bill {bill.bill_number}",
+                "tax_amount": str(tax_amount),
+                "lines": [
+                    {"description": li.description, "amount": str(_q(li.extended_amount))}
+                    for li in sorted(bill.items, key=lambda i: i.line_number)
+                    if _q(li.extended_amount) > _ZERO
+                ],
+            },
+            op="post",
+        )
+        bill.posting_journal_entry_id = None
+        await session.flush()
+        return await _finish_bill_issue(
+            session,
+            bill=bill,
+            issued_at=issued_at,
+            total_amount=total_amount,
+            posted_entry_id=None,
+            actor_user_id=actor_user_id,
+        )
 
     # Build journal entry: Dr Expense (per line), Dr Tax Expense (if tax > 0),
     # Cr AP (total).
@@ -862,7 +902,29 @@ async def issue(
     assert isinstance(entry, JournalEntry)
     bill.posting_journal_entry_id = entry.id
     await session.flush()
+    return await _finish_bill_issue(
+        session,
+        bill=bill,
+        issued_at=issued_at,
+        total_amount=total_amount,
+        posted_entry_id=entry.id,
+        actor_user_id=actor_user_id,
+    )
 
+
+async def _finish_bill_issue(
+    session: AsyncSession,
+    *,
+    bill: Bill,
+    issued_at: datetime,
+    total_amount: Decimal,
+    posted_entry_id: uuid.UUID | None,
+    actor_user_id: uuid.UUID,
+) -> Bill:
+    """Emit the issued + posted events (shared by the local-GL and QBO paths).
+
+    ``posted_entry_id`` is None in QBO replace-mode (pushed async via outbox)."""
+    je_id = str(posted_entry_id) if posted_entry_id is not None else None
     await _emit(
         session,
         event_type=ap_events.TYPE_BILL_ISSUED,
@@ -874,7 +936,7 @@ async def issue(
             "total_amount": str(total_amount),
             "issued_at": issued_at.isoformat(),
             "due_at": bill.due_at.isoformat() if bill.due_at else None,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": je_id,
         },
         actor_user_id=actor_user_id,
     )
@@ -885,7 +947,7 @@ async def issue(
         payload={
             "bill_id": str(bill.id),
             "bill_number": bill.bill_number,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": je_id,
             "total_amount": str(total_amount),
         },
         actor_user_id=actor_user_id,
@@ -924,6 +986,17 @@ async def void(
             description=f"Reversal of bill {bill.bill_number}",
         )
         reversing_je_id = reversal.id
+    else:
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="bill",
+                local_id=bill.id,
+                payload={"bill_id": str(bill.id)},
+                op="reverse",
+            )
 
     bill.state = BillState.VOID
     await session.flush()

@@ -59,7 +59,33 @@ async def build_and_push(
     return await builder(session, client, row)
 
 
-async def _journal_entry_payload(session: AsyncSession, spec: dict[str, Any]) -> dict[str, Any]:
+async def _resolve_je_entity(
+    session: AsyncSession, client: Any, entity: dict[str, Any]
+) -> dict | None:
+    """Resolve a JE line ``Entity`` for an A/R or A/P leg.
+
+    QBO requires a Customer (AR) or Vendor (AP) on a JE line that hits an A/R or
+    A/P account (validated 2026-06-10, code 6000). Accepts either a pre-resolved
+    ``{type, qbo_id}`` or ``{type, local_id}`` (auto-mapped on demand)."""
+    etype = entity.get("type")
+    if not etype:
+        return None
+    qbo_id = entity.get("qbo_id")
+    if not qbo_id:
+        local_id = entity.get("local_id")
+        if not local_id:
+            return None
+        qbo_id = (
+            await _ensure_vendor(session, client, local_id)
+            if etype == "Vendor"
+            else await _ensure_customer(session, client, local_id)
+        )
+    return {"Type": etype, "EntityRef": {"value": qbo_id}}
+
+
+async def _journal_entry_payload(
+    session: AsyncSession, client: Any, spec: dict[str, Any]
+) -> dict[str, Any]:
     """Build a balanced QBO JournalEntry payload from a role-tagged spec."""
     lines = spec.get("lines") or []
     if not lines:
@@ -76,11 +102,10 @@ async def _journal_entry_payload(session: AsyncSession, spec: dict[str, Any]) ->
             "AccountRef": {"value": account_id},
         }
         entity = leg.get("entity")
-        if entity and entity.get("type") and entity.get("qbo_id"):
-            detail["Entity"] = {
-                "Type": entity["type"],
-                "EntityRef": {"value": entity["qbo_id"]},
-            }
+        if entity:
+            resolved = await _resolve_je_entity(session, client, entity)
+            if resolved:
+                detail["Entity"] = resolved
         line: dict[str, Any] = {
             "DetailType": "JournalEntryLineDetail",
             "Amount": float(leg["amount"]),
@@ -101,7 +126,7 @@ async def _journal_entry_payload(session: AsyncSession, spec: dict[str, Any]) ->
 async def build_journal_entry(
     session: AsyncSession, client: Any, row: QboSyncOutbox
 ) -> tuple[str, dict[str, Any]]:
-    payload = await _journal_entry_payload(session, row.payload)
+    payload = await _journal_entry_payload(session, client, row.payload)
     qbo_obj = await client.create("JournalEntry", payload, request_id=row.request_id)
     return "JournalEntry", qbo_obj
 
@@ -124,6 +149,20 @@ async def _ensure_customer(session: AsyncSession, client: Any, customer_id: str)
     if mapping is not None:
         return mapping.qbo_id
     return (await master_data.upsert_customer(session, client, _uuid.UUID(customer_id))).qbo_id
+
+
+async def _ensure_vendor(session: AsyncSession, client: Any, vendor_id: str) -> str:
+    """Return the QBO Vendor id, auto-mapping (upserting) on demand."""
+    import uuid as _uuid
+
+    from app.services.quickbooks import master_data
+
+    mapping = await master_data._get_mapping(
+        session, master_data.QboLocalKind.VENDOR, _uuid.UUID(str(vendor_id))
+    )
+    if mapping is not None:
+        return mapping.qbo_id
+    return (await master_data.upsert_vendor(session, client, _uuid.UUID(str(vendor_id)))).qbo_id
 
 
 async def _ensure_item(session: AsyncSession, client: Any, product_id: str | None) -> str:
@@ -230,16 +269,26 @@ async def _synced_post_qbo_id(session: AsyncSession, kind: str, local_id: Any) -
 
 
 async def _void_entity(
-    session: AsyncSession, client: Any, *, kind: str, local_id: Any, entity: str | None = None
+    session: AsyncSession,
+    client: Any,
+    *,
+    kind: str,
+    local_id: Any,
+    entity: str | None = None,
+    operation: str = "void",
 ) -> tuple[str, dict[str, Any]]:
-    """Void the synced doc. ``entity`` overrides the stored type (Invoice/
-    Payment); for sales it's None → use the synced row's qbo_entity_type
-    (Invoice or SalesReceipt)."""
+    """Reverse the synced doc. ``operation`` is "void" (Invoice/Payment/
+    SalesReceipt) or "delete" (Bill/BillPayment/CreditMemo — no void). ``entity``
+    overrides the stored type; for sales it's None → the synced row's type."""
     stored_entity, qbo_id = await _synced_post(session, kind, local_id)
     use_entity = entity or stored_entity or "Invoice"
-    # Read the live SyncToken (it may have advanced) before voiding.
+    # Read the live SyncToken (it may have advanced) before reversing.
     current = await client.read(use_entity, qbo_id)
-    qbo_obj = await client.void(use_entity, qbo_id, current.get("SyncToken", "0"))
+    token = current.get("SyncToken", "0")
+    if operation == "delete":
+        qbo_obj = await client.delete(use_entity, qbo_id, token)
+    else:
+        qbo_obj = await client.void(use_entity, qbo_id, token)
     return use_entity, qbo_obj
 
 
@@ -390,3 +439,117 @@ async def build_sale(
 register_builder("sale", build_sale)
 # The COGS/inventory (+ channel-fee) leg of a sale is a plain JournalEntry.
 register_builder("sale_cogs", build_journal_entry)
+
+
+# --------------------------------------------------------------------------- #
+# Native Bill / BillPayment (#316 Phase 3c-1, AP)
+# --------------------------------------------------------------------------- #
+async def _create_bill(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    spec = row.payload
+    vendor_ref = await _ensure_vendor(session, client, spec["vendor_id"])
+    expense_acct = await account_map.resolve(session, "expense")
+    lines: list[dict[str, Any]] = [
+        {
+            "DetailType": "AccountBasedExpenseLineDetail",
+            "Amount": float(line["amount"]),
+            "Description": line.get("description"),
+            "AccountBasedExpenseLineDetail": {"AccountRef": {"value": expense_acct}},
+        }
+        for line in spec.get("lines", [])
+    ]
+    tax = float(spec.get("tax_amount") or 0)
+    if tax > 0:
+        tax_acct = await account_map.resolve(session, "tax_expense")
+        lines.append(
+            {
+                "DetailType": "AccountBasedExpenseLineDetail",
+                "Amount": tax,
+                "Description": "Tax",
+                "AccountBasedExpenseLineDetail": {"AccountRef": {"value": tax_acct}},
+            }
+        )
+    if not lines:
+        raise BuilderError("bill spec has no lines")
+
+    payload: dict[str, Any] = {"VendorRef": {"value": vendor_ref}, "Line": lines}
+    # QBO Bill DocNumber is the vendor's reference number.
+    if spec.get("vendor_invoice_number"):
+        payload["DocNumber"] = spec["vendor_invoice_number"]
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
+    if spec.get("due_date"):
+        payload["DueDate"] = spec["due_date"]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    qbo_obj = await client.create("Bill", payload, request_id=row.request_id)
+    return "Bill", qbo_obj
+
+
+async def build_bill(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    if row.op == "reverse":
+        return await _void_entity(
+            session, client, entity="Bill", kind="bill", local_id=row.local_id, operation="delete"
+        )
+    return await _create_bill(session, client, row)
+
+
+register_builder("bill", build_bill)
+
+
+async def _create_bill_payment(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    spec = row.payload
+    vendor_ref = await _ensure_vendor(session, client, spec["vendor_id"])
+    lines: list[dict[str, Any]] = []
+    for app in spec.get("applications", []):
+        bill_qbo_id = await _synced_post_qbo_id(session, "bill", app["bill_id"])
+        lines.append(
+            {
+                "Amount": float(app["amount"]),
+                "LinkedTxn": [{"TxnId": bill_qbo_id, "TxnType": "Bill"}],
+            }
+        )
+    bank_id = await account_map.resolve(session, "bank")
+    payload: dict[str, Any] = {
+        "VendorRef": {"value": vendor_ref},
+        "TotalAmt": float(spec["amount"]),
+        # Pay by check from the mapped bank account.
+        "PayType": "Check",
+        "CheckPayment": {"BankAccountRef": {"value": bank_id}},
+    }
+    if lines:
+        payload["Line"] = lines
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
+    if spec.get("reference"):
+        payload["DocNumber"] = str(spec["reference"])[:21]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    qbo_obj = await client.create("BillPayment", payload, request_id=row.request_id)
+    return "BillPayment", qbo_obj
+
+
+async def build_bill_payment(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    if row.op == "reverse":
+        return await _void_entity(
+            session,
+            client,
+            entity="BillPayment",
+            kind="bill_payment",
+            local_id=row.local_id,
+            operation="delete",
+        )
+    return await _create_bill_payment(session, client, row)
+
+
+register_builder("bill_payment", build_bill_payment)
+# A bill-payment withholding leg (Dr AP[Vendor], Cr withholding liability) rides
+# as a JournalEntry with a Vendor entity.
+register_builder("bill_payment_withholding", build_journal_entry)
