@@ -79,7 +79,8 @@ class DepositSlipBankAccountMissingError(DepositSlipServiceError):
 class BuildResult:
     slip_id: uuid.UUID
     slip_number: str
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None
     total: Decimal
 
 
@@ -155,7 +156,12 @@ async def build_slip(
             f"payments already on a deposit slip: {list(already)}"
         )
 
-    undeposited_account_id = await _resolve_undeposited_account(session)
+    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
+    # (Dr bank, Cr undeposited_funds) instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    undeposited_account_id = None if qbo_enabled else await _resolve_undeposited_account(session)
 
     total = _q(sum((p.amount for p in found.values()), _ZERO))
     if total <= _ZERO:
@@ -168,33 +174,42 @@ async def build_slip(
     # undeposited for the total. The customer-payment apply-payment
     # JEs already moved AR -> undeposited; this completes the chain
     # to AR -> bank.
-    je = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Deposit slip {slip_number}",
-            posted_at=datetime.combine(deposit_date, datetime.min.time(), tzinfo=UTC),
-            lines=[
-                journal_service.JournalLineInput(
-                    account_id=bank_account_id,
-                    debit=total,
-                    credit=_ZERO,
-                    line_number=1,
-                    memo=f"Deposit {slip_number} (consolidated)",
-                ),
-                journal_service.JournalLineInput(
-                    account_id=undeposited_account_id,
-                    debit=_ZERO,
-                    credit=total,
-                    line_number=2,
-                    memo=f"Clear undeposited for slip {slip_number}",
-                ),
-            ],
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    if not isinstance(je, JournalEntry):
-        raise DepositSlipServiceError("deposit-slip JE generated an approval request unexpectedly")
+    je_id: uuid.UUID | None = None
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session, kind="deposit_slip", local_id=slip_id,
+            payload={
+                "lines": [
+                    {"role": "bank", "posting": "debit", "amount": str(total)},
+                    {"role": "undeposited_funds", "posting": "credit", "amount": str(total)},
+                ],
+                "private_note": f"Deposit slip {slip_number}",
+            },
+            op="post",
+        )
+    else:
+        je = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Deposit slip {slip_number}",
+                posted_at=datetime.combine(deposit_date, datetime.min.time(), tzinfo=UTC),
+                lines=[
+                    journal_service.JournalLineInput(
+                        account_id=bank_account_id, debit=total, credit=_ZERO, line_number=1,
+                        memo=f"Deposit {slip_number} (consolidated)",
+                    ),
+                    journal_service.JournalLineInput(
+                        account_id=undeposited_account_id, debit=_ZERO, credit=total, line_number=2,
+                        memo=f"Clear undeposited for slip {slip_number}",
+                    ),
+                ],
+            ),
+            session=session, actor_user_id=actor_user_id, _internal_skip_approval_check=True,
+        )
+        if not isinstance(je, JournalEntry):
+            raise DepositSlipServiceError(
+                "deposit-slip JE generated an approval request unexpectedly"
+            )
+        je_id = je.id
 
     slip = DepositSlip(
         id=slip_id,
@@ -203,7 +218,7 @@ async def build_slip(
         deposit_date=deposit_date,
         total_amount=total,
         state=DepositSlipState.DEPOSITED,
-        posting_journal_entry_id=je.id,
+        posting_journal_entry_id=je_id,
         created_by_user_id=actor_user_id,
     )
     session.add(slip)
@@ -229,7 +244,7 @@ async def build_slip(
             "deposit_date": deposit_date.isoformat(),
             "total": str(total),
             "payment_ids": [str(pid) for pid in payment_ids],
-            "journal_entry_id": str(je.id),
+            "journal_entry_id": str(je_id) if je_id else None,
         },
         actor_user_id=actor_user_id,
     )
@@ -237,7 +252,7 @@ async def build_slip(
     return BuildResult(
         slip_id=slip_id,
         slip_number=slip_number,
-        journal_entry_id=je.id,
+        journal_entry_id=je_id,
         total=total,
     )
 

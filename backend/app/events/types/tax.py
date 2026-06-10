@@ -95,15 +95,17 @@ class TaxRemittanceRecordedPayload(_TaxPayloadBase):
     method: str
     reference_number: str | None = None
     bank_account_id: uuid.UUID
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     per_rate_allocations: list[dict[str, Any]]
 
 
 class TaxRemittanceCancelledPayload(_TaxPayloadBase):
     remittance_id: uuid.UUID
     remittance_number: str
-    original_journal_entry_id: uuid.UUID
-    reversal_journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    original_journal_entry_id: uuid.UUID | None = None
+    reversal_journal_entry_id: uuid.UUID | None = None
 
 
 TYPE_TAX_PROFILE_CREATED = "tax.TaxProfileCreated"

@@ -461,7 +461,8 @@ class ExpenseClaimApprovedPayload(_APPayloadBase):
     submitter_user_id: uuid.UUID
     approver_user_id: uuid.UUID
     total_amount: str
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class ExpenseClaimRejectedPayload(_APPayloadBase):

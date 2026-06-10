@@ -634,3 +634,29 @@ register_builder("debit_note", build_debit_note)
 register_builder("depreciation", build_journal_entry)
 register_builder("fixed_asset_acquisition", build_journal_entry)
 register_builder("fixed_asset_disposal", build_journal_entry)
+
+
+# --------------------------------------------------------------------------- #
+# JE long-tail (#316 Phase 3d-2) — four more role-tagged JournalEntry sites:
+# tax remittances, expense claims, deposit slips, settlement matcher.
+# --------------------------------------------------------------------------- #
+async def build_tax_remittance(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    # Cancelling a remittance deletes the synced JournalEntry (no void for JEs).
+    if row.op == "reverse":
+        return await _void_entity(
+            session,
+            client,
+            entity="JournalEntry",
+            kind="tax_remittance",
+            local_id=row.local_id,
+            operation="delete",
+        )
+    return await build_journal_entry(session, client, row)
+
+
+register_builder("tax_remittance", build_tax_remittance)
+register_builder("expense_claim", build_journal_entry)
+register_builder("deposit_slip", build_journal_entry)
+register_builder("settlement", build_journal_entry)
