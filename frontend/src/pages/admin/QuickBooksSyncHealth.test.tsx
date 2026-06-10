@@ -51,6 +51,31 @@ function recon(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function metrics(overrides: Record<string, unknown> = {}) {
+  return {
+    enabled: true,
+    connected: true,
+    outbox: { pending: 2, synced: 10, failed: 0, dead: 0, total: 12 },
+    drift_open: 1,
+    oldest_pending_age_seconds: 120,
+    sync_worker: {
+      job_name: "quickbooks_sync",
+      last_finished_at: "2026-06-10T11:55:00Z",
+      last_status: "ok",
+      last_duration_ms: 1200,
+      last_processed: 5,
+    },
+    cdc_worker: {
+      job_name: "quickbooks_cdc",
+      last_finished_at: "2026-06-10T11:30:00Z",
+      last_status: "ok",
+      last_duration_ms: 800,
+      last_processed: 0,
+    },
+    ...overrides,
+  };
+}
+
 function driftRow() {
   return {
     id: DRIFT_ID,
@@ -78,6 +103,7 @@ describe("<SyncHealthPanel />", () => {
     setOwner();
     mock.onGet("/api/v1/admin/quickbooks/reconciliation").reply(200, recon());
     mock.onGet("/api/v1/admin/quickbooks/drift").reply(200, { items: [driftRow()] });
+    mock.onGet("/api/v1/admin/quickbooks/metrics").reply(200, metrics());
   });
 
   afterEach(() => {
@@ -90,6 +116,9 @@ describe("<SyncHealthPanel />", () => {
     expect(screen.getByText("INV-2026-0001")).toBeInTheDocument();
     expect(screen.getByText("Gaps: 1")).toBeInTheDocument();
     expect(screen.getByText("555")).toBeInTheDocument();
+    // Worker-freshness strip (Phase 4d metrics).
+    expect(screen.getByText("Sync worker")).toBeInTheDocument();
+    expect(screen.getByText("CDC worker")).toBeInTheDocument();
   });
 
   it("acknowledges a drift row", async () => {
@@ -111,6 +140,7 @@ describe("<SyncHealthPanel />", () => {
       .onGet("/api/v1/admin/quickbooks/reconciliation")
       .reply(200, recon({ gaps: [], gap_count: 0, drift_open: 0, mismatch_candidates: 0, decommission_ready: true }));
     mock.onGet("/api/v1/admin/quickbooks/drift").reply(200, { items: [] });
+    mock.onGet("/api/v1/admin/quickbooks/metrics").reply(200, metrics());
     renderPanel();
     expect(await screen.findByText("✓ Decommission-ready")).toBeInTheDocument();
   });

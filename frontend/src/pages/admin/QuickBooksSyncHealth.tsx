@@ -7,6 +7,15 @@ import { Button } from "@/components/ui/Button";
 
 type Reconciliation = components["schemas"]["ReconciliationResponse"];
 type DriftRow = components["schemas"]["DriftRowResponse"];
+type SyncMetrics = components["schemas"]["SyncMetricsResponse"];
+type WorkerHealth = components["schemas"]["WorkerHealthResponse"];
+
+function lagLabel(seconds: number | null | undefined): string {
+  if (seconds == null) return "—";
+  if (seconds < 90) return `${seconds}s`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)}m`;
+  return `${Math.round(seconds / 3600)}h`;
+}
 
 function isoDaysAgo(days: number): string {
   const d = new Date();
@@ -38,6 +47,7 @@ export function SyncHealthPanel() {
   const [to, setTo] = useState(() => today());
   const [report, setReport] = useState<Reconciliation | null>(null);
   const [drift, setDrift] = useState<DriftRow[]>([]);
+  const [metrics, setMetrics] = useState<SyncMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +64,8 @@ export function SyncHealthPanel() {
         params: { status: "open", limit: 100 },
       });
       setDrift(d.data.items);
+      const met = await api.get("/api/v1/admin/quickbooks/metrics");
+      setMetrics(met.data);
     } catch (err: unknown) {
       setError(detailOf(err) ?? "Failed to load sync health.");
     } finally {
@@ -165,6 +177,16 @@ export function SyncHealthPanel() {
         </div>
       ) : null}
 
+      {metrics ? (
+        <div className="flex flex-wrap items-center gap-4 rounded border bg-muted/40 p-2 text-xs">
+          <WorkerStatus label="Sync worker" worker={metrics.sync_worker} />
+          <WorkerStatus label="CDC worker" worker={metrics.cdc_worker} />
+          <span className="text-muted-foreground">
+            Oldest pending: {lagLabel(metrics.oldest_pending_age_seconds)}
+          </span>
+        </div>
+      ) : null}
+
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
 
       {report && report.gaps.length > 0 ? (
@@ -252,6 +274,23 @@ export function SyncHealthPanel() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function WorkerStatus({ label, worker }: { label: string; worker: WorkerHealth }) {
+  const ok = worker.last_status === "ok";
+  const dot = worker.last_status == null ? "○" : ok ? "●" : "▲";
+  const color =
+    worker.last_status == null ? "text-muted-foreground" : ok ? "text-green-700" : "text-red-700";
+  return (
+    <span className="flex items-center gap-1">
+      <span className={color}>{dot}</span>
+      <span className="font-medium">{label}</span>
+      <span className="text-muted-foreground">
+        {worker.last_status ?? "never run"}
+        {worker.last_finished_at ? ` · ${fmt(worker.last_finished_at)}` : ""}
+      </span>
+    </span>
   );
 }
 
