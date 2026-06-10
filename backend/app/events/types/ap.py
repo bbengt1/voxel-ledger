@@ -146,13 +146,14 @@ class BillIssuedPayload(_APPayloadBase):
     total_amount: str
     issued_at: str
     due_at: str | None = None
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class BillPostedPayload(_APPayloadBase):
     bill_id: uuid.UUID
     bill_number: str
-    journal_entry_id: uuid.UUID
+    journal_entry_id: uuid.UUID | None = None
     total_amount: str
 
 
@@ -222,7 +223,8 @@ class BillPaymentPostedPayload(_APPayloadBase):
     vendor_id: uuid.UUID
     amount: str
     method: str
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
 
 
 class BillPaymentUnappliedPayload(_APPayloadBase):

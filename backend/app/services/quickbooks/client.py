@@ -136,11 +136,22 @@ class QuickBooksClient:
         return body.get(entity, {})
 
     async def void(self, entity: str, qbo_id: str, sync_token: str) -> dict[str, Any]:
-        """Void a transaction (Invoice/Payment/…) via ``?operation=void``."""
+        """Void a transaction (Invoice/Payment/SalesReceipt) via ``?operation=void``."""
         body = await self._request(
             "POST",
             entity.lower(),
             params={"operation": "void"},
+            json={"Id": qbo_id, "SyncToken": sync_token},
+        )
+        return body.get(entity, {})
+
+    async def delete(self, entity: str, qbo_id: str, sync_token: str) -> dict[str, Any]:
+        """Delete a transaction (Bill/BillPayment/CreditMemo/JournalEntry) via
+        ``?operation=delete`` — QBO entities that don't support void."""
+        body = await self._request(
+            "POST",
+            entity.lower(),
+            params={"operation": "delete"},
             json={"Id": qbo_id, "SyncToken": sync_token},
         )
         return body.get(entity, {})

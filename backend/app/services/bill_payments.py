@@ -456,63 +456,111 @@ async def record_payment(
         # endpoint.
         return await _load_payment(session, payment.id)
 
-    bank_account_id = await _resolve_bank_account(session, method=method_enum)
+    # QBO replace-mode (epic #312, Phase 3c-1): push a native QBO BillPayment via
+    # the sync outbox instead of posting the local GL. Bill balances/state +
+    # application rows above stay.
+    from app.services.quickbooks import outbox as qbo_outbox
 
-    lines_in: list[journal_service.JournalLineInput] = []
-    line_no = 0
-    for bill, app_amt in normalized:
-        line_no += 1
-        ap_account_id = await _resolve_ap_account(session, vendor=vendor)
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=ap_account_id,
-                debit=app_amt,
-                credit=_ZERO,
-                line_number=line_no,
-                memo=f"Apply {payment_number} to {bill.bill_number}",
+    qbo_enabled = await qbo_outbox.is_enabled(session)
+    posted_entry_id: uuid.UUID | None = None
+
+    if qbo_enabled:
+        await qbo_outbox.enqueue(
+            session,
+            kind="bill_payment",
+            local_id=payment.id,
+            payload={
+                "vendor_id": str(vendor.id),
+                "amount": str(amt),
+                "txn_date": occurred.date().isoformat(),
+                "reference": payment.reference_number,
+                "private_note": f"Bill payment {payment_number}",
+                "applications": [{"bill_id": str(b.id), "amount": str(a)} for b, a in normalized],
+            },
+            op="post",
+        )
+        if total_withheld > _ZERO:
+            # Withholding: return the withheld cash from bank into a tax
+            # liability (net cash out = amt - withheld).
+            await qbo_outbox.enqueue(
+                session,
+                kind="bill_payment_withholding",
+                local_id=payment.id,
+                payload={
+                    "lines": [
+                        {"role": "bank", "posting": "debit", "amount": str(total_withheld)},
+                        {
+                            "role": "tax_liability",
+                            "posting": "credit",
+                            "amount": str(total_withheld),
+                        },
+                    ],
+                    "private_note": f"Withholding on {payment_number}",
+                },
+                op="post",
             )
-        )
+        payment.posting_journal_entry_id = None
+        payment.state = BillPaymentState.POSTED
+        await session.flush()
+    else:
+        bank_account_id = await _resolve_bank_account(session, method=method_enum)
 
-    bank_credit = _q(amt - total_withheld)
-    line_no += 1
-    lines_in.append(
-        journal_service.JournalLineInput(
-            account_id=bank_account_id,
-            debit=_ZERO,
-            credit=bank_credit,
-            line_number=line_no,
-            memo=f"Bill payment {payment_number} ({method_enum.value})",
-        )
-    )
-    if total_withheld > _ZERO and withholding_profile is not None:
+        lines_in: list[journal_service.JournalLineInput] = []
+        line_no = 0
+        for bill, app_amt in normalized:
+            line_no += 1
+            ap_account_id = await _resolve_ap_account(session, vendor=vendor)
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=ap_account_id,
+                    debit=app_amt,
+                    credit=_ZERO,
+                    line_number=line_no,
+                    memo=f"Apply {payment_number} to {bill.bill_number}",
+                )
+            )
+
+        bank_credit = _q(amt - total_withheld)
         line_no += 1
         lines_in.append(
             journal_service.JournalLineInput(
-                account_id=withholding_profile.liability_account_id,
+                account_id=bank_account_id,
                 debit=_ZERO,
-                credit=total_withheld,
+                credit=bank_credit,
                 line_number=line_no,
-                memo=(
-                    f"Withholding {withholding_profile.code} on {payment_number} "
-                    f"(rate {withholding_profile.rate})"
-                ),
+                memo=f"Bill payment {payment_number} ({method_enum.value})",
             )
         )
+        if total_withheld > _ZERO and withholding_profile is not None:
+            line_no += 1
+            lines_in.append(
+                journal_service.JournalLineInput(
+                    account_id=withholding_profile.liability_account_id,
+                    debit=_ZERO,
+                    credit=total_withheld,
+                    line_number=line_no,
+                    memo=(
+                        f"Withholding {withholding_profile.code} on {payment_number} "
+                        f"(rate {withholding_profile.rate})"
+                    ),
+                )
+            )
 
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Bill payment {payment_number}",
-            posted_at=occurred,
-            lines=lines_in,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
-    )
-    assert isinstance(entry, JournalEntry)
-    payment.posting_journal_entry_id = entry.id
-    payment.state = BillPaymentState.POSTED
-    await session.flush()
+        entry = await journal_service.post(
+            journal_service.JournalEntryInput(
+                description=f"Bill payment {payment_number}",
+                posted_at=occurred,
+                lines=lines_in,
+            ),
+            session=session,
+            actor_user_id=actor_user_id,
+            _internal_skip_approval_check=True,
+        )
+        assert isinstance(entry, JournalEntry)
+        payment.posting_journal_entry_id = entry.id
+        posted_entry_id = entry.id
+        payment.state = BillPaymentState.POSTED
+        await session.flush()
 
     await _emit(
         session,
@@ -524,7 +572,7 @@ async def record_payment(
             "vendor_id": str(vendor.id),
             "amount": str(amt),
             "method": method_enum.value,
-            "journal_entry_id": str(entry.id),
+            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
         },
         actor_user_id=actor_user_id,
     )
@@ -612,6 +660,17 @@ async def unapply(
             description=f"Reversal of bill payment {payment.payment_number}",
         )
         reversing_je_id = reversal.id
+    else:
+        from app.services.quickbooks import outbox as qbo_outbox
+
+        if await qbo_outbox.is_enabled(session):
+            await qbo_outbox.enqueue(
+                session,
+                kind="bill_payment",
+                local_id=payment.id,
+                payload={"bill_payment_id": str(payment.id)},
+                op="reverse",
+            )
 
     await _restore_bills(session, payment=payment)
 
