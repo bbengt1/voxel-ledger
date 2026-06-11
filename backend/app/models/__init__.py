@@ -136,6 +136,7 @@ from app.models.fixed_asset_disposal import (
     AssetDisposalKind,
     FixedAssetDisposal,
 )
+from app.models.gl_archive_manifest import GlArchiveManifest
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
@@ -403,6 +404,7 @@ __all__ = [
     "FixedAssetState",
     "FormTemplate",
     "FormTemplateField",
+    "GlArchiveManifest",
     "InventoryLocation",
     "InventoryLocationKind",
     "InventoryOnHand",
