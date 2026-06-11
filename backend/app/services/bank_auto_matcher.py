@@ -104,6 +104,31 @@ async def _emit(
     )
 
 
+@dataclass(frozen=True)
+class _MatchLeg:
+    """One side of a match JE: which account, on which posting side."""
+
+    account_id: uuid.UUID
+    posting: str  # "debit" | "credit"
+
+
+def _match_legs(tx: BankTransaction, rule: BankMatchRule) -> tuple[_MatchLeg, _MatchLeg]:
+    """Compute the (bank, other) legs for a ``post_to_account`` match.
+
+    Positive ``tx.amount`` → debit bank (asset goes up), credit the rule's
+    ``credit_account_id`` side. Negative → credit bank, debit the rule's
+    ``debit_account_id`` side. Returns ``(bank_leg, other_leg)``."""
+    if tx.amount >= _ZERO:
+        return (
+            _MatchLeg(account_id=tx.account_id, posting="debit"),
+            _MatchLeg(account_id=rule.credit_account_id, posting="credit"),  # type: ignore[arg-type]
+        )
+    return (
+        _MatchLeg(account_id=tx.account_id, posting="credit"),
+        _MatchLeg(account_id=rule.debit_account_id, posting="debit"),  # type: ignore[arg-type]
+    )
+
+
 async def _post_journal_for_match(
     *,
     session: AsyncSession,
@@ -111,46 +136,18 @@ async def _post_journal_for_match(
     rule: BankMatchRule,
     actor_user_id: uuid.UUID | None,
 ) -> JournalEntry:
-    """Build + post a balanced 2-line JE for a ``post_to_account`` match.
-
-    Positive ``tx.amount`` → debit bank (asset goes up); negative → credit
-    bank. The other side is rule.debit_account_id or rule.credit_account_id
-    depending on which side the bank account ends up on.
-    """
+    """Build + post a balanced 2-line JE for a ``post_to_account`` match."""
     magnitude = abs(tx.amount)
     memo = _render_memo(rule, tx)
     posted_at = _posted_at_for(tx)
+    bank_leg, other_leg = _match_legs(tx, rule)
 
-    if tx.amount >= _ZERO:
-        # inflow: debit bank, credit the rule's credit_account_id side.
-        bank_line = journal_service.JournalLineInput(
-            account_id=tx.account_id,
-            debit=magnitude,
-            credit=_ZERO,
-            line_number=1,
-            memo=memo,
-        )
-        other_line = journal_service.JournalLineInput(
-            account_id=rule.credit_account_id,  # type: ignore[arg-type]
-            debit=_ZERO,
-            credit=magnitude,
-            line_number=2,
-            memo=memo,
-        )
-    else:
-        # outflow: credit bank, debit the rule's debit_account_id side.
-        bank_line = journal_service.JournalLineInput(
-            account_id=tx.account_id,
-            debit=_ZERO,
-            credit=magnitude,
-            line_number=1,
-            memo=memo,
-        )
-        other_line = journal_service.JournalLineInput(
-            account_id=rule.debit_account_id,  # type: ignore[arg-type]
-            debit=magnitude,
-            credit=_ZERO,
-            line_number=2,
+    def _to_input(leg: _MatchLeg, line_number: int) -> journal_service.JournalLineInput:
+        return journal_service.JournalLineInput(
+            account_id=leg.account_id,
+            debit=magnitude if leg.posting == "debit" else _ZERO,
+            credit=magnitude if leg.posting == "credit" else _ZERO,
+            line_number=line_number,
             memo=memo,
         )
 
@@ -158,7 +155,7 @@ async def _post_journal_for_match(
         journal_service.JournalEntryInput(
             description=memo,
             posted_at=posted_at,
-            lines=[bank_line, other_line],
+            lines=[_to_input(bank_leg, 1), _to_input(other_leg, 2)],
         ),
         session=session,
         actor_user_id=actor_user_id or uuid.UUID(int=0),
@@ -166,6 +163,40 @@ async def _post_journal_for_match(
     )
     assert isinstance(entry, JournalEntry)
     return entry
+
+
+async def _enqueue_journal_for_match(
+    *,
+    session: AsyncSession,
+    tx: BankTransaction,
+    rule: BankMatchRule,
+) -> None:
+    """QBO replace-mode (epic #312): enqueue a JournalEntry whose legs
+    reference the local accounts (resolved at drain via the local-account
+    map) instead of posting the local GL."""
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    magnitude = abs(tx.amount)
+    memo = _render_memo(rule, tx)
+    bank_leg, other_leg = _match_legs(tx, rule)
+    await qbo_outbox.enqueue(
+        session,
+        kind="bank_match",
+        local_id=tx.id,
+        payload={
+            "lines": [
+                {
+                    "local_account_id": str(leg.account_id),
+                    "posting": leg.posting,
+                    "amount": str(magnitude),
+                    "description": memo,
+                }
+                for leg in (bank_leg, other_leg)
+            ],
+            "private_note": memo,
+        },
+        op="post",
+    )
 
 
 async def _link_match(
@@ -307,13 +338,23 @@ async def run_once(
                 continue
 
             # action_kind == post_to_account
-            entry = await _post_journal_for_match(
-                session=session,
-                tx=tx,
-                rule=rule,
-                actor_user_id=actor_user_id,
-            )
-            await _link_match(session=session, tx=tx, entry=entry)
+            from app.services.quickbooks import outbox as qbo_outbox
+
+            entry_id: uuid.UUID | None = None
+            if await qbo_outbox.is_enabled(session):
+                # QBO replace-mode: enqueue the JE; there is no local JE/line,
+                # so the tx is matched without a ``matched_journal_line_id``.
+                await _enqueue_journal_for_match(session=session, tx=tx, rule=rule)
+                tx.state = BankTransactionState.MATCHED
+            else:
+                entry = await _post_journal_for_match(
+                    session=session,
+                    tx=tx,
+                    rule=rule,
+                    actor_user_id=actor_user_id,
+                )
+                await _link_match(session=session, tx=tx, entry=entry)
+                entry_id = entry.id
             await _emit(
                 session,
                 event_type=banking_events.TYPE_BANK_TRANSACTION_AUTO_MATCHED,
@@ -322,7 +363,7 @@ async def run_once(
                 payload={
                     "transaction_id": str(tx.id),
                     "rule_id": str(rule.id),
-                    "journal_entry_id": str(entry.id),
+                    "journal_entry_id": str(entry_id) if entry_id else None,
                     "amount": str(tx.amount),
                 },
                 actor_user_id=actor_user_id,
@@ -332,7 +373,7 @@ async def run_once(
                     transaction_id=tx.id,
                     rule_id=rule.id,
                     action_kind=rule.action_kind.value,
-                    journal_entry_id=entry.id,
+                    journal_entry_id=entry_id,
                 )
             )
         except Exception as exc:  # pragma: no cover - defensive log path

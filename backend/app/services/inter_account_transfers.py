@@ -70,12 +70,13 @@ async def post_transfer(
     occurred_at: datetime,
     memo: str | None,
     actor_user_id: uuid.UUID,
-) -> JournalEntry:
+) -> JournalEntry | None:
     """Validate and post a balanced inter-account transfer JE.
 
-    Returns the persisted :class:`JournalEntry`. Same-TX — the caller
-    must commit. Emits ``banking.InterAccountTransferPosted`` inside the
-    same transaction.
+    Returns the persisted :class:`JournalEntry`, or ``None`` in QBO
+    replace-mode (the posting is pushed to QBO async via the sync outbox,
+    so there is no local JE). Same-TX — the caller must commit. Emits
+    ``banking.InterAccountTransferPosted`` inside the same transaction.
     """
     if from_account_id == to_account_id:
         raise InvalidInterAccountTransferError("from_account_id and to_account_id must differ")
@@ -88,6 +89,49 @@ async def post_transfer(
     await _load_asset_account(session, to_account_id)
 
     description = (memo or "").strip() or f"Transfer {from_account_id} -> {to_account_id}"
+
+    # QBO replace-mode (epic #312, Phase 3d follow-up): enqueue a JournalEntry
+    # whose legs reference the local accounts (resolved at drain via the
+    # local-account map) instead of posting the local GL.
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    if await qbo_outbox.is_enabled(session):
+        transfer_id = uuid.uuid4()
+        await qbo_outbox.enqueue(
+            session,
+            kind="inter_account_transfer",
+            local_id=transfer_id,
+            payload={
+                "lines": [
+                    {
+                        "local_account_id": str(to_account_id),
+                        "posting": "debit",
+                        "amount": str(amount),
+                        "description": memo,
+                    },
+                    {
+                        "local_account_id": str(from_account_id),
+                        "posting": "credit",
+                        "amount": str(amount),
+                        "description": memo,
+                    },
+                ],
+                "private_note": description,
+            },
+            op="post",
+        )
+        await _emit_posted(
+            session,
+            aggregate_id=transfer_id,
+            journal_entry_id=None,
+            from_account_id=from_account_id,
+            to_account_id=to_account_id,
+            amount=amount,
+            occurred_at=occurred_at,
+            memo=memo,
+            actor_user_id=actor_user_id,
+        )
+        return None
 
     lines = [
         journal_service.JournalLineInput(
@@ -124,13 +168,40 @@ async def post_transfer(
         # unreachable; surface as a service error if it ever fires.
         raise InvalidInterAccountTransferError("journal entry not posted")
 
+    await _emit_posted(
+        session,
+        aggregate_id=entry.id,
+        journal_entry_id=entry.id,
+        from_account_id=from_account_id,
+        to_account_id=to_account_id,
+        amount=amount,
+        occurred_at=occurred_at,
+        memo=memo,
+        actor_user_id=actor_user_id,
+    )
+
+    return entry
+
+
+async def _emit_posted(
+    session: AsyncSession,
+    *,
+    aggregate_id: uuid.UUID,
+    journal_entry_id: uuid.UUID | None,
+    from_account_id: uuid.UUID,
+    to_account_id: uuid.UUID,
+    amount: Decimal,
+    occurred_at: datetime,
+    memo: str | None,
+    actor_user_id: uuid.UUID,
+) -> None:
     await event_store.append(
         EventCreate(
             type=banking_events.TYPE_INTER_ACCOUNT_TRANSFER_POSTED,
             aggregate_type=banking_events.AGGREGATE_TYPE_JOURNAL_ENTRY,
-            aggregate_id=entry.id,
+            aggregate_id=aggregate_id,
             payload={
-                "journal_entry_id": str(entry.id),
+                "journal_entry_id": str(journal_entry_id) if journal_entry_id else None,
                 "from_account_id": str(from_account_id),
                 "to_account_id": str(to_account_id),
                 "amount": str(amount),
@@ -143,8 +214,6 @@ async def post_transfer(
         ),
         session=session,
     )
-
-    return entry
 
 
 __all__ = [

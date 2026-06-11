@@ -205,6 +205,7 @@ from app.models.qbo_entity_map import (
     QboEntityMap,
     QboLocalKind,
 )
+from app.models.qbo_local_account_map import QboLocalAccountMap
 from app.models.qbo_sync_outbox import (
     QBO_SYNC_STATUS_VALUES,
     QboSyncOutbox,
@@ -466,6 +467,7 @@ __all__ = [
     "QBO_DRIFT_STATUS_VALUES",
     "QBO_SYNC_STATUS_VALUES",
     "QboAccountMap",
+    "QboLocalAccountMap",
     "QboEntityMap",
     "QboLocalKind",
     "QboCdcDrift",

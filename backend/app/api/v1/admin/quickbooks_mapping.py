@@ -5,6 +5,9 @@ Owner-only, mounted under ``/api/v1/admin/quickbooks``:
 * ``GET  /accounts``       → live list of QBO accounts (to populate the map UI).
 * ``GET  /account-map``    → current role→account map + unmapped roles.
 * ``PUT  /account-map``    → set role→account mappings.
+* ``GET  /local-account-map`` → current local-account→QBO-account map.
+* ``PUT  /local-account-map`` → set local-account→QBO-account mappings (for the
+  inter-account-transfer + bank-matcher sites, whose legs have no fixed role).
 * ``POST /sync/{kind}/{local_id}`` → idempotently upsert a customer/vendor/
   product into QBO (admin-triggered; Phase 3 automates this).
 """
@@ -23,7 +26,7 @@ from app.api.deps import get_settings, require_role
 from app.core.db import get_session
 from app.core.settings import Settings
 from app.models.auth import User
-from app.services.quickbooks import account_map, master_data
+from app.services.quickbooks import account_map, local_account_map, master_data
 from app.services.quickbooks import oauth as qbo_oauth
 from app.services.quickbooks.client import QuickBooksApiError, QuickBooksClient
 
@@ -56,6 +59,20 @@ class AccountMapResponse(BaseModel):
 
 class SetAccountMapRequest(BaseModel):
     mappings: dict[str, AccountMapEntry]
+
+
+class LocalAccountMapEntry(BaseModel):
+    qbo_account_id: str
+    qbo_account_name: str | None = None
+
+
+class LocalAccountMapResponse(BaseModel):
+    # keyed by local account id (str UUID)
+    mappings: dict[str, LocalAccountMapEntry]
+
+
+class SetLocalAccountMapRequest(BaseModel):
+    mappings: dict[str, LocalAccountMapEntry]
 
 
 class EntityMapResponse(BaseModel):
@@ -126,6 +143,38 @@ async def put_account_map(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     await session.commit()
     return await _build_map_response(session)
+
+
+async def _build_local_map_response(session: AsyncSession) -> LocalAccountMapResponse:
+    mapped = await local_account_map.get_map(session)
+    return LocalAccountMapResponse(
+        mappings={k: LocalAccountMapEntry(**v) for k, v in mapped.items()}
+    )
+
+
+@router.get("/local-account-map", response_model=LocalAccountMapResponse)
+async def get_local_account_map(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _user: Annotated[User, Depends(require_role("owner"))],
+) -> LocalAccountMapResponse:
+    return await _build_local_map_response(session)
+
+
+@router.put("/local-account-map", response_model=LocalAccountMapResponse)
+async def put_local_account_map(
+    body: SetLocalAccountMapRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(require_role("owner"))],
+) -> LocalAccountMapResponse:
+    payload: dict[str, dict[str, Any]] = {
+        local_id: entry.model_dump() for local_id, entry in body.mappings.items()
+    }
+    try:
+        await local_account_map.set_mappings(session, payload, actor_user_id=user.id)
+    except local_account_map.UnknownLocalAccountError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await session.commit()
+    return await _build_local_map_response(session)
 
 
 @router.post("/sync/{kind}/{local_id}", response_model=EntityMapResponse)
