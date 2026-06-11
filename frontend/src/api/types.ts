@@ -544,6 +544,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/decommission/cutover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Declare Cutover */
+        post: operations["declare_cutover_api_v1_admin_quickbooks_decommission_cutover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/decommission/opening-balance": {
         parameters: {
             query?: never;
@@ -556,6 +573,23 @@ export interface paths {
         put?: never;
         /** Seed Opening Balance */
         post: operations["seed_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/quickbooks/decommission/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readiness */
+        get: operations["get_readiness_api_v1_admin_quickbooks_decommission_readiness_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9306,6 +9340,42 @@ export interface components {
             /** Tax Profile Id */
             tax_profile_id?: string | null;
         };
+        /** CutoverRequest */
+        CutoverRequest: {
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+        };
+        /** CutoverResponse */
+        CutoverResponse: {
+            /**
+             * Archive Manifest Id
+             * Format: uuid
+             */
+            archive_manifest_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Opening Balance Outbox Id
+             * Format: uuid
+             */
+            opening_balance_outbox_id: string;
+        };
         /** DashboardKpisResponse */
         DashboardKpisResponse: {
             /** Accounts Payable */
@@ -13228,6 +13298,40 @@ export interface components {
             /** Value */
             value?: number | string | null;
         };
+        /** ReadinessResponse */
+        ReadinessResponse: {
+            /** Archive Balanced */
+            archive_balanced: boolean;
+            /** Archive Cutover Date */
+            archive_cutover_date?: string | null;
+            /** Archive Manifest Id */
+            archive_manifest_id?: string | null;
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+            /** Declared */
+            declared: boolean;
+            /** Opening Balance Outbox Id */
+            opening_balance_outbox_id?: string | null;
+            /** Opening Balance Status */
+            opening_balance_status?: string | null;
+            /** Opening Balance Txn Date */
+            opening_balance_txn_date?: string | null;
+            /** Quickbooks Enabled */
+            quickbooks_enabled: boolean;
+            /** Ready */
+            ready: boolean;
+            /** Reasons */
+            reasons: string[];
+            /** Reconciliation */
+            reconciliation: {
+                [key: string]: unknown;
+            };
+            /** Reconciliation Ready */
+            reconciliation_ready: boolean;
+        };
         /** ReconciliationResponse */
         ReconciliationResponse: {
             /**
@@ -17122,6 +17226,39 @@ export interface operations {
             };
         };
     };
+    declare_cutover_api_v1_admin_quickbooks_decommission_cutover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CutoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CutoverResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     preview_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_get: {
         parameters: {
             query?: {
@@ -17173,6 +17310,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpeningBalanceSeedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readiness_api_v1_admin_quickbooks_decommission_readiness_get: {
+        parameters: {
+            query?: {
+                cutover_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResponse"];
                 };
             };
             /** @description Validation Error */
