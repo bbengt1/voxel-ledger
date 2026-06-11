@@ -1,12 +1,15 @@
 """Admin endpoints for the local-GL decommission (#318, epic #312, Phase 5).
 
-Owner-only, mounted under ``/api/v1/admin/quickbooks``. Phase 5a ships the
-historical-archive surface — the safe, additive prerequisite to removing the
-local ledger:
+Owner-only, mounted under ``/api/v1/admin/quickbooks``. Phases 5a/5b ship the
+safe, additive prerequisites to removing the local ledger:
 
 * ``POST /decommission/archive`` → export the GL + trial-balance snapshot to
-  durable storage and record a manifest.
-* ``GET  /decommission/archive`` → list prior archive manifests.
+  durable storage and record a manifest. (5a)
+* ``GET  /decommission/archive`` → list prior archive manifests. (5a)
+* ``GET  /decommission/opening-balance`` → dry-run of the cutover JE: per-account
+  lines, totals, unmapped accounts. (5b)
+* ``POST /decommission/opening-balance`` → enqueue the cutover opening-balance
+  JournalEntry to the QBO sync outbox. (5b)
 """
 
 from __future__ import annotations
@@ -17,7 +20,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +28,8 @@ from app.api.deps import require_role
 from app.core.db import get_session
 from app.models.auth import User
 from app.models.gl_archive_manifest import GlArchiveManifest
-from app.services.quickbooks import archive
+from app.services.quickbooks import archive, opening_balance
+from app.services.quickbooks import outbox as qbo_outbox
 from app.services.settings.service import SettingsService
 
 router = APIRouter(prefix="/quickbooks", tags=["admin-quickbooks"])
@@ -108,3 +112,108 @@ async def list_archives(
 ) -> ArchiveListResponse:
     rows = await archive.list_manifests(session)
     return ArchiveListResponse(items=[ArchiveManifestResponse.of(m) for m in rows])
+
+
+# --- Opening-balance seed (Phase 5b) ----------------------------------------
+
+
+class OpeningBalanceLineResponse(BaseModel):
+    account_id: uuid.UUID
+    code: str
+    name: str
+    type: str
+    balance: Decimal
+    posting: str
+    amount: Decimal
+    qbo_account_id: str | None = None
+
+
+class OpeningBalancePreviewResponse(BaseModel):
+    cutover_date: date
+    lines: list[OpeningBalanceLineResponse]
+    total_debits: Decimal
+    total_credits: Decimal
+    balanced: bool
+    unmapped_codes: list[str]
+    existing_status: str | None = None
+
+
+class OpeningBalanceSeedRequest(BaseModel):
+    cutover_date: date | None = None
+
+
+class OpeningBalanceSeedResponse(BaseModel):
+    outbox_id: uuid.UUID
+    status: str
+    line_count: int
+    doc_number: str
+
+
+def _preview_response(p: opening_balance.OpeningBalancePreview) -> OpeningBalancePreviewResponse:
+    return OpeningBalancePreviewResponse(
+        cutover_date=p.cutover_date,
+        lines=[
+            OpeningBalanceLineResponse(
+                account_id=line.account_id,
+                code=line.code,
+                name=line.name,
+                type=line.type,
+                balance=line.balance,
+                posting=line.posting,
+                amount=line.amount,
+                qbo_account_id=line.qbo_account_id,
+            )
+            for line in p.lines
+        ],
+        total_debits=p.total_debits,
+        total_credits=p.total_credits,
+        balanced=p.balanced,
+        unmapped_codes=p.unmapped_codes,
+        existing_status=p.existing_status,
+    )
+
+
+@router.get("/decommission/opening-balance", response_model=OpeningBalancePreviewResponse)
+async def preview_opening_balance(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    _user: Annotated[User, Depends(require_role("owner"))],
+    cutover_date: Annotated[date | None, Query()] = None,
+) -> OpeningBalancePreviewResponse:
+    cutover = cutover_date or datetime.now(UTC).date()
+    preview = await opening_balance.build_preview(session, cutover_date=cutover)
+    return _preview_response(preview)
+
+
+@router.post(
+    "/decommission/opening-balance",
+    response_model=OpeningBalanceSeedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def seed_opening_balance(
+    body: OpeningBalanceSeedRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user: Annotated[User, Depends(require_role("owner"))],
+) -> OpeningBalanceSeedResponse:
+    if not await qbo_outbox.is_enabled(session):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="quickbooks.enabled is off; enable QuickBooks before seeding",
+        )
+    cutover = body.cutover_date or datetime.now(UTC).date()
+    try:
+        row = await opening_balance.enqueue_opening_balance(
+            session, cutover_date=cutover, actor_user_id=user.id
+        )
+    except opening_balance.AlreadySeededError as exc:
+        await session.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except opening_balance.OpeningBalanceError as exc:
+        await session.rollback()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    await session.commit()
+    return OpeningBalanceSeedResponse(
+        outbox_id=row.id,
+        status=row.status,
+        line_count=len(row.payload.get("lines", [])),
+        doc_number=row.payload.get("doc_number", ""),
+    )

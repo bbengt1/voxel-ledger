@@ -14416,6 +14416,168 @@
         "title": "OpenCartRequest",
         "type": "object"
       },
+      "OpeningBalanceLineResponse": {
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "balance": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Balance",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "posting": {
+            "title": "Posting",
+            "type": "string"
+          },
+          "qbo_account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qbo Account Id"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "type",
+          "balance",
+          "posting",
+          "amount"
+        ],
+        "title": "OpeningBalanceLineResponse",
+        "type": "object"
+      },
+      "OpeningBalancePreviewResponse": {
+        "properties": {
+          "balanced": {
+            "title": "Balanced",
+            "type": "boolean"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "existing_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Status"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/OpeningBalanceLineResponse"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "total_credits": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Credits",
+            "type": "string"
+          },
+          "total_debits": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Debits",
+            "type": "string"
+          },
+          "unmapped_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmapped Codes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cutover_date",
+          "lines",
+          "total_debits",
+          "total_credits",
+          "balanced",
+          "unmapped_codes"
+        ],
+        "title": "OpeningBalancePreviewResponse",
+        "type": "object"
+      },
+      "OpeningBalanceSeedRequest": {
+        "properties": {
+          "cutover_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Date"
+          }
+        },
+        "title": "OpeningBalanceSeedRequest",
+        "type": "object"
+      },
+      "OpeningBalanceSeedResponse": {
+        "properties": {
+          "doc_number": {
+            "title": "Doc Number",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "outbox_id": {
+            "format": "uuid",
+            "title": "Outbox Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outbox_id",
+          "status",
+          "line_count",
+          "doc_number"
+        ],
+        "title": "OpeningBalanceSeedResponse",
+        "type": "object"
+      },
       "OutboxListResponse": {
         "properties": {
           "items": {
@@ -28037,6 +28199,107 @@
           }
         ],
         "summary": "Create Archive",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/decommission/opening-balance": {
+      "get": {
+        "operationId": "preview_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cutover_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cutover Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningBalancePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Opening Balance",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      },
+      "post": {
+        "operationId": "seed_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpeningBalanceSeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpeningBalanceSeedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Seed Opening Balance",
         "tags": [
           "admin",
           "admin-quickbooks"
