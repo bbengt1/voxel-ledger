@@ -746,6 +746,22 @@ class QuickbooksCdcCursor(SettingSchema):
     value: str | None = None
 
 
+@register
+class QuickbooksArchiveDir(SettingSchema):
+    """Durable-storage root for local-GL decommission archives (#318 Phase 5a).
+
+    Before the GL tables are dropped, ``POST /admin/quickbooks/decommission/
+    archive`` exports the ledger + a trial-balance snapshot here (each run lands
+    in a timestamped subdirectory). Point this at retained/backed-up storage —
+    it is the system-of-record-of-last-resort and the down-migration recovery
+    path. Falls back to ``var/gl_archive`` (relative to CWD) if unset.
+    """
+
+    key: ClassVar[str] = "quickbooks.archive_dir"
+    default: ClassVar[str | None] = None
+    value: str | None = None
+
+
 # Set of setting keys whose values are sensitive — redacted in event payloads.
 SECRET_SETTING_KEYS: frozenset[str] = frozenset({"email.smtp_password_secret"})
 

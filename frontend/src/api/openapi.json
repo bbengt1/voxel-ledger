@@ -1206,6 +1206,104 @@
         "title": "ArAgingReportResponse",
         "type": "object"
       },
+      "ArchiveListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveManifestResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "ArchiveListResponse",
+        "type": "object"
+      },
+      "ArchiveManifestResponse": {
+        "properties": {
+          "artifact_dir": {
+            "title": "Artifact Dir",
+            "type": "string"
+          },
+          "balanced": {
+            "title": "Balanced",
+            "type": "boolean"
+          },
+          "checksums": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Checksums",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "row_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Row Counts",
+            "type": "object"
+          },
+          "total_credits": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Credits",
+            "type": "string"
+          },
+          "total_debits": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Debits",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cutover_date",
+          "artifact_dir",
+          "row_counts",
+          "checksums",
+          "total_debits",
+          "total_credits",
+          "balanced",
+          "created_at"
+        ],
+        "title": "ArchiveManifestResponse",
+        "type": "object"
+      },
+      "ArchiveRequest": {
+        "properties": {
+          "cutover_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cutover Date"
+          }
+        },
+        "title": "ArchiveRequest",
+        "type": "object"
+      },
       "AssignPrinterRequest": {
         "properties": {
           "printer_id": {
@@ -27867,6 +27965,78 @@
           }
         ],
         "summary": "Quickbooks Connect",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/decommission/archive": {
+      "get": {
+        "operationId": "list_archives_api_v1_admin_quickbooks_decommission_archive_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Archives",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      },
+      "post": {
+        "operationId": "create_archive_api_v1_admin_quickbooks_decommission_archive_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveManifestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Archive",
         "tags": [
           "admin",
           "admin-quickbooks"

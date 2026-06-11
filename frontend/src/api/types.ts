@@ -526,6 +526,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/decommission/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Archives */
+        get: operations["list_archives_api_v1_admin_quickbooks_decommission_archive_get"];
+        put?: never;
+        /** Create Archive */
+        post: operations["create_archive_api_v1_admin_quickbooks_decommission_archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/disconnect": {
         parameters: {
             query?: never;
@@ -6957,6 +6975,50 @@ export interface components {
             grand_total_by_bucket: string[];
             /** Rows */
             rows: components["schemas"]["AgingRowResponse"][];
+        };
+        /** ArchiveListResponse */
+        ArchiveListResponse: {
+            /** Items */
+            items: components["schemas"]["ArchiveManifestResponse"][];
+        };
+        /** ArchiveManifestResponse */
+        ArchiveManifestResponse: {
+            /** Artifact Dir */
+            artifact_dir: string;
+            /** Balanced */
+            balanced: boolean;
+            /** Checksums */
+            checksums: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Row Counts */
+            row_counts: {
+                [key: string]: number;
+            };
+            /** Total Credits */
+            total_credits: string;
+            /** Total Debits */
+            total_debits: string;
+        };
+        /** ArchiveRequest */
+        ArchiveRequest: {
+            /** Cutover Date */
+            cutover_date?: string | null;
         };
         /** AssignPrinterRequest */
         AssignPrinterRequest: {
@@ -16924,6 +16986,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectResponse"];
+                };
+            };
+        };
+    };
+    list_archives_api_v1_admin_quickbooks_decommission_archive_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveListResponse"];
+                };
+            };
+        };
+    };
+    create_archive_api_v1_admin_quickbooks_decommission_archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveManifestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
