@@ -137,6 +137,7 @@ from app.models.fixed_asset_disposal import (
     FixedAssetDisposal,
 )
 from app.models.gl_archive_manifest import GlArchiveManifest
+from app.models.gl_decommission_cutover import GlDecommissionCutover
 from app.models.inventory_location import InventoryLocation, InventoryLocationKind
 from app.models.inventory_on_hand import InventoryOnHand
 from app.models.inventory_transaction import InventoryTransaction
@@ -405,6 +406,7 @@ __all__ = [
     "FormTemplate",
     "FormTemplateField",
     "GlArchiveManifest",
+    "GlDecommissionCutover",
     "InventoryLocation",
     "InventoryLocationKind",
     "InventoryOnHand",

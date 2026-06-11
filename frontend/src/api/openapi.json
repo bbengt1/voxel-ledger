@@ -7492,6 +7492,58 @@
         "title": "CustomerUpdate",
         "type": "object"
       },
+      "CutoverRequest": {
+        "properties": {
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cutover_date"
+        ],
+        "title": "CutoverRequest",
+        "type": "object"
+      },
+      "CutoverResponse": {
+        "properties": {
+          "archive_manifest_id": {
+            "format": "uuid",
+            "title": "Archive Manifest Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "opening_balance_outbox_id": {
+            "format": "uuid",
+            "title": "Opening Balance Outbox Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cutover_date",
+          "archive_manifest_id",
+          "opening_balance_outbox_id",
+          "created_at"
+        ],
+        "title": "CutoverResponse",
+        "type": "object"
+      },
       "DashboardKpisResponse": {
         "properties": {
           "accounts_payable": {
@@ -18436,6 +18488,118 @@
         "title": "RateUpdateRequest",
         "type": "object"
       },
+      "ReadinessResponse": {
+        "properties": {
+          "archive_balanced": {
+            "title": "Archive Balanced",
+            "type": "boolean"
+          },
+          "archive_cutover_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archive Cutover Date"
+          },
+          "archive_manifest_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archive Manifest Id"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "declared": {
+            "title": "Declared",
+            "type": "boolean"
+          },
+          "opening_balance_outbox_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Balance Outbox Id"
+          },
+          "opening_balance_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Balance Status"
+          },
+          "opening_balance_txn_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Balance Txn Date"
+          },
+          "quickbooks_enabled": {
+            "title": "Quickbooks Enabled",
+            "type": "boolean"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "reconciliation": {
+            "additionalProperties": true,
+            "title": "Reconciliation",
+            "type": "object"
+          },
+          "reconciliation_ready": {
+            "title": "Reconciliation Ready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cutover_date",
+          "ready",
+          "reasons",
+          "quickbooks_enabled",
+          "reconciliation_ready",
+          "reconciliation",
+          "archive_balanced",
+          "declared"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      },
       "ReconciliationResponse": {
         "properties": {
           "date_from": {
@@ -28205,6 +28369,53 @@
         ]
       }
     },
+    "/api/v1/admin/quickbooks/decommission/cutover": {
+      "post": {
+        "operationId": "declare_cutover_api_v1_admin_quickbooks_decommission_cutover_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CutoverResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Declare Cutover",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
     "/api/v1/admin/quickbooks/decommission/opening-balance": {
       "get": {
         "operationId": "preview_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_get",
@@ -28300,6 +28511,62 @@
           }
         ],
         "summary": "Seed Opening Balance",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/decommission/readiness": {
+      "get": {
+        "operationId": "get_readiness_api_v1_admin_quickbooks_decommission_readiness_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cutover_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cutover Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Readiness",
         "tags": [
           "admin",
           "admin-quickbooks"
