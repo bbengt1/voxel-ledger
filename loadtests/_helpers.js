@@ -8,7 +8,7 @@ import http from "k6/http";
 import { check, fail } from "k6";
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8000";
-const EMAIL = __ENV.OWNER_EMAIL || "owner@voxel.local";
+const EMAIL = __ENV.OWNER_EMAIL || "owner@example.com";
 const PASSWORD = __ENV.OWNER_PASSWORD || "voxel-owner-password";
 
 export function defaultOptions(scenario) {

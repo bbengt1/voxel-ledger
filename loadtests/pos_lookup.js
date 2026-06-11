@@ -12,11 +12,15 @@ import { assertOk, authHeaders, defaultOptions, login, url } from "./_helpers.js
 
 const SKU_COUNT = parseInt(__ENV.SKU_COUNT || "1000", 10);
 
+// 404 is an expected outcome here (lookups against an un-seeded stack miss),
+// so don't let it count into http_req_failed — the threshold below should
+// only trip on real errors (5xx, timeouts).
+http.setResponseCallback(http.expectedStatuses(200, 404));
+
 export const options = {
   ...defaultOptions("pos_lookup"),
   thresholds: {
     http_req_duration: ["p(95)<500"],
-    // POS lookups against an empty seed will 404; allow up to 10%.
     "http_req_failed": ["rate<0.10"],
   },
 };
