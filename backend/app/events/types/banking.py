@@ -162,7 +162,8 @@ register_event(TYPE_MATCH_RULE_DEACTIVATED, MatchRuleDeactivatedPayload)
 class BankTransactionAutoMatchedPayload(_BankingPayloadBase):
     transaction_id: uuid.UUID
     rule_id: uuid.UUID
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     amount: str
 
 
@@ -249,7 +250,8 @@ register_event(TYPE_BANK_RECONCILIATION_FINALIZED, BankReconciliationFinalizedPa
 
 
 class InterAccountTransferPostedPayload(_BankingPayloadBase):
-    journal_entry_id: uuid.UUID
+    # Null in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    journal_entry_id: uuid.UUID | None = None
     from_account_id: uuid.UUID
     to_account_id: uuid.UUID
     amount: str

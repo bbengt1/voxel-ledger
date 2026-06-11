@@ -594,6 +594,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/local-account-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Local Account Map */
+        get: operations["get_local_account_map_api_v1_admin_quickbooks_local_account_map_get"];
+        /** Put Local Account Map */
+        put: operations["put_local_account_map_api_v1_admin_quickbooks_local_account_map_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/metrics": {
         parameters: {
             query?: never;
@@ -10411,11 +10429,8 @@ export interface components {
         };
         /** InterAccountTransferResponse */
         InterAccountTransferResponse: {
-            /**
-             * Journal Entry Id
-             * Format: uuid
-             */
-            journal_entry_id: string;
+            /** Journal Entry Id */
+            journal_entry_id?: string | null;
         };
         /** InventoryLocationCreateRequest */
         InventoryLocationCreateRequest: {
@@ -11351,6 +11366,20 @@ export interface components {
             discount_value?: number | string | null;
             /** Quantity */
             quantity?: number | string | null;
+        };
+        /** LocalAccountMapEntry */
+        LocalAccountMapEntry: {
+            /** Qbo Account Id */
+            qbo_account_id: string;
+            /** Qbo Account Name */
+            qbo_account_name?: string | null;
+        };
+        /** LocalAccountMapResponse */
+        LocalAccountMapResponse: {
+            /** Mappings */
+            mappings: {
+                [key: string]: components["schemas"]["LocalAccountMapEntry"];
+            };
         };
         /** LoginRequest */
         LoginRequest: {
@@ -14251,6 +14280,13 @@ export interface components {
                 [key: string]: components["schemas"]["AccountMapEntry"];
             };
         };
+        /** SetLocalAccountMapRequest */
+        SetLocalAccountMapRequest: {
+            /** Mappings */
+            mappings: {
+                [key: string]: components["schemas"]["LocalAccountMapEntry"];
+            };
+        };
         /**
          * SettingResponse
          * @description One setting, merged with its schema default and provenance.
@@ -16994,6 +17030,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickBooksStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_local_account_map_api_v1_admin_quickbooks_local_account_map_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAccountMapResponse"];
+                };
+            };
+        };
+    };
+    put_local_account_map_api_v1_admin_quickbooks_local_account_map_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetLocalAccountMapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalAccountMapResponse"];
                 };
             };
             /** @description Validation Error */

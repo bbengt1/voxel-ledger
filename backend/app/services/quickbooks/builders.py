@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.quickbooks import account_map
+from app.services.quickbooks import account_map, local_account_map
 
 if TYPE_CHECKING:
     from app.models.qbo_sync_outbox import QboSyncOutbox
@@ -132,6 +132,68 @@ async def build_journal_entry(
 
 
 register_builder("journal_entry", build_journal_entry)
+
+
+# --------------------------------------------------------------------------- #
+# Local-account JournalEntry (#316 Phase 3d follow-up) — transfers + matcher
+# --------------------------------------------------------------------------- #
+async def _journal_entry_local_payload(
+    session: AsyncSession, spec: dict[str, Any]
+) -> dict[str, Any]:
+    """Build a QBO JournalEntry whose lines reference *local* account ids,
+    resolved at drain time via the local-account map.
+
+    Used by inter-account transfers and the bank auto-matcher, whose legs hit
+    arbitrary chart-of-accounts accounts with no fixed role. These sites are
+    constrained to asset/bank accounts, so no Customer/Vendor ``Entity`` is
+    attached (an A/R or A/P leg would be rejected by QBO — surfaced as a push
+    error, which is the correct signal that the mapping points at the wrong
+    account)."""
+    lines = spec.get("lines") or []
+    if not lines:
+        raise BuilderError("journal_entry_local spec has no lines")
+    qbo_lines: list[dict[str, Any]] = []
+    for leg in lines:
+        try:
+            account_id = await local_account_map.resolve(session, leg["local_account_id"])
+        except KeyError as exc:
+            raise BuilderError(
+                f"journal_entry_local line missing 'local_account_id': {leg}"
+            ) from exc
+        except local_account_map.LocalAccountNotMappedError as exc:
+            # Permanent until the operator maps the account — fail (not retry).
+            raise BuilderError(str(exc)) from exc
+        posting = "Debit" if leg.get("posting") == "debit" else "Credit"
+        line: dict[str, Any] = {
+            "DetailType": "JournalEntryLineDetail",
+            "Amount": float(leg["amount"]),
+            "JournalEntryLineDetail": {
+                "PostingType": posting,
+                "AccountRef": {"value": account_id},
+            },
+        }
+        if leg.get("description"):
+            line["Description"] = leg["description"]
+        qbo_lines.append(line)
+
+    payload: dict[str, Any] = {"Line": qbo_lines}
+    if spec.get("doc_number"):
+        payload["DocNumber"] = spec["doc_number"]
+    if spec.get("private_note"):
+        payload["PrivateNote"] = spec["private_note"]
+    return payload
+
+
+async def build_journal_entry_local(
+    session: AsyncSession, client: Any, row: QboSyncOutbox
+) -> tuple[str, dict[str, Any]]:
+    payload = await _journal_entry_local_payload(session, row.payload)
+    qbo_obj = await client.create("JournalEntry", payload, request_id=row.request_id)
+    return "JournalEntry", qbo_obj
+
+
+register_builder("inter_account_transfer", build_journal_entry_local)
+register_builder("bank_match", build_journal_entry_local)
 
 
 # --------------------------------------------------------------------------- #

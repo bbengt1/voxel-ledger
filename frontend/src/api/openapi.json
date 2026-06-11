@@ -10529,14 +10529,18 @@
       "InterAccountTransferResponse": {
         "properties": {
           "journal_entry_id": {
-            "format": "uuid",
-            "title": "Journal Entry Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journal Entry Id"
           }
         },
-        "required": [
-          "journal_entry_id"
-        ],
         "title": "InterAccountTransferResponse",
         "type": "object"
       },
@@ -13143,6 +13147,46 @@
           }
         },
         "title": "LineUpdateRequest",
+        "type": "object"
+      },
+      "LocalAccountMapEntry": {
+        "properties": {
+          "qbo_account_id": {
+            "title": "Qbo Account Id",
+            "type": "string"
+          },
+          "qbo_account_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qbo Account Name"
+          }
+        },
+        "required": [
+          "qbo_account_id"
+        ],
+        "title": "LocalAccountMapEntry",
+        "type": "object"
+      },
+      "LocalAccountMapResponse": {
+        "properties": {
+          "mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LocalAccountMapEntry"
+            },
+            "title": "Mappings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "title": "LocalAccountMapResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -21469,6 +21513,22 @@
         "title": "SetAccountMapRequest",
         "type": "object"
       },
+      "SetLocalAccountMapRequest": {
+        "properties": {
+          "mappings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LocalAccountMapEntry"
+            },
+            "title": "Mappings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "title": "SetLocalAccountMapRequest",
+        "type": "object"
+      },
       "SettingResponse": {
         "description": "One setting, merged with its schema default and provenance.",
         "properties": {
@@ -28007,6 +28067,78 @@
           }
         ],
         "summary": "Quickbooks Set Enabled",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      }
+    },
+    "/api/v1/admin/quickbooks/local-account-map": {
+      "get": {
+        "operationId": "get_local_account_map_api_v1_admin_quickbooks_local_account_map_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalAccountMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Local Account Map",
+        "tags": [
+          "admin",
+          "admin-quickbooks"
+        ]
+      },
+      "put": {
+        "operationId": "put_local_account_map_api_v1_admin_quickbooks_local_account_map_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLocalAccountMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalAccountMapResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Local Account Map",
         "tags": [
           "admin",
           "admin-quickbooks"

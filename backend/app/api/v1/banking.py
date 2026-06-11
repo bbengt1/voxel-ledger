@@ -933,4 +933,4 @@ async def post_inter_account_transfer(
         await session.rollback()
         raise _map_error(exc) from None
     await session.commit()
-    return InterAccountTransferResponse(journal_entry_id=entry.id)
+    return InterAccountTransferResponse(journal_entry_id=entry.id if entry else None)

@@ -284,4 +284,5 @@ class InterAccountTransferRequest(BaseModel):
 
 
 class InterAccountTransferResponse(BaseModel):
-    journal_entry_id: uuid.UUID
+    # None in QBO replace-mode (epic #312): the posting is pushed to QBO async.
+    journal_entry_id: uuid.UUID | None = None
