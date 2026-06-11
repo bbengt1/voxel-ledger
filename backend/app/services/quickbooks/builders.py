@@ -179,6 +179,8 @@ async def _journal_entry_local_payload(
     payload: dict[str, Any] = {"Line": qbo_lines}
     if spec.get("doc_number"):
         payload["DocNumber"] = spec["doc_number"]
+    if spec.get("txn_date"):
+        payload["TxnDate"] = spec["txn_date"]
     if spec.get("private_note"):
         payload["PrivateNote"] = spec["private_note"]
     return payload
@@ -194,6 +196,9 @@ async def build_journal_entry_local(
 
 register_builder("inter_account_transfer", build_journal_entry_local)
 register_builder("bank_match", build_journal_entry_local)
+# The Phase-5b cutover opening-balance JE (#318) — one line per local account
+# with a non-zero balance, dated at the cutover via ``txn_date``.
+register_builder("opening_balance", build_journal_entry_local)
 
 
 # --------------------------------------------------------------------------- #

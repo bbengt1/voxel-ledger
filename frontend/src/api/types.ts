@@ -544,6 +544,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/quickbooks/decommission/opening-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Opening Balance */
+        get: operations["preview_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_get"];
+        put?: never;
+        /** Seed Opening Balance */
+        post: operations["seed_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/quickbooks/disconnect": {
         parameters: {
             query?: never;
@@ -11863,6 +11881,67 @@ export interface components {
             /** Customer Name */
             customer_name?: string | null;
         };
+        /** OpeningBalanceLineResponse */
+        OpeningBalanceLineResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Amount */
+            amount: string;
+            /** Balance */
+            balance: string;
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Posting */
+            posting: string;
+            /** Qbo Account Id */
+            qbo_account_id?: string | null;
+            /** Type */
+            type: string;
+        };
+        /** OpeningBalancePreviewResponse */
+        OpeningBalancePreviewResponse: {
+            /** Balanced */
+            balanced: boolean;
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+            /** Existing Status */
+            existing_status?: string | null;
+            /** Lines */
+            lines: components["schemas"]["OpeningBalanceLineResponse"][];
+            /** Total Credits */
+            total_credits: string;
+            /** Total Debits */
+            total_debits: string;
+            /** Unmapped Codes */
+            unmapped_codes: string[];
+        };
+        /** OpeningBalanceSeedRequest */
+        OpeningBalanceSeedRequest: {
+            /** Cutover Date */
+            cutover_date?: string | null;
+        };
+        /** OpeningBalanceSeedResponse */
+        OpeningBalanceSeedResponse: {
+            /** Doc Number */
+            doc_number: string;
+            /** Line Count */
+            line_count: number;
+            /**
+             * Outbox Id
+             * Format: uuid
+             */
+            outbox_id: string;
+            /** Status */
+            status: string;
+        };
         /** OutboxListResponse */
         OutboxListResponse: {
             /** Items */
@@ -17030,6 +17109,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArchiveManifestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_get: {
+        parameters: {
+            query?: {
+                cutover_date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningBalancePreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    seed_opening_balance_api_v1_admin_quickbooks_decommission_opening_balance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningBalanceSeedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpeningBalanceSeedResponse"];
                 };
             };
             /** @description Validation Error */
