@@ -79,6 +79,27 @@ async def _synced_outbox(session: AsyncSession, *, kind: str, local_id: uuid.UUI
     await session.flush()
 
 
+async def _matched_bank_tx(session: AsyncSession, *, linked: bool) -> uuid.UUID:
+    """A MATCHED bank transaction. ``linked=True`` simulates a match to an
+    existing journal line (no JE enqueued); ``linked=False`` is a QBO-mode
+    post_to_account match (bank_match enqueued, matched_journal_line_id NULL)."""
+    from app.models.bank import BankTransaction, BankTransactionState
+
+    tx = BankTransaction(
+        id=uuid.uuid4(),
+        account_id=uuid.uuid4(),
+        occurred_on=NOW.date(),
+        amount=100,
+        external_hash=uuid.uuid4().hex,
+        state=BankTransactionState.MATCHED.value,
+        matched_journal_line_id=uuid.uuid4() if linked else None,
+    )
+    tx.created_at = NOW
+    session.add(tx)
+    await session.flush()
+    return tx.id
+
+
 # --------------------------------------------------------------------------- #
 # service: gap detection + gate
 # --------------------------------------------------------------------------- #
@@ -163,6 +184,37 @@ async def test_open_drift_blocks_gate_and_counts_mismatch(app_session: AsyncSess
     assert report.drift_open == 1
     assert report.mismatch_candidates == 1  # change_type == "updated"
     assert report.decommission_ready is False
+
+
+@pytest.mark.asyncio
+async def test_bank_match_unsynced_is_a_gap(app_session: AsyncSession) -> None:
+    await seed_owner(app_session)
+    tx_id = await _matched_bank_tx(app_session, linked=False)
+    await app_session.commit()
+    report = await reconcile.build(app_session, date_from=NOW.date(), date_to=NOW.date())
+    assert str(tx_id) in {g.local_id for g in report.gaps if g.kind == "bank_match"}
+
+
+@pytest.mark.asyncio
+async def test_bank_match_linked_to_existing_line_is_not_a_gap(
+    app_session: AsyncSession,
+) -> None:
+    await seed_owner(app_session)
+    # Match to an existing journal line → no JE enqueued → must not be a gap.
+    await _matched_bank_tx(app_session, linked=True)
+    await app_session.commit()
+    report = await reconcile.build(app_session, date_from=NOW.date(), date_to=NOW.date())
+    assert all(g.kind != "bank_match" for g in report.gaps)
+
+
+@pytest.mark.asyncio
+async def test_bank_match_synced_closes_gap(app_session: AsyncSession) -> None:
+    await seed_owner(app_session)
+    tx_id = await _matched_bank_tx(app_session, linked=False)
+    await _synced_outbox(app_session, kind="bank_match", local_id=tx_id)
+    await app_session.commit()
+    report = await reconcile.build(app_session, date_from=NOW.date(), date_to=NOW.date())
+    assert all(g.kind != "bank_match" for g in report.gaps)
 
 
 # --------------------------------------------------------------------------- #

@@ -23,6 +23,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.bank import BankTransaction, BankTransactionState
 from app.models.bill import Bill, BillState
 from app.models.bill_payment import BillPayment, BillPaymentState
 from app.models.credit_note import CreditNote, CreditNoteState, DebitNote, DebitNoteState
@@ -52,6 +53,10 @@ class _GapSource:
     ts_attr: str  # timestamp column used for the reconciliation date range
     ref_attr: str | None  # human reference (number); None → fall back to id
     states: tuple[str, ...] | None  # finalized state values; None → all rows
+    # Optional extra "this column IS NULL" filter — narrows a shared state to the
+    # rows that actually enqueue (e.g. only QBO-mode bank matches, which leave
+    # ``matched_journal_line_id`` NULL; matches to an existing line make no JE).
+    null_attr: str | None = None
 
 
 # The gated posting sites (Phase 3b-3f). A record in a finalized state below,
@@ -143,6 +148,22 @@ _GAP_SOURCES: tuple[_GapSource, ...] = (
         None,
         (DepreciationEntryState.POSTED.value, DepreciationEntryState.ADJUSTED.value),
     ),
+    # Bank auto-matcher: a MATCHED txn enqueues a ``bank_match`` JE only on the
+    # post_to_account action (QBO mode), which leaves ``matched_journal_line_id``
+    # NULL. Matches that link an existing journal line make no JE — excluded via
+    # the null_attr filter so they don't false-positive as gaps.
+    _GapSource(
+        "bank_match",
+        BankTransaction,
+        "created_at",
+        None,
+        (BankTransactionState.MATCHED.value,),
+        null_attr="matched_journal_line_id",
+    ),
+    # NOTE: ``inter_account_transfer`` has no source table — the transfer is a
+    # synthetic id whose only record IS the outbox row. It therefore can't be
+    # "missing": any un-synced transfer is already caught by the gate's outbox
+    # pending/failed/dead check. So there is intentionally no gap source for it.
 )
 
 
@@ -202,6 +223,8 @@ async def _gaps_for(
     stmt = select(*cols).where(ts_col >= from_dt).where(ts_col <= to_dt)
     if src.states is not None:
         stmt = stmt.where(src.model.state.in_(src.states))
+    if src.null_attr is not None:
+        stmt = stmt.where(getattr(src.model, src.null_attr).is_(None))
     stmt = stmt.where(src.model.id.not_in(synced))
 
     rows = (await session.execute(stmt)).all()
