@@ -84,6 +84,27 @@ wait_pg() {
 }
 
 # ---------------------------------------------------------------------------
+# Postgres client tools (smoke mode): prefer host binaries, fall back to the
+# postgres:16 image when the host has none (CI runners ship docker but not
+# the client package). --network host keeps the localhost URLs working; the
+# drill temp dir is bind-mounted so pg_dump and pg_restore share the dump
+# file with the host.
+# ---------------------------------------------------------------------------
+CLIENT_IMAGE="${DRILL_CLIENT_IMAGE:-postgres:16}"
+DRILL_TMPDIR=""
+
+pg_client() {
+  local tool="$1"; shift
+  if command -v "${tool}" >/dev/null 2>&1; then
+    "${tool}" "$@"
+  else
+    docker run --rm --network host \
+      ${DRILL_TMPDIR:+-v "${DRILL_TMPDIR}:${DRILL_TMPDIR}"} \
+      "${CLIENT_IMAGE}" "${tool}" "$@"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # smoke mode
 # ---------------------------------------------------------------------------
 
@@ -100,7 +121,7 @@ run_smoke() {
   echo "[drill] target ready on :${DST_PORT}"
 
   local src_counts
-  src_counts=$(psql "${SRC_URL}" -At -c "
+  src_counts=$(pg_client psql "${SRC_URL}" -At -c "
     SELECT 'event:'      || COALESCE(MAX(position),0) FROM event
     UNION ALL SELECT 'journal_entry:' || COALESCE(COUNT(*),0) FROM journal_entry
     UNION ALL SELECT 'invoice:'       || COALESCE(COUNT(*),0) FROM invoice
@@ -110,17 +131,17 @@ run_smoke() {
   echo "${src_counts}" | sed 's/^/  /'
 
   local dst_url="postgres://drill:drill@localhost:${DST_PORT}/drill"
-  local dump
-  dump=$(mktemp -t voxel-drill-XXXXXX.dump)
-  trap 'rm -f "${dump}"; cleanup' EXIT
+  DRILL_TMPDIR=$(mktemp -d -t voxel-drill-XXXXXX)
+  local dump="${DRILL_TMPDIR}/payload.dump"
+  trap 'rm -rf "${DRILL_TMPDIR}"; cleanup' EXIT
   echo "[drill] pg_dump (custom format)"
-  pg_dump --format=custom --no-owner --no-acl --file="${dump}" "${SRC_URL}"
+  pg_client pg_dump --format=custom --no-owner --no-acl --file="${dump}" "${SRC_URL}"
   echo "[drill] pg_restore"
-  pg_restore --clean --if-exists --no-owner --no-acl \
+  pg_client pg_restore --clean --if-exists --no-owner --no-acl \
     --dbname="${dst_url}" "${dump}"
 
   local dst_counts
-  dst_counts=$(psql "${dst_url}" -At -c "
+  dst_counts=$(pg_client psql "${dst_url}" -At -c "
     SELECT 'event:'      || COALESCE(MAX(position),0) FROM event
     UNION ALL SELECT 'journal_entry:' || COALESCE(COUNT(*),0) FROM journal_entry
     UNION ALL SELECT 'invoice:'       || COALESCE(COUNT(*),0) FROM invoice
@@ -136,9 +157,9 @@ run_smoke() {
   fi
 
   local src_tail dst_tail
-  src_tail=$(psql "${SRC_URL}" -At -c \
+  src_tail=$(pg_client psql "${SRC_URL}" -At -c \
     "SELECT event_hash FROM event ORDER BY position DESC LIMIT 1")
-  dst_tail=$(psql "${dst_url}" -At -c \
+  dst_tail=$(pg_client psql "${dst_url}" -At -c \
     "SELECT event_hash FROM event ORDER BY position DESC LIMIT 1")
   if [[ "${src_tail}" != "${dst_tail}" ]]; then
     echo "[drill] EVENT-HASH MISMATCH src=${src_tail} dst=${dst_tail}" >&2
