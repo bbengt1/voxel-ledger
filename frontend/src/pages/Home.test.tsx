@@ -31,14 +31,16 @@ function renderPage() {
 
 const KPI_PAYLOAD = {
   as_of: "2026-05-20",
-  cash_on_hand: "1234.56",
+  // GL tiles are null since QBO replace-mode (#318 5d) — rendered as
+  // "—" with an "In QuickBooks" hint.
+  cash_on_hand: null,
   accounts_receivable: "500.00",
   accounts_payable: "200.00",
   overdue_invoice_count: 1,
   overdue_bill_count: 0,
   low_stock_alert_count: 2,
-  net_income_mtd: "100.00",
-  net_income_ytd: "1000.00",
+  net_income_mtd: null,
+  net_income_ytd: null,
   last_updated_at: "2026-05-20T10:00:00Z",
 };
 
@@ -50,23 +52,9 @@ describe("<HomePage /> dashboard", () => {
     localStorage.clear();
     mock = new MockAdapter(apiClient);
     setOwner();
-    // KPI tiles + income-statement series + AI insights latest must all
-    // return something so the polling/effect chain settles.
+    // KPI tiles + AI insights latest must both return something so the
+    // polling/effect chain settles.
     mock.onGet("/api/v1/dashboard/kpis").reply(200, KPI_PAYLOAD);
-    mock.onGet("/api/v1/reports/income-statement").reply(200, {
-      date_from: "2026-05-01",
-      date_to: "2026-05-31",
-      division_id: null,
-      revenue_rows: [],
-      cogs_rows: [],
-      operating_expense_rows: [],
-      total_revenue: "0",
-      total_cogs: "0",
-      gross_profit: "0",
-      total_operating_expenses: "0",
-      operating_income: "0",
-      net_income: "0",
-    });
   });
 
   afterEach(() => {
@@ -83,8 +71,10 @@ describe("<HomePage /> dashboard", () => {
     await waitFor(() =>
       expect(screen.getByTestId("kpi-tiles")).toBeInTheDocument(),
     );
-    expect(screen.getByText("1234.56")).toBeInTheDocument();
+    expect(screen.getByText("500.00")).toBeInTheDocument();
     expect(screen.getByText("1 overdue")).toBeInTheDocument();
+    // GL tiles render as moved-to-QuickBooks placeholders.
+    expect(screen.getAllByText("In QuickBooks").length).toBeGreaterThan(0);
     expect(
       screen.getByText(/No insight ready yet/),
     ).toBeInTheDocument();

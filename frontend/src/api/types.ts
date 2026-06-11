@@ -5124,162 +5124,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/reports/ap-aging": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ap Aging Report */
-        get: operations["ap_aging_report_api_v1_reports_ap_aging_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/ar-aging": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ar Aging Report */
-        get: operations["ar_aging_report_api_v1_reports_ar_aging_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/balance-sheet": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Balance Sheet Report */
-        get: operations["balance_sheet_report_api_v1_reports_balance_sheet_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/budget-variance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Budget Variance Report
-         * @description Budget vs actual variance for an ``accounting_period`` (Parity
-         *     #227). When ``division_id`` is set, both sides are filtered to
-         *     that division.
-         */
-        get: operations["budget_variance_report_api_v1_reports_budget_variance_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/cash-flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Cash Flow Report */
-        get: operations["cash_flow_report_api_v1_reports_cash_flow_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/divisions-comparison": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Divisions Comparison Report
-         * @description Per-division income statement side-by-side (Parity #229).
-         *
-         *     Every non-archived division gets its own column; lines without
-         *     a division contribute to a final ``(unallocated)`` column. CSV
-         *     export mirrors the table's column shape.
-         */
-        get: operations["divisions_comparison_report_api_v1_reports_divisions_comparison_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/general-ledger-detail": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * General Ledger Detail Report
-         * @description Per-account drill-down behind the trial balance.
-         *
-         *     Returns one section per touched account (or just the
-         *     ``account_id``-filtered one) with opening balance + every JE
-         *     line in the window + running balance + closing balance. CSV
-         *     export via ``?format=csv``.
-         */
-        get: operations["general_ledger_detail_report_api_v1_reports_general_ledger_detail_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/income-statement": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Income Statement Report */
-        get: operations["income_statement_report_api_v1_reports_income_statement_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/reports/inventory-valuation": {
         parameters: {
             query?: never;
@@ -5297,6 +5141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/quickbooks-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Quickbooks Link
+         * @description Where financial reporting lives now: the QBO web app (#318 Phase 5d).
+         */
+        get: operations["quickbooks_link_api_v1_reports_quickbooks_link_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/sales-by-period": {
         parameters: {
             query?: never;
@@ -5306,40 +5170,6 @@ export interface paths {
         };
         /** Sales By Period Report */
         get: operations["sales_by_period_report_api_v1_reports_sales_by_period_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/tax-liability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Tax Liability Report */
-        get: operations["tax_liability_report_api_v1_reports_tax_liability_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/reports/trial-balance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Trial Balance Report */
-        get: operations["trial_balance_report_api_v1_reports_trial_balance_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6798,29 +6628,6 @@ export interface components {
              */
             quantity: number | string;
         };
-        /** AgingBucketResponse */
-        AgingBucketResponse: {
-            /** Amount */
-            amount: string;
-            /** Label */
-            label: string;
-        };
-        /** AgingRowResponse */
-        AgingRowResponse: {
-            /** Buckets */
-            buckets: components["schemas"]["AgingBucketResponse"][];
-            /**
-             * Customer Id
-             * Format: uuid
-             */
-            customer_id: string;
-            /** Customer Number */
-            customer_number: string;
-            /** Display Name */
-            display_name: string;
-            /** Total Outstanding */
-            total_outstanding: string;
-        };
         /** AiInsightRequest */
         AiInsightRequest: {
             /**
@@ -6893,45 +6700,6 @@ export interface components {
             sample: {
                 [key: string]: unknown;
             }[];
-        };
-        /** ApAgingBucketResponse */
-        ApAgingBucketResponse: {
-            /** Amount */
-            amount: string;
-            /** Label */
-            label: string;
-        };
-        /** ApAgingReportResponse */
-        ApAgingReportResponse: {
-            /**
-             * As Of
-             * Format: date-time
-             */
-            as_of: string;
-            /** Bucket Labels */
-            bucket_labels: string[];
-            /** Grand Total */
-            grand_total: string;
-            /** Grand Total By Bucket */
-            grand_total_by_bucket: string[];
-            /** Rows */
-            rows: components["schemas"]["ApAgingRowResponse"][];
-        };
-        /** ApAgingRowResponse */
-        ApAgingRowResponse: {
-            /** Buckets */
-            buckets: components["schemas"]["ApAgingBucketResponse"][];
-            /** Display Name */
-            display_name: string;
-            /** Total Outstanding */
-            total_outstanding: string;
-            /**
-             * Vendor Id
-             * Format: uuid
-             */
-            vendor_id: string;
-            /** Vendor Number */
-            vendor_number: string;
         };
         /**
          * ApprovalActionRequest
@@ -7011,22 +6779,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-        };
-        /** ArAgingReportResponse */
-        ArAgingReportResponse: {
-            /**
-             * As Of
-             * Format: date-time
-             */
-            as_of: string;
-            /** Bucket Labels */
-            bucket_labels: string[];
-            /** Grand Total */
-            grand_total: string;
-            /** Grand Total By Bucket */
-            grand_total_by_bucket: string[];
-            /** Rows */
-            rows: components["schemas"]["AgingRowResponse"][];
         };
         /** ArchiveListResponse */
         ArchiveListResponse: {
@@ -7179,50 +6931,6 @@ export interface components {
             } | null;
             /** Summary */
             summary: string;
-        };
-        /** BalanceSheetResponse */
-        BalanceSheetResponse: {
-            /**
-             * As Of
-             * Format: date
-             */
-            as_of: string;
-            /** Asset Rows */
-            asset_rows: components["schemas"]["BalanceSheetRowResponse"][];
-            /** Division Id */
-            division_id?: string | null;
-            /** Equity Rows */
-            equity_rows: components["schemas"]["BalanceSheetRowResponse"][];
-            /** Imbalance */
-            imbalance: string;
-            /** Liability Rows */
-            liability_rows: components["schemas"]["BalanceSheetRowResponse"][];
-            /** Total Assets */
-            total_assets: string;
-            /** Total Equity */
-            total_equity: string;
-            /** Total Liabilities */
-            total_liabilities: string;
-            /** Total Liabilities And Equity */
-            total_liabilities_and_equity: string;
-        };
-        /** BalanceSheetRowResponse */
-        BalanceSheetRowResponse: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Balance */
-            balance: string;
-            /** Code */
-            code: string;
-            /** Depth */
-            depth: number;
-            /** Name */
-            name: string;
-            /** Section */
-            section: string;
         };
         /** BankAutoMatchResultItem */
         BankAutoMatchResultItem: {
@@ -8341,46 +8049,6 @@ export interface components {
              */
             period_id: string;
         };
-        /** BudgetVarianceResponse */
-        BudgetVarianceResponse: {
-            /** Cogs Rows */
-            cogs_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Operating Expense Rows */
-            operating_expense_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /**
-             * Period Id
-             * Format: uuid
-             */
-            period_id: string;
-            /** Period Name */
-            period_name: string;
-            /** Revenue Rows */
-            revenue_rows: components["schemas"]["BudgetVarianceRowResponse"][];
-            /** Total Cogs Actual */
-            total_cogs_actual: string;
-            /** Total Cogs Budget */
-            total_cogs_budget: string;
-            /** Total Operating Expense Actual */
-            total_operating_expense_actual: string;
-            /** Total Operating Expense Budget */
-            total_operating_expense_budget: string;
-            /** Total Revenue Actual */
-            total_revenue_actual: string;
-            /** Total Revenue Budget */
-            total_revenue_budget: string;
-        };
         /** BudgetVarianceRow */
         BudgetVarianceRow: {
             /** Account Code */
@@ -8409,28 +8077,6 @@ export interface components {
             variance: string;
             /** Variance Pct */
             variance_pct: string;
-        };
-        /** BudgetVarianceRowResponse */
-        BudgetVarianceRowResponse: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Actual */
-            actual: string;
-            /** Budget */
-            budget: string;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Section */
-            section: string;
-            /** Variance */
-            variance: string;
-            /** Variance Pct */
-            variance_pct?: string | null;
         };
         /** BudgetVarianceSummaryResponse */
         BudgetVarianceSummaryResponse: {
@@ -8815,46 +8461,6 @@ export interface components {
             /** Tax Profile Id */
             tax_profile_id?: string | null;
         };
-        /** CashFlowLineResponse */
-        CashFlowLineResponse: {
-            /** Amount */
-            amount: string;
-            /** Line Item */
-            line_item: string;
-            /** Section */
-            section: string;
-        };
-        /** CashFlowResponse */
-        CashFlowResponse: {
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Financing Lines */
-            financing_lines: components["schemas"]["CashFlowLineResponse"][];
-            /** Financing Total */
-            financing_total: string;
-            /** Investing Lines */
-            investing_lines: components["schemas"]["CashFlowLineResponse"][];
-            /** Investing Total */
-            investing_total: string;
-            /** Net Change In Cash */
-            net_change_in_cash: string;
-            /** Operating Lines */
-            operating_lines: components["schemas"]["CashFlowLineResponse"][];
-            /** Operating Total */
-            operating_total: string;
-            /** Reconciliation Residual */
-            reconciliation_residual: string;
-        };
         /** CheckoutRequest */
         CheckoutRequest: {
             /** Customer Email */
@@ -8879,30 +8485,6 @@ export interface components {
             /** Change Due */
             change_due: string;
             sale: components["schemas"]["SaleResponse"];
-        };
-        /** ComparisonColumnResponse */
-        ComparisonColumnResponse: {
-            /** Code */
-            code: string;
-            /** Division Id */
-            division_id: string;
-            /** Label */
-            label: string;
-        };
-        /** ComparisonRowResponse */
-        ComparisonRowResponse: {
-            /** Account Id */
-            account_id: string;
-            /** Amounts */
-            amounts: {
-                [key: string]: string;
-            };
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Section */
-            section: string;
         };
         /** ConnectResponse */
         ConnectResponse: {
@@ -9388,7 +8970,7 @@ export interface components {
              */
             as_of: string;
             /** Cash On Hand */
-            cash_on_hand: string;
+            cash_on_hand?: string | null;
             /**
              * Last Updated At
              * Format: date-time
@@ -9397,9 +8979,9 @@ export interface components {
             /** Low Stock Alert Count */
             low_stock_alert_count: number;
             /** Net Income Mtd */
-            net_income_mtd: string;
+            net_income_mtd?: string | null;
             /** Net Income Ytd */
-            net_income_ytd: string;
+            net_income_ytd?: string | null;
             /** Overdue Bill Count */
             overdue_bill_count: number;
             /** Overdue Invoice Count */
@@ -9685,51 +9267,6 @@ export interface components {
         DivisionUpdateRequest: {
             /** Name */
             name?: string | null;
-        };
-        /** DivisionsComparisonResponse */
-        DivisionsComparisonResponse: {
-            /** Cogs Rows */
-            cogs_rows: components["schemas"]["ComparisonRowResponse"][];
-            /** Columns */
-            columns: components["schemas"]["ComparisonColumnResponse"][];
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Gross Profit */
-            gross_profit: {
-                [key: string]: string;
-            };
-            /** Net Income */
-            net_income: {
-                [key: string]: string;
-            };
-            /** Operating Expense Rows */
-            operating_expense_rows: components["schemas"]["ComparisonRowResponse"][];
-            /** Operating Income */
-            operating_income: {
-                [key: string]: string;
-            };
-            /** Revenue Rows */
-            revenue_rows: components["schemas"]["ComparisonRowResponse"][];
-            /** Total Cogs */
-            total_cogs: {
-                [key: string]: string;
-            };
-            /** Total Operating Expenses */
-            total_operating_expenses: {
-                [key: string]: string;
-            };
-            /** Total Revenue */
-            total_revenue: {
-                [key: string]: string;
-            };
         };
         /** DriftItemResponse */
         DriftItemResponse: {
@@ -10503,57 +10040,6 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
-        };
-        /** IncomeStatementResponse */
-        IncomeStatementResponse: {
-            /** Cogs Rows */
-            cogs_rows: components["schemas"]["IncomeStatementRowResponse"][];
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Gross Profit */
-            gross_profit: string;
-            /** Net Income */
-            net_income: string;
-            /** Operating Expense Rows */
-            operating_expense_rows: components["schemas"]["IncomeStatementRowResponse"][];
-            /** Operating Income */
-            operating_income: string;
-            /** Revenue Rows */
-            revenue_rows: components["schemas"]["IncomeStatementRowResponse"][];
-            /** Total Cogs */
-            total_cogs: string;
-            /** Total Operating Expenses */
-            total_operating_expenses: string;
-            /** Total Revenue */
-            total_revenue: string;
-        };
-        /** IncomeStatementRowResponse */
-        IncomeStatementRowResponse: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Amount */
-            amount: string;
-            /** Code */
-            code: string;
-            /** Depth */
-            depth: number;
-            /** Name */
-            name: string;
-            /** Section */
-            section: string;
         };
         /** InterAccountTransferRequest */
         InterAccountTransferRequest: {
@@ -11441,72 +10927,6 @@ export interface components {
             kind?: ("percent_of_outstanding" | "flat" | "compound_percent") | null;
             /** Notes */
             notes?: string | null;
-        };
-        /** LedgerDetailResponse */
-        LedgerDetailResponse: {
-            /** Account Id */
-            account_id?: string | null;
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Sections */
-            sections: components["schemas"]["LedgerSectionResponse"][];
-        };
-        /** LedgerLineResponse */
-        LedgerLineResponse: {
-            /** Credit */
-            credit: string;
-            /** Debit */
-            debit: string;
-            /** Description */
-            description: string;
-            /** Entry Number */
-            entry_number: string;
-            /**
-             * Journal Entry Id
-             * Format: uuid
-             */
-            journal_entry_id: string;
-            /**
-             * Posted At
-             * Format: date-time
-             */
-            posted_at: string;
-            /** Running Balance */
-            running_balance: string;
-        };
-        /** LedgerSectionResponse */
-        LedgerSectionResponse: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Closing Balance */
-            closing_balance: string;
-            /** Code */
-            code: string;
-            /** Lines */
-            lines: components["schemas"]["LedgerLineResponse"][];
-            /** Name */
-            name: string;
-            /** Opening Balance */
-            opening_balance: string;
-            /** Period Credit */
-            period_credit: string;
-            /** Period Debit */
-            period_debit: string;
-            /** Type */
-            type: string;
         };
         /** LineUpdateRequest */
         LineUpdateRequest: {
@@ -13027,6 +12447,11 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** QuickBooksLinkResponse */
+        QuickBooksLinkResponse: {
+            /** Url */
+            url: string;
         };
         /** QuickBooksStatusResponse */
         QuickBooksStatusResponse: {
@@ -14905,60 +14330,6 @@ export interface components {
             };
             sync_worker: components["schemas"]["WorkerHealthResponse"];
         };
-        /** TaxLiabilityReportResponse */
-        TaxLiabilityReportResponse: {
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Grand Total Collected */
-            grand_total_collected: string;
-            /** Grand Total Net */
-            grand_total_net: string;
-            /** Grand Total Remitted */
-            grand_total_remitted: string;
-            /** Rows */
-            rows: components["schemas"]["TaxLiabilityRowResponse"][];
-        };
-        /** TaxLiabilityRowResponse */
-        TaxLiabilityRowResponse: {
-            /** Compound On Previous */
-            compound_on_previous: boolean;
-            /** Gross Taxable Sales */
-            gross_taxable_sales: string;
-            /** Jurisdiction */
-            jurisdiction: string;
-            /** Net Liability */
-            net_liability: string;
-            /** Profile Code */
-            profile_code: string;
-            /**
-             * Profile Id
-             * Format: uuid
-             */
-            profile_id: string;
-            /** Profile Name */
-            profile_name: string;
-            /** Rate */
-            rate: string;
-            /**
-             * Rate Id
-             * Format: uuid
-             */
-            rate_id: string;
-            /** Rate Name */
-            rate_name: string;
-            /** Tax Collected */
-            tax_collected: string;
-            /** Tax Remitted */
-            tax_remitted: string;
-        };
         /** TaxProfileCreate */
         TaxProfileCreate: {
             /** Code */
@@ -15232,51 +14603,6 @@ export interface components {
              * @default bearer
              */
             token_type: string;
-        };
-        /** TrialBalanceResponse */
-        TrialBalanceResponse: {
-            /**
-             * Date From
-             * Format: date
-             */
-            date_from: string;
-            /**
-             * Date To
-             * Format: date
-             */
-            date_to: string;
-            /** Division Id */
-            division_id?: string | null;
-            /** Include Zero */
-            include_zero: boolean;
-            /** Rows */
-            rows: components["schemas"]["TrialBalanceRowResponse"][];
-            /** Total Period Credit */
-            total_period_credit: string;
-            /** Total Period Debit */
-            total_period_debit: string;
-        };
-        /** TrialBalanceRowResponse */
-        TrialBalanceRowResponse: {
-            /**
-             * Account Id
-             * Format: uuid
-             */
-            account_id: string;
-            /** Closing Balance */
-            closing_balance: string;
-            /** Code */
-            code: string;
-            /** Name */
-            name: string;
-            /** Opening Balance */
-            opening_balance: string;
-            /** Period Credit */
-            period_credit: string;
-            /** Period Debit */
-            period_debit: string;
-            /** Type */
-            type: string;
         };
         /** UnbilledRow */
         UnbilledRow: {
@@ -28041,272 +27367,6 @@ export interface operations {
             };
         };
     };
-    ap_aging_report_api_v1_reports_ap_aging_get: {
-        parameters: {
-            query?: {
-                buckets?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApAgingReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ar_aging_report_api_v1_reports_ar_aging_get: {
-        parameters: {
-            query?: {
-                buckets?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ArAgingReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    balance_sheet_report_api_v1_reports_balance_sheet_get: {
-        parameters: {
-            query: {
-                as_of: string;
-                division_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BalanceSheetResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    budget_variance_report_api_v1_reports_budget_variance_get: {
-        parameters: {
-            query: {
-                period_id: string;
-                division_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BudgetVarianceResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cash_flow_report_api_v1_reports_cash_flow_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                division_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CashFlowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    divisions_comparison_report_api_v1_reports_divisions_comparison_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DivisionsComparisonResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    general_ledger_detail_report_api_v1_reports_general_ledger_detail_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                account_id?: string | null;
-                division_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LedgerDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    income_statement_report_api_v1_reports_income_statement_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                division_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IncomeStatementResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     inventory_valuation_report_api_v1_reports_inventory_valuation_get: {
         parameters: {
             query?: {
@@ -28340,6 +27400,26 @@ export interface operations {
             };
         };
     };
+    quickbooks_link_api_v1_reports_quickbooks_link_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickBooksLinkResponse"];
+                };
+            };
+        };
+    };
     sales_by_period_report_api_v1_reports_sales_by_period_get: {
         parameters: {
             query: {
@@ -28362,75 +27442,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SalesByPeriodResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tax_liability_report_api_v1_reports_tax_liability_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                profile_id?: string | null;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaxLiabilityReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    trial_balance_report_api_v1_reports_trial_balance_get: {
-        parameters: {
-            query: {
-                date_from: string;
-                date_to: string;
-                division_id?: string | null;
-                include_zero?: boolean;
-                format?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrialBalanceResponse"];
                 };
             };
             /** @description Validation Error */

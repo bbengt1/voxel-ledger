@@ -17,7 +17,7 @@ import { AppProviders } from "@/app/AppProviders";
 import { ControlCenterPage } from "@/pages/ControlCenter";
 import { HomePage } from "@/pages/Home";
 import { LoginPage } from "@/pages/Login";
-import { IncomeStatementPage } from "@/pages/reports/IncomeStatement";
+import { ReportsInQuickBooksPage } from "@/pages/reports/ReportsInQuickBooks";
 import { useAuthStore } from "@/store/useAuthStore";
 import { expectNoA11yViolations } from "@/test-utils/axe";
 
@@ -71,29 +71,16 @@ describe("WCAG 2.1 AA — primary flows", () => {
     setOwner();
     mock.onGet("/api/v1/dashboard/kpis").reply(200, {
       as_of: "2026-05-21",
-      cash_on_hand: "0",
+      // GL tiles are null since QBO replace-mode (#318 5d).
+      cash_on_hand: null,
       accounts_receivable: "0",
       accounts_payable: "0",
       overdue_invoice_count: 0,
       overdue_bill_count: 0,
       low_stock_alert_count: 0,
-      net_income_mtd: "0",
-      net_income_ytd: "0",
+      net_income_mtd: null,
+      net_income_ytd: null,
       last_updated_at: "2026-05-21T00:00:00Z",
-    });
-    mock.onGet("/api/v1/reports/income-statement").reply(200, {
-      date_from: "2026-05-01",
-      date_to: "2026-05-31",
-      division_id: null,
-      revenue_rows: [],
-      cogs_rows: [],
-      operating_expense_rows: [],
-      total_revenue: "0",
-      total_cogs: "0",
-      gross_profit: "0",
-      total_operating_expenses: "0",
-      operating_income: "0",
-      net_income: "0",
     });
     mock.onGet("/api/v1/dashboard/ai-insights/latest").reply(200, null);
 
@@ -124,27 +111,16 @@ describe("WCAG 2.1 AA — primary flows", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("Income Statement report has no axe violations", async () => {
+  it("Reports-in-QuickBooks explainer has no axe violations", async () => {
     setOwner();
-    mock.onGet("/api/v1/reports/income-statement").reply(200, {
-      date_from: "2026-05-01",
-      date_to: "2026-05-31",
-      division_id: null,
-      revenue_rows: [],
-      cogs_rows: [],
-      operating_expense_rows: [],
-      total_revenue: "0",
-      total_cogs: "0",
-      gross_profit: "0",
-      total_operating_expenses: "0",
-      operating_income: "0",
-      net_income: "0",
+    mock.onGet("/api/v1/reports/quickbooks-link").reply(200, {
+      url: "https://app.qbo.intuit.com",
     });
     const { container, findByText } = renderRoute(
-      "/reports/income-statement",
-      <IncomeStatementPage />,
+      "/reports/quickbooks",
+      <ReportsInQuickBooksPage />,
     );
-    await findByText(/Net income/i);
+    await findByText(/Financial reports live in QuickBooks/i);
     await expectNoA11yViolations(container);
   });
 });

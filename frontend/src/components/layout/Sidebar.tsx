@@ -68,7 +68,6 @@ const SECTIONS: NavSection[] = [
       { label: "Payments", href: "/payments" },
       { label: "Recurring", href: "/recurring-invoices" },
       { label: "Late-fee policies", href: "/late-fee-policies" },
-      { label: "AR aging", href: "/reports/ar-aging" },
     ],
   },
   {
@@ -130,17 +129,11 @@ const SECTIONS: NavSection[] = [
   {
     label: "Reports",
     items: [
-      { label: "Income statement", href: "/reports/income-statement" },
-      { label: "Balance sheet", href: "/reports/balance-sheet" },
-      { label: "Cash flow", href: "/reports/cash-flow" },
-      { label: "Trial balance", href: "/reports/trial-balance" },
-      { label: "Divisions comparison", href: "/reports/divisions-comparison" },
-      { label: "Budget vs actual", href: "/reports/budget-variance" },
+      // QBO replace-mode (#318 5d): financial statements + aging + tax
+      // liability live in QuickBooks; only operational reports remain in-app.
+      { label: "Financial reports (QuickBooks)", href: "/reports/quickbooks" },
       { label: "Sales by period", href: "/reports/sales-by-period" },
       { label: "Inventory valuation", href: "/reports/inventory-valuation" },
-      { label: "AR aging", href: "/reports/ar-aging" },
-      { label: "AP aging", href: "/reports/ap-aging" },
-      { label: "Tax liability", href: "/reports/tax-liability" },
       { label: "Withholding 1099", href: "/reports/withholding-1099" },
     ],
   },
