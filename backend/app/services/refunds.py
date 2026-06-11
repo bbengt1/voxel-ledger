@@ -566,6 +566,7 @@ async def post(
 
     # ---------------- Inventory restock ----------------
     inventory_tx_ids: list[uuid.UUID] = []
+    restock_cost = _ZERO  # accumulated cost of restocked units (for COGS reversal)
     if refund.restock_inventory:
         # Pull the prior sale_consumption rows for this sale (oldest first).
         stmt = (
@@ -616,11 +617,54 @@ async def post(
                 reason=(f"refund {refund.refund_number} restock " f"(consumption {row.id})"),
             )
             inventory_tx_ids.append(tx.id)
+            restock_cost = _q(restock_cost + _q(take * _q(row.unit_cost_at_transaction)))
             remaining_by_product[product_id] = _q(want - take)
 
     # ---------------- Journal entry reversal (proportional) ----------------
+    # QBO replace-mode (epic #312, Phase 3f): enqueue a role-tagged reversing
+    # JournalEntry (Dr revenue + Dr sales_tax / Cr bank for the cash refunded,
+    # plus Dr inventory / Cr cogs for any restock) instead of reading + scaling
+    # the local sale JE (which doesn't exist when QBO is the system of record).
+    from app.services.quickbooks import outbox as qbo_outbox
+
+    qbo_enabled = await qbo_outbox.is_enabled(session)
     reversing_je_id: uuid.UUID | None = None
-    if sale.posting_journal_entry_id is not None and refund_total > _ZERO:
+    if qbo_enabled:
+        if refund_total > _ZERO:
+            sale_total = _q(sale.total_amount)
+            ratio = (
+                Decimal("1")
+                if sale_total <= _ZERO
+                else (refund_total / sale_total).quantize(_QUANTUM, rounding=ROUND_HALF_UP)
+            )
+            refund_tax = _q(_q(sale.tax_amount) * ratio)
+            refund_revenue = _q(refund_total - refund_tax)
+            qbo_lines: list[dict] = []
+            if refund_revenue > _ZERO:
+                qbo_lines.append(
+                    {"role": "revenue", "posting": "debit", "amount": str(refund_revenue)}
+                )
+            if refund_tax > _ZERO:
+                qbo_lines.append(
+                    {"role": "sales_tax_payable", "posting": "debit", "amount": str(refund_tax)}
+                )
+            qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(refund_total)})
+            if restock_cost > _ZERO:
+                qbo_lines.append(
+                    {"role": "inventory", "posting": "debit", "amount": str(restock_cost)}
+                )
+                qbo_lines.append({"role": "cogs", "posting": "credit", "amount": str(restock_cost)})
+            await qbo_outbox.enqueue(
+                session,
+                kind="refund",
+                local_id=refund.id,
+                payload={
+                    "lines": qbo_lines,
+                    "private_note": f"Refund {refund.refund_number} of sale {sale.sale_number}",
+                },
+                op="post",
+            )
+    elif sale.posting_journal_entry_id is not None and refund_total > _ZERO:
         original = (
             await session.execute(
                 select(JournalEntry)

@@ -660,3 +660,6 @@ register_builder("tax_remittance", build_tax_remittance)
 register_builder("expense_claim", build_journal_entry)
 register_builder("deposit_slip", build_journal_entry)
 register_builder("settlement", build_journal_entry)
+# Refund (#316 Phase 3f): role-tagged reversing JE — Dr revenue/sales_tax,
+# Cr bank, plus Dr inventory / Cr cogs for any restock.
+register_builder("refund", build_journal_entry)
