@@ -35,6 +35,7 @@ from app.models.invoice import Invoice, InvoiceState
 from app.models.payment import Payment, PaymentState
 from app.models.qbo_cdc_drift import QboCdcDrift, QboDriftStatus
 from app.models.qbo_sync_outbox import QboSyncOutbox, QboSyncStatus
+from app.models.refund import Refund, RefundState
 from app.models.sale import Sale, SaleState
 from app.models.settlement import Settlement, SettlementState
 from app.models.tax_remittance import TaxRemittance, TaxRemittanceState
@@ -53,7 +54,7 @@ class _GapSource:
     states: tuple[str, ...] | None  # finalized state values; None → all rows
 
 
-# The 14 gated posting sites (Phase 3b-3d). A record in a finalized state below,
+# The gated posting sites (Phase 3b-3f). A record in a finalized state below,
 # created/issued within the range, must have a ``synced`` outbox row for ``kind``.
 _GAP_SOURCES: tuple[_GapSource, ...] = (
     _GapSource("sale", Sale, "created_at", "sale_number", (SaleState.FULFILLED.value,)),
@@ -70,6 +71,7 @@ _GAP_SOURCES: tuple[_GapSource, ...] = (
         ),
     ),
     _GapSource("payment", Payment, "received_at", "payment_number", (PaymentState.APPLIED.value,)),
+    _GapSource("refund", Refund, "created_at", "refund_number", (RefundState.POSTED.value,)),
     _GapSource(
         "bill",
         Bill,
