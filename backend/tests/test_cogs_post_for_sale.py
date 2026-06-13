@@ -144,11 +144,7 @@ async def test_confirm_emits_inventory_transactions_and_journal_entry(
 
     # Outbox carries the native sale doc + the COGS JournalEntry spec.
     outbox_rows = (
-        (
-            await app_session.execute(
-                select(QboSyncOutbox).where(QboSyncOutbox.local_id == sale.id)
-            )
-        )
+        (await app_session.execute(select(QboSyncOutbox).where(QboSyncOutbox.local_id == sale.id)))
         .scalars()
         .all()
     )
