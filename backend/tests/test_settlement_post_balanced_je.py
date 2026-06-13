@@ -1,20 +1,20 @@
-"""Posting a fully-matched settlement writes a balanced JE (Phase 9.9, #161)."""
+"""Posting a fully-matched settlement enqueues a balanced role-tagged JE on
+the QBO sync outbox (Phase 9.9, #161; QBO-sole-ledger since epic #312,
+Phase 5e)."""
 
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.models.sales_channel import SalesChannel
 from app.models.settlement import Settlement, SettlementState
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._settlement_helpers import auth_header, seed_settlement_stack, seed_user, token_for
 from tests._settlement_match_helpers import (
@@ -35,8 +35,10 @@ async def test_post_balanced_je(client: AsyncClient, app_session: AsyncSession) 
             select(SalesChannel).where(SalesChannel.id == stack["channel_id"])
         )
     ).scalar_one()
-    clearing = await seed_clearing_account(app_session, channel=channel)
-    fees = await seed_fee_account(app_session, channel=channel)
+    # Channel accounts must be configured even though the legs are now
+    # role-tagged (resolved at outbox drain time).
+    await seed_clearing_account(app_session, channel=channel)
+    await seed_fee_account(app_session, channel=channel)
 
     sale = await seed_sale(
         app_session,
@@ -75,24 +77,27 @@ async def test_post_balanced_je(client: AsyncClient, app_session: AsyncSession) 
     assert r2.status_code == 200, r2.text
     payload = r2.json()
     assert payload["state"] == "posted"
-    je_id = uuid.UUID(payload["posting_journal_entry_id"])
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE.
+    assert payload["posting_journal_entry_id"] is None
 
-    je = (
+    outbox_row = (
         await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "settlement", QboSyncOutbox.local_id == settlement.id
+            )
         )
     ).scalar_one()
-    by_account = {line.account_id: line for line in je.lines}
+    by_role = {
+        ln["role"]: (ln["posting"], Decimal(ln["amount"])) for ln in outbox_row.payload["lines"]
+    }
     # Dr payout 18.70, Dr fees 1.30, Cr clearing 20.00
-    assert by_account[stack["payout_account_id"]].debit == Decimal("18.700000")
-    assert by_account[fees.id].debit == Decimal("1.300000")
-    assert by_account[clearing.id].credit == Decimal("20.000000")
+    assert by_role["payout"] == ("debit", Decimal("18.70"))
+    assert by_role["marketplace_fee"] == ("debit", Decimal("1.30"))
+    assert by_role["marketplace_clearing"] == ("credit", Decimal("20.00"))
 
-    total_d = sum(line.debit for line in je.lines)
-    total_c = sum(line.credit for line in je.lines)
-    assert total_d == total_c == Decimal("20.000000")
+    total_d = sum(amt for posting, amt in by_role.values() if posting == "debit")
+    total_c = sum(amt for posting, amt in by_role.values() if posting == "credit")
+    assert total_d == total_c == Decimal("20.00")
 
     fresh = (
         await app_session.execute(select(Settlement).where(Settlement.id == settlement.id))

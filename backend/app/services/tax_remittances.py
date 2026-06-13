@@ -1,7 +1,8 @@
 """Tax remittance service (Phase 9.6, #158).
 
 Records an operator-initiated payment to a revenue authority against
-one tax profile. The same DB transaction posts a balanced JE:
+one tax profile. The same DB transaction enqueues a balanced posting
+on the QBO sync outbox (QBO is the sole ledger; epic #312, Phase 5e):
 
 * Dr each rate's ``liability_account_id`` for that rate's slice of the
   payment (default: pay down the full per-rate outstanding balance at
@@ -13,9 +14,8 @@ balance for the period — a partial payment is blocked unless
 ``allow_partial=True``, in which case the payment is allocated across
 the rates proportionally to their outstanding balances.
 
-Cancellation reverses the JE via :func:`journal_entries.reverse` and
-flips the row to ``cancelled``. The original JE id is preserved on the
-row alongside the reversal id in the event payload.
+Cancellation enqueues a QBO reversal via the sync outbox and flips the
+row to ``cancelled``.
 """
 
 from __future__ import annotations
@@ -44,7 +44,6 @@ from app.models.tax_remittance import (
 )
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 from app.services.reference_number import ReferenceNumberService
 
 # ---------------------------------------------------------------------------
@@ -291,10 +290,11 @@ async def record(
     allow_partial: bool = False,
     actor_user_id: uuid.UUID,
 ) -> TaxRemittance:
-    """Allocate + insert + post + emit, all in the same DB transaction.
+    """Allocate + insert + enqueue + emit, all in the same DB transaction.
 
-    The router commits. Any raise rolls back everything (row + JE +
-    event).
+    The router commits. Any raise rolls back everything (row + outbox
+    row + event). The posting is always pushed via the QBO sync outbox;
+    ``posting_journal_entry_id`` stays ``None``.
     """
     amount = _q(amount_paid)
     if amount <= _ZERO:
@@ -340,7 +340,6 @@ async def record(
     session.add(remittance)
     await session.flush()
 
-    posted_at = datetime.combine(paid_on, datetime.min.time(), tzinfo=UTC)
     per_rate_payload: list[dict[str, Any]] = [
         {
             "rate_id": str(r.rate_id),
@@ -353,62 +352,22 @@ async def record(
         if piece > _ZERO
     ]
 
-    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
-    # (per-rate Dr tax_liability, Cr bank) instead of posting the local GL.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
     posted_entry_id: uuid.UUID | None = None
-    if qbo_enabled:
-        qbo_lines: list[dict[str, Any]] = [
-            {"role": "tax_liability", "posting": "debit", "amount": p["amount"]}
-            for p in per_rate_payload
-        ]
-        qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(amount)})
-        await qbo_outbox.enqueue(
-            session,
-            kind="tax_remittance",
-            local_id=remittance.id,
-            payload={"lines": qbo_lines, "private_note": f"Tax remittance {remittance_number}"},
-            op="post",
-        )
-    else:
-        lines: list[journal_service.JournalLineInput] = []
-        line_no = 1
-        for r, piece in allocations:
-            if piece <= _ZERO:
-                continue
-            lines.append(
-                journal_service.JournalLineInput(
-                    account_id=r.liability_account_id,
-                    debit=piece,
-                    credit=_ZERO,
-                    line_number=line_no,
-                    memo=f"Dr tax liability {r.name} for {remittance_number}",
-                )
-            )
-            line_no += 1
-        lines.append(
-            journal_service.JournalLineInput(
-                account_id=bank.id,
-                debit=_ZERO,
-                credit=amount,
-                line_number=line_no,
-                memo=f"Cr bank for tax remittance {remittance_number}",
-            )
-        )
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Tax remittance {remittance_number} ({profile.code})",
-                posted_at=posted_at,
-                lines=lines,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(entry, JournalEntry)
-        posted_entry_id = entry.id
+    qbo_lines: list[dict[str, Any]] = [
+        {"role": "tax_liability", "posting": "debit", "amount": p["amount"]}
+        for p in per_rate_payload
+    ]
+    qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(amount)})
+    await qbo_outbox.enqueue(
+        session,
+        kind="tax_remittance",
+        local_id=remittance.id,
+        payload={"lines": qbo_lines, "private_note": f"Tax remittance {remittance_number}"},
+        op="post",
+    )
 
     remittance.posting_journal_entry_id = posted_entry_id
     await session.flush()
@@ -447,10 +406,10 @@ async def cancel(
     remittance_id: uuid.UUID,
     actor_user_id: uuid.UUID,
 ) -> TaxRemittance:
-    """Reverse the JE and flip the row to ``cancelled``.
+    """Enqueue a QBO reversal and flip the row to ``cancelled``.
 
-    The original ``posting_journal_entry_id`` stays on the row; the
-    reversal JE id is preserved on the event payload only.
+    The reversal is always pushed via the QBO sync outbox; no local
+    reversal JE is created.
     """
     remittance = (
         await session.execute(select(TaxRemittance).where(TaxRemittance.id == remittance_id))
@@ -461,32 +420,18 @@ async def cancel(
         raise TaxRemittanceStateError(
             f"tax remittance {remittance.remittance_number} is already cancelled"
         )
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
     original_je_id = remittance.posting_journal_entry_id
     reversal_je_id: uuid.UUID | None = None
-    if original_je_id is not None:
-        reversal = await journal_service.reverse(
-            original_je_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of tax remittance {remittance.remittance_number}",
-        )
-        reversal_je_id = reversal.id
-    elif qbo_enabled:
-        # QBO replace-mode: delete the QBO JournalEntry we pushed.
-        await qbo_outbox.enqueue(
-            session,
-            kind="tax_remittance",
-            local_id=remittance.id,
-            payload={"tax_remittance_id": str(remittance.id)},
-            op="reverse",
-        )
-    else:
-        raise TaxRemittanceStateError(
-            f"tax remittance {remittance.remittance_number} has no posted JE to reverse"
-        )
+    await qbo_outbox.enqueue(
+        session,
+        kind="tax_remittance",
+        local_id=remittance.id,
+        payload={"tax_remittance_id": str(remittance.id)},
+        op="reverse",
+    )
     remittance.state = TaxRemittanceState.CANCELLED
     await session.flush()
 

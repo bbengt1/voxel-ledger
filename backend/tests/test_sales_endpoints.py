@@ -161,9 +161,11 @@ async def test_update_after_confirm_is_blocked(
 async def test_posting_journal_entry_id_exposed_on_response(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    """Contract: SaleResponse.posting_journal_entry_id is null on draft
-    and populated after confirm. Phase 6.3 follow-up — surfacing the FK
-    on the OpenAPI contract so the UI doesn't have to defensive-cast.
+    """Contract: SaleResponse.posting_journal_entry_id is exposed and null.
+
+    QBO is the sole ledger (epic #312, Phase 5e): confirm enqueues the
+    QBO documents via the sync outbox, so the field stays null for the
+    whole lifecycle.
     """
     defaults = await seed_posting_defaults(app_session)
     channel = await seed_channel(
@@ -189,11 +191,12 @@ async def test_posting_journal_entry_id_exposed_on_response(
     assert confirm.status_code == 200, confirm.json()
     confirmed = confirm.json()
     assert confirmed["state"] == "confirmed"
-    assert confirmed["posting_journal_entry_id"] is not None
+    # QBO is the sole ledger: no local JE.
+    assert confirmed["posting_journal_entry_id"] is None
     # And it round-trips through GET.
     got = await client.get(f"/api/v1/sales/{sale_id}", headers=auth_header(owner))
     assert got.status_code == 200
-    assert got.json()["posting_journal_entry_id"] == confirmed["posting_journal_entry_id"]
+    assert got.json()["posting_journal_entry_id"] is None
 
 
 @pytest.mark.asyncio

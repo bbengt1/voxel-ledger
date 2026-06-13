@@ -1,4 +1,5 @@
-"""Sale at proceeds < book value posts a balanced JE with a loss Dr line (Phase 9.4, #156)."""
+"""Sale at proceeds < book value enqueues a balanced QBO posting with a loss
+Dr line (Phase 9.4, #156; QBO-only per epic #312 Phase 5e)."""
 
 from __future__ import annotations
 
@@ -8,11 +9,11 @@ from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.fixed_asset_disposal import FixedAssetDisposal
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._asset_disposal_helpers import (
     mark_entries_posted_up_to,
@@ -66,22 +67,32 @@ async def test_dispose_sale_loss(client: AsyncClient, app_session: AsyncSession)
     payload = resp.json()
     assert Decimal(payload["gain_loss_amount"]) == Decimal("-900")
 
-    je_id = uuid.UUID(payload["posting_journal_entry_id"])
-    je = (
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE is stamped;
+    # a balanced posting is enqueued on the QBO sync outbox instead.
+    assert payload["posting_journal_entry_id"] is None
+    disposal = (
         await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+            select(FixedAssetDisposal).where(FixedAssetDisposal.asset_id == asset_id)
         )
     ).scalar_one()
-    by_account = {line.account_id: line for line in je.lines}
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "fixed_asset_disposal",
+                QboSyncOutbox.local_id == disposal.id,
+            )
+        )
+    ).scalar_one()
+    assert outbox_row.op == "post"
+    by_role = {
+        (ln["role"], ln["posting"]): Decimal(ln["amount"]) for ln in outbox_row.payload["lines"]
+    }
+    assert by_role[("accumulated_depreciation", "debit")] == Decimal("1200")
+    assert by_role[("bank", "debit")] == Decimal("1500")
+    assert by_role[("fixed_asset", "credit")] == Decimal("3600")
+    # Loss is a Dr to the gain/loss role.
+    assert by_role[("gain_loss_on_disposal", "debit")] == Decimal("900")
 
-    assert by_account[accounts["accum_dep_account_id"]].debit == Decimal("1200.000000")
-    assert by_account[accounts["bank_account_id"]].debit == Decimal("1500.000000")
-    assert by_account[accounts["asset_account_id"]].credit == Decimal("3600.000000")
-    # Loss is a Dr to the expense account.
-    assert by_account[loss_acct.id].debit == Decimal("900.000000")
-
-    total_d = sum(line.debit for line in je.lines)
-    total_c = sum(line.credit for line in je.lines)
-    assert total_d == total_c == Decimal("3600.000000")
+    total_d = sum(amt for (_, posting), amt in by_role.items() if posting == "debit")
+    total_c = sum(amt for (_, posting), amt in by_role.items() if posting == "credit")
+    assert total_d == total_c == Decimal("3600")

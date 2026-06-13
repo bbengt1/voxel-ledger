@@ -1,4 +1,8 @@
-"""Phase 7.5 (#113): auto_issue=true materializes + issues + posts JE."""
+"""Phase 7.5 (#113): auto_issue=true materializes + issues.
+
+QBO is the sole ledger (epic #312, Phase 5e): the issue enqueues a QBO
+outbox row; ``posting_journal_entry_id`` stays ``None``.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.models.invoice import Invoice, InvoiceState
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import recurring_invoices as service
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -40,5 +45,16 @@ async def test_auto_issue_produces_issued_invoice(
     assert len(rows) == 1
     inv = rows[0]
     assert inv.state == InvoiceState.ISSUED
-    assert inv.posting_journal_entry_id is not None
+    # QBO is the sole ledger: no local JE.
+    assert inv.posting_journal_entry_id is None
     assert inv.issued_at is not None
+
+    outbox = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "invoice",
+                QboSyncOutbox.local_id == inv.id,
+            )
+        )
+    ).scalar_one()
+    assert outbox.op == "post"

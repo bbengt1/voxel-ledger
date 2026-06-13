@@ -1,4 +1,9 @@
-"""Invoice issue uses per-rate Cr lines from tax profile (Phase 9.5, #157)."""
+"""Invoice issue recomputes per-rate tax from the tax profile (Phase 9.5, #157).
+
+QBO is the sole ledger (epic #312, Phase 5e): the per-rate totals are
+aggregated into ``invoice.tax_amount`` and carried on the QBO outbox
+spec instead of per-rate local JE credit lines.
+"""
 
 from __future__ import annotations
 
@@ -8,11 +13,10 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.models.customer import Customer
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._invoices_helpers import (
     auth_header,
@@ -29,7 +33,7 @@ async def test_invoice_issue_posts_per_rate_credits(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    accounts = await seed_ar_posting_defaults(app_session, with_tax=False)
+    await seed_ar_posting_defaults(app_session, with_tax=False)
     gst_acct = await seed_liability_account(app_session, code="2210", name="GST Payable")
     pst_acct = await seed_liability_account(app_session, code="2220", name="PST Payable")
     await app_session.commit()
@@ -70,16 +74,20 @@ async def test_invoice_issue_posts_per_rate_credits(
 
     issued = await client.post(f"/api/v1/invoices/{invoice_id}/issue", headers=auth_header(owner))
     assert issued.status_code == 200, issued.text
-    je_id = uuid.UUID(issued.json()["posting_journal_entry_id"])
+    payload = issued.json()
+    # QBO is the sole ledger: no local JE.
+    assert payload["posting_journal_entry_id"] is None
+    assert payload["tax_amount"] == "13.400000"
+    assert payload["total_amount"] == "113.400000"
 
-    stmt = (
-        select(JournalEntry)
-        .where(JournalEntry.id == je_id)
-        .options(selectinload(JournalEntry.lines))
-    )
-    je = (await app_session.execute(stmt)).scalar_one()
-    by_account = {line.account_id: line for line in je.lines}
-    assert by_account[gst_acct.id].credit == Decimal("5.000000")
-    assert by_account[pst_acct.id].credit == Decimal("8.400000")
-    assert by_account[accounts["ar_account_id"]].debit == Decimal("113.400000")
-    assert by_account[accounts["revenue_account_id"]].credit == Decimal("100.000000")
+    # The aggregated tax rides the QBO outbox spec.
+    outbox = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "invoice",
+                QboSyncOutbox.local_id == uuid.UUID(invoice_id),
+            )
+        )
+    ).scalar_one()
+    assert outbox.op == "post"
+    assert Decimal(outbox.payload["tax_amount"]) == Decimal("13.400000")

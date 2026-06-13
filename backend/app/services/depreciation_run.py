@@ -1,10 +1,11 @@
 """Depreciation run service (Phase 9.3, #155).
 
 Walks ``depreciation_schedule_entry`` rows whose ``state='planned'`` and
-``period_end <= run_period_end`` and, for each, posts a balanced JE
-(Dr Depreciation Expense / Cr Accumulated Depreciation), stamps the
-entry's ``journal_entry_id``, flips its state to ``posted``, and updates
-the asset's ``last_depreciated_on``.
+``period_end <= run_period_end`` and, for each, enqueues a balanced
+depreciation posting (Dr Depreciation Expense / Cr Accumulated
+Depreciation) on the QBO sync outbox — QBO is the sole ledger — flips
+the entry's state to ``posted``, and updates the asset's
+``last_depreciated_on``. ``journal_entry_id`` stays ``None``.
 
 Idempotency
 -----------
@@ -29,7 +30,6 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import select
@@ -41,15 +41,10 @@ from app.models.depreciation_schedule import (
     DepreciationScheduleEntry,
 )
 from app.models.fixed_asset import FixedAsset
-from app.models.journal_entry import JournalEntry
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 
 log = logging.getLogger(__name__)
-
-
-_ZERO = Decimal("0")
 
 
 @dataclass(frozen=True)
@@ -89,71 +84,36 @@ async def _post_one_entry(
     entry: DepreciationScheduleEntry,
     actor_user_id: uuid.UUID,
 ) -> uuid.UUID | None:
-    """Post a single depreciation entry's JE in the current TX.
+    """Enqueue a single depreciation entry's posting on the QBO sync outbox.
 
     Caller is responsible for committing (success) or rolling back
     (exception).
     """
-    posted_at = datetime.combine(entry.period_end, datetime.min.time(), tzinfo=UTC)
-
-    # QBO replace-mode (epic #312, Phase 3d-1): enqueue a role-tagged JournalEntry
-    # instead of posting the local GL.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
     je_id: uuid.UUID | None = None
-    if await qbo_outbox.is_enabled(session):
-        await qbo_outbox.enqueue(
-            session,
-            kind="depreciation",
-            local_id=entry.id,
-            payload={
-                "lines": [
-                    {
-                        "role": "depreciation_expense",
-                        "posting": "debit",
-                        "amount": str(entry.depreciation_amount),
-                    },
-                    {
-                        "role": "accumulated_depreciation",
-                        "posting": "credit",
-                        "amount": str(entry.depreciation_amount),
-                    },
-                ],
-                "private_note": f"Depreciation {asset.asset_number} #{entry.period_index}",
-            },
-            op="post",
-        )
-    else:
-        je = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=(
-                    f"Depreciation of {asset.asset_number} period "
-                    f"{entry.period_end.isoformat()} (#{entry.period_index})"
-                ),
-                posted_at=posted_at,
-                lines=[
-                    journal_service.JournalLineInput(
-                        account_id=asset.depreciation_expense_account_id,
-                        debit=entry.depreciation_amount,
-                        credit=_ZERO,
-                        line_number=1,
-                        memo=f"Dr depreciation expense for {asset.asset_number}",
-                    ),
-                    journal_service.JournalLineInput(
-                        account_id=asset.accumulated_depreciation_account_id,
-                        debit=_ZERO,
-                        credit=entry.depreciation_amount,
-                        line_number=2,
-                        memo=f"Cr accumulated depreciation for {asset.asset_number}",
-                    ),
-                ],
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(je, JournalEntry)
-        je_id = je.id
+    await qbo_outbox.enqueue(
+        session,
+        kind="depreciation",
+        local_id=entry.id,
+        payload={
+            "lines": [
+                {
+                    "role": "depreciation_expense",
+                    "posting": "debit",
+                    "amount": str(entry.depreciation_amount),
+                },
+                {
+                    "role": "accumulated_depreciation",
+                    "posting": "credit",
+                    "amount": str(entry.depreciation_amount),
+                },
+            ],
+            "private_note": f"Depreciation {asset.asset_number} #{entry.period_index}",
+        },
+        op="post",
+    )
 
     entry.journal_entry_id = je_id
     entry.state = DepreciationEntryState.POSTED

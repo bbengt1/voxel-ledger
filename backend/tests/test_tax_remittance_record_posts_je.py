@@ -1,4 +1,5 @@
-"""Recording a tax remittance posts a balanced Dr/Cr JE in the same TX (Phase 9.6, #158)."""
+"""Recording a tax remittance enqueues a balanced QBO outbox posting in the
+same TX (Phase 9.6, #158; QBO-only per epic #312 Phase 5e)."""
 
 from __future__ import annotations
 
@@ -8,12 +9,11 @@ from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.models.tax_remittance import TaxRemittance, TaxRemittanceState
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._tax_remittance_helpers import (
     auth_header,
@@ -24,7 +24,7 @@ from tests._tax_remittance_helpers import (
 
 
 @pytest.mark.asyncio
-async def test_record_posts_balanced_je(client: AsyncClient, app_session: AsyncSession) -> None:
+async def test_record_enqueues_qbo_outbox(client: AsyncClient, app_session: AsyncSession) -> None:
     accounts = await seed_tax_stack(app_session)
     owner, user = await token_for(Role.OWNER, client, app_session)
 
@@ -53,34 +53,27 @@ async def test_record_posts_balanced_je(client: AsyncClient, app_session: AsyncS
     payload = r.json()
     assert payload["state"] == "recorded"
     assert payload["remittance_number"].startswith("TAX-")
-    assert payload["posting_journal_entry_id"] is not None
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE is stamped.
+    assert payload["posting_journal_entry_id"] is None
 
-    je_id = uuid.UUID(payload["posting_journal_entry_id"])
-    je = (
+    remittance_id = uuid.UUID(payload["id"])
+    outbox_row = (
         await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "tax_remittance",
+                QboSyncOutbox.local_id == remittance_id,
+            )
         )
     ).scalar_one()
-    lines = sorted(je.lines, key=lambda line: line.line_number)
-    by_account = {line.account_id: line for line in lines}
-
-    liab_line = by_account[accounts["liability_account_id"]]
-    bank_line = by_account[accounts["bank_account_id"]]
-    assert liab_line.debit == Decimal("10.000000")
-    assert liab_line.credit == Decimal("0")
-    assert bank_line.credit == Decimal("10.000000")
-    assert bank_line.debit == Decimal("0")
-
-    total_d = sum(line.debit for line in lines)
-    total_c = sum(line.credit for line in lines)
-    assert total_d == total_c == Decimal("10.000000")
+    assert outbox_row.op == "post"
+    by_role = {
+        (ln["role"], ln["posting"]): Decimal(ln["amount"]) for ln in outbox_row.payload["lines"]
+    }
+    assert by_role[("tax_liability", "debit")] == Decimal("10")
+    assert by_role[("bank", "credit")] == Decimal("10")
 
     # DB row state
     row = (
-        await app_session.execute(
-            select(TaxRemittance).where(TaxRemittance.id == uuid.UUID(payload["id"]))
-        )
+        await app_session.execute(select(TaxRemittance).where(TaxRemittance.id == remittance_id))
     ).scalar_one()
     assert row.state == TaxRemittanceState.RECORDED

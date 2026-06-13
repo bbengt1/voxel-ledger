@@ -1,7 +1,8 @@
 """Payments service (Phase 7.4, #112).
 
 Records customer remittances and applies them to outstanding invoices.
-Posting (debit Cash/Bank, credit AR) is done inside the SAME DB
+QBO is the sole ledger (epic #312, Phase 5e): applying a payment
+enqueues a native QBO Payment via the sync outbox inside the SAME DB
 transaction as the application rows + invoice state cascade — the
 same-TX rule the Phase 6.3 sale-confirm and Phase 7.3 invoice-issue
 flows established.
@@ -9,11 +10,12 @@ flows established.
 State machine
 -------------
 ``record_payment`` lands a payment in ``pending``. ``apply_payment``
-posts a JE, links it to invoices via ``payment_application`` rows,
-optionally accrues residue to customer credit, then flips
-``state -> applied``. ``unapply_payment`` reverses the JE and clears
-the applications (bookkeeper-only). ``mark_bounced`` is unapply +
-``state -> bounced``. ``cancel`` is only valid from ``pending``.
+enqueues the QBO Payment, links it to invoices via
+``payment_application`` rows, optionally accrues residue to customer
+credit, then flips ``state -> applied``. ``unapply_payment`` enqueues
+the QBO void and clears the applications (bookkeeper-only).
+``mark_bounced`` is unapply + ``state -> bounced``. ``cancel`` is only
+valid from ``pending``.
 
 Excess flow
 -----------
@@ -25,14 +27,6 @@ rebuilds ``customer_credit_balance``. Without the opt-in the service
 rejects the call so the operator must consciously decide what happens
 to an overpayment.
 
-JE shape for a multi-invoice apply
-----------------------------------
-One debit-bank line + N credit-AR lines (one per invoice). When the
-invoices have different AR accounts (per-customer overrides), the
-single JE still works — same debit total, same credit total, split
-across N lines. The Phase 7.3 issue flow reuses one AR account per
-invoice; if a future change introduces a third dimension, refactor
-the apply routine accordingly.
 """
 
 from __future__ import annotations
@@ -50,15 +44,10 @@ from app.events.types import ar as ar_events
 from app.models.customer import Customer
 from app.models.customer_credit import CustomerCreditKind, CustomerCreditTransaction
 from app.models.invoice import Invoice, InvoiceState
-from app.models.journal_entry import JournalEntry
 from app.models.payment import Payment, PaymentApplication, PaymentMethod, PaymentState
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
-from app.services.invoices import MissingArPostingAccountError
-from app.services.invoices import _resolve_ar_account as _resolve_invoice_ar_account
 from app.services.reference_number import ReferenceNumberService
-from app.services.settings.service import SettingsService
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -182,71 +171,6 @@ async def _emit(
 
 
 # ---------------------------------------------------------------------------
-# Bank-account resolution
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_undeposited_account(session: AsyncSession) -> uuid.UUID:
-    """Resolve the undeposited-funds clearing account (Parity #235).
-
-    Set on the ``ar.undeposited_funds_account_id`` setting. Raises
-    ``MissingArPostingAccountError`` when unset — the caller asked
-    for the undeposited workflow and we can't service it.
-    """
-    raw = await SettingsService.get("ar.undeposited_funds_account_id", session=session)
-    if raw is None:
-        raise MissingArPostingAccountError(
-            "set 'ar.undeposited_funds_account_id' or omit "
-            "deposit_to_undeposited (needed to debit the clearing "
-            "account for a payment headed to a deposit slip)"
-        )
-    return raw if isinstance(raw, uuid.UUID) else uuid.UUID(str(raw))
-
-
-async def _resolve_bank_account(
-    session: AsyncSession,
-    *,
-    method: PaymentMethod,
-    deposit_to_undeposited: bool = False,
-) -> uuid.UUID:
-    """Resolve the bank/cash account credited at posting.
-
-    When ``deposit_to_undeposited`` is True the payment debits the
-    configured undeposited-funds clearing account (Parity #235).
-    Otherwise: ``ar.payment_method_to_account`` (JSON map) takes
-    precedence; falls through to ``ar.default_bank_account_id``.
-    Raises ``MissingArPostingAccountError`` if neither resolves.
-    """
-    if deposit_to_undeposited:
-        return await _resolve_undeposited_account(session)
-    mapping = await SettingsService.get("ar.payment_method_to_account", session=session)
-    if isinstance(mapping, dict):
-        raw = mapping.get(method.value)
-        if raw:
-            if isinstance(raw, uuid.UUID):
-                return raw
-            try:
-                return uuid.UUID(str(raw))
-            except ValueError as exc:
-                raise MissingArPostingAccountError(
-                    f"ar.payment_method_to_account[{method.value!r}] is not a valid UUID"
-                ) from exc
-
-    default = await SettingsService.get("ar.default_bank_account_id", session=session)
-    if default is not None:
-        if isinstance(default, uuid.UUID):
-            return default
-        return uuid.UUID(str(default))
-
-    raise MissingArPostingAccountError(
-        "configure default AR posting accounts: neither "
-        f"ar.payment_method_to_account[{method.value!r}] nor "
-        "ar.default_bank_account_id are set (needed to debit the bank "
-        "account for a payment)"
-    )
-
-
-# ---------------------------------------------------------------------------
 # record_payment
 # ---------------------------------------------------------------------------
 
@@ -356,9 +280,9 @@ async def apply_payment(
     """Apply a recorded payment to one or more invoices.
 
     Validates per-line and aggregate caps, updates each invoice's
-    ``amount_paid`` / ``amount_outstanding`` / state, posts the bank /
-    AR journal entry, optionally accrues residue to customer credit,
-    and flips the payment to ``state=applied``.
+    ``amount_paid`` / ``amount_outstanding`` / state, enqueues the
+    native QBO Payment via the sync outbox, optionally accrues residue
+    to customer credit, and flips the payment to ``state=applied``.
     """
     payment = await _load_payment(session, payment_id)
     if payment.state != PaymentState.PENDING:
@@ -411,51 +335,16 @@ async def apply_payment(
     # Apply rows + invoice updates
     application_payload: list[dict[str, Any]] = []
 
-    # QBO replace-mode (epic #312, Phase 3b-2): push a native QBO Payment via
-    # the sync outbox instead of posting the local GL. The invoice-balance /
-    # state updates, application rows, and customer-credit accrual all stay.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
+    # The invoice-balance / state updates, application rows, and customer-credit
+    # accrual all stay local.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-
-    # Build JE lines (local mode only). Single debit-bank line for full payment
-    # amount; one credit-AR line per applied invoice. Net effect: bank +total,
-    # AR -total. In QBO mode lines stay empty (QBO holds the chart).
-    lines_in: list[journal_service.JournalLineInput] = []
-    line_no = 1
-    if not qbo_enabled:
-        bank_account_id = await _resolve_bank_account(
-            session,
-            method=payment.method,
-            deposit_to_undeposited=bool(payment.deposit_to_undeposited),
-        )
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=bank_account_id,
-                debit=total_amount,
-                credit=_ZERO,
-                line_number=line_no,
-                memo=f"Payment {payment.payment_number} ({payment.method.value})",
-            )
-        )
-
     for invoice, amt in normalized:
-        line_no += 1
         invoice.amount_paid = _q(invoice.amount_paid + amt)
         invoice.amount_outstanding = _q(invoice.amount_outstanding - amt)
         _cascade_state(invoice)
 
-        if not qbo_enabled:
-            ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=ar_account_id,
-                    debit=_ZERO,
-                    credit=amt,
-                    line_number=line_no,
-                    memo=f"Apply {payment.payment_number} to {invoice.invoice_number}",
-                )
-            )
         application = PaymentApplication(
             payment_id=payment.id,
             invoice_id=invoice.id,
@@ -470,58 +359,25 @@ async def apply_payment(
             }
         )
 
-    # If there's excess, credit AR (for the customer's chain default).
-    # The customer credit accrual is the journal-entry-independent
-    # bookkeeping; the GL credit balances the bank debit. The credit
-    # balance projection picks up CustomerCreditAccrued separately.
-    if excess > _ZERO and not qbo_enabled:
-        line_no += 1
-        ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=ar_account_id,
-                debit=_ZERO,
-                credit=excess,
-                line_number=line_no,
-                memo=f"{payment.payment_number} excess -> customer credit",
-            )
-        )
-
-    posted_entry_id: uuid.UUID | None = None
-    if qbo_enabled:
-        await qbo_outbox.enqueue(
-            session,
-            kind="payment",
-            local_id=payment.id,
-            payload={
-                "customer_id": str(customer.id),
-                "amount": str(total_amount),
-                "txn_date": payment.received_at.date().isoformat(),
-                "method": payment.method.value,
-                "reference": payment.reference,
-                "deposit_to_undeposited": bool(payment.deposit_to_undeposited),
-                "private_note": f"Payment {payment.payment_number}",
-                "applications": [
-                    {"invoice_id": str(inv.id), "amount": str(amt)} for inv, amt in normalized
-                ],
-            },
-            op="post",
-        )
-        payment.posting_journal_entry_id = None
-    else:
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Payment {payment.payment_number}: apply",
-                posted_at=datetime.now(UTC),
-                lines=lines_in,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(entry, JournalEntry)
-        payment.posting_journal_entry_id = entry.id
-        posted_entry_id = entry.id
+    await qbo_outbox.enqueue(
+        session,
+        kind="payment",
+        local_id=payment.id,
+        payload={
+            "customer_id": str(customer.id),
+            "amount": str(total_amount),
+            "txn_date": payment.received_at.date().isoformat(),
+            "method": payment.method.value,
+            "reference": payment.reference,
+            "deposit_to_undeposited": bool(payment.deposit_to_undeposited),
+            "private_note": f"Payment {payment.payment_number}",
+            "applications": [
+                {"invoice_id": str(inv.id), "amount": str(amt)} for inv, amt in normalized
+            ],
+        },
+        op="post",
+    )
+    payment.posting_journal_entry_id = None
     payment.state = PaymentState.APPLIED
     await session.flush()
 
@@ -574,7 +430,8 @@ async def apply_payment(
             "customer_id": str(customer.id),
             "amount": str(total_amount),
             "method": payment.method.value,
-            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
+            # Always None: QBO is the sole ledger (epic #312, Phase 5e).
+            "journal_entry_id": None,
         },
         actor_user_id=actor_user_id,
     )
@@ -593,7 +450,7 @@ async def unapply_payment(
     actor_user_id: uuid.UUID,
     new_state: PaymentState = PaymentState.PENDING,
 ) -> Payment:
-    """Reverse the JE and clear payment_application rows.
+    """Enqueue the QBO Payment void and clear payment_application rows.
 
     Restores each touched invoice's outstanding balance and reverses the
     state cascade. The payment's own state is moved to ``new_state``
@@ -606,29 +463,17 @@ async def unapply_payment(
             "only applied payments can be unapplied"
         )
 
-    reversing_je_id: uuid.UUID | None = None
-    original_je_id = payment.posting_journal_entry_id
-    if original_je_id is not None:
-        reversal = await journal_service.reverse(
-            original_je_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of payment {payment.payment_number}",
-        )
-        reversing_je_id = reversal.id
-    else:
-        # QBO replace-mode: void the QBO Payment we pushed (builder finds its
-        # synced outbox row). No-op if QBO sync was never enabled for it.
-        from app.services.quickbooks import outbox as qbo_outbox
+    # QBO is the sole ledger (epic #312, Phase 5e): void the QBO Payment we
+    # pushed (the builder finds its synced outbox row).
+    from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            await qbo_outbox.enqueue(
-                session,
-                kind="payment",
-                local_id=payment.id,
-                payload={"payment_id": str(payment.id)},
-                op="reverse",
-            )
+    await qbo_outbox.enqueue(
+        session,
+        kind="payment",
+        local_id=payment.id,
+        payload={"payment_id": str(payment.id)},
+        op="reverse",
+    )
 
     # Restore invoice balances + state
     for app_row in list(payment.applications):
@@ -696,8 +541,9 @@ async def unapply_payment(
             "payment_id": str(payment.id),
             "payment_number": payment.payment_number,
             "customer_id": str(payment.customer_id),
-            "reversing_journal_entry_id": (str(reversing_je_id) if reversing_je_id else None),
-            "original_journal_entry_id": (str(original_je_id) if original_je_id else None),
+            # Always None: QBO is the sole ledger (epic #312, Phase 5e).
+            "reversing_journal_entry_id": None,
+            "original_journal_entry_id": None,
         },
         actor_user_id=actor_user_id,
     )

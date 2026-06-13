@@ -1,5 +1,10 @@
-"""Single-invoice payment posts AR/Bank JE, drops outstanding to 0,
-invoice -> paid (Phase 7.4, #112)."""
+"""Single-invoice payment apply drops outstanding to 0, invoice -> paid
+(Phase 7.4, #112).
+
+QBO is the sole ledger (epic #312, Phase 5e): the apply enqueues a
+native QBO Payment via the sync outbox instead of posting a local JE;
+``posting_journal_entry_id`` is always ``None``.
+"""
 
 from __future__ import annotations
 
@@ -9,12 +14,11 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.models.invoice import Invoice, InvoiceState
-from app.models.journal_entry import JournalEntry
 from app.models.payment import Payment, PaymentState
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._payments_helpers import (
     auth_header,
@@ -30,11 +34,8 @@ async def test_apply_full_payment_marks_invoice_paid(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    accounts = await seed_full_ar_stack(app_session)
+    await seed_full_ar_stack(app_session)
     customer = await seed_customer(app_session)
-    owner_user_id = (
-        await app_session.execute(select(Invoice.created_by_user_id).limit(1))
-    ).scalar_one_or_none()
 
     # Resolve owner user id
     from app.models.auth import User
@@ -67,7 +68,8 @@ async def test_apply_full_payment_marks_invoice_paid(
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["state"] == "applied"
-    assert body["posting_journal_entry_id"] is not None
+    # QBO is the sole ledger: no local JE.
+    assert body["posting_journal_entry_id"] is None
 
     # Invoice now paid
     inv = (await app_session.execute(select(Invoice).where(Invoice.id == invoice.id))).scalar_one()
@@ -76,18 +78,21 @@ async def test_apply_full_payment_marks_invoice_paid(
     assert inv.amount_outstanding == Decimal("0E-6")
     assert inv.state == InvoiceState.PAID
 
-    # JE has bank debit + AR credit
-    je_id = uuid.UUID(body["posting_journal_entry_id"])
-    je = (
-        await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+    # A QBO outbox row was enqueued for the payment instead of a local JE.
+    outbox = (
+        (
+            await app_session.execute(
+                select(QboSyncOutbox).where(
+                    QboSyncOutbox.kind == "payment",
+                    QboSyncOutbox.local_id == uuid.UUID(payment_id),
+                )
+            )
         )
-    ).scalar_one()
-    by_acct = {line.account_id: line for line in je.lines}
-    assert by_acct[accounts["bank_account_id"]].debit == Decimal("100.000000")
-    assert by_acct[accounts["ar_account_id"]].credit == Decimal("100.000000")
+        .scalars()
+        .all()
+    )
+    assert len(outbox) == 1
+    assert outbox[0].op == "post"
 
     # Payment state
     p = (
@@ -95,5 +100,3 @@ async def test_apply_full_payment_marks_invoice_paid(
     ).scalar_one()
     await app_session.refresh(p)
     assert p.state == PaymentState.APPLIED
-    # Suppress unused
-    _ = owner_user_id

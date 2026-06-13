@@ -1,4 +1,8 @@
-"""Bills: reverse-charge profile zeroes line.tax_amount, no JE distortion (9.5)."""
+"""Bills: reverse-charge profile zeroes line.tax_amount (9.5).
+
+QBO is the sole ledger (epic #312, Phase 5e): the issue enqueues a QBO
+Bill outbox row whose spec must carry zero tax for reverse-charge lines.
+"""
 
 from __future__ import annotations
 
@@ -8,12 +12,11 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.models.bill import BillItem
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.models.vendor import Vendor
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._bills_helpers import (
     auth_header,
@@ -30,7 +33,7 @@ async def test_bill_reverse_charge_line_zero_no_je_tax(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    accounts = await seed_full_ap_stack(app_session, with_tax=True)
+    await seed_full_ap_stack(app_session, with_tax=True)
     liability_acct = await seed_liability_account(app_session)
     await app_session.commit()
     profile = await seed_tax_profile(
@@ -67,18 +70,19 @@ async def test_bill_reverse_charge_line_zero_no_je_tax(
 
     issued = await client.post(f"/api/v1/bills/{bill_id}/issue", headers=auth_header(owner))
     assert issued.status_code == 200, issued.text
-    je_id = uuid.UUID(issued.json()["posting_journal_entry_id"])
+    # QBO is the sole ledger: no local JE.
+    assert issued.json()["posting_journal_entry_id"] is None
 
-    stmt = (
-        select(JournalEntry)
-        .where(JournalEntry.id == je_id)
-        .options(selectinload(JournalEntry.lines))
-    )
-    je = (await app_session.execute(stmt)).scalar_one()
-    # No tax-expense account credit/debit on the JE
-    account_ids = {line.account_id for line in je.lines}
-    assert accounts["tax_account_id"] not in account_ids
-    assert liability_acct.id not in account_ids
+    # The QBO outbox spec carries zero tax (reverse-charge is memo-only).
+    outbox = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "bill",
+                QboSyncOutbox.local_id == uuid.UUID(bill_id),
+            )
+        )
+    ).scalar_one()
+    assert Decimal(outbox.payload["tax_amount"]) == Decimal("0")
     # Bill item line.tax_amount stored as zero
     items = list(
         (await app_session.execute(select(BillItem).where(BillItem.bill_id == uuid.UUID(bill_id))))

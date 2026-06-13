@@ -1,4 +1,5 @@
-"""Sale at proceeds > book value posts a balanced JE with a gain Cr line (Phase 9.4, #156)."""
+"""Sale at proceeds > book value enqueues a balanced QBO posting with a gain
+Cr line (Phase 9.4, #156; QBO-only per epic #312 Phase 5e)."""
 
 from __future__ import annotations
 
@@ -10,11 +11,10 @@ import pytest
 from app.models.auth import Role
 from app.models.fixed_asset import FixedAsset, FixedAssetState
 from app.models.fixed_asset_disposal import FixedAssetDisposal
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._asset_disposal_helpers import (
     mark_entries_posted_up_to,
@@ -77,30 +77,30 @@ async def test_dispose_sale_gain(client: AsyncClient, app_session: AsyncSession)
     await app_session.refresh(asset, ["state"])
     assert asset.state == FixedAssetState.DISPOSED
 
-    # JE balanced with a Cr gain line.
-    je_id = uuid.UUID(payload["posting_journal_entry_id"])
-    je = (
-        await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
-        )
-    ).scalar_one()
-    total_d = sum(line.debit for line in je.lines)
-    total_c = sum(line.credit for line in je.lines)
-    # Dr accum 1200 + Dr bank 3000 = 4200; Cr asset 3600 + Cr gain 600 = 4200.
-    assert total_d == total_c == Decimal("4200.000000")
-
-    by_account = {line.account_id: line for line in je.lines}
-    assert by_account[accounts["accum_dep_account_id"]].debit == Decimal("1200.000000")
-    assert by_account[accounts["bank_account_id"]].debit == Decimal("3000.000000")
-    assert by_account[accounts["asset_account_id"]].credit == Decimal("3600.000000")
-    assert by_account[gain_loss.id].credit == Decimal("600.000000")
-
-    # Disposal row stamped with JE id.
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE is stamped;
+    # a balanced posting is enqueued on the QBO sync outbox instead.
+    assert payload["posting_journal_entry_id"] is None
     disposal = (
         await app_session.execute(
             select(FixedAssetDisposal).where(FixedAssetDisposal.asset_id == asset_id)
         )
     ).scalar_one()
-    assert disposal.posting_journal_entry_id == je_id
+    assert disposal.posting_journal_entry_id is None
+
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "fixed_asset_disposal",
+                QboSyncOutbox.local_id == disposal.id,
+            )
+        )
+    ).scalar_one()
+    assert outbox_row.op == "post"
+    by_role = {
+        (ln["role"], ln["posting"]): Decimal(ln["amount"]) for ln in outbox_row.payload["lines"]
+    }
+    # Dr accum 1200 + Dr bank 3000 = 4200; Cr asset 3600 + Cr gain 600 = 4200.
+    assert by_role[("accumulated_depreciation", "debit")] == Decimal("1200")
+    assert by_role[("bank", "debit")] == Decimal("3000")
+    assert by_role[("fixed_asset", "credit")] == Decimal("3600")
+    assert by_role[("gain_loss_on_disposal", "credit")] == Decimal("600")

@@ -1,4 +1,5 @@
-"""Posted refund net-zero on inventory + GL for a full refund (Phase 6.5)."""
+"""Posted full refund: inventory nets to zero and the reversing entry is
+enqueued for QBO (Phase 6.5; QBO-sole-ledger since epic #312, Phase 5e)."""
 
 from __future__ import annotations
 
@@ -10,8 +11,7 @@ from app.models.inventory_transaction import (
     KIND_SALE_CONSUMPTION,
     InventoryTransaction,
 )
-from app.models.journal_entry import JournalEntry
-from app.models.journal_line import JournalLine
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.models.refund import RefundState
 from app.services import refunds as refunds_service
 from sqlalchemy import select
@@ -97,24 +97,25 @@ async def test_full_refund_post_net_zero(app_session: AsyncSession) -> None:
     restored_total = sum(r.quantity for r in return_rows)
     assert consumed_total == restored_total == Decimal("4.000000")
 
-    # GL: original posting + reversing entry. Net per-account = 0.
-    je_rows = (
-        (
-            await app_session.execute(
-                select(JournalLine).join(JournalEntry).where(JournalLine.entry_id.is_not(None))
+    # QBO is the sole ledger (epic #312, Phase 5e): the reversing entry is
+    # enqueued on the sync outbox instead of posted locally. For a full
+    # refund with restock the role-tagged legs are: Dr revenue / Cr bank for
+    # the cash, plus Dr inventory / Cr cogs for the restocked cost.
+    assert refund.posting_journal_entry_id is None
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "refund", QboSyncOutbox.local_id == refund.id
             )
         )
-        .scalars()
-        .all()
-    )
-    # Compute net debit - credit per account across BOTH the sale posting
-    # and the refund reversal. For a full refund, these should sum to 0
-    # for each touched account.
-    net: dict = {}
-    for line in je_rows:
-        delta = line.debit - line.credit
-        net[line.account_id] = net.get(line.account_id, Decimal("0")) + delta
-    for account_id, delta in net.items():
-        assert delta == Decimal(
-            "0"
-        ), f"account {account_id} net {delta} expected 0 after full refund"
+    ).scalar_one()
+    by_role = {
+        ln["role"]: (ln["posting"], Decimal(ln["amount"])) for ln in outbox_row.payload["lines"]
+    }
+    assert by_role["revenue"] == ("debit", Decimal("40.00"))
+    assert by_role["bank"] == ("credit", Decimal("40.00"))
+    assert by_role["inventory"] == ("debit", Decimal("12.00"))
+    assert by_role["cogs"] == ("credit", Decimal("12.00"))
+    debits = sum(amt for posting, amt in by_role.values() if posting == "debit")
+    credits = sum(amt for posting, amt in by_role.values() if posting == "credit")
+    assert debits == credits

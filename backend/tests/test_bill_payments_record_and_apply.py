@@ -1,4 +1,8 @@
-"""One-shot bill payment posts Dr AP / Cr Bank, drives bill to paid (Phase 8.3, #130)."""
+"""One-shot bill payment enqueues a QBO BillPayment, drives bill to paid (Phase 8.3, #130).
+
+QBO is the sole ledger (epic #312, Phase 5e): ``posting_journal_entry_id``
+is always ``None``; the GL effect rides the sync outbox.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +13,10 @@ import pytest
 from app.models.auth import Role, User
 from app.models.bill import Bill, BillState
 from app.models.bill_payment import BillPayment, BillPaymentState
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._bill_payments_helpers import (
     auth_header,
@@ -29,7 +32,7 @@ async def test_record_payment_full_amount_drives_bill_paid(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    accounts = await seed_full_ap_payments_stack(app_session)
+    await seed_full_ap_payments_stack(app_session)
     vendor = await seed_vendor(app_session)
     user = (
         await app_session.execute(select(User).where(User.email == "owner@example.com"))
@@ -50,7 +53,8 @@ async def test_record_payment_full_amount_drives_bill_paid(
     payment_body = r.json()
     assert payment_body["state"] == "posted"
     assert payment_body["payment_number"].startswith("BP-")
-    assert payment_body["posting_journal_entry_id"] is not None
+    # QBO is the sole ledger: no local JE.
+    assert payment_body["posting_journal_entry_id"] is None
     assert len(payment_body["applications"]) == 1
 
     # Bill paid
@@ -60,18 +64,21 @@ async def test_record_payment_full_amount_drives_bill_paid(
     assert refreshed.amount_outstanding == Decimal("0E-6")
     assert refreshed.state == BillState.PAID
 
-    # JE has AP debit + Bank credit
-    je_id = uuid.UUID(payment_body["posting_journal_entry_id"])
-    je = (
-        await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+    # A QBO outbox row was enqueued for the bill payment instead of a local JE.
+    outbox = (
+        (
+            await app_session.execute(
+                select(QboSyncOutbox).where(
+                    QboSyncOutbox.kind == "bill_payment",
+                    QboSyncOutbox.local_id == uuid.UUID(payment_body["id"]),
+                )
+            )
         )
-    ).scalar_one()
-    by_acct = {line.account_id: line for line in je.lines}
-    assert by_acct[accounts["ap_account_id"]].debit == Decimal("100.000000")
-    assert by_acct[accounts["bank_account_id"]].credit == Decimal("100.000000")
+        .scalars()
+        .all()
+    )
+    assert len(outbox) == 1
+    assert outbox[0].op == "post"
 
     # Payment state in DB
     payment = (

@@ -1,4 +1,7 @@
-"""Voiding a bill reverses the posted JE (Phase 8.2, #129)."""
+"""Voiding a bill enqueues the QBO reverse + void guards (Phase 8.2, #129).
+
+QBO is the sole ledger (epic #312, Phase 5e).
+"""
 
 from __future__ import annotations
 
@@ -8,8 +11,7 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role
 from app.models.bill import Bill
-from app.models.journal_entry import JournalEntry
-from app.models.journal_line import JournalLine
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +26,7 @@ from tests._bills_helpers import (
 
 
 @pytest.mark.asyncio
-async def test_void_reverses_je_net_zero(client: AsyncClient, app_session: AsyncSession) -> None:
+async def test_void_enqueues_qbo_reverse(client: AsyncClient, app_session: AsyncSession) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
     await seed_full_ap_stack(app_session)
     vendor = await seed_vendor(app_session)
@@ -39,45 +41,29 @@ async def test_void_reverses_je_net_zero(client: AsyncClient, app_session: Async
     )
     bill_id = create.json()["id"]
     issued = await client.post(f"/api/v1/bills/{bill_id}/issue", headers=auth_header(owner))
-    original_je_id = uuid.UUID(issued.json()["posting_journal_entry_id"])
+    # QBO is the sole ledger: no local JE.
+    assert issued.json()["posting_journal_entry_id"] is None
 
     void = await client.post(f"/api/v1/bills/{bill_id}/void", headers=auth_header(owner))
     assert void.status_code == 200, void.text
     assert void.json()["state"] == "void"
 
-    original_je = (
-        await app_session.execute(select(JournalEntry).where(JournalEntry.id == original_je_id))
-    ).scalar_one()
-    assert original_je.is_reversed is True
-
-    reversing = (
-        await app_session.execute(
-            select(JournalEntry).where(JournalEntry.reversal_of_entry_id == original_je_id)
-        )
-    ).scalar_one()
-    all_lines = (
+    # Issue enqueued op=post; void enqueued op=reverse.
+    rows = (
         (
             await app_session.execute(
-                select(JournalLine).where(JournalLine.entry_id.in_([original_je.id, reversing.id]))
+                select(QboSyncOutbox)
+                .where(
+                    QboSyncOutbox.kind == "bill",
+                    QboSyncOutbox.local_id == uuid.UUID(bill_id),
+                )
+                .order_by(QboSyncOutbox.created_at)
             )
         )
         .scalars()
         .all()
     )
-    total_d = sum(line.debit for line in all_lines)
-    total_c = sum(line.credit for line in all_lines)
-    assert total_d == total_c
-    by_account_d_o = {}
-    by_account_c_r = {}
-    for line in all_lines:
-        if line.entry_id == original_je.id:
-            by_account_d_o.setdefault(line.account_id, Decimal("0"))
-            by_account_d_o[line.account_id] += line.debit - line.credit
-        else:
-            by_account_c_r.setdefault(line.account_id, Decimal("0"))
-            by_account_c_r[line.account_id] += line.debit - line.credit
-    for acct_id, net in by_account_d_o.items():
-        assert by_account_c_r[acct_id] == -net, f"account {acct_id} not net zero"
+    assert [row.op for row in rows] == ["post", "reverse"]
 
 
 @pytest.mark.asyncio

@@ -1,9 +1,11 @@
-"""restock_inventory=False posts GL but no inventory transactions (Phase 6.5)."""
+"""restock_inventory=False enqueues the QBO reversal but no inventory
+transactions (Phase 6.5; QBO-sole-ledger since epic #312, Phase 5e)."""
 
 from __future__ import annotations
 
 import pytest
 from app.models.inventory_transaction import KIND_RETURN_IN, InventoryTransaction
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import refunds as refunds_service
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,6 +70,18 @@ async def test_post_without_restock_skips_inventory(
     )
     assert return_rows == []
 
-    # GL reversal still happens — verify the refund has a journal entry.
+    # The reversal still happens — QBO is the sole ledger (epic #312,
+    # Phase 5e), so it goes out via the sync outbox instead of a local JE.
     refund = await refunds_service.get(result.refund.id, session=app_session)
-    assert refund.posting_journal_entry_id is not None
+    assert refund.posting_journal_entry_id is None
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "refund", QboSyncOutbox.local_id == refund.id
+            )
+        )
+    ).scalar_one()
+    roles = {ln["role"] for ln in outbox_row.payload["lines"]}
+    # No restock → no inventory/cogs legs.
+    assert "inventory" not in roles
+    assert "cogs" not in roles

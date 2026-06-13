@@ -1,10 +1,10 @@
 """Credit-notes service (Phase 7.4, #112).
 
 A credit note is a post-issue correction that reduces what the customer
-owes on an already-issued invoice. Issuing posts ``debit Revenue /
-credit AR`` for the credit-note total (proportional reversal of a slice
-of the invoice's original revenue posting). Applying reduces the
-target invoice's ``amount_outstanding`` without a real payment.
+owes on an already-issued invoice. Issuing pushes a native QBO
+CreditMemo via the sync outbox (QBO is the sole ledger; epic #312,
+Phase 5e). Applying reduces the target invoice's
+``amount_outstanding`` without a real payment.
 
 State machine: ``draft -> issued -> applied | cancelled``.
 """
@@ -22,16 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.events.types import ar as ar_events
 from app.models.credit_note import CreditNote, CreditNoteState
 from app.models.invoice import Invoice, InvoiceState
-from app.models.journal_entry import JournalEntry
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
-from app.services.invoices import (
-    _resolve_ar_account as _resolve_invoice_ar_account,
-)
-from app.services.invoices import (
-    _resolve_revenue_account as _resolve_invoice_revenue_account,
-)
 from app.services.reference_number import ReferenceNumberService
 
 # ---------------------------------------------------------------------------
@@ -217,67 +209,27 @@ async def issue(
     if note.state != CreditNoteState.DRAFT:
         raise InvalidCreditNoteStateError(f"credit note {note.credit_note_number} is not a draft")
     invoice = await _load_invoice(session, note.invoice_id)
-    # Build customer ref for account resolution
-    from app.models.customer import Customer
-
-    customer = (
-        await session.execute(select(Customer).where(Customer.id == note.customer_id))
-    ).scalar_one()
-
     amt = _q(note.total_amount)
 
-    # QBO replace-mode (epic #312, Phase 3c-2): push a native QBO CreditMemo via
-    # the sync outbox instead of posting the local GL.
+    # QBO is the sole ledger (epic #312, Phase 5e): push a native QBO CreditMemo
+    # via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
     posted_entry_id: uuid.UUID | None = None
-    if qbo_enabled:
-        await qbo_outbox.enqueue(
-            session,
-            kind="credit_note",
-            local_id=note.id,
-            payload={
-                "customer_id": str(note.customer_id),
-                "doc_number": note.credit_note_number,
-                "reason": note.reason,
-                "amount": str(amt),
-                "txn_date": datetime.now(UTC).date().isoformat(),
-                "private_note": f"Credit note {note.credit_note_number}",
-            },
-            op="post",
-        )
-    else:
-        ar_account_id = await _resolve_invoice_ar_account(session, customer=customer)
-        revenue_account_id = await _resolve_invoice_revenue_account(session, customer=customer)
-        lines = [
-            journal_service.JournalLineInput(
-                account_id=revenue_account_id,
-                debit=amt,
-                credit=_ZERO,
-                line_number=1,
-                memo=f"Credit note {note.credit_note_number} (rev reversal)",
-            ),
-            journal_service.JournalLineInput(
-                account_id=ar_account_id,
-                debit=_ZERO,
-                credit=amt,
-                line_number=2,
-                memo=f"Credit note {note.credit_note_number} (AR reduction)",
-            ),
-        ]
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Credit note {note.credit_note_number}",
-                posted_at=datetime.now(UTC),
-                lines=lines,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(entry, JournalEntry)
-        posted_entry_id = entry.id
+    await qbo_outbox.enqueue(
+        session,
+        kind="credit_note",
+        local_id=note.id,
+        payload={
+            "customer_id": str(note.customer_id),
+            "doc_number": note.credit_note_number,
+            "reason": note.reason,
+            "amount": str(amt),
+            "txn_date": datetime.now(UTC).date().isoformat(),
+            "private_note": f"Credit note {note.credit_note_number}",
+        },
+        op="post",
+    )
 
     note.state = CreditNoteState.ISSUED
     note.posting_journal_entry_id = posted_entry_id
@@ -365,25 +317,17 @@ async def cancel(
             f"credit note {note.credit_note_number} is applied; cannot cancel"
         )
     reversing_je_id: uuid.UUID | None = None
-    if note.state == CreditNoteState.ISSUED and note.posting_journal_entry_id is not None:
-        reversal = await journal_service.reverse(
-            note.posting_journal_entry_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of credit note {note.credit_note_number}",
-        )
-        reversing_je_id = reversal.id
-    elif note.state == CreditNoteState.ISSUED:
+    if note.state == CreditNoteState.ISSUED:
+        # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
         from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            await qbo_outbox.enqueue(
-                session,
-                kind="credit_note",
-                local_id=note.id,
-                payload={"credit_note_id": str(note.id)},
-                op="reverse",
-            )
+        await qbo_outbox.enqueue(
+            session,
+            kind="credit_note",
+            local_id=note.id,
+            payload={"credit_note_id": str(note.id)},
+            op="reverse",
+        )
     note.state = CreditNoteState.CANCELLED
     await session.flush()
     await _emit(

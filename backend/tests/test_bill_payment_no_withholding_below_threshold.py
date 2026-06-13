@@ -1,4 +1,8 @@
-"""Threshold gate: YTD < threshold suppresses withholding (Phase 9.7, #159)."""
+"""Threshold gate: YTD < threshold suppresses withholding (Phase 9.7, #159).
+
+QBO is the sole ledger (epic #312, Phase 5e): no local JE; below the
+threshold there must be no ``bill_payment_withholding`` outbox row.
+"""
 
 from __future__ import annotations
 
@@ -7,11 +11,10 @@ from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._bill_payments_helpers import (
     auth_header,
@@ -30,7 +33,7 @@ from tests._withholding_helpers import (
 
 @pytest.mark.asyncio
 async def test_below_threshold_no_split(client: AsyncClient, app_session: AsyncSession) -> None:
-    accounts = await seed_full_ap_payments_stack(app_session)
+    await seed_full_ap_payments_stack(app_session)
     user = await seed_owner(app_session, email="actor@example.com")
     vendor = await seed_vendor(app_session)
     # First-ever payment for this vendor; YTD-before == 0 < $600 threshold.
@@ -59,15 +62,18 @@ async def test_below_threshold_no_split(client: AsyncClient, app_session: AsyncS
     assert Decimal(app_row["withholding_amount"]) == Decimal("0")
     assert app_row["withholding_profile_id"] is None
 
-    # JE: Dr AP $400 / Cr Bank $400 (no withholding line).
-    je_id = uuid.UUID(r.json()["posting_journal_entry_id"])
-    je = (
-        await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+    # QBO is the sole ledger: no local JE, and no withholding outbox row.
+    assert r.json()["posting_journal_entry_id"] is None
+    rows = (
+        (
+            await app_session.execute(
+                select(QboSyncOutbox).where(
+                    QboSyncOutbox.local_id == uuid.UUID(r.json()["id"]),
+                )
+            )
         )
-    ).scalar_one()
-    by_account = {line.account_id: line for line in je.lines}
-    assert by_account[accounts["bank_account_id"]].credit == Decimal("400.000000")
-    assert liability.id not in by_account
+        .scalars()
+        .all()
+    )
+    kinds = {row.kind for row in rows}
+    assert kinds == {"bill_payment"}
