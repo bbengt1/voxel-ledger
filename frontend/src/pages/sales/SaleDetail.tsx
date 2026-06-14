@@ -339,13 +339,12 @@ export function SaleDetailPage() {
           <h2 className="font-semibold">Posted entry</h2>
           <p className="mt-1 text-xs">
             Journal entry:{" "}
-            <Link
-              to={`/accounting/entries/${postingInfo.journal_entry_id}`}
-              className="font-mono hover:underline"
+            <span
+              className="font-mono"
               data-testid="posted-journal-entry-id"
             >
               {postingInfo.journal_entry_id}
-            </Link>
+            </span>
           </p>
           {postingInfo.inventory_transaction_ids?.length ? (
             <p className="mt-1 text-xs text-muted-foreground">

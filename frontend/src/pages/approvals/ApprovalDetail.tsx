@@ -88,12 +88,10 @@ export function ApprovalDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      const res = await apiClient.post<{ id: string }>(
-        `/api/v1/accounting/entries/from-approval/${row.id}`,
-        {},
-      );
-      const entry = res.data;
-      navigate(`/accounting/entries/${entry.id}`);
+      await apiClient.post(`/api/v1/accounting/entries/from-approval/${row.id}`, {});
+      // QBO replace-mode (#318 5e-2): the journal-entry detail page was
+      // removed — return to the approvals list after posting.
+      navigate("/approvals");
     } catch (err) {
       const msg =
         (err as { response?: { data?: { detail?: string } } }).response?.data

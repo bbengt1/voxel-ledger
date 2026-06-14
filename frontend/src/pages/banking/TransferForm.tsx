@@ -1,9 +1,9 @@
 /**
  * `/banking/transfer` — move money between two asset accounts. Posts a
- * single body and navigates to the resulting journal entry on success.
+ * single body; the transfer is pushed to QuickBooks async (#318), so there
+ * is no local journal entry to navigate to.
  */
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { apiClient } from "@/api/client";
 import type { components } from "@/api/types";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 type TransferRequest = components["schemas"]["InterAccountTransferRequest"];
-type TransferResponse = components["schemas"]["InterAccountTransferResponse"];
 
 function defaultLocalDateTime(): string {
   // <input type="datetime-local"> wants YYYY-MM-DDTHH:mm (no seconds, no TZ).
@@ -22,7 +21,6 @@ function defaultLocalDateTime(): string {
 }
 
 export function TransferFormPage() {
-  const navigate = useNavigate();
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
   const [amount, setAmount] = useState("");
@@ -57,12 +55,10 @@ export function TransferFormPage() {
         occurred_at: new Date(occurredAt).toISOString(),
       };
       if (memo.trim()) body.memo = memo.trim();
-      const res = await apiClient.post<TransferResponse>(
-        "/api/v1/inter-account-transfers",
-        body,
-      );
-      setSuccess(`Transfer recorded as journal entry ${res.data.journal_entry_id}.`);
-      navigate(`/accounting/entries/${res.data.journal_entry_id}`);
+      await apiClient.post("/api/v1/inter-account-transfers", body);
+      // QBO replace-mode (#318): the transfer is pushed to QuickBooks async;
+      // there is no local journal entry to link to.
+      setSuccess("Transfer recorded — queued to QuickBooks.");
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })
         .response?.data?.detail;

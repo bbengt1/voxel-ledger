@@ -105,10 +105,8 @@ const SECTIONS: NavSection[] = [
   {
     label: "Accounting",
     items: [
-      { label: "Chart of accounts", href: "/accounting/accounts" },
-      { label: "Journal entries", href: "/accounting/entries" },
-      { label: "Periods", href: "/accounting/periods" },
-      { label: "Divisions", href: "/accounting/divisions" },
+      // QBO replace-mode (#318 5e-2): chart of accounts, journal entries,
+      // periods, and divisions are managed in QuickBooks now.
       { label: "Budgets", href: "/accounting/budgets" },
       // --- 9.10a + 9.10b additions ---
       { label: "Fixed assets", href: "/assets" },

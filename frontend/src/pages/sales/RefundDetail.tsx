@@ -121,13 +121,9 @@ export function RefundDetailPage() {
         {refund.posting_journal_entry_id && (
           <div className="col-span-2">
             Posted journal entry:{" "}
-            <Link
-              to={`/accounting/entries/${refund.posting_journal_entry_id}`}
-              className="text-primary underline"
-              data-testid="posted-je-link"
-            >
+            <span className="font-mono" data-testid="posted-je-link">
               {refund.posting_journal_entry_id}
-            </Link>
+            </span>
           </div>
         )}
       </div>
