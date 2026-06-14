@@ -1,28 +1,13 @@
 """Invoices service (Phase 7.3, #111).
 
-The invoice is the AR system-of-record. Issuing an invoice
-(``draft -> issued``) posts to the GL atomically INSIDE THE SAME DB
-TRANSACTION as the state flip. This same-TX invariant is the keystone
-v2 rule for AR (mirrors Phase 6.3 COGS): if any step (re-snapshot,
-account resolve, JE post, event emit) raises, the outer transaction
-rolls back and NOTHING persists — not the state flip, not the JE, not
-the audit events. Do not introduce nested commits.
-
-Account resolution at issue time
---------------------------------
-* AR debit account: ``CustomersService.resolve_default_ar_account``
-  (customer.default_ar_account_id -> settings
-  ``sales_posting.default_ar_account_id`` -> settings
-  ``ar.default_ar_account_id``).
-* Revenue credit account: per-line override (not implemented today —
-  products/jobs don't carry a revenue_account_id column yet) -> customer
-  default -> settings ``ar.default_revenue_account_id``. Falls through
-  to the legacy ``sales_posting.default_ar_account_id`` only as a last
-  resort to keep tests working on dev installs that only configured the
-  Phase 6.3 keys.
-* Sales tax payable credit (when ``tax_amount > 0``): settings
-  ``ar.default_sales_tax_payable_account_id`` -> settings
-  ``sales_posting.sales_tax_payable_account_id``.
+The invoice is the AR system-of-record. QBO is the sole ledger (epic
+#312, Phase 5e): issuing an invoice (``draft -> issued``) enqueues a
+native QBO Invoice via the sync outbox INSIDE THE SAME DB TRANSACTION
+as the state flip. This same-TX invariant is the keystone v2 rule for
+AR (mirrors Phase 6.3 COGS): if any step (re-snapshot, enqueue, event
+emit) raises, the outer transaction rolls back and NOTHING persists —
+not the state flip, not the outbox row, not the audit events. Do not
+introduce nested commits.
 
 ``create_from_sale`` rationale (stub)
 -------------------------------------
@@ -998,17 +983,6 @@ async def _resolve_ar_account(
     )
 
 
-async def _resolve_tax_payable_account(session: AsyncSession) -> uuid.UUID:
-    return await _resolve_setting_account(
-        session,
-        keys=(
-            "ar.default_sales_tax_payable_account_id",
-            "sales_posting.sales_tax_payable_account_id",
-        ),
-        why="credit sales tax payable on an invoice with tax",
-    )
-
-
 # ---------------------------------------------------------------------------
 # State transitions: issue / void
 # ---------------------------------------------------------------------------
@@ -1024,9 +998,9 @@ async def issue(
 
     Re-snapshots ``billing_address`` (the customer may have edited it
     since draft creation), stamps ``issued_at = now()`` and ``due_at =
-    issued_at + customer.payment_terms_days``, posts the AR/Revenue/Tax
-    JE, stores ``posting_journal_entry_id`` on the invoice row, and
-    emits ``ar.InvoiceIssued`` + ``ar.InvoicePosted``.
+    issued_at + customer.payment_terms_days``, enqueues the native QBO
+    Invoice via the sync outbox (``posting_journal_entry_id`` stays
+    ``None``), and emits ``ar.InvoiceIssued`` + ``ar.InvoicePosted``.
     """
     invoice = await _load(session, invoice_id)
     _ensure_transition(invoice.state, InvoiceState.ISSUED)
@@ -1045,21 +1019,8 @@ async def issue(
 
     invoice.state = InvoiceState.ISSUED
 
-    # QBO replace-mode (epic #312, Phase 3b): when quickbooks.enabled, the
-    # invoice is pushed to QBO as a native Invoice via the sync outbox instead
-    # of posting to the local GL. All non-GL operational work (state, dates,
-    # tax recompute, events) stays the same.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
-
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-
-    # Resolve accounts BEFORE building the JE so a missing setting raises
-    # before we touch anything. Skipped in QBO mode (QBO holds the chart).
-    ar_account_id: uuid.UUID | None = None
-    revenue_account_id: uuid.UUID | None = None
-    if not qbo_enabled:
-        ar_account_id = await _resolve_ar_account(session, customer=customer)
-        revenue_account_id = await _resolve_revenue_account(session, customer=customer)
 
     # Phase 9.5 (#157): recompute per-line tax via profile resolution one
     # more time before issuance. This catches any post-draft changes to
@@ -1069,7 +1030,6 @@ async def issue(
         customer.tax_profile_id is not None and len(invoice.items) > 0
     )
     per_rate_totals: dict[uuid.UUID, Decimal] = {}
-    rate_account_map: dict[uuid.UUID, uuid.UUID] = {}
     reverse_charge_memo: dict[str, str] = {}
     if has_profile:
         for line in invoice.items:
@@ -1080,8 +1040,6 @@ async def issue(
                 line_subtotal=_q(line.extended_amount),
                 rates=list(profile.rates),
             )
-            for rate in profile.rates:
-                rate_account_map[rate.id] = rate.liability_account_id
             if profile.is_reverse_charge:
                 for rate_id, amt in per_rate:
                     reverse_charge_memo[str(rate_id)] = str(
@@ -1098,118 +1056,23 @@ async def issue(
         invoice.total_amount = _q(invoice.subtotal - invoice.discount_amount + agg)
         invoice.amount_outstanding = _q(invoice.total_amount - _q(invoice.amount_paid))
 
-    tax_amount = _q(invoice.tax_amount)
-    sales_tax_payable_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO and not has_profile and not qbo_enabled:
-        # Legacy fallback: no profile resolved but there's a flat tax
-        # amount — fall through to the setting-based account.
-        sales_tax_payable_account_id = await _resolve_tax_payable_account(session)
-
-    subtotal = _q(invoice.subtotal)
-    discount_amount = _q(invoice.discount_amount)
     total_amount = _q(invoice.total_amount)
-    revenue_amount = _q(subtotal - discount_amount)
 
-    posted_entry_id: uuid.UUID | None = None
-    if qbo_enabled:
-        await qbo_outbox.enqueue(
-            session,
-            kind="invoice",
-            local_id=invoice.id,
-            payload=_qbo_invoice_spec(invoice, issued_at),
-            op="post",
-        )
-        invoice.posting_journal_entry_id = None
-        await session.flush()
-        return await _finish_issue(
-            session,
-            invoice=invoice,
-            issued_at=issued_at,
-            total_amount=total_amount,
-            posted_entry_id=None,
-            reverse_charge_memo=reverse_charge_memo,
-            actor_user_id=actor_user_id,
-        )
-
-    # Local-GL mode: debit AR (total), credit Revenue (subtotal - discount),
-    # credit Sales Tax Payable (if tax > 0).
-    lines_in: list[journal_service.JournalLineInput] = []
-    line_no = 0
-
-    def _next_line_no() -> int:
-        nonlocal line_no
-        line_no += 1
-        return line_no
-
-    if total_amount > _ZERO:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=ar_account_id,
-                debit=total_amount,
-                credit=_ZERO,
-                line_number=_next_line_no(),
-                memo=f"AR for invoice {invoice.invoice_number}",
-            )
-        )
-    if revenue_amount > _ZERO:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=revenue_account_id,
-                debit=_ZERO,
-                credit=revenue_amount,
-                line_number=_next_line_no(),
-                memo=f"Revenue for invoice {invoice.invoice_number}",
-            )
-        )
-    if has_profile:
-        for rate_id, rate_total in per_rate_totals.items():
-            if rate_total <= _ZERO:
-                continue
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=rate_account_map[rate_id],
-                    debit=_ZERO,
-                    credit=rate_total,
-                    line_number=_next_line_no(),
-                    memo=(f"Tax for invoice {invoice.invoice_number} " f"(rate {rate_id})"),
-                )
-            )
-    elif tax_amount > _ZERO and sales_tax_payable_account_id is not None:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=sales_tax_payable_account_id,
-                debit=_ZERO,
-                credit=tax_amount,
-                line_number=_next_line_no(),
-                memo=f"Sales tax payable for invoice {invoice.invoice_number}",
-            )
-        )
-
-    if len(lines_in) < 2:
-        raise InvoiceServiceError(
-            f"invoice {invoice.invoice_number} has nothing to post (total is zero)"
-        )
-
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Invoice {invoice.invoice_number}: issuance",
-            posted_at=issued_at,
-            lines=lines_in,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
+    await qbo_outbox.enqueue(
+        session,
+        kind="invoice",
+        local_id=invoice.id,
+        payload=_qbo_invoice_spec(invoice, issued_at),
+        op="post",
     )
-    assert isinstance(entry, JournalEntry)
-    invoice.posting_journal_entry_id = entry.id
-    posted_entry_id = entry.id
+    invoice.posting_journal_entry_id = None
     await session.flush()
     return await _finish_issue(
         session,
         invoice=invoice,
         issued_at=issued_at,
         total_amount=total_amount,
-        posted_entry_id=posted_entry_id,
+        posted_entry_id=None,
         reverse_charge_memo=reverse_charge_memo,
         actor_user_id=actor_user_id,
     )
@@ -1225,9 +1088,9 @@ async def _finish_issue(
     reverse_charge_memo: dict[str, str],
     actor_user_id: uuid.UUID,
 ) -> Invoice:
-    """Emit the issued + posted events (shared by the local-GL and QBO paths).
+    """Emit the issued + posted events.
 
-    ``posted_entry_id`` is the local JE id, or ``None`` in QBO replace-mode
+    ``posted_entry_id`` is always ``None`` now that QBO is the sole ledger
     (the posting is pushed asynchronously to QBO via the sync outbox)."""
     je_id = str(posted_entry_id) if posted_entry_id is not None else None
     await _emit(
@@ -1290,7 +1153,7 @@ async def void(
     invoice_id: uuid.UUID,
     actor_user_id: uuid.UUID,
 ) -> Invoice:
-    """Void an invoice; reverse the posted JE (same TX).
+    """Void an invoice; enqueue the QBO reverse/void in the same TX.
 
     Only from ``issued / partially_paid / overdue`` — voiding a fully
     paid invoice is illegal (issue a refund / credit memo instead).
@@ -1324,30 +1187,17 @@ async def void(
             f"(amount_paid={invoice.amount_paid}); unapply via Phase 7.4 before voiding"
         )
 
-    reversing_je_id: uuid.UUID | None = None
-    original_je_id = invoice.posting_journal_entry_id
-    if original_je_id is not None:
-        reversal = await journal_service.reverse(
-            original_je_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of invoice {invoice.invoice_number}",
-        )
-        reversing_je_id = reversal.id
-    else:
-        # QBO replace-mode: no local JE to reverse. Enqueue a QBO void of the
-        # invoice we pushed (the builder finds its synced outbox row). No-op if
-        # QBO sync was never enabled for this invoice.
-        from app.services.quickbooks import outbox as qbo_outbox
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue a QBO void of the
+    # invoice we pushed (the builder finds its synced outbox row).
+    from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            await qbo_outbox.enqueue(
-                session,
-                kind="invoice",
-                local_id=invoice.id,
-                payload={"invoice_id": str(invoice.id)},
-                op="reverse",
-            )
+    await qbo_outbox.enqueue(
+        session,
+        kind="invoice",
+        local_id=invoice.id,
+        payload={"invoice_id": str(invoice.id)},
+        op="reverse",
+    )
 
     invoice.state = InvoiceState.VOID
     await session.flush()
@@ -1363,19 +1213,6 @@ async def void(
         },
         actor_user_id=actor_user_id,
     )
-    if reversing_je_id is not None and original_je_id is not None:
-        await _emit(
-            session,
-            event_type=ar_events.TYPE_INVOICE_REVERSED,
-            aggregate_id=invoice.id,
-            payload={
-                "invoice_id": str(invoice.id),
-                "invoice_number": invoice.invoice_number,
-                "reversing_journal_entry_id": str(reversing_je_id),
-                "original_journal_entry_id": str(original_je_id),
-            },
-            actor_user_id=actor_user_id,
-        )
     return invoice
 
 

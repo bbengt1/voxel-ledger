@@ -1,4 +1,13 @@
-"""Bill issue uses expense_category default expense account (Phase 8.6, #133)."""
+"""Bill issue handles expense_category lines (Phase 8.6, #133).
+
+QBO replace-mode (epic #312, Phase 5e): bill issue no longer posts a local JE,
+so the old per-category GL-account routing is gone — a native QBO Bill maps
+every expense line to the role-mapped "expense" account (see
+``builders._create_bill``). This test now verifies the operational invariant
+that still matters: an ``expense_category`` line (alongside a ``manual`` line)
+flows through issue, leaves ``posting_journal_entry_id`` None, and enqueues a
+``bill`` sync-outbox row carrying the correct per-line amounts.
+"""
 
 from __future__ import annotations
 
@@ -8,11 +17,10 @@ from decimal import Decimal
 import pytest
 from app.models.account import Account
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._bills_helpers import (
     auth_header,
@@ -24,19 +32,20 @@ from tests._bills_helpers import (
 
 
 @pytest.mark.asyncio
-async def test_category_default_account_used_for_line(
+async def test_category_line_enqueues_bill_with_line_amounts(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    base = await seed_full_ap_stack(app_session, with_tax=False)
+    await seed_full_ap_stack(app_session, with_tax=False)
     vendor = await seed_vendor(app_session)
 
-    # A second expense account that belongs to the category.
+    # The category still requires a default_expense_account_id (API contract),
+    # but that routing account is no longer used by the QBO push — every expense
+    # line maps to the role-mapped "expense" account at drain.
     cat_acct = Account(id=uuid.uuid4(), code="5500", name="Travel Expense", type="expense")
     app_session.add(cat_acct)
     await app_session.commit()
 
-    # Create the category via the API.
     cat_r = await client.post(
         "/api/v1/expense-categories",
         json={
@@ -46,7 +55,7 @@ async def test_category_default_account_used_for_line(
         },
         headers=auth_header(owner),
     )
-    assert cat_r.status_code == 201
+    assert cat_r.status_code == 201, cat_r.text
     category_id = cat_r.json()["id"]
 
     body = sample_bill_body(
@@ -73,23 +82,12 @@ async def test_category_default_account_used_for_line(
 
     issued = await client.post(f"/api/v1/bills/{bill_id}/issue", headers=auth_header(owner))
     assert issued.status_code == 200, issued.text
-    je_id = uuid.UUID(issued.json()["posting_journal_entry_id"])
+    # QBO is the sole ledger now — no local JE.
+    assert issued.json()["posting_journal_entry_id"] is None
 
-    stmt = (
-        select(JournalEntry)
-        .where(JournalEntry.id == je_id)
-        .options(selectinload(JournalEntry.lines))
-    )
-    je = (await app_session.execute(stmt)).scalar_one()
-    debits_by_account: dict[uuid.UUID, Decimal] = {}
-    for line in je.lines:
-        if line.debit > 0:
-            debits_by_account[line.account_id] = (
-                debits_by_account.get(line.account_id, Decimal("0")) + line.debit
-            )
-
-    assert debits_by_account.get(cat_acct.id) == Decimal("120.000000")
-    # The other line had no category; falls back to the AP-stack default
-    # expense account (the setting fallback, since the seeded vendor has
-    # no default_expense_account_id).
-    assert debits_by_account.get(base["expense_account_id"]) == Decimal("30.000000")
+    row = (
+        await app_session.execute(select(QboSyncOutbox).where(QboSyncOutbox.kind == "bill"))
+    ).scalar_one()
+    assert str(row.local_id) == bill_id
+    amounts = sorted(Decimal(line["amount"]) for line in row.payload["lines"])
+    assert amounts == [Decimal("30.00"), Decimal("120.00")]

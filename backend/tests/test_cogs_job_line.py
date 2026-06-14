@@ -6,7 +6,8 @@ Confirming a job-line sale must:
   (cost-engine snapshot) — NOT from the FIFO inventory ledger,
 * NOT emit a ``sale_consumption`` inventory transaction (jobs feed
   inventory at production time, not at sale time),
-* still post the journal entry with COGS / AR / Revenue.
+* still enqueue the QBO sale document via the sync outbox (QBO is the
+  sole ledger — epic #312, Phase 5e).
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from app.models.inventory_transaction import (
     InventoryTransaction,
 )
 from app.models.job import JobState
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import jobs as jobs_service
 from app.services import parts as parts_service
 from app.services import sales as sales_service
@@ -108,13 +109,15 @@ async def test_job_line_costs_from_job_no_inventory_consumption(
     )
     assert rows == []
 
-    # Journal entry still posted (revenue + AR even with zero cost).
-    je = (
+    # The QBO sale doc still enqueued (revenue + AR even with zero cost);
+    # zero cost means no sale_cogs JE spec.
+    outbox = (
         await app_session.execute(
-            select(JournalEntry).where(
-                JournalEntry.description == f"Sale {sale.sale_number}: posting"
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "sale",
+                QboSyncOutbox.local_id == sale.id,
             )
         )
     ).scalar_one()
-    assert je is not None
+    assert outbox.op == "post"
     assert job.state == JobState.DRAFT  # sanity — the job stays untouched

@@ -1,4 +1,5 @@
-"""Cancelling a tax remittance posts a reversal JE and flips state (Phase 9.6, #158)."""
+"""Cancelling a tax remittance enqueues a QBO reversal and flips state
+(Phase 9.6, #158; QBO-only per epic #312 Phase 5e)."""
 
 from __future__ import annotations
 
@@ -7,7 +8,7 @@ from datetime import UTC, datetime
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.models.tax_remittance import TaxRemittance, TaxRemittanceState
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -22,7 +23,7 @@ from tests._tax_remittance_helpers import (
 
 
 @pytest.mark.asyncio
-async def test_cancel_reverses_je(client: AsyncClient, app_session: AsyncSession) -> None:
+async def test_cancel_enqueues_qbo_reversal(client: AsyncClient, app_session: AsyncSession) -> None:
     accounts = await seed_tax_stack(app_session)
     owner, user = await token_for(Role.OWNER, client, app_session)
 
@@ -49,7 +50,8 @@ async def test_cancel_reverses_je(client: AsyncClient, app_session: AsyncSession
     )
     assert created.status_code == 201
     remittance_id = created.json()["id"]
-    original_je_id = uuid.UUID(created.json()["posting_journal_entry_id"])
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE is stamped.
+    assert created.json()["posting_journal_entry_id"] is None
 
     cancel_resp = await client.post(
         f"/api/v1/tax-remittances/{remittance_id}/cancel",
@@ -58,12 +60,17 @@ async def test_cancel_reverses_je(client: AsyncClient, app_session: AsyncSession
     assert cancel_resp.status_code == 200, cancel_resp.text
     assert cancel_resp.json()["state"] == "cancelled"
 
-    # Original JE is now flagged is_reversed=True.
-    original = (
-        await app_session.execute(select(JournalEntry).where(JournalEntry.id == original_je_id))
+    # A reversal row was enqueued on the QBO sync outbox.
+    reverse_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "tax_remittance",
+                QboSyncOutbox.local_id == uuid.UUID(remittance_id),
+                QboSyncOutbox.op == "reverse",
+            )
+        )
     ).scalar_one()
-    await app_session.refresh(original, ["is_reversed"])
-    assert original.is_reversed is True
+    assert reverse_row.payload == {"tax_remittance_id": remittance_id}
 
     # State on the row
     row = (

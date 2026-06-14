@@ -11,7 +11,6 @@ from app.models.bill import Bill, BillState
 from app.models.invoice import Invoice, InvoiceState
 from app.services import journal_entries as journal_service
 from app.services.reports import dashboard_kpis as kpi_service
-from app.services.settings.service import SettingsService
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -113,17 +112,9 @@ async def test_aggregates_all_tiles(client: AsyncClient, app_session: AsyncSessi
     revenue = await seed_account(app_session, code="4000", name="Sales", type="revenue")
     await app_session.commit()
 
-    # Cash on hand setting points at the bank account.
-    await SettingsService.set(
-        "reports.cash_accounts",
-        [str(bank.id)],
-        session=app_session,
-        actor_user_id=None,
-    )
-    await app_session.commit()
-
     today = datetime.now(UTC)
-    # Cash sale → bank +100, net income +100.
+    # A posted JE no longer feeds any tile (GL tiles are None in QBO
+    # replace-mode, #318 Phase 5d) — posted anyway to prove it doesn't leak in.
     await _post_je(
         app_session,
         actor_user_id=user.id,
@@ -177,14 +168,15 @@ async def test_aggregates_all_tiles(client: AsyncClient, app_session: AsyncSessi
     await app_session.commit()
 
     kpis = await kpi_service.build(app_session)
-    assert kpis.cash_on_hand == Decimal("100.00")
+    # GL-derived tiles are retired (None) since QBO replace-mode (#318 5d).
+    assert kpis.cash_on_hand is None
     assert kpis.accounts_receivable == Decimal("75.00")  # 50 issued + 25 overdue
     assert kpis.accounts_payable == Decimal("40.00")
     assert kpis.overdue_invoice_count == 1
     assert kpis.overdue_bill_count == 0
     assert kpis.low_stock_alert_count == 0
-    assert kpis.net_income_mtd == Decimal("100.00")
-    assert kpis.net_income_ytd == Decimal("100.00")
+    assert kpis.net_income_mtd is None
+    assert kpis.net_income_ytd is None
     # Production builds `as_of` from `datetime.now(UTC).date()` — compare
     # against the same source, not local `date.today()`, or this silently
     # fails near midnight UTC when local and UTC are on different days.

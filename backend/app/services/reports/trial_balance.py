@@ -1,5 +1,10 @@
 """Trial Balance report (Phase 10.4, #179).
 
+QBO replace-mode (#318 Phase 5d): the ``/reports/trial-balance`` endpoint and
+frontend page were removed with the other GL-backed reports. This module is
+deliberately KEPT — the decommission archive (5a) and opening-balance seed (5b)
+build on it until the GL tables drop in Phase 5f, at which point it goes too.
+
 For each account touched in ``[period_start, period_end]`` (or every
 COA account when ``include_zero=True``), reports:
 

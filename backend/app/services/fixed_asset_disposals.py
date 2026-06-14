@@ -10,17 +10,20 @@ disposal flow is same-TX:
    and ``gain_loss = proceeds_amount - book_value``.
 4. Flip any ``planned`` schedule entries with ``period_end > disposed_on``
    to ``adjusted`` (cancel future depreciation).
-5. Post a balanced JE:
+5. Enqueue a balanced posting on the QBO sync outbox (QBO is the sole
+   ledger; epic #312, Phase 5e):
      Dr Accumulated Depreciation (snapshot)
      Dr Proceeds account (if proceeds > 0)
      Cr Asset (acquisition_cost)
      Dr or Cr Gain/Loss (balancing — Cr for gain, Dr for loss)
-6. Insert the ``fixed_asset_disposal`` row stamped with the JE id.
+6. Insert the ``fixed_asset_disposal`` row (``posting_journal_entry_id``
+   stays ``None``).
 7. Flip ``asset.state`` to ``disposed`` (kind=sale or donation) or
    ``written_off`` (kind=scrap or writeoff).
 8. Emit ``acc.AssetDisposed`` with the full disposal payload.
 
-The router commits. Any raise rolls back row + JE + schedule mutations.
+The router commits. Any raise rolls back row + outbox row + schedule
+mutations.
 """
 
 from __future__ import annotations
@@ -41,10 +44,8 @@ from app.models.depreciation_schedule import (
 )
 from app.models.fixed_asset import FixedAsset, FixedAssetState
 from app.models.fixed_asset_disposal import AssetDisposalKind, FixedAssetDisposal
-from app.models.journal_entry import JournalEntry
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -197,7 +198,9 @@ async def dispose(
 
     All work happens inside the caller's transaction; the router commits.
     Any raise rolls back the asset state flip, the schedule mutations,
-    the JE, and the disposal row together.
+    the outbox row, and the disposal row together. The disposal posting
+    is always pushed via the QBO sync outbox; ``posting_journal_entry_id``
+    stays ``None``.
     """
     # --- Normalize + validate scalars ---
     try:
@@ -260,114 +263,39 @@ async def dispose(
         session, asset_id=asset.id, disposed_on=disposed_on
     )
 
-    # --- Build + post the JE (local GL) or enqueue a QBO JournalEntry ---
-    posted_at = datetime.combine(disposed_on, datetime.min.time(), tzinfo=UTC)
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
     disposal_id = uuid.uuid4()
     posted_je_id: uuid.UUID | None = None
-    if qbo_enabled:
-        qbo_lines: list[dict] = []
-        if accumulated > _ZERO:
-            qbo_lines.append(
-                {"role": "accumulated_depreciation", "posting": "debit", "amount": str(accumulated)}
-            )
-        if proceeds > _ZERO and proceeds_acct is not None:
-            qbo_lines.append({"role": "bank", "posting": "debit", "amount": str(proceeds)})
-        qbo_lines.append({"role": "fixed_asset", "posting": "credit", "amount": str(cost)})
-        if gain_loss > _ZERO:
-            qbo_lines.append(
-                {"role": "gain_loss_on_disposal", "posting": "credit", "amount": str(gain_loss)}
-            )
-        elif gain_loss < _ZERO:
-            qbo_lines.append(
-                {"role": "gain_loss_on_disposal", "posting": "debit", "amount": str(-gain_loss)}
-            )
-        if len(qbo_lines) < 2:
-            raise InvalidDisposalInputError(
-                "disposal has no economic effect (cost, accumulated depreciation, "
-                "and proceeds are all zero)"
-            )
-        await qbo_outbox.enqueue(
-            session,
-            kind="fixed_asset_disposal",
-            local_id=disposal_id,
-            payload={"lines": qbo_lines, "private_note": f"Disposal of {asset.asset_number}"},
-            op="post",
+    qbo_lines: list[dict] = []
+    if accumulated > _ZERO:
+        qbo_lines.append(
+            {"role": "accumulated_depreciation", "posting": "debit", "amount": str(accumulated)}
         )
-    else:
-        lines: list[journal_service.JournalLineInput] = []
-        line_no = 1
-        if accumulated > _ZERO:
-            lines.append(
-                journal_service.JournalLineInput(
-                    account_id=asset.accumulated_depreciation_account_id,
-                    debit=accumulated,
-                    credit=_ZERO,
-                    line_number=line_no,
-                    memo=f"Dr accumulated depreciation for {asset.asset_number}",
-                )
-            )
-            line_no += 1
-        if proceeds > _ZERO and proceeds_acct is not None:
-            lines.append(
-                journal_service.JournalLineInput(
-                    account_id=proceeds_acct.id,
-                    debit=proceeds,
-                    credit=_ZERO,
-                    line_number=line_no,
-                    memo=f"Dr proceeds for {asset.asset_number}",
-                )
-            )
-            line_no += 1
-        lines.append(
-            journal_service.JournalLineInput(
-                account_id=asset.asset_account_id,
-                debit=_ZERO,
-                credit=cost,
-                line_number=line_no,
-                memo=f"Cr asset {asset.asset_number}",
-            )
+    if proceeds > _ZERO and proceeds_acct is not None:
+        qbo_lines.append({"role": "bank", "posting": "debit", "amount": str(proceeds)})
+    qbo_lines.append({"role": "fixed_asset", "posting": "credit", "amount": str(cost)})
+    if gain_loss > _ZERO:
+        qbo_lines.append(
+            {"role": "gain_loss_on_disposal", "posting": "credit", "amount": str(gain_loss)}
         )
-        line_no += 1
-        if gain_loss > _ZERO:
-            lines.append(
-                journal_service.JournalLineInput(
-                    account_id=gain_loss_acct.id,
-                    debit=_ZERO,
-                    credit=gain_loss,
-                    line_number=line_no,
-                    memo=f"Cr gain on disposal of {asset.asset_number}",
-                )
-            )
-        elif gain_loss < _ZERO:
-            lines.append(
-                journal_service.JournalLineInput(
-                    account_id=gain_loss_acct.id,
-                    debit=-gain_loss,
-                    credit=_ZERO,
-                    line_number=line_no,
-                    memo=f"Dr loss on disposal of {asset.asset_number}",
-                )
-            )
-        if len(lines) < 2:
-            raise InvalidDisposalInputError(
-                "disposal has no economic effect (cost, accumulated depreciation, "
-                "and proceeds are all zero)"
-            )
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Disposal of asset {asset.asset_number} ({kind_e.value})",
-                posted_at=posted_at,
-                lines=lines,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
+    elif gain_loss < _ZERO:
+        qbo_lines.append(
+            {"role": "gain_loss_on_disposal", "posting": "debit", "amount": str(-gain_loss)}
         )
-        assert isinstance(entry, JournalEntry)
-        posted_je_id = entry.id
+    if len(qbo_lines) < 2:
+        raise InvalidDisposalInputError(
+            "disposal has no economic effect (cost, accumulated depreciation, "
+            "and proceeds are all zero)"
+        )
+    await qbo_outbox.enqueue(
+        session,
+        kind="fixed_asset_disposal",
+        local_id=disposal_id,
+        payload={"lines": qbo_lines, "private_note": f"Disposal of {asset.asset_number}"},
+        op="post",
+    )
 
     # --- Insert disposal row + flip asset state ---
     disposal = FixedAssetDisposal(

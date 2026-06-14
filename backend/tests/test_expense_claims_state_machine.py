@@ -6,7 +6,9 @@ from decimal import Decimal
 
 import pytest
 from app.models.expense_claim import ExpenseClaimState
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import expense_claims as claims_service
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests._expense_claims_helpers import (
@@ -42,8 +44,22 @@ async def test_create_draft_then_submit_then_approve(app_session: AsyncSession) 
     claim = await claims_service.approve(app_session, claim_id=claim.id, actor_user_id=approver.id)
     await app_session.commit()
     assert claim.state == ExpenseClaimState.APPROVED
-    assert claim.posting_journal_entry_id is not None
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE — the posting
+    # goes out via the sync outbox.
+    assert claim.posting_journal_entry_id is None
     assert claim.approver_user_id == approver.id
+
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "expense_claim", QboSyncOutbox.local_id == claim.id
+            )
+        )
+    ).scalar_one()
+    by_role = {ln["role"]: ln for ln in outbox_row.payload["lines"]}
+    assert by_role["expense"]["posting"] == "debit"
+    assert by_role["employee_reimbursable"]["posting"] == "credit"
+    assert Decimal(by_role["employee_reimbursable"]["amount"]) == Decimal("50.00")
 
 
 @pytest.mark.asyncio

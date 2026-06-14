@@ -1,4 +1,9 @@
-"""Bill payment Cr-side splits when the vendor has a withholding profile (Phase 9.7, #159)."""
+"""Bill payment splits withholding when the vendor has a profile (Phase 9.7, #159).
+
+QBO is the sole ledger (epic #312, Phase 5e): the withholding split rides
+the sync outbox as a ``bill_payment_withholding`` JournalEntry spec
+alongside the native ``bill_payment`` document.
+"""
 
 from __future__ import annotations
 
@@ -7,11 +12,10 @@ from decimal import Decimal
 
 import pytest
 from app.models.auth import Role
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._bill_payments_helpers import (
     auth_header,
@@ -32,7 +36,7 @@ from tests._withholding_helpers import (
 async def test_payment_with_vendor_profile_splits_je(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    accounts = await seed_full_ap_payments_stack(app_session)
+    await seed_full_ap_payments_stack(app_session)
     user = await seed_owner(app_session, email="actor@example.com")
     vendor = await seed_vendor(app_session)
     bill = await seed_issued_bill(
@@ -59,22 +63,28 @@ async def test_payment_with_vendor_profile_splits_je(
     app_row = payload["applications"][0]
     assert Decimal(app_row["withholding_amount"]) == Decimal("100")
     assert app_row["withholding_profile_id"] == str(profile.id)
+    # QBO is the sole ledger: no local JE.
+    assert payload["posting_journal_entry_id"] is None
 
-    je_id = uuid.UUID(payload["posting_journal_entry_id"])
-    je = (
-        await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+    # Outbox carries the native BillPayment + the withholding split JE spec.
+    rows = (
+        (
+            await app_session.execute(
+                select(QboSyncOutbox).where(
+                    QboSyncOutbox.local_id == uuid.UUID(payload["id"]),
+                )
+            )
         )
-    ).scalar_one()
-    by_account = {line.account_id: line for line in je.lines}
-    # Dr AP $1000
-    assert by_account[accounts["ap_account_id"]].debit == Decimal("1000.000000")
-    # Cr Bank $900, Cr Withholding-Liability $100
-    assert by_account[accounts["bank_account_id"]].credit == Decimal("900.000000")
-    assert by_account[liability.id].credit == Decimal("100.000000")
+        .scalars()
+        .all()
+    )
+    by_kind = {row.kind: row for row in rows}
+    assert set(by_kind) == {"bill_payment", "bill_payment_withholding"}
+    assert by_kind["bill_payment"].op == "post"
 
-    total_d = sum(line.debit for line in je.lines)
-    total_c = sum(line.credit for line in je.lines)
-    assert total_d == total_c == Decimal("1000.000000")
+    withholding_lines = by_kind["bill_payment_withholding"].payload["lines"]
+    by_role = {line["role"]: line for line in withholding_lines}
+    assert by_role["bank"]["posting"] == "debit"
+    assert Decimal(by_role["bank"]["amount"]) == Decimal("100")
+    assert by_role["tax_liability"]["posting"] == "credit"
+    assert Decimal(by_role["tax_liability"]["amount"]) == Decimal("100")

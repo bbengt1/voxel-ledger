@@ -6,7 +6,9 @@ from decimal import Decimal
 
 import pytest
 from app.models.bank import BankTransactionState
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import bank_auto_matcher, bank_match_rules
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests._banking_helpers import (
@@ -51,8 +53,19 @@ async def test_contains_match_posts_je_and_flips_state(app_session: AsyncSession
 
     assert len(results) == 1
     assert results[0].action_kind == "post_to_account"
-    assert results[0].journal_entry_id is not None
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE — the match
+    # is pushed via the sync outbox instead.
+    assert results[0].journal_entry_id is None
 
     await app_session.refresh(tx)
     assert tx.state == BankTransactionState.MATCHED
-    assert tx.matched_journal_line_id is not None
+    assert tx.matched_journal_line_id is None
+
+    row = (
+        await app_session.execute(select(QboSyncOutbox).where(QboSyncOutbox.kind == "bank_match"))
+    ).scalar_one()
+    assert row.local_id == tx.id
+    assert {(ln["posting"], Decimal(ln["amount"])) for ln in row.payload["lines"]} == {
+        ("debit", Decimal("4.50")),
+        ("credit", Decimal("4.50")),
+    }

@@ -1,4 +1,5 @@
-"""Credit note proportional revenue reversal + apply drops outstanding (Phase 7.4, #112)."""
+"""Credit note issue enqueues a QBO CreditMemo + apply drops outstanding
+(Phase 7.4, #112; QBO-only per epic #312 Phase 5e)."""
 
 from __future__ import annotations
 
@@ -8,11 +9,10 @@ from decimal import Decimal
 import pytest
 from app.models.auth import Role, User
 from app.models.invoice import Invoice, InvoiceState
-from app.models.journal_entry import JournalEntry
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from tests._payments_helpers import (
     auth_header,
@@ -24,11 +24,11 @@ from tests._payments_helpers import (
 
 
 @pytest.mark.asyncio
-async def test_issue_credit_note_posts_debit_revenue_credit_ar(
+async def test_issue_credit_note_enqueues_qbo_credit_memo(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
     owner = await token_for(Role.OWNER, client, app_session)
-    accounts = await seed_full_ar_stack(app_session)
+    await seed_full_ar_stack(app_session)
     customer = await seed_customer(app_session)
     user = (
         await app_session.execute(select(User).where(User.email == "owner@example.com"))
@@ -51,19 +51,21 @@ async def test_issue_credit_note_posts_debit_revenue_credit_ar(
 
     r = await client.post(f"/api/v1/credit-notes/{note_id}/issue", headers=auth_header(owner))
     assert r.status_code == 200
-    je_id = uuid.UUID(r.json()["posting_journal_entry_id"])
+    # QBO is the sole ledger (epic #312, Phase 5e): no local JE is stamped;
+    # a native QBO CreditMemo is pushed via the sync outbox instead.
+    assert r.json()["posting_journal_entry_id"] is None
 
-    je = (
+    outbox_row = (
         await app_session.execute(
-            select(JournalEntry)
-            .where(JournalEntry.id == je_id)
-            .options(selectinload(JournalEntry.lines))
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "credit_note",
+                QboSyncOutbox.local_id == uuid.UUID(note_id),
+            )
         )
     ).scalar_one()
-    by_acct = {line.account_id: line for line in je.lines}
-    # Debit revenue, credit AR -> reverses a slice of original revenue posting
-    assert by_acct[accounts["revenue_account_id"]].debit == Decimal("20.000000")
-    assert by_acct[accounts["ar_account_id"]].credit == Decimal("20.000000")
+    assert outbox_row.op == "post"
+    assert Decimal(outbox_row.payload["amount"]) == Decimal("20.00")
+    assert outbox_row.payload["customer_id"] == str(customer.id)
 
     # Apply reduces outstanding without a real payment
     r = await client.post(f"/api/v1/credit-notes/{note_id}/apply", headers=auth_header(owner))

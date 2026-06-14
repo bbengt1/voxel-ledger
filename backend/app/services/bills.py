@@ -1,58 +1,22 @@
 """Bills service (Phase 8.2, #129).
 
 The bill is the AP system-of-record — the direct AP-side mirror of
-the Phase 7.3 ``invoice``. Issuing a bill (``draft -> issued``) posts
-to the GL atomically INSIDE THE SAME DB TRANSACTION as the state flip.
+the Phase 7.3 ``invoice``. QBO is the sole ledger (epic #312, Phase
+5e): issuing a bill (``draft -> issued``) enqueues a native QBO Bill
+via the sync outbox INSIDE THE SAME DB TRANSACTION as the state flip.
 This same-TX invariant is the keystone v2 rule for AP (mirrors AR): if
-any step (re-snapshot, account resolve, JE post, event emit) raises,
-the outer transaction rolls back and NOTHING persists — not the state
-flip, not the JE, not the audit events. Do not introduce nested commits.
+any step (re-snapshot, enqueue, event emit) raises, the outer
+transaction rolls back and NOTHING persists — not the state flip, not
+the outbox row, not the audit events. Do not introduce nested commits.
 
-Account resolution at issue time
---------------------------------
-* Expense Dr (per line):
-  ``line.expense_account_id_override`` ->
-  ``expense_category.default_expense_account_id`` (Phase 8.6; skipped
-  today since the table doesn't exist) ->
-  ``vendor.default_expense_account_id`` ->
-  setting ``ap.default_expense_account_id`` ->
-  raise ``MissingApPostingAccountError``.
-* AP Cr (total):
-  ``vendor.default_ap_account_id`` ->
-  setting ``ap.default_ap_account_id`` ->
-  raise.
-* Tax Dr (when ``tax_amount > 0``):
-  setting ``ap.default_tax_expense_account_id`` -> raise.
-
-  v2 keeps tax handling simple: the tax portion of a bill is treated
-  as a non-recoverable expense Dr to a dedicated account. Phase 9 may
-  split into a recoverable-tax-asset path. The AP mirror of invoices'
-  sales-tax-payable requirement.
-
-Posting math (mirrors invoices in reverse)
-------------------------------------------
-* Cr AP account = ``total_amount`` (tax-inclusive).
-* Dr per-line expense = ``line.extended_amount`` (un-discounted).
-* If ``discount_amount > 0`` we don't post a separate contra-expense
-  line — the discount is implicitly bundled into the AP credit math,
-  matching how invoices handle discount (the discount reduces the
-  revenue credit by being subtracted from subtotal). For bills the AP
-  Cr is ``total = subtotal - discount + tax``, and the Dr legs sum to
-  ``subtotal + tax``. To keep the entry balanced when discount > 0 we
-  emit a contra-Dr discount expense line equal to ``-discount_amount``
-  on the same primary expense account... actually invoices solved this
-  by setting revenue_amount = subtotal - discount (i.e. the discount is
-  absorbed into the revenue side). Mirroring: we set the expense Dr per
-  line to extended_amount, but to keep the entry balanced when discount
-  > 0 we Cr the primary expense account by discount_amount. In practice
-  v2 ships with discount = 0 on bills; this code path raises a clear
-  error if discount > 0 and refuses to post until Phase 9 lands the
-  proper purchase-discounts-earned account.
+Discount handling: in practice v2 ships with discount = 0 on bills;
+issue raises a clear error if discount > 0 and refuses to post until
+Phase 9 lands the proper purchase-discounts-earned account.
 
 Void flow
 ---------
-Mirror ``invoices.void``: reverses the JE in same TX, only allowed from
-``issued`` / ``partially_paid`` / ``overdue``, raises
+Mirror ``invoices.void``: enqueues a QBO void in the same TX, only
+allowed from ``issued`` / ``partially_paid`` / ``overdue``, raises
 ``BillHasPaymentsError`` if ``amount_paid > 0`` (Phase 8.3 will land
 ``bill_payment`` and the unapply flow).
 """
@@ -79,15 +43,11 @@ from app.models.bill import (
     BillItemKind,
     BillState,
 )
-from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import expense_categories as expense_categories_service
-from app.services import journal_entries as journal_service
 from app.services import tax as tax_service
 from app.services.reference_number import ReferenceNumberService
-from app.services.settings.service import SettingsService
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -634,81 +594,6 @@ async def update_draft(
 
 
 # ---------------------------------------------------------------------------
-# Account resolution at issue time
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_setting_account(
-    session: AsyncSession,
-    *,
-    keys: tuple[str, ...],
-    why: str,
-) -> uuid.UUID:
-    """Try each ``keys`` in order; return the first set value or raise."""
-    for key in keys:
-        value = await SettingsService.get(key, session=session)
-        if value is not None:
-            if not isinstance(value, uuid.UUID):
-                value = uuid.UUID(str(value))
-            return value
-    pretty = ", ".join(repr(k) for k in keys)
-    raise MissingApPostingAccountError(
-        f"configure default AP posting accounts: none of {pretty} are set " f"(needed to {why})"
-    )
-
-
-async def _resolve_expense_account(
-    session: AsyncSession,
-    *,
-    line: BillItem,
-    vendor: Vendor,
-) -> uuid.UUID:
-    """Resolve the per-line Dr expense account.
-
-    Chain: line.expense_account_id_override ->
-    ``expense_category.default_expense_account_id`` (when the line
-    references a category) -> vendor.default_expense_account_id ->
-    setting ``ap.default_expense_account_id`` -> raise.
-    """
-    if line.expense_account_id_override is not None:
-        return line.expense_account_id_override
-    category_account = await expense_categories_service.get_default_account_for_category(
-        session, line.expense_category_id
-    )
-    if category_account is not None:
-        return category_account
-    if vendor.default_expense_account_id is not None:
-        return vendor.default_expense_account_id
-    return await _resolve_setting_account(
-        session,
-        keys=("ap.default_expense_account_id",),
-        why="debit expense for a bill line",
-    )
-
-
-async def _resolve_ap_account(
-    session: AsyncSession,
-    *,
-    vendor: Vendor,
-) -> uuid.UUID:
-    if vendor.default_ap_account_id is not None:
-        return vendor.default_ap_account_id
-    return await _resolve_setting_account(
-        session,
-        keys=("ap.default_ap_account_id",),
-        why="credit AP for the bill total",
-    )
-
-
-async def _resolve_tax_expense_account(session: AsyncSession) -> uuid.UUID:
-    return await _resolve_setting_account(
-        session,
-        keys=("ap.default_tax_expense_account_id",),
-        why="debit tax expense on a bill with tax",
-    )
-
-
-# ---------------------------------------------------------------------------
 # State transitions: issue / void
 # ---------------------------------------------------------------------------
 
@@ -719,24 +604,16 @@ async def issue(
     bill_id: uuid.UUID,
     actor_user_id: uuid.UUID,
 ) -> Bill:
-    """Move ``draft -> issued`` and post the journal entry in the same TX.
+    """Move ``draft -> issued`` and enqueue the QBO Bill in the same TX.
 
     Re-snapshots ``billing_address`` (the vendor may have edited it
     since draft creation), stamps ``issued_at = now()`` and ``due_at =
-    issued_at + vendor.payment_terms_days``, posts the AP/Expense/Tax
-    JE, stores ``posting_journal_entry_id`` on the bill row, and emits
-    ``ap.BillIssued`` + ``ap.BillPosted``.
+    issued_at + vendor.payment_terms_days``, enqueues the native QBO
+    Bill via the sync outbox (``posting_journal_entry_id`` stays
+    ``None``), and emits ``ap.BillIssued`` + ``ap.BillPosted``.
 
-    Posting math
-    ------------
-    * Cr AP account = ``total_amount``.
-    * Dr per-line expense = ``line.extended_amount``.
-    * Dr tax expense = ``tax_amount`` (when > 0).
-
-    Discount handling: when ``discount_amount > 0`` the entry would be
-    unbalanced (Dr legs sum to subtotal + tax; Cr AP = subtotal -
-    discount + tax). v2 of the bills system rejects bills with discount
-    > 0 until Phase 9 lands a purchase-discounts-earned account.
+    Discount handling: bills with ``discount_amount > 0`` are still
+    rejected (Phase 9 will add a purchase-discounts-earned account).
     """
     bill = await _load(session, bill_id)
     _ensure_transition(bill.state, BillState.ISSUED)
@@ -763,23 +640,8 @@ async def issue(
             "purchase-discounts-earned account)"
         )
 
-    # QBO replace-mode (epic #312, Phase 3c-1): push a native QBO Bill via the
-    # sync outbox instead of posting the local GL. Operational work (state,
-    # dates, reverse-charge tax zeroing) stays.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
-
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-
-    # Resolve accounts BEFORE building the JE so a missing setting raises
-    # before we touch anything else. Skipped in QBO mode (QBO holds the chart).
-    ap_account_id: uuid.UUID | None = None
-    per_line_expense_ids: list[uuid.UUID] = []
-    if not qbo_enabled:
-        ap_account_id = await _resolve_ap_account(session, vendor=vendor)
-        for line in sorted(bill.items, key=lambda i: i.line_number):
-            per_line_expense_ids.append(
-                await _resolve_expense_account(session, line=line, vendor=vendor)
-            )
 
     # Phase 9.5 (#157): narrow scope on the bill side.
     # If any bill line carries a reverse-charge tax_profile (resolved via
@@ -799,115 +661,35 @@ async def issue(
     await session.flush()
 
     tax_amount = _q(bill.tax_amount)
-    tax_expense_account_id: uuid.UUID | None = None
-    if tax_amount > _ZERO and not qbo_enabled:
-        tax_expense_account_id = await _resolve_tax_expense_account(session)
-
     total_amount = _q(bill.total_amount)
 
-    if qbo_enabled:
-        await qbo_outbox.enqueue(
-            session,
-            kind="bill",
-            local_id=bill.id,
-            payload={
-                "vendor_id": str(bill.vendor_id),
-                "vendor_invoice_number": bill.vendor_invoice_number,
-                "txn_date": issued_at.date().isoformat(),
-                "due_date": bill.due_at.date().isoformat() if bill.due_at else None,
-                "private_note": f"Bill {bill.bill_number}",
-                "tax_amount": str(tax_amount),
-                "lines": [
-                    {"description": li.description, "amount": str(_q(li.extended_amount))}
-                    for li in sorted(bill.items, key=lambda i: i.line_number)
-                    if _q(li.extended_amount) > _ZERO
-                ],
-            },
-            op="post",
-        )
-        bill.posting_journal_entry_id = None
-        await session.flush()
-        return await _finish_bill_issue(
-            session,
-            bill=bill,
-            issued_at=issued_at,
-            total_amount=total_amount,
-            posted_entry_id=None,
-            actor_user_id=actor_user_id,
-        )
-
-    # Build journal entry: Dr Expense (per line), Dr Tax Expense (if tax > 0),
-    # Cr AP (total).
-    lines_in: list[journal_service.JournalLineInput] = []
-    line_no = 0
-
-    def _next_line_no() -> int:
-        nonlocal line_no
-        line_no += 1
-        return line_no
-
-    for line, expense_account_id in zip(
-        sorted(bill.items, key=lambda i: i.line_number),
-        per_line_expense_ids,
-        strict=True,
-    ):
-        ext = _q(line.extended_amount)
-        if ext <= _ZERO:
-            continue
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=expense_account_id,
-                debit=ext,
-                credit=_ZERO,
-                line_number=_next_line_no(),
-                memo=f"Expense for bill {bill.bill_number} line {line.line_number}",
-            )
-        )
-
-    if tax_amount > _ZERO and tax_expense_account_id is not None:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=tax_expense_account_id,
-                debit=tax_amount,
-                credit=_ZERO,
-                line_number=_next_line_no(),
-                memo=f"Tax expense for bill {bill.bill_number}",
-            )
-        )
-
-    if total_amount > _ZERO:
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=ap_account_id,
-                debit=_ZERO,
-                credit=total_amount,
-                line_number=_next_line_no(),
-                memo=f"AP for bill {bill.bill_number}",
-            )
-        )
-
-    if len(lines_in) < 2:
-        raise BillServiceError(f"bill {bill.bill_number} has nothing to post (total is zero)")
-
-    entry = await journal_service.post(
-        journal_service.JournalEntryInput(
-            description=f"Bill {bill.bill_number}: issuance",
-            posted_at=issued_at,
-            lines=lines_in,
-        ),
-        session=session,
-        actor_user_id=actor_user_id,
-        _internal_skip_approval_check=True,
+    await qbo_outbox.enqueue(
+        session,
+        kind="bill",
+        local_id=bill.id,
+        payload={
+            "vendor_id": str(bill.vendor_id),
+            "vendor_invoice_number": bill.vendor_invoice_number,
+            "txn_date": issued_at.date().isoformat(),
+            "due_date": bill.due_at.date().isoformat() if bill.due_at else None,
+            "private_note": f"Bill {bill.bill_number}",
+            "tax_amount": str(tax_amount),
+            "lines": [
+                {"description": li.description, "amount": str(_q(li.extended_amount))}
+                for li in sorted(bill.items, key=lambda i: i.line_number)
+                if _q(li.extended_amount) > _ZERO
+            ],
+        },
+        op="post",
     )
-    assert isinstance(entry, JournalEntry)
-    bill.posting_journal_entry_id = entry.id
+    bill.posting_journal_entry_id = None
     await session.flush()
     return await _finish_bill_issue(
         session,
         bill=bill,
         issued_at=issued_at,
         total_amount=total_amount,
-        posted_entry_id=entry.id,
+        posted_entry_id=None,
         actor_user_id=actor_user_id,
     )
 
@@ -921,9 +703,10 @@ async def _finish_bill_issue(
     posted_entry_id: uuid.UUID | None,
     actor_user_id: uuid.UUID,
 ) -> Bill:
-    """Emit the issued + posted events (shared by the local-GL and QBO paths).
+    """Emit the issued + posted events.
 
-    ``posted_entry_id`` is None in QBO replace-mode (pushed async via outbox)."""
+    ``posted_entry_id`` is always ``None`` now that QBO is the sole ledger
+    (the posting is pushed asynchronously to QBO via the sync outbox)."""
     je_id = str(posted_entry_id) if posted_entry_id is not None else None
     await _emit(
         session,
@@ -961,7 +744,7 @@ async def void(
     bill_id: uuid.UUID,
     actor_user_id: uuid.UUID,
 ) -> Bill:
-    """Void a bill; reverse the posted JE (same TX).
+    """Void a bill; enqueue the QBO reverse/void in the same TX.
 
     Only from ``issued`` / ``partially_paid`` / ``overdue`` — voiding a
     fully paid bill is illegal. If ``amount_paid > 0`` we raise
@@ -976,27 +759,17 @@ async def void(
             f"(amount_paid={bill.amount_paid}); unapply via Phase 8.3 before voiding"
         )
 
-    reversing_je_id: uuid.UUID | None = None
-    original_je_id = bill.posting_journal_entry_id
-    if original_je_id is not None:
-        reversal = await journal_service.reverse(
-            original_je_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of bill {bill.bill_number}",
-        )
-        reversing_je_id = reversal.id
-    else:
-        from app.services.quickbooks import outbox as qbo_outbox
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue a QBO void of the
+    # bill we pushed (the builder finds its synced outbox row).
+    from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            await qbo_outbox.enqueue(
-                session,
-                kind="bill",
-                local_id=bill.id,
-                payload={"bill_id": str(bill.id)},
-                op="reverse",
-            )
+    await qbo_outbox.enqueue(
+        session,
+        kind="bill",
+        local_id=bill.id,
+        payload={"bill_id": str(bill.id)},
+        op="reverse",
+    )
 
     bill.state = BillState.VOID
     await session.flush()
@@ -1012,19 +785,6 @@ async def void(
         },
         actor_user_id=actor_user_id,
     )
-    if reversing_je_id is not None and original_je_id is not None:
-        await _emit(
-            session,
-            event_type=ap_events.TYPE_BILL_REVERSED,
-            aggregate_id=bill.id,
-            payload={
-                "bill_id": str(bill.id),
-                "bill_number": bill.bill_number,
-                "reversing_journal_entry_id": str(reversing_je_id),
-                "original_journal_entry_id": str(original_je_id),
-            },
-            actor_user_id=actor_user_id,
-        )
     return bill
 
 

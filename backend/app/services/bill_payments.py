@@ -4,24 +4,9 @@ The direct AP mirror of Phase 7.4 AR payments. ``record_payment`` lands
 a payment + applications atomically: validates everything, writes the
 ``bill_payment`` row, writes ``bill_payment_application`` rows, updates
 each touched bill's ``amount_paid`` / ``amount_outstanding`` / state,
-and posts the JE (Dr AP / Cr Bank) — all inside the SAME DB
+and enqueues a native QBO BillPayment via the sync outbox (QBO is the
+sole ledger — epic #312, Phase 5e) — all inside the SAME DB
 transaction. The same-TX invariant is the keystone v2 rule.
-
-GL direction (inverted from AR)
--------------------------------
-* Cr Bank = total payment amount (single line).
-* Dr AP per applied bill = ``amount_applied`` (one line per application).
-
-Account resolution at posting time
-----------------------------------
-* Cr Bank account:
-  setting ``ap.payment_method_to_account[method]`` ->
-  setting ``ap.default_bank_account_id`` ->
-  raise ``MissingApPostingAccountError``.
-* Dr AP account per applied bill:
-  ``vendor.default_ap_account_id`` ->
-  setting ``ap.default_ap_account_id`` ->
-  raise.
 
 State machine
 -------------
@@ -29,7 +14,7 @@ State machine
 ``pending`` -> ``cancelled``
 ``posted`` -> ``pending``      (unapply; bookkeeper only)
 ``posted`` -> ``bounced``      (bounce; bookkeeper only)
-``posted`` -> ``cancelled``    (cancel reverses JE + flips state)
+``posted`` -> ``cancelled``    (cancel enqueues the QBO void + flips state)
 """
 
 from __future__ import annotations
@@ -52,16 +37,13 @@ from app.models.bill_payment import (
     BillPaymentMethod,
     BillPaymentState,
 )
-from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor, VendorState
 from app.models.withholding_profile import WithholdingProfile
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 from app.services import withholding as withholding_service
 from app.services.bills import MissingApPostingAccountError
 from app.services.reference_number import ReferenceNumberService
-from app.services.settings.service import SettingsService
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -183,60 +165,6 @@ async def _emit(
             actor_user_id=actor_user_id,
         ),
         session=session,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Account resolution
-# ---------------------------------------------------------------------------
-
-
-async def _resolve_bank_account(session: AsyncSession, *, method: BillPaymentMethod) -> uuid.UUID:
-    """Resolve the bank/cash account credited at posting.
-
-    ``ap.payment_method_to_account`` (JSON map) takes precedence; falls
-    through to ``ap.default_bank_account_id``. Raises
-    ``MissingApPostingAccountError`` if neither resolves.
-    """
-    mapping = await SettingsService.get("ap.payment_method_to_account", session=session)
-    if isinstance(mapping, dict):
-        raw = mapping.get(method.value)
-        if raw:
-            if isinstance(raw, uuid.UUID):
-                return raw
-            try:
-                return uuid.UUID(str(raw))
-            except ValueError as exc:
-                raise MissingApPostingAccountError(
-                    f"ap.payment_method_to_account[{method.value!r}] is not a valid UUID"
-                ) from exc
-
-    default = await SettingsService.get("ap.default_bank_account_id", session=session)
-    if default is not None:
-        if isinstance(default, uuid.UUID):
-            return default
-        return uuid.UUID(str(default))
-
-    raise MissingApPostingAccountError(
-        "configure default AP posting accounts: neither "
-        f"ap.payment_method_to_account[{method.value!r}] nor "
-        "ap.default_bank_account_id are set (needed to credit the bank "
-        "account for a bill payment)"
-    )
-
-
-async def _resolve_ap_account(session: AsyncSession, *, vendor: Vendor) -> uuid.UUID:
-    if vendor.default_ap_account_id is not None:
-        return vendor.default_ap_account_id
-    default = await SettingsService.get("ap.default_ap_account_id", session=session)
-    if default is not None:
-        if isinstance(default, uuid.UUID):
-            return default
-        return uuid.UUID(str(default))
-    raise MissingApPostingAccountError(
-        "configure default AP posting accounts: neither "
-        "vendor.default_ap_account_id nor ap.default_ap_account_id are "
-        "set (needed to debit AP on a bill payment)"
     )
 
 
@@ -456,111 +384,47 @@ async def record_payment(
         # endpoint.
         return await _load_payment(session, payment.id)
 
-    # QBO replace-mode (epic #312, Phase 3c-1): push a native QBO BillPayment via
-    # the sync outbox instead of posting the local GL. Bill balances/state +
-    # application rows above stay.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
+    # Bill balances/state + application rows above stay local.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-    posted_entry_id: uuid.UUID | None = None
-
-    if qbo_enabled:
+    await qbo_outbox.enqueue(
+        session,
+        kind="bill_payment",
+        local_id=payment.id,
+        payload={
+            "vendor_id": str(vendor.id),
+            "amount": str(amt),
+            "txn_date": occurred.date().isoformat(),
+            "reference": payment.reference_number,
+            "private_note": f"Bill payment {payment_number}",
+            "applications": [{"bill_id": str(b.id), "amount": str(a)} for b, a in normalized],
+        },
+        op="post",
+    )
+    if total_withheld > _ZERO:
+        # Withholding: return the withheld cash from bank into a tax
+        # liability (net cash out = amt - withheld).
         await qbo_outbox.enqueue(
             session,
-            kind="bill_payment",
+            kind="bill_payment_withholding",
             local_id=payment.id,
             payload={
-                "vendor_id": str(vendor.id),
-                "amount": str(amt),
-                "txn_date": occurred.date().isoformat(),
-                "reference": payment.reference_number,
-                "private_note": f"Bill payment {payment_number}",
-                "applications": [{"bill_id": str(b.id), "amount": str(a)} for b, a in normalized],
+                "lines": [
+                    {"role": "bank", "posting": "debit", "amount": str(total_withheld)},
+                    {
+                        "role": "tax_liability",
+                        "posting": "credit",
+                        "amount": str(total_withheld),
+                    },
+                ],
+                "private_note": f"Withholding on {payment_number}",
             },
             op="post",
         )
-        if total_withheld > _ZERO:
-            # Withholding: return the withheld cash from bank into a tax
-            # liability (net cash out = amt - withheld).
-            await qbo_outbox.enqueue(
-                session,
-                kind="bill_payment_withholding",
-                local_id=payment.id,
-                payload={
-                    "lines": [
-                        {"role": "bank", "posting": "debit", "amount": str(total_withheld)},
-                        {
-                            "role": "tax_liability",
-                            "posting": "credit",
-                            "amount": str(total_withheld),
-                        },
-                    ],
-                    "private_note": f"Withholding on {payment_number}",
-                },
-                op="post",
-            )
-        payment.posting_journal_entry_id = None
-        payment.state = BillPaymentState.POSTED
-        await session.flush()
-    else:
-        bank_account_id = await _resolve_bank_account(session, method=method_enum)
-
-        lines_in: list[journal_service.JournalLineInput] = []
-        line_no = 0
-        for bill, app_amt in normalized:
-            line_no += 1
-            ap_account_id = await _resolve_ap_account(session, vendor=vendor)
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=ap_account_id,
-                    debit=app_amt,
-                    credit=_ZERO,
-                    line_number=line_no,
-                    memo=f"Apply {payment_number} to {bill.bill_number}",
-                )
-            )
-
-        bank_credit = _q(amt - total_withheld)
-        line_no += 1
-        lines_in.append(
-            journal_service.JournalLineInput(
-                account_id=bank_account_id,
-                debit=_ZERO,
-                credit=bank_credit,
-                line_number=line_no,
-                memo=f"Bill payment {payment_number} ({method_enum.value})",
-            )
-        )
-        if total_withheld > _ZERO and withholding_profile is not None:
-            line_no += 1
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=withholding_profile.liability_account_id,
-                    debit=_ZERO,
-                    credit=total_withheld,
-                    line_number=line_no,
-                    memo=(
-                        f"Withholding {withholding_profile.code} on {payment_number} "
-                        f"(rate {withholding_profile.rate})"
-                    ),
-                )
-            )
-
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Bill payment {payment_number}",
-                posted_at=occurred,
-                lines=lines_in,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        assert isinstance(entry, JournalEntry)
-        payment.posting_journal_entry_id = entry.id
-        posted_entry_id = entry.id
-        payment.state = BillPaymentState.POSTED
-        await session.flush()
+    payment.posting_journal_entry_id = None
+    payment.state = BillPaymentState.POSTED
+    await session.flush()
 
     await _emit(
         session,
@@ -572,7 +436,8 @@ async def record_payment(
             "vendor_id": str(vendor.id),
             "amount": str(amt),
             "method": method_enum.value,
-            "journal_entry_id": str(posted_entry_id) if posted_entry_id else None,
+            # Always None: QBO is the sole ledger (epic #312, Phase 5e).
+            "journal_entry_id": None,
         },
         actor_user_id=actor_user_id,
     )
@@ -640,8 +505,8 @@ async def unapply(
     actor_user_id: uuid.UUID,
     new_state: BillPaymentState = BillPaymentState.PENDING,
 ) -> BillPayment:
-    """Reverse the JE, drop application rows, restore bill state, flip
-    payment back to ``new_state`` (default ``pending``).
+    """Enqueue the QBO BillPayment void, drop application rows, restore
+    bill state, flip payment back to ``new_state`` (default ``pending``).
     """
     payment = await _load_payment(session, bill_payment_id)
     if payment.state != BillPaymentState.POSTED:
@@ -650,27 +515,17 @@ async def unapply(
             "only posted bill payments can be unapplied"
         )
 
-    reversing_je_id: uuid.UUID | None = None
-    original_je_id = payment.posting_journal_entry_id
-    if original_je_id is not None:
-        reversal = await journal_service.reverse(
-            original_je_id,
-            session=session,
-            actor_user_id=actor_user_id,
-            description=f"Reversal of bill payment {payment.payment_number}",
-        )
-        reversing_je_id = reversal.id
-    else:
-        from app.services.quickbooks import outbox as qbo_outbox
+    # QBO is the sole ledger (epic #312, Phase 5e): void the QBO BillPayment
+    # we pushed (the builder finds its synced outbox row).
+    from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            await qbo_outbox.enqueue(
-                session,
-                kind="bill_payment",
-                local_id=payment.id,
-                payload={"bill_payment_id": str(payment.id)},
-                op="reverse",
-            )
+    await qbo_outbox.enqueue(
+        session,
+        kind="bill_payment",
+        local_id=payment.id,
+        payload={"bill_payment_id": str(payment.id)},
+        op="reverse",
+    )
 
     await _restore_bills(session, payment=payment)
 
@@ -686,8 +541,9 @@ async def unapply(
             "payment_id": str(payment.id),
             "payment_number": payment.payment_number,
             "vendor_id": str(payment.vendor_id),
-            "reversing_journal_entry_id": (str(reversing_je_id) if reversing_je_id else None),
-            "original_journal_entry_id": (str(original_je_id) if original_je_id else None),
+            # Always None: QBO is the sole ledger (epic #312, Phase 5e).
+            "reversing_journal_entry_id": None,
+            "original_journal_entry_id": None,
         },
         actor_user_id=actor_user_id,
     )
@@ -730,8 +586,8 @@ async def cancel(
     """Cancel a pending or posted bill payment.
 
     From ``pending``: just flip state.
-    From ``posted``: reverse JE, drop applications, restore bills, flip
-    state to ``cancelled``.
+    From ``posted``: enqueue the QBO void, drop applications, restore
+    bills, flip state to ``cancelled``.
     """
     payment = await _load_payment(session, bill_payment_id)
     if payment.state == BillPaymentState.POSTED:

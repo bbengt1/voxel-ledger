@@ -47,19 +47,12 @@ import { WithholdingProfilesListPage } from "@/pages/withholding/WithholdingProf
 import { SettlementBoardPage } from "@/pages/settlements/SettlementBoard";
 import { SettlementImportWizardPage } from "@/pages/settlements/SettlementImportWizard";
 import { SettlementsListPage } from "@/pages/settlements/SettlementsList";
-import { TaxLiabilityReportPage } from "@/pages/tax/TaxLiabilityReport";
+import { ReportsInQuickBooksPage } from "@/pages/reports/ReportsInQuickBooks";
 import { TaxProfileComposerPage } from "@/pages/tax/TaxProfileComposer";
 import { TaxProfilesListPage } from "@/pages/tax/TaxProfilesList";
 import { TaxRemittanceFormPage } from "@/pages/tax/TaxRemittanceForm";
 import { TaxRemittancesListPage } from "@/pages/tax/TaxRemittancesList";
 import { WithholdingYtdReportPage } from "@/pages/withholding/WithholdingYtdReport";
-// --- 10.8a imports (financial-statement report pages) ---
-import { BalanceSheetPage } from "@/pages/reports/BalanceSheet";
-import { CashFlowPage } from "@/pages/reports/CashFlow";
-import { IncomeStatementPage } from "@/pages/reports/IncomeStatement";
-import { BudgetVariancePage } from "@/pages/reports/BudgetVariance";
-import { DivisionsComparisonPage } from "@/pages/reports/DivisionsComparison";
-import { TrialBalancePage } from "@/pages/reports/TrialBalance";
 // --- 10.8b imports (sales / inventory reports) ---
 import { InventoryValuationPage } from "@/pages/reports/InventoryValuation";
 import { SalesByPeriodPage } from "@/pages/reports/SalesByPeriod";
@@ -107,7 +100,6 @@ import { QuotesListPage } from "@/pages/ar/QuotesList";
 import { RecordPaymentPage } from "@/pages/ar/RecordPayment";
 // --- end 7.8a AR routes ---
 // --- 7.8b AR routes ---
-import { ArAgingReportPage } from "@/pages/ar/ArAgingReport";
 import { LateFeePoliciesListPage } from "@/pages/ar/LateFeePoliciesList";
 import { LateFeePolicyComposerPage } from "@/pages/ar/LateFeePolicyComposer";
 import { RecurringComposerPage } from "@/pages/ar/RecurringComposer";
@@ -960,12 +952,13 @@ export function App() {
           </RequireAuth>
         }
       />
+      {/* QBO replace-mode (#318 5d): AR aging lives in QuickBooks. */}
       <Route
         path="/reports/ar-aging"
         element={
           <RequireAuth>
             <AppShell>
-              <ArAgingReportPage />
+              <ReportsInQuickBooksPage />
             </AppShell>
           </RequireAuth>
         }
@@ -1456,12 +1449,13 @@ export function App() {
           </RequireAuth>
         }
       />
+      {/* QBO replace-mode (#318 5d): tax liability lives in QuickBooks. */}
       <Route
         path="/reports/tax-liability"
         element={
           <RequireAuth>
             <AppShell>
-              <TaxLiabilityReportPage />
+              <ReportsInQuickBooksPage />
             </AppShell>
           </RequireAuth>
         }
@@ -1507,68 +1501,33 @@ export function App() {
         }
       />
       {/* --- end 9.10b routes --- */}
-      {/* --- 10.8a routes (financial-statement reports) --- */}
-      <Route
-        path="/reports/income-statement"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <IncomeStatementPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/balance-sheet"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <BalanceSheetPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/cash-flow"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <CashFlowPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/trial-balance"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <TrialBalancePage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/divisions-comparison"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <DivisionsComparisonPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/reports/budget-variance"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <BudgetVariancePage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      {/* --- end 10.8a routes --- */}
+      {/* --- #318 5d: financial reports moved to QuickBooks. The legacy
+          10.8a report paths all land on the explainer so bookmarks don't
+          404. --- */}
+      {[
+        "/reports/quickbooks",
+        "/reports/income-statement",
+        "/reports/balance-sheet",
+        "/reports/cash-flow",
+        "/reports/trial-balance",
+        "/reports/divisions-comparison",
+        "/reports/budget-variance",
+        "/reports/ap-aging",
+        "/reports/general-ledger-detail",
+      ].map((path) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <RequireAuth>
+              <AppShell>
+                <ReportsInQuickBooksPage />
+              </AppShell>
+            </RequireAuth>
+          }
+        />
+      ))}
+      {/* --- end #318 5d routes --- */}
       {/* --- 10.8b routes (sales / inventory reports) --- */}
       <Route
         path="/reports/sales-by-period"

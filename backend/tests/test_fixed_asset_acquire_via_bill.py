@@ -1,4 +1,6 @@
-"""Acquire via bill: no new JE is posted; bill's existing JE is reused (Phase 9.1, #153)."""
+"""Acquire via bill: no fresh acquisition posting is enqueued — the bill's own
+QBO posting already moved the money (Phase 9.1, #153; QBO-only per epic #312
+Phase 5e)."""
 
 from __future__ import annotations
 
@@ -9,6 +11,7 @@ import pytest
 from app.models.account import Account
 from app.models.accounting_period import AccountingPeriod, AccountingPeriodState
 from app.models.auth import Role
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services import bills as bills_service
 from app.services import vendors as vendors_service
 from app.services.settings.service import SettingsService
@@ -102,8 +105,9 @@ async def test_bill_funded_acquisition_reuses_bill_je(
     await app_session.commit()
     issued_bill = await bills_service.issue(app_session, bill_id=bill.id, actor_user_id=issuer.id)
     await app_session.commit()
-    bill_je_id = issued_bill.posting_journal_entry_id
-    assert bill_je_id is not None
+    # QBO is the sole ledger (epic #312, Phase 5e): issued bills no longer
+    # stamp a local JE; the bill posting goes through the QBO sync outbox.
+    assert issued_bill.posting_journal_entry_id is None
 
     # --- Acquire via bill ---
     body = {
@@ -125,8 +129,23 @@ async def test_bill_funded_acquisition_reuses_bill_je(
     assert r.status_code == 201, r.text
     payload = r.json()
 
-    # Reused bill JE — no fresh JE id.
-    assert payload["posting_journal_entry_id"] == str(bill_je_id)
+    # Mirrors the bill's (None under QBO) — and crucially, the bill-funded
+    # path must NOT enqueue a fresh fixed_asset_acquisition posting (the
+    # bill's own QBO posting already moved the money).
+    assert payload["posting_journal_entry_id"] is None
+    acquisition_rows = (
+        (
+            await app_session.execute(
+                select(QboSyncOutbox).where(
+                    QboSyncOutbox.kind == "fixed_asset_acquisition",
+                    QboSyncOutbox.local_id == uuid.UUID(payload["id"]),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert acquisition_rows == []
 
 
 @pytest.mark.asyncio

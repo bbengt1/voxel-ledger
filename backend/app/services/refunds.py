@@ -56,14 +56,11 @@ from app.models.inventory_transaction import (
     KIND_SALE_CONSUMPTION,
     InventoryTransaction,
 )
-from app.models.journal_entry import JournalEntry
-from app.models.journal_line import JournalLine
 from app.models.refund import Refund, RefundItem, RefundKind, RefundState
 from app.models.sale import Sale
 from app.schemas.events import EventCreate
 from app.services import event_store
 from app.services import inventory_transactions as inventory_tx_service
-from app.services import journal_entries as journal_service
 from app.services.approvals import ApprovalsService
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
@@ -621,117 +618,43 @@ async def post(
             remaining_by_product[product_id] = _q(want - take)
 
     # ---------------- Journal entry reversal (proportional) ----------------
-    # QBO replace-mode (epic #312, Phase 3f): enqueue a role-tagged reversing
-    # JournalEntry (Dr revenue + Dr sales_tax / Cr bank for the cash refunded,
-    # plus Dr inventory / Cr cogs for any restock) instead of reading + scaling
-    # the local sale JE (which doesn't exist when QBO is the system of record).
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue a role-tagged
+    # reversing JournalEntry (Dr revenue + Dr sales_tax / Cr bank for the cash
+    # refunded, plus Dr inventory / Cr cogs for any restock) via the sync
+    # outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    qbo_enabled = await qbo_outbox.is_enabled(session)
     reversing_je_id: uuid.UUID | None = None
-    if qbo_enabled:
-        if refund_total > _ZERO:
-            sale_total = _q(sale.total_amount)
-            ratio = (
-                Decimal("1")
-                if sale_total <= _ZERO
-                else (refund_total / sale_total).quantize(_QUANTUM, rounding=ROUND_HALF_UP)
+    if refund_total > _ZERO:
+        sale_total = _q(sale.total_amount)
+        ratio = (
+            Decimal("1")
+            if sale_total <= _ZERO
+            else (refund_total / sale_total).quantize(_QUANTUM, rounding=ROUND_HALF_UP)
+        )
+        refund_tax = _q(_q(sale.tax_amount) * ratio)
+        refund_revenue = _q(refund_total - refund_tax)
+        qbo_lines: list[dict] = []
+        if refund_revenue > _ZERO:
+            qbo_lines.append({"role": "revenue", "posting": "debit", "amount": str(refund_revenue)})
+        if refund_tax > _ZERO:
+            qbo_lines.append(
+                {"role": "sales_tax_payable", "posting": "debit", "amount": str(refund_tax)}
             )
-            refund_tax = _q(_q(sale.tax_amount) * ratio)
-            refund_revenue = _q(refund_total - refund_tax)
-            qbo_lines: list[dict] = []
-            if refund_revenue > _ZERO:
-                qbo_lines.append(
-                    {"role": "revenue", "posting": "debit", "amount": str(refund_revenue)}
-                )
-            if refund_tax > _ZERO:
-                qbo_lines.append(
-                    {"role": "sales_tax_payable", "posting": "debit", "amount": str(refund_tax)}
-                )
-            qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(refund_total)})
-            if restock_cost > _ZERO:
-                qbo_lines.append(
-                    {"role": "inventory", "posting": "debit", "amount": str(restock_cost)}
-                )
-                qbo_lines.append({"role": "cogs", "posting": "credit", "amount": str(restock_cost)})
-            await qbo_outbox.enqueue(
-                session,
-                kind="refund",
-                local_id=refund.id,
-                payload={
-                    "lines": qbo_lines,
-                    "private_note": f"Refund {refund.refund_number} of sale {sale.sale_number}",
-                },
-                op="post",
-            )
-    elif sale.posting_journal_entry_id is not None and refund_total > _ZERO:
-        original = (
-            await session.execute(
-                select(JournalEntry)
-                .where(JournalEntry.id == sale.posting_journal_entry_id)
-                .options(selectinload(JournalEntry.lines))
-            )
-        ).scalar_one_or_none()
-        if original is not None:
-            sale_total = _q(sale.total_amount)
-            if sale_total <= _ZERO:
-                ratio = Decimal("1")
-            else:
-                ratio = (refund_total / sale_total).quantize(_QUANTUM, rounding=ROUND_HALF_UP)
-            # Build reversing lines: swap debit/credit AND scale by ratio.
-            # Round each line to 2dp to match GL convention and re-balance
-            # the last credit if there's a sub-cent rounding drift.
-            reversal_lines: list[journal_service.JournalLineInput] = []
-            total_debit = _ZERO
-            total_credit = _ZERO
-            for line_no, line in enumerate(
-                sorted(original.lines, key=lambda x: x.line_number), start=1
-            ):
-                debit = _q(_q(line.credit) * ratio)
-                credit = _q(_q(line.debit) * ratio)
-                total_debit += debit
-                total_credit += credit
-                reversal_lines.append(
-                    journal_service.JournalLineInput(
-                        account_id=line.account_id,
-                        debit=debit,
-                        credit=credit,
-                        line_number=line_no,
-                        memo=(
-                            f"Refund {refund.refund_number} reversal of "
-                            f"sale {sale.sale_number}: {line.memo or ''}"
-                        ).strip(),
-                        division_id=line.division_id,
-                    )
-                )
-            # Correct any rounding drift by adjusting the largest line.
-            drift = _q(total_debit - total_credit)
-            if drift != _ZERO and reversal_lines:
-                # Adjust the largest credit (if drift > 0 we need more credit)
-                # or largest debit (if drift < 0 we need more debit).
-                if drift > _ZERO:
-                    target = max(reversal_lines, key=lambda line_obj: line_obj.credit)
-                    target.credit = _q(target.credit + drift)
-                else:
-                    target = max(reversal_lines, key=lambda line_obj: line_obj.debit)
-                    target.debit = _q(target.debit + (-drift))
-
-            posted_at = datetime.now(UTC)
-            entry = await journal_service.post(
-                journal_service.JournalEntryInput(
-                    description=(
-                        f"Refund {refund.refund_number}: reversal of " f"sale {sale.sale_number}"
-                    ),
-                    posted_at=posted_at,
-                    lines=reversal_lines,
-                ),
-                session=session,
-                actor_user_id=actor_user_id,
-                _internal_skip_approval_check=True,
-            )
-            assert isinstance(entry, JournalEntry)
-            reversing_je_id = entry.id
-            refund.posting_journal_entry_id = reversing_je_id
+        qbo_lines.append({"role": "bank", "posting": "credit", "amount": str(refund_total)})
+        if restock_cost > _ZERO:
+            qbo_lines.append({"role": "inventory", "posting": "debit", "amount": str(restock_cost)})
+            qbo_lines.append({"role": "cogs", "posting": "credit", "amount": str(restock_cost)})
+        await qbo_outbox.enqueue(
+            session,
+            kind="refund",
+            local_id=refund.id,
+            payload={
+                "lines": qbo_lines,
+                "private_note": f"Refund {refund.refund_number} of sale {sale.sale_number}",
+            },
+            op="post",
+        )
 
     refund.state = RefundState.POSTED
     await session.flush()
@@ -851,8 +774,3 @@ try:  # pragma: no cover
         _approvals_module.register_subject_resolver("refund", get)
 except Exception:
     pass
-
-
-# JournalLine import for the linter — used in selectinload chain (kept for
-# clarity even though selectinload string-resolves it).
-_ = JournalLine

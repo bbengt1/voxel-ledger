@@ -30,7 +30,9 @@ async def test_acquire_creates_active_asset(client: AsyncClient, app_session: As
     body = r.json()
     assert body["state"] == "active"
     assert body["asset_number"].startswith("ASSET-")
-    assert body["posting_journal_entry_id"] is not None
+    # QBO is the sole ledger (epic #312, Phase 5e): the acquisition is pushed
+    # via the QBO sync outbox; no local JE id is stamped.
+    assert body["posting_journal_entry_id"] is None
 
 
 @pytest.mark.asyncio

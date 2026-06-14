@@ -60,16 +60,13 @@ from sqlalchemy.orm import selectinload
 from app.events.types import ap as ap_events
 from app.models.approval_request import ApprovalRequest, ApprovalState
 from app.models.bill_payment import BillPayment
-from app.models.expense_category import ExpenseCategory
 from app.models.expense_claim import (
     ExpenseClaim,
     ExpenseClaimLine,
     ExpenseClaimState,
 )
-from app.models.journal_entry import JournalEntry
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 from app.services.approvals import ApprovalsService
 from app.services.reference_number import ReferenceNumberService
 from app.services.settings.service import SettingsService
@@ -630,39 +627,6 @@ async def submit(
     return claim
 
 
-async def _resolve_line_expense_account(session: AsyncSession, line: ExpenseClaimLine) -> uuid.UUID:
-    """Resolve the per-line Dr expense account via the category's default.
-
-    Mirrors the second link in ``bills._resolve_expense_account``. Lines
-    always have a category (NOT NULL), so we hard-require the category's
-    default account.
-    """
-    row = (
-        await session.execute(
-            select(ExpenseCategory.default_expense_account_id).where(
-                ExpenseCategory.id == line.expense_category_id
-            )
-        )
-    ).scalar_one_or_none()
-    if row is None:
-        raise ExpenseCategoryMissingAccountError(
-            f"expense_category {line.expense_category_id} not found " f"(line {line.line_number})"
-        )
-    return row
-
-
-async def _resolve_reimbursable_account(session: AsyncSession) -> uuid.UUID:
-    value = await SettingsService.get(_REIMBURSABLE_ACCOUNT_KEY, session=session)
-    if value is None:
-        raise MissingReimbursableAccountError(
-            "configure ap.employee_reimbursable_account_id "
-            "(the liability account credited on expense-claim approval)"
-        )
-    if not isinstance(value, uuid.UUID):
-        value = uuid.UUID(str(value))
-    return value
-
-
 async def approve(
     session: AsyncSession,
     *,
@@ -684,94 +648,36 @@ async def approve(
             f"expense claim {claim.claim_number} has no lines; cannot approve"
         )
 
-    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
-    # (Dr expense per line, Cr employee_reimbursable) instead of the local GL.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue a role-tagged
+    # JournalEntry (Dr expense per line, Cr employee_reimbursable) via the
+    # sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
-
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-
-    reimbursable_account_id: uuid.UUID | None = None
-    per_line_accounts: list[tuple[ExpenseClaimLine, uuid.UUID]] = []
-    if not qbo_enabled:
-        reimbursable_account_id = await _resolve_reimbursable_account(session)
-        for line in sorted(claim.lines, key=lambda x: x.line_number):
-            account_id = await _resolve_line_expense_account(session, line)
-            per_line_accounts.append((line, account_id))
 
     total = _recompute_total(claim)
     claim.total_amount = total
 
     posted_at = datetime.now(UTC)
     posted_entry_id: uuid.UUID | None = None
-    if qbo_enabled:
-        qbo_lines: list[dict] = [
-            {"role": "expense", "posting": "debit", "amount": str(_q(line.amount))}
-            for line in sorted(claim.lines, key=lambda x: x.line_number)
-            if _q(line.amount) > _ZERO
-        ]
-        if total > _ZERO:
-            qbo_lines.append(
-                {"role": "employee_reimbursable", "posting": "credit", "amount": str(total)}
-            )
-        if len(qbo_lines) < 2:
-            raise InvalidExpenseClaimStateError(
-                f"expense claim {claim.claim_number} has nothing to post (total is zero)"
-            )
-        await qbo_outbox.enqueue(
-            session,
-            kind="expense_claim",
-            local_id=claim.id,
-            payload={"lines": qbo_lines, "private_note": f"Expense claim {claim.claim_number}"},
-            op="post",
+    qbo_lines: list[dict] = [
+        {"role": "expense", "posting": "debit", "amount": str(_q(line.amount))}
+        for line in sorted(claim.lines, key=lambda x: x.line_number)
+        if _q(line.amount) > _ZERO
+    ]
+    if total > _ZERO:
+        qbo_lines.append(
+            {"role": "employee_reimbursable", "posting": "credit", "amount": str(total)}
         )
-    else:
-        lines_in: list[journal_service.JournalLineInput] = []
-        line_no = 0
-
-        def _next_line_no() -> int:
-            nonlocal line_no
-            line_no += 1
-            return line_no
-
-        for line, account_id in per_line_accounts:
-            amount = _q(line.amount)
-            if amount <= _ZERO:
-                continue
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=account_id,
-                    debit=amount,
-                    credit=_ZERO,
-                    line_number=_next_line_no(),
-                    memo=f"Expense for claim {claim.claim_number} line {line.line_number}",
-                )
-            )
-        if total > _ZERO:
-            lines_in.append(
-                journal_service.JournalLineInput(
-                    account_id=reimbursable_account_id,
-                    debit=_ZERO,
-                    credit=total,
-                    line_number=_next_line_no(),
-                    memo=f"Employee reimbursable for claim {claim.claim_number}",
-                )
-            )
-        if len(lines_in) < 2:
-            raise InvalidExpenseClaimStateError(
-                f"expense claim {claim.claim_number} has nothing to post (total is zero)"
-            )
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Expense claim {claim.claim_number}: approval",
-                posted_at=posted_at,
-                lines=lines_in,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
+    if len(qbo_lines) < 2:
+        raise InvalidExpenseClaimStateError(
+            f"expense claim {claim.claim_number} has nothing to post (total is zero)"
         )
-        assert isinstance(entry, JournalEntry)
-        posted_entry_id = entry.id
+    await qbo_outbox.enqueue(
+        session,
+        kind="expense_claim",
+        local_id=claim.id,
+        payload={"lines": qbo_lines, "private_note": f"Expense claim {claim.claim_number}"},
+        op="post",
+    )
 
     claim.posting_journal_entry_id = posted_entry_id
     claim.state = ExpenseClaimState.APPROVED

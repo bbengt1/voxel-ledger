@@ -31,10 +31,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import banking as banking_events
 from app.models.account import Account
-from app.models.journal_entry import JournalEntry
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
 
 
 class InterAccountTransfersServiceError(Exception):
@@ -70,13 +68,13 @@ async def post_transfer(
     occurred_at: datetime,
     memo: str | None,
     actor_user_id: uuid.UUID,
-) -> JournalEntry | None:
-    """Validate and post a balanced inter-account transfer JE.
+) -> None:
+    """Validate an inter-account transfer and enqueue it for QBO.
 
-    Returns the persisted :class:`JournalEntry`, or ``None`` in QBO
-    replace-mode (the posting is pushed to QBO async via the sync outbox,
-    so there is no local JE). Same-TX — the caller must commit. Emits
-    ``banking.InterAccountTransferPosted`` inside the same transaction.
+    Always returns ``None`` — the posting is pushed to QBO async via the
+    sync outbox, so there is no local JE. Same-TX — the caller must
+    commit. Emits ``banking.InterAccountTransferPosted`` inside the same
+    transaction.
     """
     if from_account_id == to_account_id:
         raise InvalidInterAccountTransferError("from_account_id and to_account_id must differ")
@@ -90,88 +88,37 @@ async def post_transfer(
 
     description = (memo or "").strip() or f"Transfer {from_account_id} -> {to_account_id}"
 
-    # QBO replace-mode (epic #312, Phase 3d follow-up): enqueue a JournalEntry
-    # whose legs reference the local accounts (resolved at drain via the
-    # local-account map) instead of posting the local GL.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
     from app.services.quickbooks import outbox as qbo_outbox
 
-    if await qbo_outbox.is_enabled(session):
-        transfer_id = uuid.uuid4()
-        await qbo_outbox.enqueue(
-            session,
-            kind="inter_account_transfer",
-            local_id=transfer_id,
-            payload={
-                "lines": [
-                    {
-                        "local_account_id": str(to_account_id),
-                        "posting": "debit",
-                        "amount": str(amount),
-                        "description": memo,
-                    },
-                    {
-                        "local_account_id": str(from_account_id),
-                        "posting": "credit",
-                        "amount": str(amount),
-                        "description": memo,
-                    },
-                ],
-                "private_note": description,
-            },
-            op="post",
-        )
-        await _emit_posted(
-            session,
-            aggregate_id=transfer_id,
-            journal_entry_id=None,
-            from_account_id=from_account_id,
-            to_account_id=to_account_id,
-            amount=amount,
-            occurred_at=occurred_at,
-            memo=memo,
-            actor_user_id=actor_user_id,
-        )
-        return None
-
-    lines = [
-        journal_service.JournalLineInput(
-            account_id=to_account_id,
-            debit=amount,
-            credit=Decimal("0"),
-            line_number=1,
-            memo=memo,
-        ),
-        journal_service.JournalLineInput(
-            account_id=from_account_id,
-            debit=Decimal("0"),
-            credit=amount,
-            line_number=2,
-            memo=memo,
-        ),
-    ]
-    try:
-        entry = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=description,
-                posted_at=occurred_at,
-                lines=lines,
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-    except journal_service.JournalEntriesServiceError as exc:
-        raise InvalidInterAccountTransferError(str(exc)) from exc
-
-    if not isinstance(entry, JournalEntry):
-        # With _internal_skip_approval_check=True the approval branch is
-        # unreachable; surface as a service error if it ever fires.
-        raise InvalidInterAccountTransferError("journal entry not posted")
-
+    transfer_id = uuid.uuid4()
+    await qbo_outbox.enqueue(
+        session,
+        kind="inter_account_transfer",
+        local_id=transfer_id,
+        payload={
+            "lines": [
+                {
+                    "local_account_id": str(to_account_id),
+                    "posting": "debit",
+                    "amount": str(amount),
+                    "description": memo,
+                },
+                {
+                    "local_account_id": str(from_account_id),
+                    "posting": "credit",
+                    "amount": str(amount),
+                    "description": memo,
+                },
+            ],
+            "private_note": description,
+        },
+        op="post",
+    )
     await _emit_posted(
         session,
-        aggregate_id=entry.id,
-        journal_entry_id=entry.id,
+        aggregate_id=transfer_id,
+        journal_entry_id=None,
         from_account_id=from_account_id,
         to_account_id=to_account_id,
         amount=amount,
@@ -179,8 +126,7 @@ async def post_transfer(
         memo=memo,
         actor_user_id=actor_user_id,
     )
-
-    return entry
+    return None
 
 
 async def _emit_posted(

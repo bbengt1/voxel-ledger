@@ -11,7 +11,7 @@ from app.models.account import Account
 from app.models.auth import Role
 from app.models.deposit_slip import DepositSlip, DepositSlipItem, DepositSlipState
 from app.models.event import Event
-from app.models.journal_line import JournalLine
+from app.models.qbo_sync_outbox import QboSyncOutbox
 from app.services.settings.service import SettingsService
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -104,45 +104,16 @@ async def _issue_invoice_and_create_payment(
 
 
 @pytest.mark.asyncio
-async def test_payment_with_flag_debits_undeposited(
-    client: AsyncClient, app_session: AsyncSession
-) -> None:
-    """The apply-payment JE debits the undeposited account when the
-    payment carries ``deposit_to_undeposited=True``."""
-    owner = await token_for(Role.OWNER, client, app_session)
-    await seed_ar_posting_defaults(app_session)
-    bank = await _seed_bank_account(app_session)
-    undeposited = await _seed_undeposited_account(app_session)
-    customer = await seed_customer(app_session)
-
-    payment_id, _ = await _issue_invoice_and_create_payment(
-        client,
-        token=owner,
-        customer_id=str(customer.id),
-        amount="100.00",
-        deposit_to_undeposited=True,
-    )
-
-    # The apply-payment JE should have one debit on the undeposited
-    # account, NOT the bank account.
-    lines = (await app_session.execute(select(JournalLine))).scalars().all()
-    debits_on_undeposited = sum(ln.debit for ln in lines if ln.account_id == undeposited.id)
-    debits_on_bank = sum(ln.debit for ln in lines if ln.account_id == bank.id)
-    assert debits_on_undeposited >= Decimal("100.000000")
-    assert debits_on_bank == Decimal("0")
-    _ = payment_id
-
-
-@pytest.mark.asyncio
 async def test_build_slip_consolidates_payments(
     client: AsyncClient, app_session: AsyncSession
 ) -> None:
-    """Three undeposited payments → one slip; the slip JE has one
-    debit on the bank account for the consolidated total."""
+    """Three undeposited payments → one slip; the slip enqueues one
+    QBO sync-outbox JE (Dr bank, Cr undeposited) for the consolidated
+    total (QBO is the sole ledger — epic #312, Phase 5e)."""
     owner = await token_for(Role.OWNER, client, app_session)
     await seed_ar_posting_defaults(app_session)
     bank = await _seed_bank_account(app_session)
-    undeposited = await _seed_undeposited_account(app_session)
+    await _seed_undeposited_account(app_session)
     customer = await seed_customer(app_session)
 
     payment_ids = []
@@ -171,22 +142,24 @@ async def test_build_slip_consolidates_payments(
     assert body["state"] == DepositSlipState.DEPOSITED.value
     slip_id = uuid.UUID(body["id"])
 
-    # The slip's posting JE has exactly two lines: DR bank, CR undeposited.
+    # No local JE; the role-tagged JE goes out via the QBO sync outbox:
+    # DR bank, CR undeposited_funds for the consolidated total.
     slip = (
         await app_session.execute(select(DepositSlip).where(DepositSlip.id == slip_id))
     ).scalar_one()
-    je_id = slip.posting_journal_entry_id
-    assert je_id is not None
-    slip_lines = (
-        (await app_session.execute(select(JournalLine).where(JournalLine.entry_id == je_id)))
-        .scalars()
-        .all()
-    )
-    by_account = {ln.account_id: ln for ln in slip_lines}
-    assert by_account[bank.id].debit == Decimal("150.000000")
-    assert by_account[bank.id].credit == Decimal("0")
-    assert by_account[undeposited.id].debit == Decimal("0")
-    assert by_account[undeposited.id].credit == Decimal("150.000000")
+    assert slip.posting_journal_entry_id is None
+    outbox_row = (
+        await app_session.execute(
+            select(QboSyncOutbox).where(
+                QboSyncOutbox.kind == "deposit_slip", QboSyncOutbox.local_id == slip_id
+            )
+        )
+    ).scalar_one()
+    by_role = {ln["role"]: ln for ln in outbox_row.payload["lines"]}
+    assert by_role["bank"]["posting"] == "debit"
+    assert Decimal(by_role["bank"]["amount"]) == Decimal("150.00")
+    assert by_role["undeposited_funds"]["posting"] == "credit"
+    assert Decimal(by_role["undeposited_funds"]["amount"]) == Decimal("150.00")
 
     # Slip items recorded per payment.
     items = (

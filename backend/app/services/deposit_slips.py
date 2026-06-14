@@ -33,12 +33,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.events.types import ar as ar_events
 from app.models.deposit_slip import DepositSlip, DepositSlipItem, DepositSlipState
-from app.models.journal_entry import JournalEntry
 from app.models.payment import Payment
 from app.schemas.events import EventCreate
 from app.services import event_store
-from app.services import journal_entries as journal_service
-from app.services.payments import _resolve_undeposited_account
 from app.services.reference_number import ReferenceNumberService
 
 _QUANTUM = Decimal("0.01")
@@ -79,7 +76,7 @@ class DepositSlipBankAccountMissingError(DepositSlipServiceError):
 class BuildResult:
     slip_id: uuid.UUID
     slip_number: str
-    # None in QBO replace-mode (epic #312): pushed async via the sync outbox.
+    # Always None: the posting is pushed to QBO async via the sync outbox.
     journal_entry_id: uuid.UUID | None
     total: Decimal
 
@@ -156,13 +153,6 @@ async def build_slip(
             f"payments already on a deposit slip: {list(already)}"
         )
 
-    # QBO replace-mode (epic #312, Phase 3d-2): enqueue a role-tagged JournalEntry
-    # (Dr bank, Cr undeposited_funds) instead of posting the local GL.
-    from app.services.quickbooks import outbox as qbo_outbox
-
-    qbo_enabled = await qbo_outbox.is_enabled(session)
-    undeposited_account_id = None if qbo_enabled else await _resolve_undeposited_account(session)
-
     total = _q(sum((p.amount for p in found.values()), _ZERO))
     if total <= _ZERO:
         raise DepositSlipInvalidPaymentsError("slip total must be > 0")
@@ -170,56 +160,24 @@ async def build_slip(
     slip_number = await ReferenceNumberService.allocate("DS", session=session)
     slip_id = uuid.uuid4()
 
-    # Post the consolidated transfer JE: DR bank for the total, CR
-    # undeposited for the total. The customer-payment apply-payment
-    # JEs already moved AR -> undeposited; this completes the chain
-    # to AR -> bank.
+    # QBO is the sole ledger (epic #312, Phase 5e): enqueue the consolidated
+    # transfer JE (Dr bank, Cr undeposited_funds) via the sync outbox.
+    from app.services.quickbooks import outbox as qbo_outbox
+
     je_id: uuid.UUID | None = None
-    if qbo_enabled:
-        await qbo_outbox.enqueue(
-            session,
-            kind="deposit_slip",
-            local_id=slip_id,
-            payload={
-                "lines": [
-                    {"role": "bank", "posting": "debit", "amount": str(total)},
-                    {"role": "undeposited_funds", "posting": "credit", "amount": str(total)},
-                ],
-                "private_note": f"Deposit slip {slip_number}",
-            },
-            op="post",
-        )
-    else:
-        je = await journal_service.post(
-            journal_service.JournalEntryInput(
-                description=f"Deposit slip {slip_number}",
-                posted_at=datetime.combine(deposit_date, datetime.min.time(), tzinfo=UTC),
-                lines=[
-                    journal_service.JournalLineInput(
-                        account_id=bank_account_id,
-                        debit=total,
-                        credit=_ZERO,
-                        line_number=1,
-                        memo=f"Deposit {slip_number} (consolidated)",
-                    ),
-                    journal_service.JournalLineInput(
-                        account_id=undeposited_account_id,
-                        debit=_ZERO,
-                        credit=total,
-                        line_number=2,
-                        memo=f"Clear undeposited for slip {slip_number}",
-                    ),
-                ],
-            ),
-            session=session,
-            actor_user_id=actor_user_id,
-            _internal_skip_approval_check=True,
-        )
-        if not isinstance(je, JournalEntry):
-            raise DepositSlipServiceError(
-                "deposit-slip JE generated an approval request unexpectedly"
-            )
-        je_id = je.id
+    await qbo_outbox.enqueue(
+        session,
+        kind="deposit_slip",
+        local_id=slip_id,
+        payload={
+            "lines": [
+                {"role": "bank", "posting": "debit", "amount": str(total)},
+                {"role": "undeposited_funds", "posting": "credit", "amount": str(total)},
+            ],
+            "private_note": f"Deposit slip {slip_number}",
+        },
+        op="post",
+    )
 
     slip = DepositSlip(
         id=slip_id,

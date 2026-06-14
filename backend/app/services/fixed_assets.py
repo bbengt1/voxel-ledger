@@ -2,9 +2,10 @@
 
 Covers tangible + intangible assets. The keystone operation is
 :func:`acquire` — it allocates an ``ASSET-YYYY-NNNN`` reference,
-inserts the row, posts a balanced JE (Dr Asset / Cr Bank-or-AP), and
-emits ``acc.AssetAcquired`` ALL INSIDE THE SAME DB TRANSACTION. The
-router commits.
+inserts the row, enqueues the acquisition posting (Dr Asset / Cr Bank)
+on the QBO sync outbox (QBO is the sole ledger; epic #312, Phase 5e),
+and emits ``acc.AssetAcquired`` ALL INSIDE THE SAME DB TRANSACTION.
+The router commits.
 
 Acquisition contra-side rules
 -----------------------------
@@ -12,13 +13,13 @@ Acquisition contra-side rules
   account (the Bank). A fresh JE is posted Dr Asset / Cr Bank for
   ``acquisition_cost``.
 * Bill-funded acquisition (``acquisition_bill_id`` set): the bill's
-  posted JE already did Dr Asset / Cr AP — Phase 8.2 routes the
+  own QBO posting already did Dr Asset / Cr AP — Phase 8.2 routes the
   expense leg through ``line.expense_account_id_override``, so the
   operator must have set the override to the asset account on at
   least one line summing to ``acquisition_cost``. In that path we
-  DO NOT post a new JE; we stamp ``posting_journal_entry_id`` with
-  the bill's existing JE id. The bill must be ``issued`` (or any
-  state after).
+  DO NOT enqueue a new posting; ``posting_journal_entry_id`` mirrors
+  the bill's (``None`` under QBO). The bill must be ``issued`` (or
+  any state after).
 
 Account-type validation
 -----------------------
@@ -61,12 +62,10 @@ from app.models.fixed_asset import (
     FixedAssetKind,
     FixedAssetState,
 )
-from app.models.journal_entry import JournalEntry
 from app.models.vendor import Vendor
 from app.schemas.events import EventCreate
 from app.services import depreciation_schedule as schedule_service
 from app.services import event_store
-from app.services import journal_entries as journal_service
 from app.services.reference_number import ReferenceNumberService
 
 # ---------------------------------------------------------------------------
@@ -341,11 +340,10 @@ async def acquire(
                 f"bill {bill.bill_number} is in state 'draft'; only issued bills "
                 "can fund an asset acquisition"
             )
-        if bill.posting_journal_entry_id is None:
-            raise InvalidAcquisitionBillError(
-                f"bill {bill.bill_number} has no posted journal entry; "
-                "cannot fund an asset acquisition"
-            )
+        # QBO is the sole ledger (epic #312, Phase 5e): issued bills no longer
+        # stamp a local ``posting_journal_entry_id`` (the bill itself is pushed
+        # via the QBO sync outbox), so no local-JE existence check here — the
+        # routed-total check below is the real gate.
         # Verify at least one bill line routes ``acquisition_cost`` to the
         # asset account via ``expense_account_id_override``.
         items_q = await session.execute(select(BillItem).where(BillItem.bill_id == bill.id))
@@ -419,56 +417,26 @@ async def acquire(
         asset.posting_journal_entry_id = je_id
         contra_for_payload = contra_account_id
     else:
+        # QBO is the sole ledger (epic #312, Phase 5e): enqueue via the sync outbox.
         from app.services.quickbooks import outbox as qbo_outbox
 
-        if await qbo_outbox.is_enabled(session):
-            # Cash acquisition → Dr fixed_asset, Cr bank. (Limitation: a non-bill
-            # AP-contra acquisition also routes to the bank role here.)
-            await qbo_outbox.enqueue(
-                session,
-                kind="fixed_asset_acquisition",
-                local_id=asset.id,
-                payload={
-                    "lines": [
-                        {"role": "fixed_asset", "posting": "debit", "amount": str(cost)},
-                        {"role": "bank", "posting": "credit", "amount": str(cost)},
-                    ],
-                    "private_note": f"Acquisition of {asset_number}",
-                },
-                op="post",
-            )
-            je_id = None
-            asset.posting_journal_entry_id = None
-        else:
-            posted_at = datetime.combine(acquired_on, datetime.min.time(), tzinfo=UTC)
-            entry = await journal_service.post(
-                journal_service.JournalEntryInput(
-                    description=f"Acquisition of asset {asset_number}",
-                    posted_at=posted_at,
-                    lines=[
-                        journal_service.JournalLineInput(
-                            account_id=asset_account_id,
-                            debit=cost,
-                            credit=_ZERO,
-                            line_number=1,
-                            memo=f"Dr asset for {asset_number}",
-                        ),
-                        journal_service.JournalLineInput(
-                            account_id=contra_account_id,  # type: ignore[arg-type]
-                            debit=_ZERO,
-                            credit=cost,
-                            line_number=2,
-                            memo=f"Cr contra for {asset_number}",
-                        ),
-                    ],
-                ),
-                session=session,
-                actor_user_id=actor_user_id,
-                _internal_skip_approval_check=True,
-            )
-            assert isinstance(entry, JournalEntry)
-            je_id = entry.id
-            asset.posting_journal_entry_id = je_id
+        # Cash acquisition → Dr fixed_asset, Cr bank. (Limitation: a non-bill
+        # AP-contra acquisition also routes to the bank role here.)
+        await qbo_outbox.enqueue(
+            session,
+            kind="fixed_asset_acquisition",
+            local_id=asset.id,
+            payload={
+                "lines": [
+                    {"role": "fixed_asset", "posting": "debit", "amount": str(cost)},
+                    {"role": "bank", "posting": "credit", "amount": str(cost)},
+                ],
+                "private_note": f"Acquisition of {asset_number}",
+            },
+            op="post",
+        )
+        je_id = None
+        asset.posting_journal_entry_id = None
         contra_for_payload = contra_account_id
 
     await session.flush()
